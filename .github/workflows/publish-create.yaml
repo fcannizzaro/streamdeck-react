@@ -42,6 +42,6 @@ jobs:
       - name: Create GitHub Release
         run: |
           version=$(node -p "require('./packages/create-streamdeck-react/package.json').version")
-          gh release create "create-v${version}" --title "create-v${version}" --generate-notes
+          gh release create "create-streamdeck-react@${version}" --title "create-streamdeck-react@${version}" --generate-notes
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
