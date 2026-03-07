@@ -1,6 +1,6 @@
 // ── Plugin Setup ────────────────────────────────────────────────────
-export { createPlugin } from "@/plugin.ts";
-export { defineAction } from "@/action.ts";
+export { createPlugin } from "@/plugin";
+export { defineAction } from "@/action";
 
 // ── Hooks — Events ──────────────────────────────────────────────────
 export {
@@ -11,10 +11,10 @@ export {
   useDialUp,
   useTouchTap,
   useDialHint,
-} from "@/hooks/events.ts";
+} from "@/hooks/events";
 
 // ── Hooks — Settings ────────────────────────────────────────────────
-export { useSettings, useGlobalSettings } from "@/hooks/settings.ts";
+export { useSettings, useGlobalSettings } from "@/hooks/settings";
 
 // ── Hooks — Context ─────────────────────────────────────────────────
 export {
@@ -22,10 +22,10 @@ export {
   useAction,
   useCanvas,
   useStreamDeck,
-} from "@/hooks/context.ts";
+} from "@/hooks/context";
 
 // ── Hooks — Lifecycle ───────────────────────────────────────────────
-export { useWillAppear, useWillDisappear } from "@/hooks/lifecycle.ts";
+export { useWillAppear, useWillDisappear } from "@/hooks/lifecycle";
 
 // ── Hooks — Utility ─────────────────────────────────────────────────
 export {
@@ -34,7 +34,7 @@ export {
   usePrevious,
   useTick,
   useAnimationFrame,
-} from "@/hooks/utility.ts";
+} from "@/hooks/utility";
 
 // ── Hooks — SDK ─────────────────────────────────────────────────────
 export {
@@ -45,19 +45,19 @@ export {
   useShowAlert,
   useShowOk,
   useTitle,
-} from "@/hooks/sdk.ts";
+} from "@/hooks/sdk";
 
 // ── Components ──────────────────────────────────────────────────────
-export { Box } from "@/components/Box.tsx";
-export { Text } from "@/components/Text.tsx";
-export { Image } from "@/components/Image.tsx";
-export { Icon } from "@/components/Icon.tsx";
-export { ProgressBar } from "@/components/ProgressBar.tsx";
-export { CircularGauge } from "@/components/CircularGauge.tsx";
-export { ErrorBoundary } from "@/components/ErrorBoundary.tsx";
+export { Box } from "@/components/Box";
+export { Text } from "@/components/Text";
+export { Image } from "@/components/Image";
+export { Icon } from "@/components/Icon";
+export { ProgressBar } from "@/components/ProgressBar";
+export { CircularGauge } from "@/components/CircularGauge";
+export { ErrorBoundary } from "@/components/ErrorBoundary";
 
 // ── Tailwind Utility ────────────────────────────────────────────────
-export { tw } from "@/tw/index.ts";
+export { tw } from "@/tw/index";
 
 // ── Types ───────────────────────────────────────────────────────────
 export type {
@@ -79,13 +79,13 @@ export type {
   TouchTapPayload,
   DialHints,
   StreamDeckAccess,
-} from "@/types.ts";
+} from "@/types";
 
 // ── Component Props Types ───────────────────────────────────────────
-export type { BoxProps } from "@/components/Box.tsx";
-export type { TextProps } from "@/components/Text.tsx";
-export type { ImageProps } from "@/components/Image.tsx";
-export type { IconProps } from "@/components/Icon.tsx";
-export type { ProgressBarProps } from "@/components/ProgressBar.tsx";
-export type { CircularGaugeProps } from "@/components/CircularGauge.tsx";
-export type { ErrorBoundaryProps } from "@/components/ErrorBoundary.tsx";
+export type { BoxProps } from "@/components/Box";
+export type { TextProps } from "@/components/Text";
+export type { ImageProps } from "@/components/Image";
+export type { IconProps } from "@/components/Icon";
+export type { ProgressBarProps } from "@/components/ProgressBar";
+export type { CircularGaugeProps } from "@/components/CircularGauge";
+export type { ErrorBoundaryProps } from "@/components/ErrorBoundary";

@@ -2,20 +2,20 @@
 
 import { describe, expect, test } from "bun:test";
 import { act } from "react";
-import { useStreamDeck } from "@/hooks/context.ts";
-import { useOpenUrl } from "@/hooks/sdk.ts";
-import { useSettings, useGlobalSettings } from "@/hooks/settings.ts";
-import { useWillAppear } from "@/hooks/lifecycle.ts";
-import { useDialRotate } from "@/hooks/events.ts";
-import { RootRegistry } from "@/roots/registry.ts";
-import { sleep } from "@/test-utils/sleep.ts";
+import { useStreamDeck, useCanvas } from "@/hooks/context";
+import { useOpenUrl } from "@/hooks/sdk";
+import { useSettings, useGlobalSettings } from "@/hooks/settings";
+import { useWillAppear } from "@/hooks/lifecycle";
+import { useDialRotate } from "@/hooks/events";
+import { RootRegistry } from "@/roots/registry";
+import { sleep } from "@/test-utils/sleep";
 import type {
   ActionDefinition,
   EncoderLayout,
   JsonObject,
   StreamDeckAccess,
   WillAppearPayload,
-} from "@/types.ts";
+} from "@/types";
 
 // ── Helpers ─────────────────────────────────────────────────────────
 
@@ -515,6 +515,157 @@ describe("ReactRoot integration", () => {
     });
 
     expect(feedbackLayoutCalls).toEqual([layout]);
+
+    act(() => {
+      registry.destroyAll();
+    });
+  });
+
+  test("Galleon 100 SD (type 12) uses 144x144 key size", async () => {
+    let canvasFromHook: { width: number; height: number; type: string } | undefined;
+    const fakeSdk = createFakeSdk();
+
+    function TestAction() {
+      canvasFromHook = useCanvas();
+      return null;
+    }
+
+    const definition: ActionDefinition = {
+      uuid: "com.example.galleon-key",
+      key: TestAction,
+      defaultSettings: {},
+    };
+
+    const registry = createRegistry(fakeSdk);
+
+    const event = {
+      action: {
+        id: "galleon-action-1",
+        device: {
+          id: "device-galleon",
+          type: 12, // Galleon100SD
+          size: { columns: 3, rows: 4 },
+          name: "Galleon 100 SD",
+        },
+        controllerType: "Keypad",
+        coordinates: { column: 0, row: 0 },
+        setSettings: async (_settings: JsonObject) => {},
+      },
+      payload: {
+        settings: {},
+        isInMultiAction: false,
+      },
+    } as never;
+
+    await act(async () => {
+      registry.create(event, TestAction, definition);
+      await sleep(20);
+    });
+
+    expect(canvasFromHook).toEqual({ width: 144, height: 144, type: "key" });
+
+    act(() => {
+      registry.destroyAll();
+    });
+  });
+
+  test("Stream Deck + XL (type 13) uses 144x144 key size", async () => {
+    let canvasFromHook: { width: number; height: number; type: string } | undefined;
+    const fakeSdk = createFakeSdk();
+
+    function TestAction() {
+      canvasFromHook = useCanvas();
+      return null;
+    }
+
+    const definition: ActionDefinition = {
+      uuid: "com.example.plus-xl-key",
+      key: TestAction,
+      defaultSettings: {},
+    };
+
+    const registry = createRegistry(fakeSdk);
+
+    const event = {
+      action: {
+        id: "plus-xl-action-1",
+        device: {
+          id: "device-plus-xl",
+          type: 13, // StreamDeckPlusXL
+          size: { columns: 9, rows: 4 },
+          name: "Stream Deck + XL",
+        },
+        controllerType: "Keypad",
+        coordinates: { column: 0, row: 0 },
+        setSettings: async (_settings: JsonObject) => {},
+      },
+      payload: {
+        settings: {},
+        isInMultiAction: false,
+      },
+    } as never;
+
+    await act(async () => {
+      registry.create(event, TestAction, definition);
+      await sleep(20);
+    });
+
+    expect(canvasFromHook).toEqual({ width: 144, height: 144, type: "key" });
+
+    act(() => {
+      registry.destroyAll();
+    });
+  });
+
+  test("Stream Deck + XL encoder uses 200x100 dial size", async () => {
+    const feedbackLayoutCalls: EncoderLayout[] = [];
+    let canvasFromHook: { width: number; height: number; type: string } | undefined;
+    const fakeSdk = createFakeSdk();
+
+    function DialTestAction() {
+      canvasFromHook = useCanvas();
+      return null;
+    }
+
+    const definition: ActionDefinition = {
+      uuid: "com.example.plus-xl-encoder",
+      dial: DialTestAction,
+      defaultSettings: {},
+    };
+
+    const registry = createRegistry(fakeSdk);
+
+    const encoderEvent = {
+      action: {
+        id: "plus-xl-encoder-1",
+        device: {
+          id: "device-plus-xl",
+          type: 13, // StreamDeckPlusXL
+          size: { columns: 9, rows: 4 },
+          name: "Stream Deck + XL",
+        },
+        controllerType: "Encoder",
+        setSettings: async (_settings: JsonObject) => {},
+        setFeedbackLayout: async (layout: EncoderLayout) => {
+          feedbackLayoutCalls.push(layout);
+        },
+        setFeedback: async () => {},
+        setTriggerDescription: async () => {},
+      },
+      payload: {
+        settings: {},
+        controller: "Encoder",
+        isInMultiAction: false,
+      },
+    } as never;
+
+    await act(async () => {
+      registry.create(encoderEvent, DialTestAction, definition);
+      await sleep(20);
+    });
+
+    expect(canvasFromHook).toEqual({ width: 200, height: 100, type: "dial" });
+    expect(feedbackLayoutCalls.length).toBe(1);
 
     act(() => {
       registry.destroyAll();

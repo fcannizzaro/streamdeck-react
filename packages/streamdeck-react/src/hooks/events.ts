@@ -1,5 +1,5 @@
 import { useContext, useEffect, useRef } from "react";
-import { EventBusContext } from "@/context/providers.ts";
+import { EventBusContext } from "@/context/providers";
 import type {
   KeyDownPayload,
   KeyUpPayload,
@@ -7,10 +7,10 @@ import type {
   DialPressPayload,
   TouchTapPayload,
   DialHints,
-} from "@/types.ts";
-import { StreamDeckContext } from "@/context/providers.ts";
+} from "@/types";
+import { StreamDeckContext } from "@/context/providers";
 import type { DialAction } from "@elgato/streamdeck";
-import { useCallbackRef } from "./internal/useCallbackRef.ts";
+import { useCallbackRef } from "./internal/useCallbackRef";
 
 // ── Internal hook pattern: subscribe to event bus ───────────────────
 

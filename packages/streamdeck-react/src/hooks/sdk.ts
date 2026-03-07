@@ -1,8 +1,8 @@
 import { useContext, useCallback, useEffect } from "react";
-import { EventBusContext, StreamDeckContext } from "@/context/providers.ts";
+import { EventBusContext, StreamDeckContext } from "@/context/providers";
 import type { KeyAction } from "@elgato/streamdeck";
 import type { JsonValue } from "@elgato/utils"
-import { useCallbackRef } from "./internal/useCallbackRef.ts";
+import { useCallbackRef } from "./internal/useCallbackRef";
 
 // ── useOpenUrl ──────────────────────────────────────────────────────
 

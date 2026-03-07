@@ -5,7 +5,7 @@ import {
   createTextVNode,
   type VNode,
   type VContainer,
-} from "./vnode.ts";
+} from "./vnode";
 
 // ── No-op / Stub values ────────────────────────────────────────────
 

@@ -61,10 +61,6 @@ export default defineConfig({
       entryRoot: srcDir,
       include: [srcDir],
       outDir: resolve(rootDir, "dist"),
-      beforeWriteFile: (filePath, content) => ({
-        filePath,
-        content: content.replace(/(from\s+["'][^"']+?)\.(?:ts|tsx)(["'])/g, "$1.js$2"),
-      }),
     }),
   ],
 });

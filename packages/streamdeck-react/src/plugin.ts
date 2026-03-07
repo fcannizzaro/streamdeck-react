@@ -16,13 +16,13 @@ import streamDeck, {
 } from "@elgato/streamdeck";
 import { Renderer } from "@takumi-rs/core";
 import type { JsonObject, JsonValue } from "@elgato/utils"
-import { RootRegistry } from "@/roots/registry.ts";
+import { RootRegistry } from "@/roots/registry";
 import type {
   PluginConfig,
   Plugin,
   ActionDefinition,
-} from "./types.ts";
-import type { RenderConfig } from "@/render/pipeline.ts";
+} from "./types";
+import type { RenderConfig } from "@/render/pipeline";
 
 // ── createPlugin ────────────────────────────────────────────────────
 

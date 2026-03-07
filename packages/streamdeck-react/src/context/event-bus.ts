@@ -1,4 +1,4 @@
-import type { EventMap } from "@/types.ts";
+import type { EventMap } from "@/types";
 
 // ── Typed Event Bus ─────────────────────────────────────────────────
 

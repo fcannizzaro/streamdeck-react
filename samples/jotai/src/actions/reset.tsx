@@ -1,6 +1,6 @@
 import { useSetAtom } from "jotai";
 import { defineAction, useKeyDown, tw } from "@fcannizzaro/streamdeck-react";
-import { resetAtom } from "../store.ts";
+import { resetAtom } from "../store";
 
 function ResetAtomKey() {
   const reset = useSetAtom(resetAtom);

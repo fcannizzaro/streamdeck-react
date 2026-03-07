@@ -1,5 +1,5 @@
 import { defineAction, tw } from "@fcannizzaro/streamdeck-react";
-import { useCounterStore } from "../store.ts";
+import { useCounterStore } from "../store";
 
 function SharedDisplayKey() {
   const count = useCounterStore((state) => state.count);

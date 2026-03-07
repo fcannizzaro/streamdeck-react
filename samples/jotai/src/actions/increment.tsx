@@ -1,6 +1,6 @@
 import { useSetAtom } from "jotai";
 import { defineAction, useKeyDown, tw } from "@fcannizzaro/streamdeck-react";
-import { incrementAtom } from "../store.ts";
+import { incrementAtom } from "../store";
 
 function IncrementAtomKey() {
   const increment = useSetAtom(incrementAtom);

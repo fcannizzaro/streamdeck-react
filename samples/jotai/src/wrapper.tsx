@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Provider } from "jotai";
-import { store } from "./store.ts";
+import { store } from "./store";
 
 type JotaiWrapperProps = {
   children?: ReactNode;

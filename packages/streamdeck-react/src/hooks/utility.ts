@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import { useCallbackRef } from "./internal/useCallbackRef.ts";
+import { useCallbackRef } from "./internal/useCallbackRef";
 
 const DEFAULT_TICK_FPS = 60;
 

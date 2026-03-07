@@ -1,6 +1,6 @@
 import { useAtomValue } from "jotai";
 import { defineAction, tw } from "@fcannizzaro/streamdeck-react";
-import { countAtom } from "../store.ts";
+import { countAtom } from "../store";
 
 function AtomDisplayKey() {
   const count = useAtomValue(countAtom);

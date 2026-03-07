@@ -4,13 +4,13 @@ import {
   DeviceContext,
   CanvasContext,
   StreamDeckContext,
-} from "@/context/providers.ts";
+} from "@/context/providers";
 import type {
   ActionInfo,
   CanvasInfo,
   DeviceInfo,
   StreamDeckAccess,
-} from "@/types.ts";
+} from "@/types";
 
 // ── useDevice ───────────────────────────────────────────────────────
 

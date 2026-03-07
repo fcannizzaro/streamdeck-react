@@ -2,7 +2,7 @@ import { useContext, useCallback } from "react";
 import {
   SettingsContext,
   GlobalSettingsContext,
-} from "@/context/providers.ts";
+} from "@/context/providers";
 import type { JsonObject } from "@elgato/utils"
 
 // ── useSettings ─────────────────────────────────────────────────────

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { EventBus } from "@/context/event-bus.ts";
-import type { WillAppearPayload } from "@/types.ts";
+import { EventBus } from "@/context/event-bus";
+import type { WillAppearPayload } from "@/types";
 
 describe("EventBus", () => {
   test("replays sticky events to late subscribers", () => {

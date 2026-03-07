@@ -1,16 +1,16 @@
 import { readFile } from "node:fs/promises";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import * as m$10 from "events";
-import * as m$9 from "https";
-import * as m$8 from "http";
-import * as m$7 from "net";
-import * as m$6 from "tls";
-import * as m$5 from "crypto";
-import * as m$4 from "stream";
-import * as m$3 from "url";
-import * as m$2 from "zlib";
-import * as m$1 from "buffer";
+import * as m$9 from "events";
+import * as m$8 from "https";
+import * as m$7 from "http";
+import * as m$6 from "net";
+import * as m$5 from "tls";
+import * as m$4 from "crypto";
+import * as m$3 from "stream";
+import * as m$2 from "url";
+import * as m$1 from "zlib";
+import * as m from "buffer";
 import fs, { existsSync, readFileSync } from "node:fs";
 import path, { join } from "node:path";
 import { cwd } from "node:process";
@@ -48,6569 +48,6 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 	enumerable: true
 }) : target, mod));
 var __toCommonJS = (mod) => __hasOwnProp.call(mod, "module.exports") ? mod["module.exports"] : __copyProps(__defProp({}, "__esModule", { value: true }), mod);
-/**
-* Creates a {@link IDisposable} that defers the disposing to the {@link dispose} function; disposing is guarded so that it may only occur once.
-* @param dispose Function responsible for disposing.
-* @returns Disposable whereby the disposing is delegated to the {@link dispose}  function.
-*/
-function deferredDisposable(dispose) {
-	let isDisposed = false;
-	const guardedDispose = () => {
-		if (!isDisposed) {
-			dispose();
-			isDisposed = true;
-		}
-	};
-	return {
-		[Symbol.dispose]: guardedDispose,
-		dispose: guardedDispose
-	};
-}
-/**
-* An event emitter that enables the listening for, and emitting of, events.
-*/
-var EventEmitter = class {
-	/**
-	* Underlying collection of events and their listeners.
-	*/
-	events = /* @__PURE__ */ new Map();
-	/**
-	* Adds the event {@link listener} for the event named {@link eventName}.
-	* @param eventName Name of the event.
-	* @param listener Event handler function.
-	* @returns This instance with the {@link listener} added.
-	*/
-	addListener(eventName, listener) {
-		return this.add(eventName, listener, (listeners) => listeners.push({ listener }));
-	}
-	/**
-	* Adds the event {@link listener} for the event named {@link eventName}, and returns a disposable capable of removing the event listener.
-	* @param eventName Name of the event.
-	* @param listener Event handler function.
-	* @returns A disposable that removes the listener when disposed.
-	*/
-	disposableOn(eventName, listener) {
-		this.add(eventName, listener, (listeners) => listeners.push({ listener }));
-		return deferredDisposable(() => this.removeListener(eventName, listener));
-	}
-	/**
-	* Emits the {@link eventName}, invoking all event listeners with the specified {@link args}.
-	* @param eventName Name of the event.
-	* @param args Arguments supplied to each event listener.
-	* @returns `true` when there was a listener associated with the event; otherwise `false`.
-	*/
-	emit(eventName, ...args) {
-		const listeners = this.events.get(eventName);
-		if (listeners === void 0) return false;
-		for (let i = 0; i < listeners.length;) {
-			const { listener, once } = listeners[i];
-			if (once) this.remove(eventName, listeners, i);
-			else i++;
-			listener(...args);
-		}
-		return true;
-	}
-	/**
-	* Gets the event names with event listeners.
-	* @returns Event names.
-	*/
-	eventNames() {
-		return Array.from(this.events.keys());
-	}
-	/**
-	* Gets the number of event listeners for the event named {@link eventName}. When a {@link listener} is defined, only matching event listeners are counted.
-	* @param eventName Name of the event.
-	* @param listener Optional event listener to count.
-	* @returns Number of event listeners.
-	*/
-	listenerCount(eventName, listener) {
-		const listeners = this.events.get(eventName);
-		if (listeners === void 0 || listener == void 0) return listeners?.length || 0;
-		let count = 0;
-		listeners.forEach((ev) => {
-			if (ev.listener === listener) count++;
-		});
-		return count;
-	}
-	/**
-	* Gets the event listeners for the event named {@link eventName}.
-	* @param eventName Name of the event.
-	* @returns The event listeners.
-	*/
-	listeners(eventName) {
-		return Array.from(this.events.get(eventName) || []).map(({ listener }) => listener);
-	}
-	/**
-	* Removes the event {@link listener} for the event named {@link eventName}.
-	* @param eventName Name of the event.
-	* @param listener Event handler function.
-	* @returns This instance with the event {@link listener} removed.
-	*/
-	off(eventName, listener) {
-		const listeners = this.events.get(eventName) ?? [];
-		for (let i = listeners.length - 1; i >= 0; i--) if (listeners[i].listener === listener) this.remove(eventName, listeners, i);
-		return this;
-	}
-	/**
-	* Adds the event {@link listener} for the event named {@link eventName}.
-	* @param eventName Name of the event.
-	* @param listener Event handler function.
-	* @returns This instance with the event {@link listener} added.
-	*/
-	on(eventName, listener) {
-		return this.add(eventName, listener, (listeners) => listeners.push({ listener }));
-	}
-	/**
-	* Adds the **one-time** event {@link listener} for the event named {@link eventName}.
-	* @param eventName Name of the event.
-	* @param listener Event handler function.
-	* @returns This instance with the event {@link listener} added.
-	*/
-	once(eventName, listener) {
-		return this.add(eventName, listener, (listeners) => listeners.push({
-			listener,
-			once: true
-		}));
-	}
-	/**
-	* Adds the event {@link listener} to the beginning of the listeners for the event named {@link eventName}.
-	* @param eventName Name of the event.
-	* @param listener Event handler function.
-	* @returns This instance with the event {@link listener} prepended.
-	*/
-	prependListener(eventName, listener) {
-		return this.add(eventName, listener, (listeners) => listeners.splice(0, 0, { listener }));
-	}
-	/**
-	* Adds the **one-time** event {@link listener} to the beginning of the listeners for the event named {@link eventName}.
-	* @param eventName Name of the event.
-	* @param listener Event handler function.
-	* @returns This instance with the event {@link listener} prepended.
-	*/
-	prependOnceListener(eventName, listener) {
-		return this.add(eventName, listener, (listeners) => listeners.splice(0, 0, {
-			listener,
-			once: true
-		}));
-	}
-	/**
-	* Removes all event listeners for the event named {@link eventName}.
-	* @param eventName Name of the event.
-	* @returns This instance with the event listeners removed
-	*/
-	removeAllListeners(eventName) {
-		const listeners = this.events.get(eventName) ?? [];
-		while (listeners.length > 0) this.remove(eventName, listeners, 0);
-		this.events.delete(eventName);
-		return this;
-	}
-	/**
-	* Removes the event {@link listener} for the event named {@link eventName}.
-	* @param eventName Name of the event.
-	* @param listener Event handler function.
-	* @returns This instance with the event {@link listener} removed.
-	*/
-	removeListener(eventName, listener) {
-		return this.off(eventName, listener);
-	}
-	/**
-	* Adds the event {@link listener} for the event named {@link eventName}.
-	* @param eventName Name of the event.
-	* @param listener Event handler function.
-	* @param fn Function responsible for adding the new event handler function.
-	* @returns This instance with event {@link listener} added.
-	*/
-	add(eventName, listener, fn) {
-		let listeners = this.events.get(eventName);
-		if (listeners === void 0) {
-			listeners = [];
-			this.events.set(eventName, listeners);
-		}
-		fn(listeners);
-		if (eventName !== "newListener") {
-			const args = [eventName, listener];
-			this.emit("newListener", ...args);
-		}
-		return this;
-	}
-	/**
-	* Removes the listener at the given index.
-	* @param eventName Name of the event.
-	* @param listeners Listeners registered with the event.
-	* @param index Index of the listener to remove.
-	*/
-	remove(eventName, listeners, index) {
-		const [{ listener }] = listeners.splice(index, 1);
-		if (eventName !== "removeListener") {
-			const args = [eventName, listener];
-			this.emit("removeListener", ...args);
-		}
-	}
-};
-/**
-* Prevents the modification of existing property attributes and values on the value, and all of its child properties, and prevents the addition of new properties.
-* @param value Value to freeze.
-*/
-function freeze(value) {
-	if (value !== void 0 && value !== null && typeof value === "object" && !Object.isFrozen(value)) {
-		Object.freeze(value);
-		Object.values(value).forEach(freeze);
-	}
-}
-/**
-* Gets the value at the specified {@link path}.
-* @param source Source object that is being read from.
-* @param path Path to the property to get.
-* @returns Value of the property.
-*/
-function get(source, path) {
-	return path.split(".").reduce((obj, prop) => obj && obj[prop], source);
-}
-/**
-* Internalization provider, responsible for managing localizations and translating resources.
-*/
-var I18nProvider = class {
-	/**
-	* Backing field for the default language.
-	*/
-	#language;
-	/**
-	* Map of localized resources, indexed by their language.
-	*/
-	#translations = /* @__PURE__ */ new Map();
-	/**
-	* Function responsible for providing localized resources for a given language.
-	*/
-	#readTranslations;
-	/**
-	* Internal events handler.
-	*/
-	#events = new EventEmitter();
-	/**
-	* Initializes a new instance of the {@link I18nProvider} class.
-	* @param language The default language to be used when retrieving translations for a given key.
-	* @param readTranslations Function responsible for providing localized resources for a given language.
-	*/
-	constructor(language, readTranslations) {
-		this.#language = language;
-		this.#readTranslations = readTranslations;
-	}
-	/**
-	* The default language of the provider.
-	* @returns The language.
-	*/
-	get language() {
-		return this.#language;
-	}
-	/**
-	* The default language of the provider.
-	* @param value The language.
-	*/
-	set language(value) {
-		if (this.#language !== value) {
-			this.#language = value;
-			this.#events.emit("languageChange", value);
-		}
-	}
-	/**
-	* Adds an event listener that is called when the language within the provider changes.
-	* @param listener Listener function to be called.
-	* @returns Resource manager that, when disposed, removes the event listener.
-	*/
-	onLanguageChange(listener) {
-		return this.#events.disposableOn("languageChange", listener);
-	}
-	/**
-	* Translates the specified {@link key}, as defined within the resources for the {@link language}.
-	* When the key is not found, the default language is checked. Alias of {@link I18nProvider.translate}.
-	* @param key Key of the translation.
-	* @param language Optional language to get the translation for; otherwise the default language.
-	* @returns The translation; otherwise the key.
-	*/
-	t(key, language = this.language) {
-		return this.translate(key, language);
-	}
-	/**
-	* Translates the specified {@link key}, as defined within the resources for the {@link language}.
-	* When the key is not found, the default language is checked.
-	* @param key Key of the translation.
-	* @param language Optional language to get the translation for; otherwise the default language.
-	* @returns The translation; otherwise the key.
-	*/
-	translate(key, language = this.language) {
-		const languages = new Set([
-			language,
-			language.replaceAll("_", "-").split("-").at(0),
-			"en"
-		]);
-		for (const language of languages) {
-			const resource = get(this.getTranslations(language), key);
-			if (resource) return resource.toString();
-		}
-		return key;
-	}
-	/**
-	* Gets the translations for the specified language.
-	* @param language Language whose translations are being retrieved.
-	* @returns The translations; otherwise `null`.
-	*/
-	getTranslations(language) {
-		let translations = this.#translations.get(language);
-		if (translations === void 0) {
-			translations = this.#readTranslations(language);
-			freeze(translations);
-			this.#translations.set(language, translations);
-		}
-		return translations;
-	}
-};
-/**
-* Provides a read-only iterable collection of items that also acts as a partial polyfill for iterator helpers.
-*/
-var Enumerable = class Enumerable {
-	/**
-	* Backing function responsible for providing the iterator of items.
-	*/
-	#items;
-	/**
-	* Backing function for {@link Enumerable.length}.
-	*/
-	#length;
-	/**
-	* Captured iterator from the underlying iterable; used to fulfil {@link IterableIterator} methods.
-	*/
-	#iterator;
-	/**
-	* Initializes a new instance of the {@link Enumerable} class.
-	* @param source Source that contains the items.
-	* @returns The enumerable.
-	*/
-	constructor(source) {
-		if (source instanceof Enumerable) {
-			this.#items = source.#items;
-			this.#length = source.#length;
-		} else if (Array.isArray(source)) {
-			this.#items = () => source.values();
-			this.#length = () => source.length;
-		} else if (source instanceof Map || source instanceof Set) {
-			this.#items = () => source.values();
-			this.#length = () => source.size;
-		} else {
-			this.#items = source;
-			this.#length = () => {
-				let i = 0;
-				for (const _ of this) i++;
-				return i;
-			};
-		}
-	}
-	/**
-	* Gets the number of items in the enumerable.
-	* @returns The number of items.
-	*/
-	get length() {
-		return this.#length();
-	}
-	/**
-	* Gets the iterator for the enumerable.
-	* @yields The items.
-	*/
-	*[Symbol.iterator]() {
-		for (const item of this.#items()) yield item;
-	}
-	/**
-	* Transforms each item within this iterator to an indexed pair, with each pair represented as an array.
-	* @returns An iterator of indexed pairs.
-	*/
-	asIndexedPairs() {
-		return new Enumerable(function* () {
-			let i = 0;
-			for (const item of this) yield [i++, item];
-		}.bind(this));
-	}
-	/**
-	* Returns an iterator with the first items dropped, up to the specified limit.
-	* @param limit The number of elements to drop from the start of the iteration.
-	* @returns An iterator of items after the limit.
-	*/
-	drop(limit) {
-		if (isNaN(limit) || limit < 0) throw new RangeError("limit must be 0, or a positive number");
-		return new Enumerable(function* () {
-			let i = 0;
-			for (const item of this) if (i++ >= limit) yield item;
-		}.bind(this));
-	}
-	/**
-	* Determines whether all items satisfy the specified predicate.
-	* @param predicate Function that determines whether each item fulfils the predicate.
-	* @returns `true` when all items satisfy the predicate; otherwise `false`.
-	*/
-	every(predicate) {
-		for (const item of this) if (!predicate(item)) return false;
-		return true;
-	}
-	/**
-	* Returns an iterator of items that meet the specified predicate..
-	* @param predicate Function that determines which items to filter.
-	* @returns An iterator of filtered items.
-	*/
-	filter(predicate) {
-		return new Enumerable(function* () {
-			for (const item of this) if (predicate(item)) yield item;
-		}.bind(this));
-	}
-	/**
-	* Finds the first item that satisfies the specified predicate.
-	* @param predicate Predicate to match items against.
-	* @returns The first item that satisfied the predicate; otherwise `undefined`.
-	*/
-	find(predicate) {
-		for (const item of this) if (predicate(item)) return item;
-	}
-	/**
-	* Finds the last item that satisfies the specified predicate.
-	* @param predicate Predicate to match items against.
-	* @returns The first item that satisfied the predicate; otherwise `undefined`.
-	*/
-	findLast(predicate) {
-		let result = void 0;
-		for (const item of this) if (predicate(item)) result = item;
-		return result;
-	}
-	/**
-	* Returns an iterator containing items transformed using the specified mapper function.
-	* @param mapper Function responsible for transforming each item.
-	* @returns An iterator of transformed items.
-	*/
-	flatMap(mapper) {
-		return new Enumerable(function* () {
-			for (const item of this) for (const mapped of mapper(item)) yield mapped;
-		}.bind(this));
-	}
-	/**
-	* Iterates over each item, and invokes the specified function.
-	* @param fn Function to invoke against each item.
-	*/
-	forEach(fn) {
-		for (const item of this) fn(item);
-	}
-	/**
-	* Determines whether the search item exists in the collection exists.
-	* @param search Item to search for.
-	* @returns `true` when the item was found; otherwise `false`.
-	*/
-	includes(search) {
-		return this.some((item) => item === search);
-	}
-	/**
-	* Returns an iterator of mapped items using the mapper function.
-	* @param mapper Function responsible for mapping the items.
-	* @returns An iterator of mapped items.
-	*/
-	map(mapper) {
-		return new Enumerable(function* () {
-			for (const item of this) yield mapper(item);
-		}.bind(this));
-	}
-	/**
-	* Captures the underlying iterable, if it is not already captured, and gets the next item in the iterator.
-	* @param args Optional values to send to the generator.
-	* @returns An iterator result of the current iteration; when `done` is `false`, the current `value` is provided.
-	*/
-	next(...args) {
-		this.#iterator ??= this.#items();
-		const result = this.#iterator.next(...args);
-		if (result.done) this.#iterator = void 0;
-		return result;
-	}
-	/**
-	* Applies the accumulator function to each item, and returns the result.
-	* @param accumulator Function responsible for accumulating all items within the collection.
-	* @param initial Initial value supplied to the accumulator.
-	* @returns Result of accumulating each value.
-	*/
-	reduce(accumulator, initial) {
-		if (this.length === 0) {
-			if (initial === void 0) throw new TypeError("Reduce of empty enumerable with no initial value.");
-			return initial;
-		}
-		let result = initial;
-		for (const item of this) if (result === void 0) result = item;
-		else result = accumulator(result, item);
-		return result;
-	}
-	/**
-	* Acts as if a `return` statement is inserted in the generator's body at the current suspended position.
-	*
-	* Please note, in the context of an {@link Enumerable}, calling {@link Enumerable.return} will clear the captured iterator,
-	* if there is one. Subsequent calls to {@link Enumerable.next} will result in re-capturing the underlying iterable, and
-	* yielding items from the beginning.
-	* @param value Value to return.
-	* @returns The value as an iterator result.
-	*/
-	return(value) {
-		this.#iterator = void 0;
-		return {
-			done: true,
-			value
-		};
-	}
-	/**
-	* Determines whether an item in the collection exists that satisfies the specified predicate.
-	* @param predicate Function used to search for an item.
-	* @returns `true` when the item was found; otherwise `false`.
-	*/
-	some(predicate) {
-		for (const item of this) if (predicate(item)) return true;
-		return false;
-	}
-	/**
-	* Returns an iterator with the items, from 0, up to the specified limit.
-	* @param limit Limit of items to take.
-	* @returns An iterator of items from 0 to the limit.
-	*/
-	take(limit) {
-		if (isNaN(limit) || limit < 0) throw new RangeError("limit must be 0, or a positive number");
-		return new Enumerable(function* () {
-			let i = 0;
-			for (const item of this) if (i++ < limit) yield item;
-		}.bind(this));
-	}
-	/**
-	* Acts as if a `throw` statement is inserted in the generator's body at the current suspended position.
-	* @param e Error to throw.
-	*/
-	throw(e) {
-		throw e;
-	}
-	/**
-	* Converts this iterator to an array.
-	* @returns The array of items from this iterator.
-	*/
-	toArray() {
-		return Array.from(this);
-	}
-	/**
-	* Converts this iterator to serializable collection.
-	* @returns The serializable collection of items.
-	*/
-	toJSON() {
-		return this.toArray();
-	}
-	/**
-	* Converts this iterator to a string.
-	* @returns The string.
-	*/
-	toString() {
-		return `${this.toArray()}`;
-	}
-};
-Symbol.dispose;
-Symbol.dispose ??= Symbol("Symbol.dispose");
-/**
-* Provides a wrapper around a value that is lazily instantiated.
-*/
-var Lazy = class {
-	/**
-	* Private backing field for {@link Lazy.value}.
-	*/
-	#value = void 0;
-	/**
-	* Factory responsible for instantiating the value.
-	*/
-	#valueFactory;
-	/**
-	* Initializes a new instance of the {@link Lazy} class.
-	* @param valueFactory The factory responsible for instantiating the value.
-	*/
-	constructor(valueFactory) {
-		this.#valueFactory = valueFactory;
-	}
-	/**
-	* Gets the value.
-	* @returns The value.
-	*/
-	get value() {
-		if (this.#value === void 0) this.#value = this.#valueFactory();
-		return this.#value;
-	}
-};
-promisify(execFile);
-promisify(execFile);
-/**
-* Returns an object that contains a promise and two functions to resolve or reject it.
-* @returns The promise, and the resolve and reject functions.
-*/
-function withResolvers() {
-	let resolve;
-	let reject;
-	return {
-		promise: new Promise((res, rej) => {
-			resolve = res;
-			reject = rej;
-		}),
-		resolve,
-		reject
-	};
-}
-var require_builtin_esm_external_require_events = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	module.exports = m$10.default;
-}));
-var require_builtin_esm_external_require_https = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	module.exports = m$9.default;
-}));
-var require_builtin_esm_external_require_http = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	module.exports = m$8.default;
-}));
-var require_builtin_esm_external_require_net = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	module.exports = m$7.default;
-}));
-var require_builtin_esm_external_require_tls = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	module.exports = m$6.default;
-}));
-var require_builtin_esm_external_require_crypto = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	module.exports = m$5.default;
-}));
-var require_builtin_esm_external_require_stream = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	module.exports = m$4.default;
-}));
-var require_builtin_esm_external_require_url = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	module.exports = m$3.default;
-}));
-var require_builtin_esm_external_require_zlib = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	module.exports = m$2.default;
-}));
-var require_constants$1 = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	var BINARY_TYPES = [
-		"nodebuffer",
-		"arraybuffer",
-		"fragments"
-	];
-	var hasBlob = typeof Blob !== "undefined";
-	if (hasBlob) BINARY_TYPES.push("blob");
-	module.exports = {
-		BINARY_TYPES,
-		CLOSE_TIMEOUT: 3e4,
-		EMPTY_BUFFER: Buffer.alloc(0),
-		GUID: "258EAFA5-E914-47DA-95CA-C5AB0DC85B11",
-		hasBlob,
-		kForOnEventAttribute: Symbol("kIsForOnEventAttribute"),
-		kListener: Symbol("kListener"),
-		kStatusCode: Symbol("status-code"),
-		kWebSocket: Symbol("websocket"),
-		NOOP: () => {}
-	};
-}));
-var __vite_optional_peer_dep_bufferutil_ws_exports = /* @__PURE__ */ __exportAll({ default: () => __vite_optional_peer_dep_bufferutil_ws_default });
-var __vite_optional_peer_dep_bufferutil_ws_default;
-var init___vite_optional_peer_dep_bufferutil_ws = __esmMin((() => {
-	__vite_optional_peer_dep_bufferutil_ws_default = {};
-	throw new Error(`Could not resolve "bufferutil" imported by "ws". Is it installed?`);
-}));
-var require_buffer_util = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	var { EMPTY_BUFFER } = require_constants$1();
-	var FastBuffer = Buffer[Symbol.species];
-	/**
-	* Merges an array of buffers into a new buffer.
-	*
-	* @param {Buffer[]} list The array of buffers to concat
-	* @param {Number} totalLength The total length of buffers in the list
-	* @return {Buffer} The resulting buffer
-	* @public
-	*/
-	function concat(list, totalLength) {
-		if (list.length === 0) return EMPTY_BUFFER;
-		if (list.length === 1) return list[0];
-		const target = Buffer.allocUnsafe(totalLength);
-		let offset = 0;
-		for (let i = 0; i < list.length; i++) {
-			const buf = list[i];
-			target.set(buf, offset);
-			offset += buf.length;
-		}
-		if (offset < totalLength) return new FastBuffer(target.buffer, target.byteOffset, offset);
-		return target;
-	}
-	/**
-	* Masks a buffer using the given mask.
-	*
-	* @param {Buffer} source The buffer to mask
-	* @param {Buffer} mask The mask to use
-	* @param {Buffer} output The buffer where to store the result
-	* @param {Number} offset The offset at which to start writing
-	* @param {Number} length The number of bytes to mask.
-	* @public
-	*/
-	function _mask(source, mask, output, offset, length) {
-		for (let i = 0; i < length; i++) output[offset + i] = source[i] ^ mask[i & 3];
-	}
-	/**
-	* Unmasks a buffer using the given mask.
-	*
-	* @param {Buffer} buffer The buffer to unmask
-	* @param {Buffer} mask The mask to use
-	* @public
-	*/
-	function _unmask(buffer, mask) {
-		for (let i = 0; i < buffer.length; i++) buffer[i] ^= mask[i & 3];
-	}
-	/**
-	* Converts a buffer to an `ArrayBuffer`.
-	*
-	* @param {Buffer} buf The buffer to convert
-	* @return {ArrayBuffer} Converted buffer
-	* @public
-	*/
-	function toArrayBuffer(buf) {
-		if (buf.length === buf.buffer.byteLength) return buf.buffer;
-		return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.length);
-	}
-	/**
-	* Converts `data` to a `Buffer`.
-	*
-	* @param {*} data The data to convert
-	* @return {Buffer} The buffer
-	* @throws {TypeError}
-	* @public
-	*/
-	function toBuffer(data) {
-		toBuffer.readOnly = true;
-		if (Buffer.isBuffer(data)) return data;
-		let buf;
-		if (data instanceof ArrayBuffer) buf = new FastBuffer(data);
-		else if (ArrayBuffer.isView(data)) buf = new FastBuffer(data.buffer, data.byteOffset, data.byteLength);
-		else {
-			buf = Buffer.from(data);
-			toBuffer.readOnly = false;
-		}
-		return buf;
-	}
-	module.exports = {
-		concat,
-		mask: _mask,
-		toArrayBuffer,
-		toBuffer,
-		unmask: _unmask
-	};
-	/* istanbul ignore else  */
-	if (!process.env.WS_NO_BUFFER_UTIL) try {
-		const bufferUtil = (init___vite_optional_peer_dep_bufferutil_ws(), __toCommonJS(__vite_optional_peer_dep_bufferutil_ws_exports));
-		module.exports.mask = function(source, mask, output, offset, length) {
-			if (length < 48) _mask(source, mask, output, offset, length);
-			else bufferUtil.mask(source, mask, output, offset, length);
-		};
-		module.exports.unmask = function(buffer, mask) {
-			if (buffer.length < 32) _unmask(buffer, mask);
-			else bufferUtil.unmask(buffer, mask);
-		};
-	} catch (e) {}
-}));
-var require_limiter = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	var kDone = Symbol("kDone");
-	var kRun = Symbol("kRun");
-	/**
-	* A very simple job queue with adjustable concurrency. Adapted from
-	* https://github.com/STRML/async-limiter
-	*/
-	var Limiter = class {
-		/**
-		* Creates a new `Limiter`.
-		*
-		* @param {Number} [concurrency=Infinity] The maximum number of jobs allowed
-		*     to run concurrently
-		*/
-		constructor(concurrency) {
-			this[kDone] = () => {
-				this.pending--;
-				this[kRun]();
-			};
-			this.concurrency = concurrency || Infinity;
-			this.jobs = [];
-			this.pending = 0;
-		}
-		/**
-		* Adds a job to the queue.
-		*
-		* @param {Function} job The job to run
-		* @public
-		*/
-		add(job) {
-			this.jobs.push(job);
-			this[kRun]();
-		}
-		/**
-		* Removes a job from the queue and runs it if possible.
-		*
-		* @private
-		*/
-		[kRun]() {
-			if (this.pending === this.concurrency) return;
-			if (this.jobs.length) {
-				const job = this.jobs.shift();
-				this.pending++;
-				job(this[kDone]);
-			}
-		}
-	};
-	module.exports = Limiter;
-}));
-var require_permessage_deflate = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	var zlib = require_builtin_esm_external_require_zlib();
-	var bufferUtil = require_buffer_util();
-	var Limiter = require_limiter();
-	var { kStatusCode } = require_constants$1();
-	var FastBuffer = Buffer[Symbol.species];
-	var TRAILER = Buffer.from([
-		0,
-		0,
-		255,
-		255
-	]);
-	var kPerMessageDeflate = Symbol("permessage-deflate");
-	var kTotalLength = Symbol("total-length");
-	var kCallback = Symbol("callback");
-	var kBuffers = Symbol("buffers");
-	var kError = Symbol("error");
-	var zlibLimiter;
-	/**
-	* permessage-deflate implementation.
-	*/
-	var PerMessageDeflate = class {
-		/**
-		* Creates a PerMessageDeflate instance.
-		*
-		* @param {Object} [options] Configuration options
-		* @param {(Boolean|Number)} [options.clientMaxWindowBits] Advertise support
-		*     for, or request, a custom client window size
-		* @param {Boolean} [options.clientNoContextTakeover=false] Advertise/
-		*     acknowledge disabling of client context takeover
-		* @param {Number} [options.concurrencyLimit=10] The number of concurrent
-		*     calls to zlib
-		* @param {(Boolean|Number)} [options.serverMaxWindowBits] Request/confirm the
-		*     use of a custom server window size
-		* @param {Boolean} [options.serverNoContextTakeover=false] Request/accept
-		*     disabling of server context takeover
-		* @param {Number} [options.threshold=1024] Size (in bytes) below which
-		*     messages should not be compressed if context takeover is disabled
-		* @param {Object} [options.zlibDeflateOptions] Options to pass to zlib on
-		*     deflate
-		* @param {Object} [options.zlibInflateOptions] Options to pass to zlib on
-		*     inflate
-		* @param {Boolean} [isServer=false] Create the instance in either server or
-		*     client mode
-		* @param {Number} [maxPayload=0] The maximum allowed message length
-		*/
-		constructor(options, isServer, maxPayload) {
-			this._maxPayload = maxPayload | 0;
-			this._options = options || {};
-			this._threshold = this._options.threshold !== void 0 ? this._options.threshold : 1024;
-			this._isServer = !!isServer;
-			this._deflate = null;
-			this._inflate = null;
-			this.params = null;
-			if (!zlibLimiter) zlibLimiter = new Limiter(this._options.concurrencyLimit !== void 0 ? this._options.concurrencyLimit : 10);
-		}
-		/**
-		* @type {String}
-		*/
-		static get extensionName() {
-			return "permessage-deflate";
-		}
-		/**
-		* Create an extension negotiation offer.
-		*
-		* @return {Object} Extension parameters
-		* @public
-		*/
-		offer() {
-			const params = {};
-			if (this._options.serverNoContextTakeover) params.server_no_context_takeover = true;
-			if (this._options.clientNoContextTakeover) params.client_no_context_takeover = true;
-			if (this._options.serverMaxWindowBits) params.server_max_window_bits = this._options.serverMaxWindowBits;
-			if (this._options.clientMaxWindowBits) params.client_max_window_bits = this._options.clientMaxWindowBits;
-			else if (this._options.clientMaxWindowBits == null) params.client_max_window_bits = true;
-			return params;
-		}
-		/**
-		* Accept an extension negotiation offer/response.
-		*
-		* @param {Array} configurations The extension negotiation offers/reponse
-		* @return {Object} Accepted configuration
-		* @public
-		*/
-		accept(configurations) {
-			configurations = this.normalizeParams(configurations);
-			this.params = this._isServer ? this.acceptAsServer(configurations) : this.acceptAsClient(configurations);
-			return this.params;
-		}
-		/**
-		* Releases all resources used by the extension.
-		*
-		* @public
-		*/
-		cleanup() {
-			if (this._inflate) {
-				this._inflate.close();
-				this._inflate = null;
-			}
-			if (this._deflate) {
-				const callback = this._deflate[kCallback];
-				this._deflate.close();
-				this._deflate = null;
-				if (callback) callback(/* @__PURE__ */ new Error("The deflate stream was closed while data was being processed"));
-			}
-		}
-		/**
-		*  Accept an extension negotiation offer.
-		*
-		* @param {Array} offers The extension negotiation offers
-		* @return {Object} Accepted configuration
-		* @private
-		*/
-		acceptAsServer(offers) {
-			const opts = this._options;
-			const accepted = offers.find((params) => {
-				if (opts.serverNoContextTakeover === false && params.server_no_context_takeover || params.server_max_window_bits && (opts.serverMaxWindowBits === false || typeof opts.serverMaxWindowBits === "number" && opts.serverMaxWindowBits > params.server_max_window_bits) || typeof opts.clientMaxWindowBits === "number" && !params.client_max_window_bits) return false;
-				return true;
-			});
-			if (!accepted) throw new Error("None of the extension offers can be accepted");
-			if (opts.serverNoContextTakeover) accepted.server_no_context_takeover = true;
-			if (opts.clientNoContextTakeover) accepted.client_no_context_takeover = true;
-			if (typeof opts.serverMaxWindowBits === "number") accepted.server_max_window_bits = opts.serverMaxWindowBits;
-			if (typeof opts.clientMaxWindowBits === "number") accepted.client_max_window_bits = opts.clientMaxWindowBits;
-			else if (accepted.client_max_window_bits === true || opts.clientMaxWindowBits === false) delete accepted.client_max_window_bits;
-			return accepted;
-		}
-		/**
-		* Accept the extension negotiation response.
-		*
-		* @param {Array} response The extension negotiation response
-		* @return {Object} Accepted configuration
-		* @private
-		*/
-		acceptAsClient(response) {
-			const params = response[0];
-			if (this._options.clientNoContextTakeover === false && params.client_no_context_takeover) throw new Error("Unexpected parameter \"client_no_context_takeover\"");
-			if (!params.client_max_window_bits) {
-				if (typeof this._options.clientMaxWindowBits === "number") params.client_max_window_bits = this._options.clientMaxWindowBits;
-			} else if (this._options.clientMaxWindowBits === false || typeof this._options.clientMaxWindowBits === "number" && params.client_max_window_bits > this._options.clientMaxWindowBits) throw new Error("Unexpected or invalid parameter \"client_max_window_bits\"");
-			return params;
-		}
-		/**
-		* Normalize parameters.
-		*
-		* @param {Array} configurations The extension negotiation offers/reponse
-		* @return {Array} The offers/response with normalized parameters
-		* @private
-		*/
-		normalizeParams(configurations) {
-			configurations.forEach((params) => {
-				Object.keys(params).forEach((key) => {
-					let value = params[key];
-					if (value.length > 1) throw new Error(`Parameter "${key}" must have only a single value`);
-					value = value[0];
-					if (key === "client_max_window_bits") {
-						if (value !== true) {
-							const num = +value;
-							if (!Number.isInteger(num) || num < 8 || num > 15) throw new TypeError(`Invalid value for parameter "${key}": ${value}`);
-							value = num;
-						} else if (!this._isServer) throw new TypeError(`Invalid value for parameter "${key}": ${value}`);
-					} else if (key === "server_max_window_bits") {
-						const num = +value;
-						if (!Number.isInteger(num) || num < 8 || num > 15) throw new TypeError(`Invalid value for parameter "${key}": ${value}`);
-						value = num;
-					} else if (key === "client_no_context_takeover" || key === "server_no_context_takeover") {
-						if (value !== true) throw new TypeError(`Invalid value for parameter "${key}": ${value}`);
-					} else throw new Error(`Unknown parameter "${key}"`);
-					params[key] = value;
-				});
-			});
-			return configurations;
-		}
-		/**
-		* Decompress data. Concurrency limited.
-		*
-		* @param {Buffer} data Compressed data
-		* @param {Boolean} fin Specifies whether or not this is the last fragment
-		* @param {Function} callback Callback
-		* @public
-		*/
-		decompress(data, fin, callback) {
-			zlibLimiter.add((done) => {
-				this._decompress(data, fin, (err, result) => {
-					done();
-					callback(err, result);
-				});
-			});
-		}
-		/**
-		* Compress data. Concurrency limited.
-		*
-		* @param {(Buffer|String)} data Data to compress
-		* @param {Boolean} fin Specifies whether or not this is the last fragment
-		* @param {Function} callback Callback
-		* @public
-		*/
-		compress(data, fin, callback) {
-			zlibLimiter.add((done) => {
-				this._compress(data, fin, (err, result) => {
-					done();
-					callback(err, result);
-				});
-			});
-		}
-		/**
-		* Decompress data.
-		*
-		* @param {Buffer} data Compressed data
-		* @param {Boolean} fin Specifies whether or not this is the last fragment
-		* @param {Function} callback Callback
-		* @private
-		*/
-		_decompress(data, fin, callback) {
-			const endpoint = this._isServer ? "client" : "server";
-			if (!this._inflate) {
-				const key = `${endpoint}_max_window_bits`;
-				const windowBits = typeof this.params[key] !== "number" ? zlib.Z_DEFAULT_WINDOWBITS : this.params[key];
-				this._inflate = zlib.createInflateRaw({
-					...this._options.zlibInflateOptions,
-					windowBits
-				});
-				this._inflate[kPerMessageDeflate] = this;
-				this._inflate[kTotalLength] = 0;
-				this._inflate[kBuffers] = [];
-				this._inflate.on("error", inflateOnError);
-				this._inflate.on("data", inflateOnData);
-			}
-			this._inflate[kCallback] = callback;
-			this._inflate.write(data);
-			if (fin) this._inflate.write(TRAILER);
-			this._inflate.flush(() => {
-				const err = this._inflate[kError];
-				if (err) {
-					this._inflate.close();
-					this._inflate = null;
-					callback(err);
-					return;
-				}
-				const data = bufferUtil.concat(this._inflate[kBuffers], this._inflate[kTotalLength]);
-				if (this._inflate._readableState.endEmitted) {
-					this._inflate.close();
-					this._inflate = null;
-				} else {
-					this._inflate[kTotalLength] = 0;
-					this._inflate[kBuffers] = [];
-					if (fin && this.params[`${endpoint}_no_context_takeover`]) this._inflate.reset();
-				}
-				callback(null, data);
-			});
-		}
-		/**
-		* Compress data.
-		*
-		* @param {(Buffer|String)} data Data to compress
-		* @param {Boolean} fin Specifies whether or not this is the last fragment
-		* @param {Function} callback Callback
-		* @private
-		*/
-		_compress(data, fin, callback) {
-			const endpoint = this._isServer ? "server" : "client";
-			if (!this._deflate) {
-				const key = `${endpoint}_max_window_bits`;
-				const windowBits = typeof this.params[key] !== "number" ? zlib.Z_DEFAULT_WINDOWBITS : this.params[key];
-				this._deflate = zlib.createDeflateRaw({
-					...this._options.zlibDeflateOptions,
-					windowBits
-				});
-				this._deflate[kTotalLength] = 0;
-				this._deflate[kBuffers] = [];
-				this._deflate.on("data", deflateOnData);
-			}
-			this._deflate[kCallback] = callback;
-			this._deflate.write(data);
-			this._deflate.flush(zlib.Z_SYNC_FLUSH, () => {
-				if (!this._deflate) return;
-				let data = bufferUtil.concat(this._deflate[kBuffers], this._deflate[kTotalLength]);
-				if (fin) data = new FastBuffer(data.buffer, data.byteOffset, data.length - 4);
-				this._deflate[kCallback] = null;
-				this._deflate[kTotalLength] = 0;
-				this._deflate[kBuffers] = [];
-				if (fin && this.params[`${endpoint}_no_context_takeover`]) this._deflate.reset();
-				callback(null, data);
-			});
-		}
-	};
-	module.exports = PerMessageDeflate;
-	/**
-	* The listener of the `zlib.DeflateRaw` stream `'data'` event.
-	*
-	* @param {Buffer} chunk A chunk of data
-	* @private
-	*/
-	function deflateOnData(chunk) {
-		this[kBuffers].push(chunk);
-		this[kTotalLength] += chunk.length;
-	}
-	/**
-	* The listener of the `zlib.InflateRaw` stream `'data'` event.
-	*
-	* @param {Buffer} chunk A chunk of data
-	* @private
-	*/
-	function inflateOnData(chunk) {
-		this[kTotalLength] += chunk.length;
-		if (this[kPerMessageDeflate]._maxPayload < 1 || this[kTotalLength] <= this[kPerMessageDeflate]._maxPayload) {
-			this[kBuffers].push(chunk);
-			return;
-		}
-		this[kError] = /* @__PURE__ */ new RangeError("Max payload size exceeded");
-		this[kError].code = "WS_ERR_UNSUPPORTED_MESSAGE_LENGTH";
-		this[kError][kStatusCode] = 1009;
-		this.removeListener("data", inflateOnData);
-		this.reset();
-	}
-	/**
-	* The listener of the `zlib.InflateRaw` stream `'error'` event.
-	*
-	* @param {Error} err The emitted error
-	* @private
-	*/
-	function inflateOnError(err) {
-		this[kPerMessageDeflate]._inflate = null;
-		if (this[kError]) {
-			this[kCallback](this[kError]);
-			return;
-		}
-		err[kStatusCode] = 1007;
-		this[kCallback](err);
-	}
-}));
-var require_builtin_esm_external_require_buffer = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	module.exports = m$1.default;
-}));
-var __vite_optional_peer_dep_utf_8_validate_ws_exports = /* @__PURE__ */ __exportAll({ default: () => __vite_optional_peer_dep_utf_8_validate_ws_default });
-var __vite_optional_peer_dep_utf_8_validate_ws_default;
-var init___vite_optional_peer_dep_utf_8_validate_ws = __esmMin((() => {
-	__vite_optional_peer_dep_utf_8_validate_ws_default = {};
-	throw new Error(`Could not resolve "utf-8-validate" imported by "ws". Is it installed?`);
-}));
-var require_validation = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	var { isUtf8 } = require_builtin_esm_external_require_buffer();
-	var { hasBlob } = require_constants$1();
-	var tokenChars = [
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		1,
-		0,
-		1,
-		1,
-		1,
-		1,
-		1,
-		0,
-		0,
-		1,
-		1,
-		0,
-		1,
-		1,
-		0,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		0,
-		0,
-		0,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		0,
-		1,
-		0,
-		1,
-		0
-	];
-	/**
-	* Checks if a status code is allowed in a close frame.
-	*
-	* @param {Number} code The status code
-	* @return {Boolean} `true` if the status code is valid, else `false`
-	* @public
-	*/
-	function isValidStatusCode(code) {
-		return code >= 1e3 && code <= 1014 && code !== 1004 && code !== 1005 && code !== 1006 || code >= 3e3 && code <= 4999;
-	}
-	/**
-	* Checks if a given buffer contains only correct UTF-8.
-	* Ported from https://www.cl.cam.ac.uk/%7Emgk25/ucs/utf8_check.c by
-	* Markus Kuhn.
-	*
-	* @param {Buffer} buf The buffer to check
-	* @return {Boolean} `true` if `buf` contains only correct UTF-8, else `false`
-	* @public
-	*/
-	function _isValidUTF8(buf) {
-		const len = buf.length;
-		let i = 0;
-		while (i < len) if ((buf[i] & 128) === 0) i++;
-		else if ((buf[i] & 224) === 192) {
-			if (i + 1 === len || (buf[i + 1] & 192) !== 128 || (buf[i] & 254) === 192) return false;
-			i += 2;
-		} else if ((buf[i] & 240) === 224) {
-			if (i + 2 >= len || (buf[i + 1] & 192) !== 128 || (buf[i + 2] & 192) !== 128 || buf[i] === 224 && (buf[i + 1] & 224) === 128 || buf[i] === 237 && (buf[i + 1] & 224) === 160) return false;
-			i += 3;
-		} else if ((buf[i] & 248) === 240) {
-			if (i + 3 >= len || (buf[i + 1] & 192) !== 128 || (buf[i + 2] & 192) !== 128 || (buf[i + 3] & 192) !== 128 || buf[i] === 240 && (buf[i + 1] & 240) === 128 || buf[i] === 244 && buf[i + 1] > 143 || buf[i] > 244) return false;
-			i += 4;
-		} else return false;
-		return true;
-	}
-	/**
-	* Determines whether a value is a `Blob`.
-	*
-	* @param {*} value The value to be tested
-	* @return {Boolean} `true` if `value` is a `Blob`, else `false`
-	* @private
-	*/
-	function isBlob(value) {
-		return hasBlob && typeof value === "object" && typeof value.arrayBuffer === "function" && typeof value.type === "string" && typeof value.stream === "function" && (value[Symbol.toStringTag] === "Blob" || value[Symbol.toStringTag] === "File");
-	}
-	module.exports = {
-		isBlob,
-		isValidStatusCode,
-		isValidUTF8: _isValidUTF8,
-		tokenChars
-	};
-	if (isUtf8) module.exports.isValidUTF8 = function(buf) {
-		return buf.length < 24 ? _isValidUTF8(buf) : isUtf8(buf);
-	};
-	else if (!process.env.WS_NO_UTF_8_VALIDATE) try {
-		const isValidUTF8 = (init___vite_optional_peer_dep_utf_8_validate_ws(), __toCommonJS(__vite_optional_peer_dep_utf_8_validate_ws_exports));
-		module.exports.isValidUTF8 = function(buf) {
-			return buf.length < 32 ? _isValidUTF8(buf) : isValidUTF8(buf);
-		};
-	} catch (e) {}
-}));
-var require_receiver = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	var { Writable } = require_builtin_esm_external_require_stream();
-	var PerMessageDeflate = require_permessage_deflate();
-	var { BINARY_TYPES, EMPTY_BUFFER, kStatusCode, kWebSocket } = require_constants$1();
-	var { concat, toArrayBuffer, unmask } = require_buffer_util();
-	var { isValidStatusCode, isValidUTF8 } = require_validation();
-	var FastBuffer = Buffer[Symbol.species];
-	var GET_INFO = 0;
-	var GET_PAYLOAD_LENGTH_16 = 1;
-	var GET_PAYLOAD_LENGTH_64 = 2;
-	var GET_MASK = 3;
-	var GET_DATA = 4;
-	var INFLATING = 5;
-	var DEFER_EVENT = 6;
-	/**
-	* HyBi Receiver implementation.
-	*
-	* @extends Writable
-	*/
-	var Receiver = class extends Writable {
-		/**
-		* Creates a Receiver instance.
-		*
-		* @param {Object} [options] Options object
-		* @param {Boolean} [options.allowSynchronousEvents=true] Specifies whether
-		*     any of the `'message'`, `'ping'`, and `'pong'` events can be emitted
-		*     multiple times in the same tick
-		* @param {String} [options.binaryType=nodebuffer] The type for binary data
-		* @param {Object} [options.extensions] An object containing the negotiated
-		*     extensions
-		* @param {Boolean} [options.isServer=false] Specifies whether to operate in
-		*     client or server mode
-		* @param {Number} [options.maxPayload=0] The maximum allowed message length
-		* @param {Boolean} [options.skipUTF8Validation=false] Specifies whether or
-		*     not to skip UTF-8 validation for text and close messages
-		*/
-		constructor(options = {}) {
-			super();
-			this._allowSynchronousEvents = options.allowSynchronousEvents !== void 0 ? options.allowSynchronousEvents : true;
-			this._binaryType = options.binaryType || BINARY_TYPES[0];
-			this._extensions = options.extensions || {};
-			this._isServer = !!options.isServer;
-			this._maxPayload = options.maxPayload | 0;
-			this._skipUTF8Validation = !!options.skipUTF8Validation;
-			this[kWebSocket] = void 0;
-			this._bufferedBytes = 0;
-			this._buffers = [];
-			this._compressed = false;
-			this._payloadLength = 0;
-			this._mask = void 0;
-			this._fragmented = 0;
-			this._masked = false;
-			this._fin = false;
-			this._opcode = 0;
-			this._totalPayloadLength = 0;
-			this._messageLength = 0;
-			this._fragments = [];
-			this._errored = false;
-			this._loop = false;
-			this._state = GET_INFO;
-		}
-		/**
-		* Implements `Writable.prototype._write()`.
-		*
-		* @param {Buffer} chunk The chunk of data to write
-		* @param {String} encoding The character encoding of `chunk`
-		* @param {Function} cb Callback
-		* @private
-		*/
-		_write(chunk, encoding, cb) {
-			if (this._opcode === 8 && this._state == GET_INFO) return cb();
-			this._bufferedBytes += chunk.length;
-			this._buffers.push(chunk);
-			this.startLoop(cb);
-		}
-		/**
-		* Consumes `n` bytes from the buffered data.
-		*
-		* @param {Number} n The number of bytes to consume
-		* @return {Buffer} The consumed bytes
-		* @private
-		*/
-		consume(n) {
-			this._bufferedBytes -= n;
-			if (n === this._buffers[0].length) return this._buffers.shift();
-			if (n < this._buffers[0].length) {
-				const buf = this._buffers[0];
-				this._buffers[0] = new FastBuffer(buf.buffer, buf.byteOffset + n, buf.length - n);
-				return new FastBuffer(buf.buffer, buf.byteOffset, n);
-			}
-			const dst = Buffer.allocUnsafe(n);
-			do {
-				const buf = this._buffers[0];
-				const offset = dst.length - n;
-				if (n >= buf.length) dst.set(this._buffers.shift(), offset);
-				else {
-					dst.set(new Uint8Array(buf.buffer, buf.byteOffset, n), offset);
-					this._buffers[0] = new FastBuffer(buf.buffer, buf.byteOffset + n, buf.length - n);
-				}
-				n -= buf.length;
-			} while (n > 0);
-			return dst;
-		}
-		/**
-		* Starts the parsing loop.
-		*
-		* @param {Function} cb Callback
-		* @private
-		*/
-		startLoop(cb) {
-			this._loop = true;
-			do
-				switch (this._state) {
-					case GET_INFO:
-						this.getInfo(cb);
-						break;
-					case GET_PAYLOAD_LENGTH_16:
-						this.getPayloadLength16(cb);
-						break;
-					case GET_PAYLOAD_LENGTH_64:
-						this.getPayloadLength64(cb);
-						break;
-					case GET_MASK:
-						this.getMask();
-						break;
-					case GET_DATA:
-						this.getData(cb);
-						break;
-					case INFLATING:
-					case DEFER_EVENT:
-						this._loop = false;
-						return;
-				}
-			while (this._loop);
-			if (!this._errored) cb();
-		}
-		/**
-		* Reads the first two bytes of a frame.
-		*
-		* @param {Function} cb Callback
-		* @private
-		*/
-		getInfo(cb) {
-			if (this._bufferedBytes < 2) {
-				this._loop = false;
-				return;
-			}
-			const buf = this.consume(2);
-			if ((buf[0] & 48) !== 0) {
-				cb(this.createError(RangeError, "RSV2 and RSV3 must be clear", true, 1002, "WS_ERR_UNEXPECTED_RSV_2_3"));
-				return;
-			}
-			const compressed = (buf[0] & 64) === 64;
-			if (compressed && !this._extensions[PerMessageDeflate.extensionName]) {
-				cb(this.createError(RangeError, "RSV1 must be clear", true, 1002, "WS_ERR_UNEXPECTED_RSV_1"));
-				return;
-			}
-			this._fin = (buf[0] & 128) === 128;
-			this._opcode = buf[0] & 15;
-			this._payloadLength = buf[1] & 127;
-			if (this._opcode === 0) {
-				if (compressed) {
-					cb(this.createError(RangeError, "RSV1 must be clear", true, 1002, "WS_ERR_UNEXPECTED_RSV_1"));
-					return;
-				}
-				if (!this._fragmented) {
-					cb(this.createError(RangeError, "invalid opcode 0", true, 1002, "WS_ERR_INVALID_OPCODE"));
-					return;
-				}
-				this._opcode = this._fragmented;
-			} else if (this._opcode === 1 || this._opcode === 2) {
-				if (this._fragmented) {
-					cb(this.createError(RangeError, `invalid opcode ${this._opcode}`, true, 1002, "WS_ERR_INVALID_OPCODE"));
-					return;
-				}
-				this._compressed = compressed;
-			} else if (this._opcode > 7 && this._opcode < 11) {
-				if (!this._fin) {
-					cb(this.createError(RangeError, "FIN must be set", true, 1002, "WS_ERR_EXPECTED_FIN"));
-					return;
-				}
-				if (compressed) {
-					cb(this.createError(RangeError, "RSV1 must be clear", true, 1002, "WS_ERR_UNEXPECTED_RSV_1"));
-					return;
-				}
-				if (this._payloadLength > 125 || this._opcode === 8 && this._payloadLength === 1) {
-					cb(this.createError(RangeError, `invalid payload length ${this._payloadLength}`, true, 1002, "WS_ERR_INVALID_CONTROL_PAYLOAD_LENGTH"));
-					return;
-				}
-			} else {
-				cb(this.createError(RangeError, `invalid opcode ${this._opcode}`, true, 1002, "WS_ERR_INVALID_OPCODE"));
-				return;
-			}
-			if (!this._fin && !this._fragmented) this._fragmented = this._opcode;
-			this._masked = (buf[1] & 128) === 128;
-			if (this._isServer) {
-				if (!this._masked) {
-					cb(this.createError(RangeError, "MASK must be set", true, 1002, "WS_ERR_EXPECTED_MASK"));
-					return;
-				}
-			} else if (this._masked) {
-				cb(this.createError(RangeError, "MASK must be clear", true, 1002, "WS_ERR_UNEXPECTED_MASK"));
-				return;
-			}
-			if (this._payloadLength === 126) this._state = GET_PAYLOAD_LENGTH_16;
-			else if (this._payloadLength === 127) this._state = GET_PAYLOAD_LENGTH_64;
-			else this.haveLength(cb);
-		}
-		/**
-		* Gets extended payload length (7+16).
-		*
-		* @param {Function} cb Callback
-		* @private
-		*/
-		getPayloadLength16(cb) {
-			if (this._bufferedBytes < 2) {
-				this._loop = false;
-				return;
-			}
-			this._payloadLength = this.consume(2).readUInt16BE(0);
-			this.haveLength(cb);
-		}
-		/**
-		* Gets extended payload length (7+64).
-		*
-		* @param {Function} cb Callback
-		* @private
-		*/
-		getPayloadLength64(cb) {
-			if (this._bufferedBytes < 8) {
-				this._loop = false;
-				return;
-			}
-			const buf = this.consume(8);
-			const num = buf.readUInt32BE(0);
-			if (num > Math.pow(2, 21) - 1) {
-				cb(this.createError(RangeError, "Unsupported WebSocket frame: payload length > 2^53 - 1", false, 1009, "WS_ERR_UNSUPPORTED_DATA_PAYLOAD_LENGTH"));
-				return;
-			}
-			this._payloadLength = num * Math.pow(2, 32) + buf.readUInt32BE(4);
-			this.haveLength(cb);
-		}
-		/**
-		* Payload length has been read.
-		*
-		* @param {Function} cb Callback
-		* @private
-		*/
-		haveLength(cb) {
-			if (this._payloadLength && this._opcode < 8) {
-				this._totalPayloadLength += this._payloadLength;
-				if (this._totalPayloadLength > this._maxPayload && this._maxPayload > 0) {
-					cb(this.createError(RangeError, "Max payload size exceeded", false, 1009, "WS_ERR_UNSUPPORTED_MESSAGE_LENGTH"));
-					return;
-				}
-			}
-			if (this._masked) this._state = GET_MASK;
-			else this._state = GET_DATA;
-		}
-		/**
-		* Reads mask bytes.
-		*
-		* @private
-		*/
-		getMask() {
-			if (this._bufferedBytes < 4) {
-				this._loop = false;
-				return;
-			}
-			this._mask = this.consume(4);
-			this._state = GET_DATA;
-		}
-		/**
-		* Reads data bytes.
-		*
-		* @param {Function} cb Callback
-		* @private
-		*/
-		getData(cb) {
-			let data = EMPTY_BUFFER;
-			if (this._payloadLength) {
-				if (this._bufferedBytes < this._payloadLength) {
-					this._loop = false;
-					return;
-				}
-				data = this.consume(this._payloadLength);
-				if (this._masked && (this._mask[0] | this._mask[1] | this._mask[2] | this._mask[3]) !== 0) unmask(data, this._mask);
-			}
-			if (this._opcode > 7) {
-				this.controlMessage(data, cb);
-				return;
-			}
-			if (this._compressed) {
-				this._state = INFLATING;
-				this.decompress(data, cb);
-				return;
-			}
-			if (data.length) {
-				this._messageLength = this._totalPayloadLength;
-				this._fragments.push(data);
-			}
-			this.dataMessage(cb);
-		}
-		/**
-		* Decompresses data.
-		*
-		* @param {Buffer} data Compressed data
-		* @param {Function} cb Callback
-		* @private
-		*/
-		decompress(data, cb) {
-			this._extensions[PerMessageDeflate.extensionName].decompress(data, this._fin, (err, buf) => {
-				if (err) return cb(err);
-				if (buf.length) {
-					this._messageLength += buf.length;
-					if (this._messageLength > this._maxPayload && this._maxPayload > 0) {
-						cb(this.createError(RangeError, "Max payload size exceeded", false, 1009, "WS_ERR_UNSUPPORTED_MESSAGE_LENGTH"));
-						return;
-					}
-					this._fragments.push(buf);
-				}
-				this.dataMessage(cb);
-				if (this._state === GET_INFO) this.startLoop(cb);
-			});
-		}
-		/**
-		* Handles a data message.
-		*
-		* @param {Function} cb Callback
-		* @private
-		*/
-		dataMessage(cb) {
-			if (!this._fin) {
-				this._state = GET_INFO;
-				return;
-			}
-			const messageLength = this._messageLength;
-			const fragments = this._fragments;
-			this._totalPayloadLength = 0;
-			this._messageLength = 0;
-			this._fragmented = 0;
-			this._fragments = [];
-			if (this._opcode === 2) {
-				let data;
-				if (this._binaryType === "nodebuffer") data = concat(fragments, messageLength);
-				else if (this._binaryType === "arraybuffer") data = toArrayBuffer(concat(fragments, messageLength));
-				else if (this._binaryType === "blob") data = new Blob(fragments);
-				else data = fragments;
-				if (this._allowSynchronousEvents) {
-					this.emit("message", data, true);
-					this._state = GET_INFO;
-				} else {
-					this._state = DEFER_EVENT;
-					setImmediate(() => {
-						this.emit("message", data, true);
-						this._state = GET_INFO;
-						this.startLoop(cb);
-					});
-				}
-			} else {
-				const buf = concat(fragments, messageLength);
-				if (!this._skipUTF8Validation && !isValidUTF8(buf)) {
-					cb(this.createError(Error, "invalid UTF-8 sequence", true, 1007, "WS_ERR_INVALID_UTF8"));
-					return;
-				}
-				if (this._state === INFLATING || this._allowSynchronousEvents) {
-					this.emit("message", buf, false);
-					this._state = GET_INFO;
-				} else {
-					this._state = DEFER_EVENT;
-					setImmediate(() => {
-						this.emit("message", buf, false);
-						this._state = GET_INFO;
-						this.startLoop(cb);
-					});
-				}
-			}
-		}
-		/**
-		* Handles a control message.
-		*
-		* @param {Buffer} data Data to handle
-		* @return {(Error|RangeError|undefined)} A possible error
-		* @private
-		*/
-		controlMessage(data, cb) {
-			if (this._opcode === 8) {
-				if (data.length === 0) {
-					this._loop = false;
-					this.emit("conclude", 1005, EMPTY_BUFFER);
-					this.end();
-				} else {
-					const code = data.readUInt16BE(0);
-					if (!isValidStatusCode(code)) {
-						cb(this.createError(RangeError, `invalid status code ${code}`, true, 1002, "WS_ERR_INVALID_CLOSE_CODE"));
-						return;
-					}
-					const buf = new FastBuffer(data.buffer, data.byteOffset + 2, data.length - 2);
-					if (!this._skipUTF8Validation && !isValidUTF8(buf)) {
-						cb(this.createError(Error, "invalid UTF-8 sequence", true, 1007, "WS_ERR_INVALID_UTF8"));
-						return;
-					}
-					this._loop = false;
-					this.emit("conclude", code, buf);
-					this.end();
-				}
-				this._state = GET_INFO;
-				return;
-			}
-			if (this._allowSynchronousEvents) {
-				this.emit(this._opcode === 9 ? "ping" : "pong", data);
-				this._state = GET_INFO;
-			} else {
-				this._state = DEFER_EVENT;
-				setImmediate(() => {
-					this.emit(this._opcode === 9 ? "ping" : "pong", data);
-					this._state = GET_INFO;
-					this.startLoop(cb);
-				});
-			}
-		}
-		/**
-		* Builds an error object.
-		*
-		* @param {function(new:Error|RangeError)} ErrorCtor The error constructor
-		* @param {String} message The error message
-		* @param {Boolean} prefix Specifies whether or not to add a default prefix to
-		*     `message`
-		* @param {Number} statusCode The status code
-		* @param {String} errorCode The exposed error code
-		* @return {(Error|RangeError)} The error
-		* @private
-		*/
-		createError(ErrorCtor, message, prefix, statusCode, errorCode) {
-			this._loop = false;
-			this._errored = true;
-			const err = new ErrorCtor(prefix ? `Invalid WebSocket frame: ${message}` : message);
-			Error.captureStackTrace(err, this.createError);
-			err.code = errorCode;
-			err[kStatusCode] = statusCode;
-			return err;
-		}
-	};
-	module.exports = Receiver;
-}));
-var require_sender = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	var { Duplex } = require_builtin_esm_external_require_stream();
-	var { randomFillSync } = require_builtin_esm_external_require_crypto();
-	var PerMessageDeflate = require_permessage_deflate();
-	var { EMPTY_BUFFER, kWebSocket, NOOP } = require_constants$1();
-	var { isBlob, isValidStatusCode } = require_validation();
-	var { mask: applyMask, toBuffer } = require_buffer_util();
-	var kByteLength = Symbol("kByteLength");
-	var maskBuffer = Buffer.alloc(4);
-	var RANDOM_POOL_SIZE = 8 * 1024;
-	var randomPool;
-	var randomPoolPointer = RANDOM_POOL_SIZE;
-	var DEFAULT = 0;
-	var DEFLATING = 1;
-	var GET_BLOB_DATA = 2;
-	module.exports = class Sender {
-		/**
-		* Creates a Sender instance.
-		*
-		* @param {Duplex} socket The connection socket
-		* @param {Object} [extensions] An object containing the negotiated extensions
-		* @param {Function} [generateMask] The function used to generate the masking
-		*     key
-		*/
-		constructor(socket, extensions, generateMask) {
-			this._extensions = extensions || {};
-			if (generateMask) {
-				this._generateMask = generateMask;
-				this._maskBuffer = Buffer.alloc(4);
-			}
-			this._socket = socket;
-			this._firstFragment = true;
-			this._compress = false;
-			this._bufferedBytes = 0;
-			this._queue = [];
-			this._state = DEFAULT;
-			this.onerror = NOOP;
-			this[kWebSocket] = void 0;
-		}
-		/**
-		* Frames a piece of data according to the HyBi WebSocket protocol.
-		*
-		* @param {(Buffer|String)} data The data to frame
-		* @param {Object} options Options object
-		* @param {Boolean} [options.fin=false] Specifies whether or not to set the
-		*     FIN bit
-		* @param {Function} [options.generateMask] The function used to generate the
-		*     masking key
-		* @param {Boolean} [options.mask=false] Specifies whether or not to mask
-		*     `data`
-		* @param {Buffer} [options.maskBuffer] The buffer used to store the masking
-		*     key
-		* @param {Number} options.opcode The opcode
-		* @param {Boolean} [options.readOnly=false] Specifies whether `data` can be
-		*     modified
-		* @param {Boolean} [options.rsv1=false] Specifies whether or not to set the
-		*     RSV1 bit
-		* @return {(Buffer|String)[]} The framed data
-		* @public
-		*/
-		static frame(data, options) {
-			let mask;
-			let merge = false;
-			let offset = 2;
-			let skipMasking = false;
-			if (options.mask) {
-				mask = options.maskBuffer || maskBuffer;
-				if (options.generateMask) options.generateMask(mask);
-				else {
-					if (randomPoolPointer === RANDOM_POOL_SIZE) {
-						/* istanbul ignore else  */
-						if (randomPool === void 0) randomPool = Buffer.alloc(RANDOM_POOL_SIZE);
-						randomFillSync(randomPool, 0, RANDOM_POOL_SIZE);
-						randomPoolPointer = 0;
-					}
-					mask[0] = randomPool[randomPoolPointer++];
-					mask[1] = randomPool[randomPoolPointer++];
-					mask[2] = randomPool[randomPoolPointer++];
-					mask[3] = randomPool[randomPoolPointer++];
-				}
-				skipMasking = (mask[0] | mask[1] | mask[2] | mask[3]) === 0;
-				offset = 6;
-			}
-			let dataLength;
-			if (typeof data === "string") if ((!options.mask || skipMasking) && options[kByteLength] !== void 0) dataLength = options[kByteLength];
-			else {
-				data = Buffer.from(data);
-				dataLength = data.length;
-			}
-			else {
-				dataLength = data.length;
-				merge = options.mask && options.readOnly && !skipMasking;
-			}
-			let payloadLength = dataLength;
-			if (dataLength >= 65536) {
-				offset += 8;
-				payloadLength = 127;
-			} else if (dataLength > 125) {
-				offset += 2;
-				payloadLength = 126;
-			}
-			const target = Buffer.allocUnsafe(merge ? dataLength + offset : offset);
-			target[0] = options.fin ? options.opcode | 128 : options.opcode;
-			if (options.rsv1) target[0] |= 64;
-			target[1] = payloadLength;
-			if (payloadLength === 126) target.writeUInt16BE(dataLength, 2);
-			else if (payloadLength === 127) {
-				target[2] = target[3] = 0;
-				target.writeUIntBE(dataLength, 4, 6);
-			}
-			if (!options.mask) return [target, data];
-			target[1] |= 128;
-			target[offset - 4] = mask[0];
-			target[offset - 3] = mask[1];
-			target[offset - 2] = mask[2];
-			target[offset - 1] = mask[3];
-			if (skipMasking) return [target, data];
-			if (merge) {
-				applyMask(data, mask, target, offset, dataLength);
-				return [target];
-			}
-			applyMask(data, mask, data, 0, dataLength);
-			return [target, data];
-		}
-		/**
-		* Sends a close message to the other peer.
-		*
-		* @param {Number} [code] The status code component of the body
-		* @param {(String|Buffer)} [data] The message component of the body
-		* @param {Boolean} [mask=false] Specifies whether or not to mask the message
-		* @param {Function} [cb] Callback
-		* @public
-		*/
-		close(code, data, mask, cb) {
-			let buf;
-			if (code === void 0) buf = EMPTY_BUFFER;
-			else if (typeof code !== "number" || !isValidStatusCode(code)) throw new TypeError("First argument must be a valid error code number");
-			else if (data === void 0 || !data.length) {
-				buf = Buffer.allocUnsafe(2);
-				buf.writeUInt16BE(code, 0);
-			} else {
-				const length = Buffer.byteLength(data);
-				if (length > 123) throw new RangeError("The message must not be greater than 123 bytes");
-				buf = Buffer.allocUnsafe(2 + length);
-				buf.writeUInt16BE(code, 0);
-				if (typeof data === "string") buf.write(data, 2);
-				else buf.set(data, 2);
-			}
-			const options = {
-				[kByteLength]: buf.length,
-				fin: true,
-				generateMask: this._generateMask,
-				mask,
-				maskBuffer: this._maskBuffer,
-				opcode: 8,
-				readOnly: false,
-				rsv1: false
-			};
-			if (this._state !== DEFAULT) this.enqueue([
-				this.dispatch,
-				buf,
-				false,
-				options,
-				cb
-			]);
-			else this.sendFrame(Sender.frame(buf, options), cb);
-		}
-		/**
-		* Sends a ping message to the other peer.
-		*
-		* @param {*} data The message to send
-		* @param {Boolean} [mask=false] Specifies whether or not to mask `data`
-		* @param {Function} [cb] Callback
-		* @public
-		*/
-		ping(data, mask, cb) {
-			let byteLength;
-			let readOnly;
-			if (typeof data === "string") {
-				byteLength = Buffer.byteLength(data);
-				readOnly = false;
-			} else if (isBlob(data)) {
-				byteLength = data.size;
-				readOnly = false;
-			} else {
-				data = toBuffer(data);
-				byteLength = data.length;
-				readOnly = toBuffer.readOnly;
-			}
-			if (byteLength > 125) throw new RangeError("The data size must not be greater than 125 bytes");
-			const options = {
-				[kByteLength]: byteLength,
-				fin: true,
-				generateMask: this._generateMask,
-				mask,
-				maskBuffer: this._maskBuffer,
-				opcode: 9,
-				readOnly,
-				rsv1: false
-			};
-			if (isBlob(data)) if (this._state !== DEFAULT) this.enqueue([
-				this.getBlobData,
-				data,
-				false,
-				options,
-				cb
-			]);
-			else this.getBlobData(data, false, options, cb);
-			else if (this._state !== DEFAULT) this.enqueue([
-				this.dispatch,
-				data,
-				false,
-				options,
-				cb
-			]);
-			else this.sendFrame(Sender.frame(data, options), cb);
-		}
-		/**
-		* Sends a pong message to the other peer.
-		*
-		* @param {*} data The message to send
-		* @param {Boolean} [mask=false] Specifies whether or not to mask `data`
-		* @param {Function} [cb] Callback
-		* @public
-		*/
-		pong(data, mask, cb) {
-			let byteLength;
-			let readOnly;
-			if (typeof data === "string") {
-				byteLength = Buffer.byteLength(data);
-				readOnly = false;
-			} else if (isBlob(data)) {
-				byteLength = data.size;
-				readOnly = false;
-			} else {
-				data = toBuffer(data);
-				byteLength = data.length;
-				readOnly = toBuffer.readOnly;
-			}
-			if (byteLength > 125) throw new RangeError("The data size must not be greater than 125 bytes");
-			const options = {
-				[kByteLength]: byteLength,
-				fin: true,
-				generateMask: this._generateMask,
-				mask,
-				maskBuffer: this._maskBuffer,
-				opcode: 10,
-				readOnly,
-				rsv1: false
-			};
-			if (isBlob(data)) if (this._state !== DEFAULT) this.enqueue([
-				this.getBlobData,
-				data,
-				false,
-				options,
-				cb
-			]);
-			else this.getBlobData(data, false, options, cb);
-			else if (this._state !== DEFAULT) this.enqueue([
-				this.dispatch,
-				data,
-				false,
-				options,
-				cb
-			]);
-			else this.sendFrame(Sender.frame(data, options), cb);
-		}
-		/**
-		* Sends a data message to the other peer.
-		*
-		* @param {*} data The message to send
-		* @param {Object} options Options object
-		* @param {Boolean} [options.binary=false] Specifies whether `data` is binary
-		*     or text
-		* @param {Boolean} [options.compress=false] Specifies whether or not to
-		*     compress `data`
-		* @param {Boolean} [options.fin=false] Specifies whether the fragment is the
-		*     last one
-		* @param {Boolean} [options.mask=false] Specifies whether or not to mask
-		*     `data`
-		* @param {Function} [cb] Callback
-		* @public
-		*/
-		send(data, options, cb) {
-			const perMessageDeflate = this._extensions[PerMessageDeflate.extensionName];
-			let opcode = options.binary ? 2 : 1;
-			let rsv1 = options.compress;
-			let byteLength;
-			let readOnly;
-			if (typeof data === "string") {
-				byteLength = Buffer.byteLength(data);
-				readOnly = false;
-			} else if (isBlob(data)) {
-				byteLength = data.size;
-				readOnly = false;
-			} else {
-				data = toBuffer(data);
-				byteLength = data.length;
-				readOnly = toBuffer.readOnly;
-			}
-			if (this._firstFragment) {
-				this._firstFragment = false;
-				if (rsv1 && perMessageDeflate && perMessageDeflate.params[perMessageDeflate._isServer ? "server_no_context_takeover" : "client_no_context_takeover"]) rsv1 = byteLength >= perMessageDeflate._threshold;
-				this._compress = rsv1;
-			} else {
-				rsv1 = false;
-				opcode = 0;
-			}
-			if (options.fin) this._firstFragment = true;
-			const opts = {
-				[kByteLength]: byteLength,
-				fin: options.fin,
-				generateMask: this._generateMask,
-				mask: options.mask,
-				maskBuffer: this._maskBuffer,
-				opcode,
-				readOnly,
-				rsv1
-			};
-			if (isBlob(data)) if (this._state !== DEFAULT) this.enqueue([
-				this.getBlobData,
-				data,
-				this._compress,
-				opts,
-				cb
-			]);
-			else this.getBlobData(data, this._compress, opts, cb);
-			else if (this._state !== DEFAULT) this.enqueue([
-				this.dispatch,
-				data,
-				this._compress,
-				opts,
-				cb
-			]);
-			else this.dispatch(data, this._compress, opts, cb);
-		}
-		/**
-		* Gets the contents of a blob as binary data.
-		*
-		* @param {Blob} blob The blob
-		* @param {Boolean} [compress=false] Specifies whether or not to compress
-		*     the data
-		* @param {Object} options Options object
-		* @param {Boolean} [options.fin=false] Specifies whether or not to set the
-		*     FIN bit
-		* @param {Function} [options.generateMask] The function used to generate the
-		*     masking key
-		* @param {Boolean} [options.mask=false] Specifies whether or not to mask
-		*     `data`
-		* @param {Buffer} [options.maskBuffer] The buffer used to store the masking
-		*     key
-		* @param {Number} options.opcode The opcode
-		* @param {Boolean} [options.readOnly=false] Specifies whether `data` can be
-		*     modified
-		* @param {Boolean} [options.rsv1=false] Specifies whether or not to set the
-		*     RSV1 bit
-		* @param {Function} [cb] Callback
-		* @private
-		*/
-		getBlobData(blob, compress, options, cb) {
-			this._bufferedBytes += options[kByteLength];
-			this._state = GET_BLOB_DATA;
-			blob.arrayBuffer().then((arrayBuffer) => {
-				if (this._socket.destroyed) {
-					const err = /* @__PURE__ */ new Error("The socket was closed while the blob was being read");
-					process.nextTick(callCallbacks, this, err, cb);
-					return;
-				}
-				this._bufferedBytes -= options[kByteLength];
-				const data = toBuffer(arrayBuffer);
-				if (!compress) {
-					this._state = DEFAULT;
-					this.sendFrame(Sender.frame(data, options), cb);
-					this.dequeue();
-				} else this.dispatch(data, compress, options, cb);
-			}).catch((err) => {
-				process.nextTick(onError, this, err, cb);
-			});
-		}
-		/**
-		* Dispatches a message.
-		*
-		* @param {(Buffer|String)} data The message to send
-		* @param {Boolean} [compress=false] Specifies whether or not to compress
-		*     `data`
-		* @param {Object} options Options object
-		* @param {Boolean} [options.fin=false] Specifies whether or not to set the
-		*     FIN bit
-		* @param {Function} [options.generateMask] The function used to generate the
-		*     masking key
-		* @param {Boolean} [options.mask=false] Specifies whether or not to mask
-		*     `data`
-		* @param {Buffer} [options.maskBuffer] The buffer used to store the masking
-		*     key
-		* @param {Number} options.opcode The opcode
-		* @param {Boolean} [options.readOnly=false] Specifies whether `data` can be
-		*     modified
-		* @param {Boolean} [options.rsv1=false] Specifies whether or not to set the
-		*     RSV1 bit
-		* @param {Function} [cb] Callback
-		* @private
-		*/
-		dispatch(data, compress, options, cb) {
-			if (!compress) {
-				this.sendFrame(Sender.frame(data, options), cb);
-				return;
-			}
-			const perMessageDeflate = this._extensions[PerMessageDeflate.extensionName];
-			this._bufferedBytes += options[kByteLength];
-			this._state = DEFLATING;
-			perMessageDeflate.compress(data, options.fin, (_, buf) => {
-				if (this._socket.destroyed) {
-					callCallbacks(this, /* @__PURE__ */ new Error("The socket was closed while data was being compressed"), cb);
-					return;
-				}
-				this._bufferedBytes -= options[kByteLength];
-				this._state = DEFAULT;
-				options.readOnly = false;
-				this.sendFrame(Sender.frame(buf, options), cb);
-				this.dequeue();
-			});
-		}
-		/**
-		* Executes queued send operations.
-		*
-		* @private
-		*/
-		dequeue() {
-			while (this._state === DEFAULT && this._queue.length) {
-				const params = this._queue.shift();
-				this._bufferedBytes -= params[3][kByteLength];
-				Reflect.apply(params[0], this, params.slice(1));
-			}
-		}
-		/**
-		* Enqueues a send operation.
-		*
-		* @param {Array} params Send operation parameters.
-		* @private
-		*/
-		enqueue(params) {
-			this._bufferedBytes += params[3][kByteLength];
-			this._queue.push(params);
-		}
-		/**
-		* Sends a frame.
-		*
-		* @param {(Buffer | String)[]} list The frame to send
-		* @param {Function} [cb] Callback
-		* @private
-		*/
-		sendFrame(list, cb) {
-			if (list.length === 2) {
-				this._socket.cork();
-				this._socket.write(list[0]);
-				this._socket.write(list[1], cb);
-				this._socket.uncork();
-			} else this._socket.write(list[0], cb);
-		}
-	};
-	/**
-	* Calls queued callbacks with an error.
-	*
-	* @param {Sender} sender The `Sender` instance
-	* @param {Error} err The error to call the callbacks with
-	* @param {Function} [cb] The first callback
-	* @private
-	*/
-	function callCallbacks(sender, err, cb) {
-		if (typeof cb === "function") cb(err);
-		for (let i = 0; i < sender._queue.length; i++) {
-			const params = sender._queue[i];
-			const callback = params[params.length - 1];
-			if (typeof callback === "function") callback(err);
-		}
-	}
-	/**
-	* Handles a `Sender` error.
-	*
-	* @param {Sender} sender The `Sender` instance
-	* @param {Error} err The error
-	* @param {Function} [cb] The first pending callback
-	* @private
-	*/
-	function onError(sender, err, cb) {
-		callCallbacks(sender, err, cb);
-		sender.onerror(err);
-	}
-}));
-var require_event_target = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	var { kForOnEventAttribute, kListener } = require_constants$1();
-	var kCode = Symbol("kCode");
-	var kData = Symbol("kData");
-	var kError = Symbol("kError");
-	var kMessage = Symbol("kMessage");
-	var kReason = Symbol("kReason");
-	var kTarget = Symbol("kTarget");
-	var kType = Symbol("kType");
-	var kWasClean = Symbol("kWasClean");
-	/**
-	* Class representing an event.
-	*/
-	var Event = class {
-		/**
-		* Create a new `Event`.
-		*
-		* @param {String} type The name of the event
-		* @throws {TypeError} If the `type` argument is not specified
-		*/
-		constructor(type) {
-			this[kTarget] = null;
-			this[kType] = type;
-		}
-		/**
-		* @type {*}
-		*/
-		get target() {
-			return this[kTarget];
-		}
-		/**
-		* @type {String}
-		*/
-		get type() {
-			return this[kType];
-		}
-	};
-	Object.defineProperty(Event.prototype, "target", { enumerable: true });
-	Object.defineProperty(Event.prototype, "type", { enumerable: true });
-	/**
-	* Class representing a close event.
-	*
-	* @extends Event
-	*/
-	var CloseEvent = class extends Event {
-		/**
-		* Create a new `CloseEvent`.
-		*
-		* @param {String} type The name of the event
-		* @param {Object} [options] A dictionary object that allows for setting
-		*     attributes via object members of the same name
-		* @param {Number} [options.code=0] The status code explaining why the
-		*     connection was closed
-		* @param {String} [options.reason=''] A human-readable string explaining why
-		*     the connection was closed
-		* @param {Boolean} [options.wasClean=false] Indicates whether or not the
-		*     connection was cleanly closed
-		*/
-		constructor(type, options = {}) {
-			super(type);
-			this[kCode] = options.code === void 0 ? 0 : options.code;
-			this[kReason] = options.reason === void 0 ? "" : options.reason;
-			this[kWasClean] = options.wasClean === void 0 ? false : options.wasClean;
-		}
-		/**
-		* @type {Number}
-		*/
-		get code() {
-			return this[kCode];
-		}
-		/**
-		* @type {String}
-		*/
-		get reason() {
-			return this[kReason];
-		}
-		/**
-		* @type {Boolean}
-		*/
-		get wasClean() {
-			return this[kWasClean];
-		}
-	};
-	Object.defineProperty(CloseEvent.prototype, "code", { enumerable: true });
-	Object.defineProperty(CloseEvent.prototype, "reason", { enumerable: true });
-	Object.defineProperty(CloseEvent.prototype, "wasClean", { enumerable: true });
-	/**
-	* Class representing an error event.
-	*
-	* @extends Event
-	*/
-	var ErrorEvent = class extends Event {
-		/**
-		* Create a new `ErrorEvent`.
-		*
-		* @param {String} type The name of the event
-		* @param {Object} [options] A dictionary object that allows for setting
-		*     attributes via object members of the same name
-		* @param {*} [options.error=null] The error that generated this event
-		* @param {String} [options.message=''] The error message
-		*/
-		constructor(type, options = {}) {
-			super(type);
-			this[kError] = options.error === void 0 ? null : options.error;
-			this[kMessage] = options.message === void 0 ? "" : options.message;
-		}
-		/**
-		* @type {*}
-		*/
-		get error() {
-			return this[kError];
-		}
-		/**
-		* @type {String}
-		*/
-		get message() {
-			return this[kMessage];
-		}
-	};
-	Object.defineProperty(ErrorEvent.prototype, "error", { enumerable: true });
-	Object.defineProperty(ErrorEvent.prototype, "message", { enumerable: true });
-	/**
-	* Class representing a message event.
-	*
-	* @extends Event
-	*/
-	var MessageEvent = class extends Event {
-		/**
-		* Create a new `MessageEvent`.
-		*
-		* @param {String} type The name of the event
-		* @param {Object} [options] A dictionary object that allows for setting
-		*     attributes via object members of the same name
-		* @param {*} [options.data=null] The message content
-		*/
-		constructor(type, options = {}) {
-			super(type);
-			this[kData] = options.data === void 0 ? null : options.data;
-		}
-		/**
-		* @type {*}
-		*/
-		get data() {
-			return this[kData];
-		}
-	};
-	Object.defineProperty(MessageEvent.prototype, "data", { enumerable: true });
-	module.exports = {
-		CloseEvent,
-		ErrorEvent,
-		Event,
-		EventTarget: {
-			addEventListener(type, handler, options = {}) {
-				for (const listener of this.listeners(type)) if (!options[kForOnEventAttribute] && listener[kListener] === handler && !listener[kForOnEventAttribute]) return;
-				let wrapper;
-				if (type === "message") wrapper = function onMessage(data, isBinary) {
-					const event = new MessageEvent("message", { data: isBinary ? data : data.toString() });
-					event[kTarget] = this;
-					callListener(handler, this, event);
-				};
-				else if (type === "close") wrapper = function onClose(code, message) {
-					const event = new CloseEvent("close", {
-						code,
-						reason: message.toString(),
-						wasClean: this._closeFrameReceived && this._closeFrameSent
-					});
-					event[kTarget] = this;
-					callListener(handler, this, event);
-				};
-				else if (type === "error") wrapper = function onError(error) {
-					const event = new ErrorEvent("error", {
-						error,
-						message: error.message
-					});
-					event[kTarget] = this;
-					callListener(handler, this, event);
-				};
-				else if (type === "open") wrapper = function onOpen() {
-					const event = new Event("open");
-					event[kTarget] = this;
-					callListener(handler, this, event);
-				};
-				else return;
-				wrapper[kForOnEventAttribute] = !!options[kForOnEventAttribute];
-				wrapper[kListener] = handler;
-				if (options.once) this.once(type, wrapper);
-				else this.on(type, wrapper);
-			},
-			removeEventListener(type, handler) {
-				for (const listener of this.listeners(type)) if (listener[kListener] === handler && !listener[kForOnEventAttribute]) {
-					this.removeListener(type, listener);
-					break;
-				}
-			}
-		},
-		MessageEvent
-	};
-	/**
-	* Call an event listener
-	*
-	* @param {(Function|Object)} listener The listener to call
-	* @param {*} thisArg The value to use as `this`` when calling the listener
-	* @param {Event} event The event to pass to the listener
-	* @private
-	*/
-	function callListener(listener, thisArg, event) {
-		if (typeof listener === "object" && listener.handleEvent) listener.handleEvent.call(listener, event);
-		else listener.call(thisArg, event);
-	}
-}));
-var require_extension = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	var { tokenChars } = require_validation();
-	/**
-	* Adds an offer to the map of extension offers or a parameter to the map of
-	* parameters.
-	*
-	* @param {Object} dest The map of extension offers or parameters
-	* @param {String} name The extension or parameter name
-	* @param {(Object|Boolean|String)} elem The extension parameters or the
-	*     parameter value
-	* @private
-	*/
-	function push(dest, name, elem) {
-		if (dest[name] === void 0) dest[name] = [elem];
-		else dest[name].push(elem);
-	}
-	/**
-	* Parses the `Sec-WebSocket-Extensions` header into an object.
-	*
-	* @param {String} header The field value of the header
-	* @return {Object} The parsed object
-	* @public
-	*/
-	function parse(header) {
-		const offers = Object.create(null);
-		let params = Object.create(null);
-		let mustUnescape = false;
-		let isEscaping = false;
-		let inQuotes = false;
-		let extensionName;
-		let paramName;
-		let start = -1;
-		let code = -1;
-		let end = -1;
-		let i = 0;
-		for (; i < header.length; i++) {
-			code = header.charCodeAt(i);
-			if (extensionName === void 0) if (end === -1 && tokenChars[code] === 1) {
-				if (start === -1) start = i;
-			} else if (i !== 0 && (code === 32 || code === 9)) {
-				if (end === -1 && start !== -1) end = i;
-			} else if (code === 59 || code === 44) {
-				if (start === -1) throw new SyntaxError(`Unexpected character at index ${i}`);
-				if (end === -1) end = i;
-				const name = header.slice(start, end);
-				if (code === 44) {
-					push(offers, name, params);
-					params = Object.create(null);
-				} else extensionName = name;
-				start = end = -1;
-			} else throw new SyntaxError(`Unexpected character at index ${i}`);
-			else if (paramName === void 0) if (end === -1 && tokenChars[code] === 1) {
-				if (start === -1) start = i;
-			} else if (code === 32 || code === 9) {
-				if (end === -1 && start !== -1) end = i;
-			} else if (code === 59 || code === 44) {
-				if (start === -1) throw new SyntaxError(`Unexpected character at index ${i}`);
-				if (end === -1) end = i;
-				push(params, header.slice(start, end), true);
-				if (code === 44) {
-					push(offers, extensionName, params);
-					params = Object.create(null);
-					extensionName = void 0;
-				}
-				start = end = -1;
-			} else if (code === 61 && start !== -1 && end === -1) {
-				paramName = header.slice(start, i);
-				start = end = -1;
-			} else throw new SyntaxError(`Unexpected character at index ${i}`);
-			else if (isEscaping) {
-				if (tokenChars[code] !== 1) throw new SyntaxError(`Unexpected character at index ${i}`);
-				if (start === -1) start = i;
-				else if (!mustUnescape) mustUnescape = true;
-				isEscaping = false;
-			} else if (inQuotes) if (tokenChars[code] === 1) {
-				if (start === -1) start = i;
-			} else if (code === 34 && start !== -1) {
-				inQuotes = false;
-				end = i;
-			} else if (code === 92) isEscaping = true;
-			else throw new SyntaxError(`Unexpected character at index ${i}`);
-			else if (code === 34 && header.charCodeAt(i - 1) === 61) inQuotes = true;
-			else if (end === -1 && tokenChars[code] === 1) {
-				if (start === -1) start = i;
-			} else if (start !== -1 && (code === 32 || code === 9)) {
-				if (end === -1) end = i;
-			} else if (code === 59 || code === 44) {
-				if (start === -1) throw new SyntaxError(`Unexpected character at index ${i}`);
-				if (end === -1) end = i;
-				let value = header.slice(start, end);
-				if (mustUnescape) {
-					value = value.replace(/\\/g, "");
-					mustUnescape = false;
-				}
-				push(params, paramName, value);
-				if (code === 44) {
-					push(offers, extensionName, params);
-					params = Object.create(null);
-					extensionName = void 0;
-				}
-				paramName = void 0;
-				start = end = -1;
-			} else throw new SyntaxError(`Unexpected character at index ${i}`);
-		}
-		if (start === -1 || inQuotes || code === 32 || code === 9) throw new SyntaxError("Unexpected end of input");
-		if (end === -1) end = i;
-		const token = header.slice(start, end);
-		if (extensionName === void 0) push(offers, token, params);
-		else {
-			if (paramName === void 0) push(params, token, true);
-			else if (mustUnescape) push(params, paramName, token.replace(/\\/g, ""));
-			else push(params, paramName, token);
-			push(offers, extensionName, params);
-		}
-		return offers;
-	}
-	/**
-	* Builds the `Sec-WebSocket-Extensions` header field value.
-	*
-	* @param {Object} extensions The map of extensions and parameters to format
-	* @return {String} A string representing the given object
-	* @public
-	*/
-	function format(extensions) {
-		return Object.keys(extensions).map((extension) => {
-			let configurations = extensions[extension];
-			if (!Array.isArray(configurations)) configurations = [configurations];
-			return configurations.map((params) => {
-				return [extension].concat(Object.keys(params).map((k) => {
-					let values = params[k];
-					if (!Array.isArray(values)) values = [values];
-					return values.map((v) => v === true ? k : `${k}=${v}`).join("; ");
-				})).join("; ");
-			}).join(", ");
-		}).join(", ");
-	}
-	module.exports = {
-		format,
-		parse
-	};
-}));
-var require_websocket = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	var EventEmitter = require_builtin_esm_external_require_events();
-	var https = require_builtin_esm_external_require_https();
-	var http = require_builtin_esm_external_require_http();
-	var net = require_builtin_esm_external_require_net();
-	var tls = require_builtin_esm_external_require_tls();
-	var { randomBytes, createHash } = require_builtin_esm_external_require_crypto();
-	var { Duplex, Readable } = require_builtin_esm_external_require_stream();
-	var { URL } = require_builtin_esm_external_require_url();
-	var PerMessageDeflate = require_permessage_deflate();
-	var Receiver = require_receiver();
-	var Sender = require_sender();
-	var { isBlob } = require_validation();
-	var { BINARY_TYPES, CLOSE_TIMEOUT, EMPTY_BUFFER, GUID, kForOnEventAttribute, kListener, kStatusCode, kWebSocket, NOOP } = require_constants$1();
-	var { EventTarget: { addEventListener, removeEventListener } } = require_event_target();
-	var { format, parse } = require_extension();
-	var { toBuffer } = require_buffer_util();
-	var kAborted = Symbol("kAborted");
-	var protocolVersions = [8, 13];
-	var readyStates = [
-		"CONNECTING",
-		"OPEN",
-		"CLOSING",
-		"CLOSED"
-	];
-	var subprotocolRegex = /^[!#$%&'*+\-.0-9A-Z^_`|a-z~]+$/;
-	/**
-	* Class representing a WebSocket.
-	*
-	* @extends EventEmitter
-	*/
-	var WebSocket = class WebSocket extends EventEmitter {
-		/**
-		* Create a new `WebSocket`.
-		*
-		* @param {(String|URL)} address The URL to which to connect
-		* @param {(String|String[])} [protocols] The subprotocols
-		* @param {Object} [options] Connection options
-		*/
-		constructor(address, protocols, options) {
-			super();
-			this._binaryType = BINARY_TYPES[0];
-			this._closeCode = 1006;
-			this._closeFrameReceived = false;
-			this._closeFrameSent = false;
-			this._closeMessage = EMPTY_BUFFER;
-			this._closeTimer = null;
-			this._errorEmitted = false;
-			this._extensions = {};
-			this._paused = false;
-			this._protocol = "";
-			this._readyState = WebSocket.CONNECTING;
-			this._receiver = null;
-			this._sender = null;
-			this._socket = null;
-			if (address !== null) {
-				this._bufferedAmount = 0;
-				this._isServer = false;
-				this._redirects = 0;
-				if (protocols === void 0) protocols = [];
-				else if (!Array.isArray(protocols)) if (typeof protocols === "object" && protocols !== null) {
-					options = protocols;
-					protocols = [];
-				} else protocols = [protocols];
-				initAsClient(this, address, protocols, options);
-			} else {
-				this._autoPong = options.autoPong;
-				this._closeTimeout = options.closeTimeout;
-				this._isServer = true;
-			}
-		}
-		/**
-		* For historical reasons, the custom "nodebuffer" type is used by the default
-		* instead of "blob".
-		*
-		* @type {String}
-		*/
-		get binaryType() {
-			return this._binaryType;
-		}
-		set binaryType(type) {
-			if (!BINARY_TYPES.includes(type)) return;
-			this._binaryType = type;
-			if (this._receiver) this._receiver._binaryType = type;
-		}
-		/**
-		* @type {Number}
-		*/
-		get bufferedAmount() {
-			if (!this._socket) return this._bufferedAmount;
-			return this._socket._writableState.length + this._sender._bufferedBytes;
-		}
-		/**
-		* @type {String}
-		*/
-		get extensions() {
-			return Object.keys(this._extensions).join();
-		}
-		/**
-		* @type {Boolean}
-		*/
-		get isPaused() {
-			return this._paused;
-		}
-		/**
-		* @type {Function}
-		*/
-		/* istanbul ignore next */
-		get onclose() {
-			return null;
-		}
-		/**
-		* @type {Function}
-		*/
-		/* istanbul ignore next */
-		get onerror() {
-			return null;
-		}
-		/**
-		* @type {Function}
-		*/
-		/* istanbul ignore next */
-		get onopen() {
-			return null;
-		}
-		/**
-		* @type {Function}
-		*/
-		/* istanbul ignore next */
-		get onmessage() {
-			return null;
-		}
-		/**
-		* @type {String}
-		*/
-		get protocol() {
-			return this._protocol;
-		}
-		/**
-		* @type {Number}
-		*/
-		get readyState() {
-			return this._readyState;
-		}
-		/**
-		* @type {String}
-		*/
-		get url() {
-			return this._url;
-		}
-		/**
-		* Set up the socket and the internal resources.
-		*
-		* @param {Duplex} socket The network socket between the server and client
-		* @param {Buffer} head The first packet of the upgraded stream
-		* @param {Object} options Options object
-		* @param {Boolean} [options.allowSynchronousEvents=false] Specifies whether
-		*     any of the `'message'`, `'ping'`, and `'pong'` events can be emitted
-		*     multiple times in the same tick
-		* @param {Function} [options.generateMask] The function used to generate the
-		*     masking key
-		* @param {Number} [options.maxPayload=0] The maximum allowed message size
-		* @param {Boolean} [options.skipUTF8Validation=false] Specifies whether or
-		*     not to skip UTF-8 validation for text and close messages
-		* @private
-		*/
-		setSocket(socket, head, options) {
-			const receiver = new Receiver({
-				allowSynchronousEvents: options.allowSynchronousEvents,
-				binaryType: this.binaryType,
-				extensions: this._extensions,
-				isServer: this._isServer,
-				maxPayload: options.maxPayload,
-				skipUTF8Validation: options.skipUTF8Validation
-			});
-			const sender = new Sender(socket, this._extensions, options.generateMask);
-			this._receiver = receiver;
-			this._sender = sender;
-			this._socket = socket;
-			receiver[kWebSocket] = this;
-			sender[kWebSocket] = this;
-			socket[kWebSocket] = this;
-			receiver.on("conclude", receiverOnConclude);
-			receiver.on("drain", receiverOnDrain);
-			receiver.on("error", receiverOnError);
-			receiver.on("message", receiverOnMessage);
-			receiver.on("ping", receiverOnPing);
-			receiver.on("pong", receiverOnPong);
-			sender.onerror = senderOnError;
-			if (socket.setTimeout) socket.setTimeout(0);
-			if (socket.setNoDelay) socket.setNoDelay();
-			if (head.length > 0) socket.unshift(head);
-			socket.on("close", socketOnClose);
-			socket.on("data", socketOnData);
-			socket.on("end", socketOnEnd);
-			socket.on("error", socketOnError);
-			this._readyState = WebSocket.OPEN;
-			this.emit("open");
-		}
-		/**
-		* Emit the `'close'` event.
-		*
-		* @private
-		*/
-		emitClose() {
-			if (!this._socket) {
-				this._readyState = WebSocket.CLOSED;
-				this.emit("close", this._closeCode, this._closeMessage);
-				return;
-			}
-			if (this._extensions[PerMessageDeflate.extensionName]) this._extensions[PerMessageDeflate.extensionName].cleanup();
-			this._receiver.removeAllListeners();
-			this._readyState = WebSocket.CLOSED;
-			this.emit("close", this._closeCode, this._closeMessage);
-		}
-		/**
-		* Start a closing handshake.
-		*
-		*          +----------+   +-----------+   +----------+
-		*     - - -|ws.close()|-->|close frame|-->|ws.close()|- - -
-		*    |     +----------+   +-----------+   +----------+     |
-		*          +----------+   +-----------+         |
-		* CLOSING  |ws.close()|<--|close frame|<--+-----+       CLOSING
-		*          +----------+   +-----------+   |
-		*    |           |                        |   +---+        |
-		*                +------------------------+-->|fin| - - - -
-		*    |         +---+                      |   +---+
-		*     - - - - -|fin|<---------------------+
-		*              +---+
-		*
-		* @param {Number} [code] Status code explaining why the connection is closing
-		* @param {(String|Buffer)} [data] The reason why the connection is
-		*     closing
-		* @public
-		*/
-		close(code, data) {
-			if (this.readyState === WebSocket.CLOSED) return;
-			if (this.readyState === WebSocket.CONNECTING) {
-				abortHandshake(this, this._req, "WebSocket was closed before the connection was established");
-				return;
-			}
-			if (this.readyState === WebSocket.CLOSING) {
-				if (this._closeFrameSent && (this._closeFrameReceived || this._receiver._writableState.errorEmitted)) this._socket.end();
-				return;
-			}
-			this._readyState = WebSocket.CLOSING;
-			this._sender.close(code, data, !this._isServer, (err) => {
-				if (err) return;
-				this._closeFrameSent = true;
-				if (this._closeFrameReceived || this._receiver._writableState.errorEmitted) this._socket.end();
-			});
-			setCloseTimer(this);
-		}
-		/**
-		* Pause the socket.
-		*
-		* @public
-		*/
-		pause() {
-			if (this.readyState === WebSocket.CONNECTING || this.readyState === WebSocket.CLOSED) return;
-			this._paused = true;
-			this._socket.pause();
-		}
-		/**
-		* Send a ping.
-		*
-		* @param {*} [data] The data to send
-		* @param {Boolean} [mask] Indicates whether or not to mask `data`
-		* @param {Function} [cb] Callback which is executed when the ping is sent
-		* @public
-		*/
-		ping(data, mask, cb) {
-			if (this.readyState === WebSocket.CONNECTING) throw new Error("WebSocket is not open: readyState 0 (CONNECTING)");
-			if (typeof data === "function") {
-				cb = data;
-				data = mask = void 0;
-			} else if (typeof mask === "function") {
-				cb = mask;
-				mask = void 0;
-			}
-			if (typeof data === "number") data = data.toString();
-			if (this.readyState !== WebSocket.OPEN) {
-				sendAfterClose(this, data, cb);
-				return;
-			}
-			if (mask === void 0) mask = !this._isServer;
-			this._sender.ping(data || EMPTY_BUFFER, mask, cb);
-		}
-		/**
-		* Send a pong.
-		*
-		* @param {*} [data] The data to send
-		* @param {Boolean} [mask] Indicates whether or not to mask `data`
-		* @param {Function} [cb] Callback which is executed when the pong is sent
-		* @public
-		*/
-		pong(data, mask, cb) {
-			if (this.readyState === WebSocket.CONNECTING) throw new Error("WebSocket is not open: readyState 0 (CONNECTING)");
-			if (typeof data === "function") {
-				cb = data;
-				data = mask = void 0;
-			} else if (typeof mask === "function") {
-				cb = mask;
-				mask = void 0;
-			}
-			if (typeof data === "number") data = data.toString();
-			if (this.readyState !== WebSocket.OPEN) {
-				sendAfterClose(this, data, cb);
-				return;
-			}
-			if (mask === void 0) mask = !this._isServer;
-			this._sender.pong(data || EMPTY_BUFFER, mask, cb);
-		}
-		/**
-		* Resume the socket.
-		*
-		* @public
-		*/
-		resume() {
-			if (this.readyState === WebSocket.CONNECTING || this.readyState === WebSocket.CLOSED) return;
-			this._paused = false;
-			if (!this._receiver._writableState.needDrain) this._socket.resume();
-		}
-		/**
-		* Send a data message.
-		*
-		* @param {*} data The message to send
-		* @param {Object} [options] Options object
-		* @param {Boolean} [options.binary] Specifies whether `data` is binary or
-		*     text
-		* @param {Boolean} [options.compress] Specifies whether or not to compress
-		*     `data`
-		* @param {Boolean} [options.fin=true] Specifies whether the fragment is the
-		*     last one
-		* @param {Boolean} [options.mask] Specifies whether or not to mask `data`
-		* @param {Function} [cb] Callback which is executed when data is written out
-		* @public
-		*/
-		send(data, options, cb) {
-			if (this.readyState === WebSocket.CONNECTING) throw new Error("WebSocket is not open: readyState 0 (CONNECTING)");
-			if (typeof options === "function") {
-				cb = options;
-				options = {};
-			}
-			if (typeof data === "number") data = data.toString();
-			if (this.readyState !== WebSocket.OPEN) {
-				sendAfterClose(this, data, cb);
-				return;
-			}
-			const opts = {
-				binary: typeof data !== "string",
-				mask: !this._isServer,
-				compress: true,
-				fin: true,
-				...options
-			};
-			if (!this._extensions[PerMessageDeflate.extensionName]) opts.compress = false;
-			this._sender.send(data || EMPTY_BUFFER, opts, cb);
-		}
-		/**
-		* Forcibly close the connection.
-		*
-		* @public
-		*/
-		terminate() {
-			if (this.readyState === WebSocket.CLOSED) return;
-			if (this.readyState === WebSocket.CONNECTING) {
-				abortHandshake(this, this._req, "WebSocket was closed before the connection was established");
-				return;
-			}
-			if (this._socket) {
-				this._readyState = WebSocket.CLOSING;
-				this._socket.destroy();
-			}
-		}
-	};
-	/**
-	* @constant {Number} CONNECTING
-	* @memberof WebSocket
-	*/
-	Object.defineProperty(WebSocket, "CONNECTING", {
-		enumerable: true,
-		value: readyStates.indexOf("CONNECTING")
-	});
-	/**
-	* @constant {Number} CONNECTING
-	* @memberof WebSocket.prototype
-	*/
-	Object.defineProperty(WebSocket.prototype, "CONNECTING", {
-		enumerable: true,
-		value: readyStates.indexOf("CONNECTING")
-	});
-	/**
-	* @constant {Number} OPEN
-	* @memberof WebSocket
-	*/
-	Object.defineProperty(WebSocket, "OPEN", {
-		enumerable: true,
-		value: readyStates.indexOf("OPEN")
-	});
-	/**
-	* @constant {Number} OPEN
-	* @memberof WebSocket.prototype
-	*/
-	Object.defineProperty(WebSocket.prototype, "OPEN", {
-		enumerable: true,
-		value: readyStates.indexOf("OPEN")
-	});
-	/**
-	* @constant {Number} CLOSING
-	* @memberof WebSocket
-	*/
-	Object.defineProperty(WebSocket, "CLOSING", {
-		enumerable: true,
-		value: readyStates.indexOf("CLOSING")
-	});
-	/**
-	* @constant {Number} CLOSING
-	* @memberof WebSocket.prototype
-	*/
-	Object.defineProperty(WebSocket.prototype, "CLOSING", {
-		enumerable: true,
-		value: readyStates.indexOf("CLOSING")
-	});
-	/**
-	* @constant {Number} CLOSED
-	* @memberof WebSocket
-	*/
-	Object.defineProperty(WebSocket, "CLOSED", {
-		enumerable: true,
-		value: readyStates.indexOf("CLOSED")
-	});
-	/**
-	* @constant {Number} CLOSED
-	* @memberof WebSocket.prototype
-	*/
-	Object.defineProperty(WebSocket.prototype, "CLOSED", {
-		enumerable: true,
-		value: readyStates.indexOf("CLOSED")
-	});
-	[
-		"binaryType",
-		"bufferedAmount",
-		"extensions",
-		"isPaused",
-		"protocol",
-		"readyState",
-		"url"
-	].forEach((property) => {
-		Object.defineProperty(WebSocket.prototype, property, { enumerable: true });
-	});
-	[
-		"open",
-		"error",
-		"close",
-		"message"
-	].forEach((method) => {
-		Object.defineProperty(WebSocket.prototype, `on${method}`, {
-			enumerable: true,
-			get() {
-				for (const listener of this.listeners(method)) if (listener[kForOnEventAttribute]) return listener[kListener];
-				return null;
-			},
-			set(handler) {
-				for (const listener of this.listeners(method)) if (listener[kForOnEventAttribute]) {
-					this.removeListener(method, listener);
-					break;
-				}
-				if (typeof handler !== "function") return;
-				this.addEventListener(method, handler, { [kForOnEventAttribute]: true });
-			}
-		});
-	});
-	WebSocket.prototype.addEventListener = addEventListener;
-	WebSocket.prototype.removeEventListener = removeEventListener;
-	module.exports = WebSocket;
-	/**
-	* Initialize a WebSocket client.
-	*
-	* @param {WebSocket} websocket The client to initialize
-	* @param {(String|URL)} address The URL to which to connect
-	* @param {Array} protocols The subprotocols
-	* @param {Object} [options] Connection options
-	* @param {Boolean} [options.allowSynchronousEvents=true] Specifies whether any
-	*     of the `'message'`, `'ping'`, and `'pong'` events can be emitted multiple
-	*     times in the same tick
-	* @param {Boolean} [options.autoPong=true] Specifies whether or not to
-	*     automatically send a pong in response to a ping
-	* @param {Number} [options.closeTimeout=30000] Duration in milliseconds to wait
-	*     for the closing handshake to finish after `websocket.close()` is called
-	* @param {Function} [options.finishRequest] A function which can be used to
-	*     customize the headers of each http request before it is sent
-	* @param {Boolean} [options.followRedirects=false] Whether or not to follow
-	*     redirects
-	* @param {Function} [options.generateMask] The function used to generate the
-	*     masking key
-	* @param {Number} [options.handshakeTimeout] Timeout in milliseconds for the
-	*     handshake request
-	* @param {Number} [options.maxPayload=104857600] The maximum allowed message
-	*     size
-	* @param {Number} [options.maxRedirects=10] The maximum number of redirects
-	*     allowed
-	* @param {String} [options.origin] Value of the `Origin` or
-	*     `Sec-WebSocket-Origin` header
-	* @param {(Boolean|Object)} [options.perMessageDeflate=true] Enable/disable
-	*     permessage-deflate
-	* @param {Number} [options.protocolVersion=13] Value of the
-	*     `Sec-WebSocket-Version` header
-	* @param {Boolean} [options.skipUTF8Validation=false] Specifies whether or
-	*     not to skip UTF-8 validation for text and close messages
-	* @private
-	*/
-	function initAsClient(websocket, address, protocols, options) {
-		const opts = {
-			allowSynchronousEvents: true,
-			autoPong: true,
-			closeTimeout: CLOSE_TIMEOUT,
-			protocolVersion: protocolVersions[1],
-			maxPayload: 100 * 1024 * 1024,
-			skipUTF8Validation: false,
-			perMessageDeflate: true,
-			followRedirects: false,
-			maxRedirects: 10,
-			...options,
-			socketPath: void 0,
-			hostname: void 0,
-			protocol: void 0,
-			timeout: void 0,
-			method: "GET",
-			host: void 0,
-			path: void 0,
-			port: void 0
-		};
-		websocket._autoPong = opts.autoPong;
-		websocket._closeTimeout = opts.closeTimeout;
-		if (!protocolVersions.includes(opts.protocolVersion)) throw new RangeError(`Unsupported protocol version: ${opts.protocolVersion} (supported versions: ${protocolVersions.join(", ")})`);
-		let parsedUrl;
-		if (address instanceof URL) parsedUrl = address;
-		else try {
-			parsedUrl = new URL(address);
-		} catch (e) {
-			throw new SyntaxError(`Invalid URL: ${address}`);
-		}
-		if (parsedUrl.protocol === "http:") parsedUrl.protocol = "ws:";
-		else if (parsedUrl.protocol === "https:") parsedUrl.protocol = "wss:";
-		websocket._url = parsedUrl.href;
-		const isSecure = parsedUrl.protocol === "wss:";
-		const isIpcUrl = parsedUrl.protocol === "ws+unix:";
-		let invalidUrlMessage;
-		if (parsedUrl.protocol !== "ws:" && !isSecure && !isIpcUrl) invalidUrlMessage = "The URL's protocol must be one of \"ws:\", \"wss:\", \"http:\", \"https:\", or \"ws+unix:\"";
-		else if (isIpcUrl && !parsedUrl.pathname) invalidUrlMessage = "The URL's pathname is empty";
-		else if (parsedUrl.hash) invalidUrlMessage = "The URL contains a fragment identifier";
-		if (invalidUrlMessage) {
-			const err = new SyntaxError(invalidUrlMessage);
-			if (websocket._redirects === 0) throw err;
-			else {
-				emitErrorAndClose(websocket, err);
-				return;
-			}
-		}
-		const defaultPort = isSecure ? 443 : 80;
-		const key = randomBytes(16).toString("base64");
-		const request = isSecure ? https.request : http.request;
-		const protocolSet = /* @__PURE__ */ new Set();
-		let perMessageDeflate;
-		opts.createConnection = opts.createConnection || (isSecure ? tlsConnect : netConnect);
-		opts.defaultPort = opts.defaultPort || defaultPort;
-		opts.port = parsedUrl.port || defaultPort;
-		opts.host = parsedUrl.hostname.startsWith("[") ? parsedUrl.hostname.slice(1, -1) : parsedUrl.hostname;
-		opts.headers = {
-			...opts.headers,
-			"Sec-WebSocket-Version": opts.protocolVersion,
-			"Sec-WebSocket-Key": key,
-			Connection: "Upgrade",
-			Upgrade: "websocket"
-		};
-		opts.path = parsedUrl.pathname + parsedUrl.search;
-		opts.timeout = opts.handshakeTimeout;
-		if (opts.perMessageDeflate) {
-			perMessageDeflate = new PerMessageDeflate(opts.perMessageDeflate !== true ? opts.perMessageDeflate : {}, false, opts.maxPayload);
-			opts.headers["Sec-WebSocket-Extensions"] = format({ [PerMessageDeflate.extensionName]: perMessageDeflate.offer() });
-		}
-		if (protocols.length) {
-			for (const protocol of protocols) {
-				if (typeof protocol !== "string" || !subprotocolRegex.test(protocol) || protocolSet.has(protocol)) throw new SyntaxError("An invalid or duplicated subprotocol was specified");
-				protocolSet.add(protocol);
-			}
-			opts.headers["Sec-WebSocket-Protocol"] = protocols.join(",");
-		}
-		if (opts.origin) if (opts.protocolVersion < 13) opts.headers["Sec-WebSocket-Origin"] = opts.origin;
-		else opts.headers.Origin = opts.origin;
-		if (parsedUrl.username || parsedUrl.password) opts.auth = `${parsedUrl.username}:${parsedUrl.password}`;
-		if (isIpcUrl) {
-			const parts = opts.path.split(":");
-			opts.socketPath = parts[0];
-			opts.path = parts[1];
-		}
-		let req;
-		if (opts.followRedirects) {
-			if (websocket._redirects === 0) {
-				websocket._originalIpc = isIpcUrl;
-				websocket._originalSecure = isSecure;
-				websocket._originalHostOrSocketPath = isIpcUrl ? opts.socketPath : parsedUrl.host;
-				const headers = options && options.headers;
-				options = {
-					...options,
-					headers: {}
-				};
-				if (headers) for (const [key, value] of Object.entries(headers)) options.headers[key.toLowerCase()] = value;
-			} else if (websocket.listenerCount("redirect") === 0) {
-				const isSameHost = isIpcUrl ? websocket._originalIpc ? opts.socketPath === websocket._originalHostOrSocketPath : false : websocket._originalIpc ? false : parsedUrl.host === websocket._originalHostOrSocketPath;
-				if (!isSameHost || websocket._originalSecure && !isSecure) {
-					delete opts.headers.authorization;
-					delete opts.headers.cookie;
-					if (!isSameHost) delete opts.headers.host;
-					opts.auth = void 0;
-				}
-			}
-			if (opts.auth && !options.headers.authorization) options.headers.authorization = "Basic " + Buffer.from(opts.auth).toString("base64");
-			req = websocket._req = request(opts);
-			if (websocket._redirects) websocket.emit("redirect", websocket.url, req);
-		} else req = websocket._req = request(opts);
-		if (opts.timeout) req.on("timeout", () => {
-			abortHandshake(websocket, req, "Opening handshake has timed out");
-		});
-		req.on("error", (err) => {
-			if (req === null || req[kAborted]) return;
-			req = websocket._req = null;
-			emitErrorAndClose(websocket, err);
-		});
-		req.on("response", (res) => {
-			const location = res.headers.location;
-			const statusCode = res.statusCode;
-			if (location && opts.followRedirects && statusCode >= 300 && statusCode < 400) {
-				if (++websocket._redirects > opts.maxRedirects) {
-					abortHandshake(websocket, req, "Maximum redirects exceeded");
-					return;
-				}
-				req.abort();
-				let addr;
-				try {
-					addr = new URL(location, address);
-				} catch (e) {
-					emitErrorAndClose(websocket, /* @__PURE__ */ new SyntaxError(`Invalid URL: ${location}`));
-					return;
-				}
-				initAsClient(websocket, addr, protocols, options);
-			} else if (!websocket.emit("unexpected-response", req, res)) abortHandshake(websocket, req, `Unexpected server response: ${res.statusCode}`);
-		});
-		req.on("upgrade", (res, socket, head) => {
-			websocket.emit("upgrade", res);
-			if (websocket.readyState !== WebSocket.CONNECTING) return;
-			req = websocket._req = null;
-			const upgrade = res.headers.upgrade;
-			if (upgrade === void 0 || upgrade.toLowerCase() !== "websocket") {
-				abortHandshake(websocket, socket, "Invalid Upgrade header");
-				return;
-			}
-			const digest = createHash("sha1").update(key + GUID).digest("base64");
-			if (res.headers["sec-websocket-accept"] !== digest) {
-				abortHandshake(websocket, socket, "Invalid Sec-WebSocket-Accept header");
-				return;
-			}
-			const serverProt = res.headers["sec-websocket-protocol"];
-			let protError;
-			if (serverProt !== void 0) {
-				if (!protocolSet.size) protError = "Server sent a subprotocol but none was requested";
-				else if (!protocolSet.has(serverProt)) protError = "Server sent an invalid subprotocol";
-			} else if (protocolSet.size) protError = "Server sent no subprotocol";
-			if (protError) {
-				abortHandshake(websocket, socket, protError);
-				return;
-			}
-			if (serverProt) websocket._protocol = serverProt;
-			const secWebSocketExtensions = res.headers["sec-websocket-extensions"];
-			if (secWebSocketExtensions !== void 0) {
-				if (!perMessageDeflate) {
-					abortHandshake(websocket, socket, "Server sent a Sec-WebSocket-Extensions header but no extension was requested");
-					return;
-				}
-				let extensions;
-				try {
-					extensions = parse(secWebSocketExtensions);
-				} catch (err) {
-					abortHandshake(websocket, socket, "Invalid Sec-WebSocket-Extensions header");
-					return;
-				}
-				const extensionNames = Object.keys(extensions);
-				if (extensionNames.length !== 1 || extensionNames[0] !== PerMessageDeflate.extensionName) {
-					abortHandshake(websocket, socket, "Server indicated an extension that was not requested");
-					return;
-				}
-				try {
-					perMessageDeflate.accept(extensions[PerMessageDeflate.extensionName]);
-				} catch (err) {
-					abortHandshake(websocket, socket, "Invalid Sec-WebSocket-Extensions header");
-					return;
-				}
-				websocket._extensions[PerMessageDeflate.extensionName] = perMessageDeflate;
-			}
-			websocket.setSocket(socket, head, {
-				allowSynchronousEvents: opts.allowSynchronousEvents,
-				generateMask: opts.generateMask,
-				maxPayload: opts.maxPayload,
-				skipUTF8Validation: opts.skipUTF8Validation
-			});
-		});
-		if (opts.finishRequest) opts.finishRequest(req, websocket);
-		else req.end();
-	}
-	/**
-	* Emit the `'error'` and `'close'` events.
-	*
-	* @param {WebSocket} websocket The WebSocket instance
-	* @param {Error} The error to emit
-	* @private
-	*/
-	function emitErrorAndClose(websocket, err) {
-		websocket._readyState = WebSocket.CLOSING;
-		websocket._errorEmitted = true;
-		websocket.emit("error", err);
-		websocket.emitClose();
-	}
-	/**
-	* Create a `net.Socket` and initiate a connection.
-	*
-	* @param {Object} options Connection options
-	* @return {net.Socket} The newly created socket used to start the connection
-	* @private
-	*/
-	function netConnect(options) {
-		options.path = options.socketPath;
-		return net.connect(options);
-	}
-	/**
-	* Create a `tls.TLSSocket` and initiate a connection.
-	*
-	* @param {Object} options Connection options
-	* @return {tls.TLSSocket} The newly created socket used to start the connection
-	* @private
-	*/
-	function tlsConnect(options) {
-		options.path = void 0;
-		if (!options.servername && options.servername !== "") options.servername = net.isIP(options.host) ? "" : options.host;
-		return tls.connect(options);
-	}
-	/**
-	* Abort the handshake and emit an error.
-	*
-	* @param {WebSocket} websocket The WebSocket instance
-	* @param {(http.ClientRequest|net.Socket|tls.Socket)} stream The request to
-	*     abort or the socket to destroy
-	* @param {String} message The error message
-	* @private
-	*/
-	function abortHandshake(websocket, stream, message) {
-		websocket._readyState = WebSocket.CLOSING;
-		const err = new Error(message);
-		Error.captureStackTrace(err, abortHandshake);
-		if (stream.setHeader) {
-			stream[kAborted] = true;
-			stream.abort();
-			if (stream.socket && !stream.socket.destroyed) stream.socket.destroy();
-			process.nextTick(emitErrorAndClose, websocket, err);
-		} else {
-			stream.destroy(err);
-			stream.once("error", websocket.emit.bind(websocket, "error"));
-			stream.once("close", websocket.emitClose.bind(websocket));
-		}
-	}
-	/**
-	* Handle cases where the `ping()`, `pong()`, or `send()` methods are called
-	* when the `readyState` attribute is `CLOSING` or `CLOSED`.
-	*
-	* @param {WebSocket} websocket The WebSocket instance
-	* @param {*} [data] The data to send
-	* @param {Function} [cb] Callback
-	* @private
-	*/
-	function sendAfterClose(websocket, data, cb) {
-		if (data) {
-			const length = isBlob(data) ? data.size : toBuffer(data).length;
-			if (websocket._socket) websocket._sender._bufferedBytes += length;
-			else websocket._bufferedAmount += length;
-		}
-		if (cb) {
-			const err = /* @__PURE__ */ new Error(`WebSocket is not open: readyState ${websocket.readyState} (${readyStates[websocket.readyState]})`);
-			process.nextTick(cb, err);
-		}
-	}
-	/**
-	* The listener of the `Receiver` `'conclude'` event.
-	*
-	* @param {Number} code The status code
-	* @param {Buffer} reason The reason for closing
-	* @private
-	*/
-	function receiverOnConclude(code, reason) {
-		const websocket = this[kWebSocket];
-		websocket._closeFrameReceived = true;
-		websocket._closeMessage = reason;
-		websocket._closeCode = code;
-		if (websocket._socket[kWebSocket] === void 0) return;
-		websocket._socket.removeListener("data", socketOnData);
-		process.nextTick(resume, websocket._socket);
-		if (code === 1005) websocket.close();
-		else websocket.close(code, reason);
-	}
-	/**
-	* The listener of the `Receiver` `'drain'` event.
-	*
-	* @private
-	*/
-	function receiverOnDrain() {
-		const websocket = this[kWebSocket];
-		if (!websocket.isPaused) websocket._socket.resume();
-	}
-	/**
-	* The listener of the `Receiver` `'error'` event.
-	*
-	* @param {(RangeError|Error)} err The emitted error
-	* @private
-	*/
-	function receiverOnError(err) {
-		const websocket = this[kWebSocket];
-		if (websocket._socket[kWebSocket] !== void 0) {
-			websocket._socket.removeListener("data", socketOnData);
-			process.nextTick(resume, websocket._socket);
-			websocket.close(err[kStatusCode]);
-		}
-		if (!websocket._errorEmitted) {
-			websocket._errorEmitted = true;
-			websocket.emit("error", err);
-		}
-	}
-	/**
-	* The listener of the `Receiver` `'finish'` event.
-	*
-	* @private
-	*/
-	function receiverOnFinish() {
-		this[kWebSocket].emitClose();
-	}
-	/**
-	* The listener of the `Receiver` `'message'` event.
-	*
-	* @param {Buffer|ArrayBuffer|Buffer[])} data The message
-	* @param {Boolean} isBinary Specifies whether the message is binary or not
-	* @private
-	*/
-	function receiverOnMessage(data, isBinary) {
-		this[kWebSocket].emit("message", data, isBinary);
-	}
-	/**
-	* The listener of the `Receiver` `'ping'` event.
-	*
-	* @param {Buffer} data The data included in the ping frame
-	* @private
-	*/
-	function receiverOnPing(data) {
-		const websocket = this[kWebSocket];
-		if (websocket._autoPong) websocket.pong(data, !this._isServer, NOOP);
-		websocket.emit("ping", data);
-	}
-	/**
-	* The listener of the `Receiver` `'pong'` event.
-	*
-	* @param {Buffer} data The data included in the pong frame
-	* @private
-	*/
-	function receiverOnPong(data) {
-		this[kWebSocket].emit("pong", data);
-	}
-	/**
-	* Resume a readable stream
-	*
-	* @param {Readable} stream The readable stream
-	* @private
-	*/
-	function resume(stream) {
-		stream.resume();
-	}
-	/**
-	* The `Sender` error event handler.
-	*
-	* @param {Error} The error
-	* @private
-	*/
-	function senderOnError(err) {
-		const websocket = this[kWebSocket];
-		if (websocket.readyState === WebSocket.CLOSED) return;
-		if (websocket.readyState === WebSocket.OPEN) {
-			websocket._readyState = WebSocket.CLOSING;
-			setCloseTimer(websocket);
-		}
-		this._socket.end();
-		if (!websocket._errorEmitted) {
-			websocket._errorEmitted = true;
-			websocket.emit("error", err);
-		}
-	}
-	/**
-	* Set a timer to destroy the underlying raw socket of a WebSocket.
-	*
-	* @param {WebSocket} websocket The WebSocket instance
-	* @private
-	*/
-	function setCloseTimer(websocket) {
-		websocket._closeTimer = setTimeout(websocket._socket.destroy.bind(websocket._socket), websocket._closeTimeout);
-	}
-	/**
-	* The listener of the socket `'close'` event.
-	*
-	* @private
-	*/
-	function socketOnClose() {
-		const websocket = this[kWebSocket];
-		this.removeListener("close", socketOnClose);
-		this.removeListener("data", socketOnData);
-		this.removeListener("end", socketOnEnd);
-		websocket._readyState = WebSocket.CLOSING;
-		if (!this._readableState.endEmitted && !websocket._closeFrameReceived && !websocket._receiver._writableState.errorEmitted && this._readableState.length !== 0) {
-			const chunk = this.read(this._readableState.length);
-			websocket._receiver.write(chunk);
-		}
-		websocket._receiver.end();
-		this[kWebSocket] = void 0;
-		clearTimeout(websocket._closeTimer);
-		if (websocket._receiver._writableState.finished || websocket._receiver._writableState.errorEmitted) websocket.emitClose();
-		else {
-			websocket._receiver.on("error", receiverOnFinish);
-			websocket._receiver.on("finish", receiverOnFinish);
-		}
-	}
-	/**
-	* The listener of the socket `'data'` event.
-	*
-	* @param {Buffer} chunk A chunk of data
-	* @private
-	*/
-	function socketOnData(chunk) {
-		if (!this[kWebSocket]._receiver.write(chunk)) this.pause();
-	}
-	/**
-	* The listener of the socket `'end'` event.
-	*
-	* @private
-	*/
-	function socketOnEnd() {
-		const websocket = this[kWebSocket];
-		websocket._readyState = WebSocket.CLOSING;
-		websocket._receiver.end();
-		this.end();
-	}
-	/**
-	* The listener of the socket `'error'` event.
-	*
-	* @private
-	*/
-	function socketOnError() {
-		const websocket = this[kWebSocket];
-		this.removeListener("error", socketOnError);
-		this.on("error", NOOP);
-		if (websocket) {
-			websocket._readyState = WebSocket.CLOSING;
-			this.destroy();
-		}
-	}
-}));
-var require_stream = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	require_websocket();
-	var { Duplex } = require_builtin_esm_external_require_stream();
-	/**
-	* Emits the `'close'` event on a stream.
-	*
-	* @param {Duplex} stream The stream.
-	* @private
-	*/
-	function emitClose(stream) {
-		stream.emit("close");
-	}
-	/**
-	* The listener of the `'end'` event.
-	*
-	* @private
-	*/
-	function duplexOnEnd() {
-		if (!this.destroyed && this._writableState.finished) this.destroy();
-	}
-	/**
-	* The listener of the `'error'` event.
-	*
-	* @param {Error} err The error
-	* @private
-	*/
-	function duplexOnError(err) {
-		this.removeListener("error", duplexOnError);
-		this.destroy();
-		if (this.listenerCount("error") === 0) this.emit("error", err);
-	}
-	/**
-	* Wraps a `WebSocket` in a duplex stream.
-	*
-	* @param {WebSocket} ws The `WebSocket` to wrap
-	* @param {Object} [options] The options for the `Duplex` constructor
-	* @return {Duplex} The duplex stream
-	* @public
-	*/
-	function createWebSocketStream(ws, options) {
-		let terminateOnDestroy = true;
-		const duplex = new Duplex({
-			...options,
-			autoDestroy: false,
-			emitClose: false,
-			objectMode: false,
-			writableObjectMode: false
-		});
-		ws.on("message", function message(msg, isBinary) {
-			const data = !isBinary && duplex._readableState.objectMode ? msg.toString() : msg;
-			if (!duplex.push(data)) ws.pause();
-		});
-		ws.once("error", function error(err) {
-			if (duplex.destroyed) return;
-			terminateOnDestroy = false;
-			duplex.destroy(err);
-		});
-		ws.once("close", function close() {
-			if (duplex.destroyed) return;
-			duplex.push(null);
-		});
-		duplex._destroy = function(err, callback) {
-			if (ws.readyState === ws.CLOSED) {
-				callback(err);
-				process.nextTick(emitClose, duplex);
-				return;
-			}
-			let called = false;
-			ws.once("error", function error(err) {
-				called = true;
-				callback(err);
-			});
-			ws.once("close", function close() {
-				if (!called) callback(err);
-				process.nextTick(emitClose, duplex);
-			});
-			if (terminateOnDestroy) ws.terminate();
-		};
-		duplex._final = function(callback) {
-			if (ws.readyState === ws.CONNECTING) {
-				ws.once("open", function open() {
-					duplex._final(callback);
-				});
-				return;
-			}
-			if (ws._socket === null) return;
-			if (ws._socket._writableState.finished) {
-				callback();
-				if (duplex._readableState.endEmitted) duplex.destroy();
-			} else {
-				ws._socket.once("finish", function finish() {
-					callback();
-				});
-				ws.close();
-			}
-		};
-		duplex._read = function() {
-			if (ws.isPaused) ws.resume();
-		};
-		duplex._write = function(chunk, encoding, callback) {
-			if (ws.readyState === ws.CONNECTING) {
-				ws.once("open", function open() {
-					duplex._write(chunk, encoding, callback);
-				});
-				return;
-			}
-			ws.send(chunk, callback);
-		};
-		duplex.on("end", duplexOnEnd);
-		duplex.on("error", duplexOnError);
-		return duplex;
-	}
-	module.exports = createWebSocketStream;
-}));
-var require_subprotocol = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	var { tokenChars } = require_validation();
-	/**
-	* Parses the `Sec-WebSocket-Protocol` header into a set of subprotocol names.
-	*
-	* @param {String} header The field value of the header
-	* @return {Set} The subprotocol names
-	* @public
-	*/
-	function parse(header) {
-		const protocols = /* @__PURE__ */ new Set();
-		let start = -1;
-		let end = -1;
-		let i = 0;
-		for (; i < header.length; i++) {
-			const code = header.charCodeAt(i);
-			if (end === -1 && tokenChars[code] === 1) {
-				if (start === -1) start = i;
-			} else if (i !== 0 && (code === 32 || code === 9)) {
-				if (end === -1 && start !== -1) end = i;
-			} else if (code === 44) {
-				if (start === -1) throw new SyntaxError(`Unexpected character at index ${i}`);
-				if (end === -1) end = i;
-				const protocol = header.slice(start, end);
-				if (protocols.has(protocol)) throw new SyntaxError(`The "${protocol}" subprotocol is duplicated`);
-				protocols.add(protocol);
-				start = end = -1;
-			} else throw new SyntaxError(`Unexpected character at index ${i}`);
-		}
-		if (start === -1 || end !== -1) throw new SyntaxError("Unexpected end of input");
-		const protocol = header.slice(start, i);
-		if (protocols.has(protocol)) throw new SyntaxError(`The "${protocol}" subprotocol is duplicated`);
-		protocols.add(protocol);
-		return protocols;
-	}
-	module.exports = { parse };
-}));
-var require_websocket_server = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	var EventEmitter = require_builtin_esm_external_require_events();
-	var http = require_builtin_esm_external_require_http();
-	var { Duplex } = require_builtin_esm_external_require_stream();
-	var { createHash } = require_builtin_esm_external_require_crypto();
-	var extension = require_extension();
-	var PerMessageDeflate = require_permessage_deflate();
-	var subprotocol = require_subprotocol();
-	var WebSocket = require_websocket();
-	var { CLOSE_TIMEOUT, GUID, kWebSocket } = require_constants$1();
-	var keyRegex = /^[+/0-9A-Za-z]{22}==$/;
-	var RUNNING = 0;
-	var CLOSING = 1;
-	var CLOSED = 2;
-	/**
-	* Class representing a WebSocket server.
-	*
-	* @extends EventEmitter
-	*/
-	var WebSocketServer = class extends EventEmitter {
-		/**
-		* Create a `WebSocketServer` instance.
-		*
-		* @param {Object} options Configuration options
-		* @param {Boolean} [options.allowSynchronousEvents=true] Specifies whether
-		*     any of the `'message'`, `'ping'`, and `'pong'` events can be emitted
-		*     multiple times in the same tick
-		* @param {Boolean} [options.autoPong=true] Specifies whether or not to
-		*     automatically send a pong in response to a ping
-		* @param {Number} [options.backlog=511] The maximum length of the queue of
-		*     pending connections
-		* @param {Boolean} [options.clientTracking=true] Specifies whether or not to
-		*     track clients
-		* @param {Number} [options.closeTimeout=30000] Duration in milliseconds to
-		*     wait for the closing handshake to finish after `websocket.close()` is
-		*     called
-		* @param {Function} [options.handleProtocols] A hook to handle protocols
-		* @param {String} [options.host] The hostname where to bind the server
-		* @param {Number} [options.maxPayload=104857600] The maximum allowed message
-		*     size
-		* @param {Boolean} [options.noServer=false] Enable no server mode
-		* @param {String} [options.path] Accept only connections matching this path
-		* @param {(Boolean|Object)} [options.perMessageDeflate=false] Enable/disable
-		*     permessage-deflate
-		* @param {Number} [options.port] The port where to bind the server
-		* @param {(http.Server|https.Server)} [options.server] A pre-created HTTP/S
-		*     server to use
-		* @param {Boolean} [options.skipUTF8Validation=false] Specifies whether or
-		*     not to skip UTF-8 validation for text and close messages
-		* @param {Function} [options.verifyClient] A hook to reject connections
-		* @param {Function} [options.WebSocket=WebSocket] Specifies the `WebSocket`
-		*     class to use. It must be the `WebSocket` class or class that extends it
-		* @param {Function} [callback] A listener for the `listening` event
-		*/
-		constructor(options, callback) {
-			super();
-			options = {
-				allowSynchronousEvents: true,
-				autoPong: true,
-				maxPayload: 100 * 1024 * 1024,
-				skipUTF8Validation: false,
-				perMessageDeflate: false,
-				handleProtocols: null,
-				clientTracking: true,
-				closeTimeout: CLOSE_TIMEOUT,
-				verifyClient: null,
-				noServer: false,
-				backlog: null,
-				server: null,
-				host: null,
-				path: null,
-				port: null,
-				WebSocket,
-				...options
-			};
-			if (options.port == null && !options.server && !options.noServer || options.port != null && (options.server || options.noServer) || options.server && options.noServer) throw new TypeError("One and only one of the \"port\", \"server\", or \"noServer\" options must be specified");
-			if (options.port != null) {
-				this._server = http.createServer((req, res) => {
-					const body = http.STATUS_CODES[426];
-					res.writeHead(426, {
-						"Content-Length": body.length,
-						"Content-Type": "text/plain"
-					});
-					res.end(body);
-				});
-				this._server.listen(options.port, options.host, options.backlog, callback);
-			} else if (options.server) this._server = options.server;
-			if (this._server) {
-				const emitConnection = this.emit.bind(this, "connection");
-				this._removeListeners = addListeners(this._server, {
-					listening: this.emit.bind(this, "listening"),
-					error: this.emit.bind(this, "error"),
-					upgrade: (req, socket, head) => {
-						this.handleUpgrade(req, socket, head, emitConnection);
-					}
-				});
-			}
-			if (options.perMessageDeflate === true) options.perMessageDeflate = {};
-			if (options.clientTracking) {
-				this.clients = /* @__PURE__ */ new Set();
-				this._shouldEmitClose = false;
-			}
-			this.options = options;
-			this._state = RUNNING;
-		}
-		/**
-		* Returns the bound address, the address family name, and port of the server
-		* as reported by the operating system if listening on an IP socket.
-		* If the server is listening on a pipe or UNIX domain socket, the name is
-		* returned as a string.
-		*
-		* @return {(Object|String|null)} The address of the server
-		* @public
-		*/
-		address() {
-			if (this.options.noServer) throw new Error("The server is operating in \"noServer\" mode");
-			if (!this._server) return null;
-			return this._server.address();
-		}
-		/**
-		* Stop the server from accepting new connections and emit the `'close'` event
-		* when all existing connections are closed.
-		*
-		* @param {Function} [cb] A one-time listener for the `'close'` event
-		* @public
-		*/
-		close(cb) {
-			if (this._state === CLOSED) {
-				if (cb) this.once("close", () => {
-					cb(/* @__PURE__ */ new Error("The server is not running"));
-				});
-				process.nextTick(emitClose, this);
-				return;
-			}
-			if (cb) this.once("close", cb);
-			if (this._state === CLOSING) return;
-			this._state = CLOSING;
-			if (this.options.noServer || this.options.server) {
-				if (this._server) {
-					this._removeListeners();
-					this._removeListeners = this._server = null;
-				}
-				if (this.clients) if (!this.clients.size) process.nextTick(emitClose, this);
-				else this._shouldEmitClose = true;
-				else process.nextTick(emitClose, this);
-			} else {
-				const server = this._server;
-				this._removeListeners();
-				this._removeListeners = this._server = null;
-				server.close(() => {
-					emitClose(this);
-				});
-			}
-		}
-		/**
-		* See if a given request should be handled by this server instance.
-		*
-		* @param {http.IncomingMessage} req Request object to inspect
-		* @return {Boolean} `true` if the request is valid, else `false`
-		* @public
-		*/
-		shouldHandle(req) {
-			if (this.options.path) {
-				const index = req.url.indexOf("?");
-				if ((index !== -1 ? req.url.slice(0, index) : req.url) !== this.options.path) return false;
-			}
-			return true;
-		}
-		/**
-		* Handle a HTTP Upgrade request.
-		*
-		* @param {http.IncomingMessage} req The request object
-		* @param {Duplex} socket The network socket between the server and client
-		* @param {Buffer} head The first packet of the upgraded stream
-		* @param {Function} cb Callback
-		* @public
-		*/
-		handleUpgrade(req, socket, head, cb) {
-			socket.on("error", socketOnError);
-			const key = req.headers["sec-websocket-key"];
-			const upgrade = req.headers.upgrade;
-			const version = +req.headers["sec-websocket-version"];
-			if (req.method !== "GET") {
-				abortHandshakeOrEmitwsClientError(this, req, socket, 405, "Invalid HTTP method");
-				return;
-			}
-			if (upgrade === void 0 || upgrade.toLowerCase() !== "websocket") {
-				abortHandshakeOrEmitwsClientError(this, req, socket, 400, "Invalid Upgrade header");
-				return;
-			}
-			if (key === void 0 || !keyRegex.test(key)) {
-				abortHandshakeOrEmitwsClientError(this, req, socket, 400, "Missing or invalid Sec-WebSocket-Key header");
-				return;
-			}
-			if (version !== 13 && version !== 8) {
-				abortHandshakeOrEmitwsClientError(this, req, socket, 400, "Missing or invalid Sec-WebSocket-Version header", { "Sec-WebSocket-Version": "13, 8" });
-				return;
-			}
-			if (!this.shouldHandle(req)) {
-				abortHandshake(socket, 400);
-				return;
-			}
-			const secWebSocketProtocol = req.headers["sec-websocket-protocol"];
-			let protocols = /* @__PURE__ */ new Set();
-			if (secWebSocketProtocol !== void 0) try {
-				protocols = subprotocol.parse(secWebSocketProtocol);
-			} catch (err) {
-				abortHandshakeOrEmitwsClientError(this, req, socket, 400, "Invalid Sec-WebSocket-Protocol header");
-				return;
-			}
-			const secWebSocketExtensions = req.headers["sec-websocket-extensions"];
-			const extensions = {};
-			if (this.options.perMessageDeflate && secWebSocketExtensions !== void 0) {
-				const perMessageDeflate = new PerMessageDeflate(this.options.perMessageDeflate, true, this.options.maxPayload);
-				try {
-					const offers = extension.parse(secWebSocketExtensions);
-					if (offers[PerMessageDeflate.extensionName]) {
-						perMessageDeflate.accept(offers[PerMessageDeflate.extensionName]);
-						extensions[PerMessageDeflate.extensionName] = perMessageDeflate;
-					}
-				} catch (err) {
-					abortHandshakeOrEmitwsClientError(this, req, socket, 400, "Invalid or unacceptable Sec-WebSocket-Extensions header");
-					return;
-				}
-			}
-			if (this.options.verifyClient) {
-				const info = {
-					origin: req.headers[`${version === 8 ? "sec-websocket-origin" : "origin"}`],
-					secure: !!(req.socket.authorized || req.socket.encrypted),
-					req
-				};
-				if (this.options.verifyClient.length === 2) {
-					this.options.verifyClient(info, (verified, code, message, headers) => {
-						if (!verified) return abortHandshake(socket, code || 401, message, headers);
-						this.completeUpgrade(extensions, key, protocols, req, socket, head, cb);
-					});
-					return;
-				}
-				if (!this.options.verifyClient(info)) return abortHandshake(socket, 401);
-			}
-			this.completeUpgrade(extensions, key, protocols, req, socket, head, cb);
-		}
-		/**
-		* Upgrade the connection to WebSocket.
-		*
-		* @param {Object} extensions The accepted extensions
-		* @param {String} key The value of the `Sec-WebSocket-Key` header
-		* @param {Set} protocols The subprotocols
-		* @param {http.IncomingMessage} req The request object
-		* @param {Duplex} socket The network socket between the server and client
-		* @param {Buffer} head The first packet of the upgraded stream
-		* @param {Function} cb Callback
-		* @throws {Error} If called more than once with the same socket
-		* @private
-		*/
-		completeUpgrade(extensions, key, protocols, req, socket, head, cb) {
-			if (!socket.readable || !socket.writable) return socket.destroy();
-			if (socket[kWebSocket]) throw new Error("server.handleUpgrade() was called more than once with the same socket, possibly due to a misconfiguration");
-			if (this._state > RUNNING) return abortHandshake(socket, 503);
-			const headers = [
-				"HTTP/1.1 101 Switching Protocols",
-				"Upgrade: websocket",
-				"Connection: Upgrade",
-				`Sec-WebSocket-Accept: ${createHash("sha1").update(key + GUID).digest("base64")}`
-			];
-			const ws = new this.options.WebSocket(null, void 0, this.options);
-			if (protocols.size) {
-				const protocol = this.options.handleProtocols ? this.options.handleProtocols(protocols, req) : protocols.values().next().value;
-				if (protocol) {
-					headers.push(`Sec-WebSocket-Protocol: ${protocol}`);
-					ws._protocol = protocol;
-				}
-			}
-			if (extensions[PerMessageDeflate.extensionName]) {
-				const params = extensions[PerMessageDeflate.extensionName].params;
-				const value = extension.format({ [PerMessageDeflate.extensionName]: [params] });
-				headers.push(`Sec-WebSocket-Extensions: ${value}`);
-				ws._extensions = extensions;
-			}
-			this.emit("headers", headers, req);
-			socket.write(headers.concat("\r\n").join("\r\n"));
-			socket.removeListener("error", socketOnError);
-			ws.setSocket(socket, head, {
-				allowSynchronousEvents: this.options.allowSynchronousEvents,
-				maxPayload: this.options.maxPayload,
-				skipUTF8Validation: this.options.skipUTF8Validation
-			});
-			if (this.clients) {
-				this.clients.add(ws);
-				ws.on("close", () => {
-					this.clients.delete(ws);
-					if (this._shouldEmitClose && !this.clients.size) process.nextTick(emitClose, this);
-				});
-			}
-			cb(ws, req);
-		}
-	};
-	module.exports = WebSocketServer;
-	/**
-	* Add event listeners on an `EventEmitter` using a map of <event, listener>
-	* pairs.
-	*
-	* @param {EventEmitter} server The event emitter
-	* @param {Object.<String, Function>} map The listeners to add
-	* @return {Function} A function that will remove the added listeners when
-	*     called
-	* @private
-	*/
-	function addListeners(server, map) {
-		for (const event of Object.keys(map)) server.on(event, map[event]);
-		return function removeListeners() {
-			for (const event of Object.keys(map)) server.removeListener(event, map[event]);
-		};
-	}
-	/**
-	* Emit a `'close'` event on an `EventEmitter`.
-	*
-	* @param {EventEmitter} server The event emitter
-	* @private
-	*/
-	function emitClose(server) {
-		server._state = CLOSED;
-		server.emit("close");
-	}
-	/**
-	* Handle socket errors.
-	*
-	* @private
-	*/
-	function socketOnError() {
-		this.destroy();
-	}
-	/**
-	* Close the connection when preconditions are not fulfilled.
-	*
-	* @param {Duplex} socket The socket of the upgrade request
-	* @param {Number} code The HTTP response status code
-	* @param {String} [message] The HTTP response body
-	* @param {Object} [headers] Additional HTTP response headers
-	* @private
-	*/
-	function abortHandshake(socket, code, message, headers) {
-		message = message || http.STATUS_CODES[code];
-		headers = {
-			Connection: "close",
-			"Content-Type": "text/html",
-			"Content-Length": Buffer.byteLength(message),
-			...headers
-		};
-		socket.once("finish", socket.destroy);
-		socket.end(`HTTP/1.1 ${code} ${http.STATUS_CODES[code]}\r\n` + Object.keys(headers).map((h) => `${h}: ${headers[h]}`).join("\r\n") + "\r\n\r\n" + message);
-	}
-	/**
-	* Emit a `'wsClientError'` event on a `WebSocketServer` if there is at least
-	* one listener for it, otherwise call `abortHandshake()`.
-	*
-	* @param {WebSocketServer} server The WebSocket server
-	* @param {http.IncomingMessage} req The request object
-	* @param {Duplex} socket The socket of the upgrade request
-	* @param {Number} code The HTTP response status code
-	* @param {String} message The HTTP response body
-	* @param {Object} [headers] The HTTP response headers
-	* @private
-	*/
-	function abortHandshakeOrEmitwsClientError(server, req, socket, code, message, headers) {
-		if (server.listenerCount("wsClientError")) {
-			const err = new Error(message);
-			Error.captureStackTrace(err, abortHandshakeOrEmitwsClientError);
-			server.emit("wsClientError", err, socket, req);
-		} else abortHandshake(socket, code, message, headers);
-	}
-}));
-require_stream();
-require_receiver();
-require_sender();
-var import_websocket = /* @__PURE__ */ __toESM(require_websocket(), 1);
-require_websocket_server();
-var wrapper_default = import_websocket.default;
-/**!
-* @author Elgato
-* @module elgato/streamdeck
-* @license MIT
-* @copyright Copyright (c) Corsair Memory Inc.
-*/
-/**
-* Stream Deck device types.
-*/
-var DeviceType;
-(function(DeviceType) {
-	/**
-	* Stream Deck, comprised of 15 customizable LCD keys in a 5 x 3 layout.
-	*/
-	DeviceType[DeviceType["StreamDeck"] = 0] = "StreamDeck";
-	/**
-	* Stream Deck Mini, comprised of 6 customizable LCD keys in a 3 x 2 layout.
-	*/
-	DeviceType[DeviceType["StreamDeckMini"] = 1] = "StreamDeckMini";
-	/**
-	* Stream Deck XL, comprised of 32 customizable LCD keys in an 8 x 4 layout.
-	*/
-	DeviceType[DeviceType["StreamDeckXL"] = 2] = "StreamDeckXL";
-	/**
-	* Stream Deck Mobile, for iOS and Android.
-	*/
-	DeviceType[DeviceType["StreamDeckMobile"] = 3] = "StreamDeckMobile";
-	/**
-	* Corsair G Keys, available on select Corsair keyboards.
-	*/
-	DeviceType[DeviceType["CorsairGKeys"] = 4] = "CorsairGKeys";
-	/**
-	* Stream Deck Pedal, comprised of 3 customizable pedals.
-	*/
-	DeviceType[DeviceType["StreamDeckPedal"] = 5] = "StreamDeckPedal";
-	/**
-	* Corsair Voyager laptop, comprising 10 buttons in a horizontal line above the keyboard.
-	*/
-	DeviceType[DeviceType["CorsairVoyager"] = 6] = "CorsairVoyager";
-	/**
-	* Stream Deck +, comprised of 8 customizable LCD keys in a 4 x 2 layout, a touch strip, and 4 dials.
-	*/
-	DeviceType[DeviceType["StreamDeckPlus"] = 7] = "StreamDeckPlus";
-	/**
-	* SCUF controller G keys, available on select SCUF controllers, for example SCUF Envision.
-	*/
-	DeviceType[DeviceType["SCUFController"] = 8] = "SCUFController";
-	/**
-	* Stream Deck Neo, comprised of 8 customizable LCD keys in a 4 x 2 layout, an info bar, and 2 touch points for page navigation.
-	*/
-	DeviceType[DeviceType["StreamDeckNeo"] = 9] = "StreamDeckNeo";
-	/**
-	* Stream Deck Studio, comprised of 32 customizable LCD keys in a 16 x 2 layout, and 2 dials (1 on either side).
-	*/
-	DeviceType[DeviceType["StreamDeckStudio"] = 10] = "StreamDeckStudio";
-	/**
-	* Virtual Stream Deck, comprised of 1 to 64 action (on-screen) on a scalable canvas, with a maximum layout of 8 x 8.
-	*/
-	DeviceType[DeviceType["VirtualStreamDeck"] = 11] = "VirtualStreamDeck";
-})(DeviceType || (DeviceType = {}));
-/**
-* List of available types that can be applied to {@link Bar} and {@link GBar} to determine their style.
-*/
-var BarSubType;
-(function(BarSubType) {
-	/**
-	* Rectangle bar; the bar fills from left to right, determined by the {@link Bar.value}, similar to a standard progress bar.
-	*/
-	BarSubType[BarSubType["Rectangle"] = 0] = "Rectangle";
-	/**
-	* Rectangle bar; the bar fills outwards from the centre of the bar, determined by the {@link Bar.value}.
-	* @example
-	* // Value is 2, range is 1-10.
-	* // [  ███     ]
-	* @example
-	* // Value is 10, range is 1-10.
-	* // [     █████]
-	*/
-	BarSubType[BarSubType["DoubleRectangle"] = 1] = "DoubleRectangle";
-	/**
-	* Trapezoid bar, represented as a right-angle triangle; the bar fills from left to right, determined by the {@link Bar.value}, similar to a volume meter.
-	*/
-	BarSubType[BarSubType["Trapezoid"] = 2] = "Trapezoid";
-	/**
-	* Trapezoid bar, represented by two right-angle triangles; the bar fills outwards from the centre of the bar, determined by the {@link Bar.value}. See {@link BarSubType.DoubleRectangle}.
-	*/
-	BarSubType[BarSubType["DoubleTrapezoid"] = 3] = "DoubleTrapezoid";
-	/**
-	* Rounded rectangle bar; the bar fills from left to right, determined by the {@link Bar.value}, similar to a standard progress bar.
-	*/
-	BarSubType[BarSubType["Groove"] = 4] = "Groove";
-})(BarSubType || (BarSubType = {}));
-/**
-* Defines the type of argument supplied by Stream Deck.
-*/
-var RegistrationParameter;
-(function(RegistrationParameter) {
-	/**
-	* Identifies the argument that specifies the web socket port that Stream Deck is listening on.
-	*/
-	RegistrationParameter["Port"] = "-port";
-	/**
-	* Identifies the argument that supplies information about the Stream Deck and the plugin.
-	*/
-	RegistrationParameter["Info"] = "-info";
-	/**
-	* Identifies the argument that specifies the unique identifier that can be used when registering the plugin.
-	*/
-	RegistrationParameter["PluginUUID"] = "-pluginUUID";
-	/**
-	* Identifies the argument that specifies the event to be sent to Stream Deck as part of the registration procedure.
-	*/
-	RegistrationParameter["RegisterEvent"] = "-registerEvent";
-})(RegistrationParameter || (RegistrationParameter = {}));
-/**
-* Defines the target of a request, i.e. whether the request should update the Stream Deck hardware, Stream Deck software (application), or both, when calling `setImage` and `setState`.
-*/
-var Target;
-(function(Target) {
-	/**
-	* Hardware and software should be updated as part of the request.
-	*/
-	Target[Target["HardwareAndSoftware"] = 0] = "HardwareAndSoftware";
-	/**
-	* Hardware only should be updated as part of the request.
-	*/
-	Target[Target["Hardware"] = 1] = "Hardware";
-	/**
-	* Software only should be updated as part of the request.
-	*/
-	Target[Target["Software"] = 2] = "Software";
-})(Target || (Target = {}));
-/**
-* Provides information for a version, as parsed from a string denoted as a collection of numbers separated by a period, for example `1.45.2`, `4.0.2.13098`. Parsing is opinionated
-* and strings should strictly conform to the format `{major}[.{minor}[.{patch}[.{build}]]]`; version numbers that form the version are optional, and when `undefined` will default to
-* 0, for example the `minor`, `patch`, or `build` number may be omitted.
-*
-* NB: This implementation should be considered fit-for-purpose, and should be used sparing.
-*/
-var Version = class {
-	/**
-	* Build version number.
-	*/
-	build;
-	/**
-	* Major version number.
-	*/
-	major;
-	/**
-	* Minor version number.
-	*/
-	minor;
-	/**
-	* Patch version number.
-	*/
-	patch;
-	/**
-	* Initializes a new instance of the {@link Version} class.
-	* @param value Value to parse the version from.
-	*/
-	constructor(value) {
-		const result = value.match(/^(0|[1-9]\d*)(?:\.(0|[1-9]\d*))?(?:\.(0|[1-9]\d*))?(?:\.(0|[1-9]\d*))?$/);
-		if (result === null) throw new Error(`Invalid format; expected "{major}[.{minor}[.{patch}[.{build}]]]" but was "${value}"`);
-		[, this.major, this.minor, this.patch, this.build] = [...result.map((value) => parseInt(value) || 0)];
-	}
-	/**
-	* Compares this instance to the {@link other} {@link Version}.
-	* @param other The {@link Version} to compare to.
-	* @returns `-1` when this instance is less than the {@link other}, `1` when this instance is greater than {@link other}, otherwise `0`.
-	*/
-	compareTo(other) {
-		const segments = ({ major, minor, build, patch }) => [
-			major,
-			minor,
-			build,
-			patch
-		];
-		const thisSegments = segments(this);
-		const otherSegments = segments(other);
-		for (let i = 0; i < 4; i++) if (thisSegments[i] < otherSegments[i]) return -1;
-		else if (thisSegments[i] > otherSegments[i]) return 1;
-		return 0;
-	}
-	/** @inheritdoc */
-	toString() {
-		return `${this.major}.${this.minor}`;
-	}
-};
-/**
-* Provides a {@link LogTarget} that logs to the console.
-*/
-var ConsoleTarget = class {
-	/**
-	* @inheritdoc
-	*/
-	write(entry) {
-		switch (entry.level) {
-			case "error":
-				console.error(...entry.data);
-				break;
-			case "warn":
-				console.warn(...entry.data);
-				break;
-			default: console.log(...entry.data);
-		}
-	}
-};
-var EOL = "\n";
-/**
-* Creates a new string log entry formatter.
-* @param opts Options that defines the type for the formatter.
-* @returns The string {@link LogEntryFormatter}.
-*/
-function stringFormatter(opts) {
-	if (opts?.dataOnly) return ({ data }) => `${reduce(data)}`;
-	else return (entry) => {
-		const { data, level, scope } = entry;
-		let prefix = `${(/* @__PURE__ */ new Date()).toISOString()} ${level.toUpperCase().padEnd(5)} `;
-		if (scope) prefix += `${scope}: `;
-		return `${prefix}${reduce(data)}`;
-	};
-}
-/**
-* Stringifies the provided data parameters that make up the log entry.
-* @param data Data parameters.
-* @returns The data represented as a single `string`.
-*/
-function reduce(data) {
-	let result = "";
-	let previousWasError = false;
-	for (const value of data) {
-		if (typeof value === "object" && value instanceof Error) {
-			result += `${EOL}${value.stack}`;
-			previousWasError = true;
-			continue;
-		}
-		if (previousWasError) {
-			result += EOL;
-			previousWasError = false;
-		}
-		result += typeof value === "object" ? JSON.stringify(value) : value;
-		result += " ";
-	}
-	return result.trimEnd();
-}
-/**
-* Gets the priority of the specified log level as a number; low numbers signify a higher priority.
-* @param level Log level.
-* @returns The priority as a number.
-*/
-function defcon(level) {
-	switch (level) {
-		case "error": return 0;
-		case "warn": return 1;
-		case "info": return 2;
-		case "debug": return 3;
-		default: return 4;
-	}
-}
-/**
-* Logger capable of forwarding messages to a {@link LogTarget}.
-*/
-var Logger = class Logger {
-	/**
-	* Backing field for the {@link Logger.level}.
-	*/
-	#level;
-	/**
-	* Options that define the loggers behavior.
-	*/
-	#options;
-	/**
-	* Scope associated with this {@link Logger}.
-	*/
-	#scope;
-	/**
-	* Initializes a new instance of the {@link Logger} class.
-	* @param opts Options that define the loggers behavior.
-	*/
-	constructor(opts) {
-		this.#options = {
-			minimumLevel: "trace",
-			...opts
-		};
-		this.#scope = this.#options.scope === void 0 || this.#options.scope.trim() === "" ? "" : this.#options.scope;
-		if (typeof this.#options.level !== "function") this.setLevel(this.#options.level);
-	}
-	/**
-	* Gets the {@link LogLevel}.
-	* @returns The {@link LogLevel}.
-	*/
-	get level() {
-		if (this.#level !== void 0) return this.#level;
-		return typeof this.#options.level === "function" ? this.#options.level() : this.#options.level;
-	}
-	/**
-	* Creates a scoped logger with the given {@link scope}; logs created by scoped-loggers include their scope to enable their source to be easily identified.
-	* @param scope Value that represents the scope of the new logger.
-	* @returns The scoped logger, or this instance when {@link scope} is not defined.
-	*/
-	createScope(scope) {
-		scope = scope.trim();
-		if (scope === "") return this;
-		return new Logger({
-			...this.#options,
-			level: () => this.level,
-			scope: this.#options.scope ? `${this.#options.scope}->${scope}` : scope
-		});
-	}
-	/**
-	* Writes the arguments as a debug log entry.
-	* @param data Message or data to log.
-	* @returns This instance for chaining.
-	*/
-	debug(...data) {
-		return this.write({
-			level: "debug",
-			data,
-			scope: this.#scope
-		});
-	}
-	/**
-	* Writes the arguments as error log entry.
-	* @param data Message or data to log.
-	* @returns This instance for chaining.
-	*/
-	error(...data) {
-		return this.write({
-			level: "error",
-			data,
-			scope: this.#scope
-		});
-	}
-	/**
-	* Writes the arguments as an info log entry.
-	* @param data Message or data to log.
-	* @returns This instance for chaining.
-	*/
-	info(...data) {
-		return this.write({
-			level: "info",
-			data,
-			scope: this.#scope
-		});
-	}
-	/**
-	* Sets the log-level that determines which logs should be written. The specified level will be inherited by all scoped loggers unless they have log-level explicitly defined.
-	* @param level The log-level that determines which logs should be written; when `undefined`, the level will be inherited from the parent logger, or default to the environment level.
-	* @returns This instance for chaining.
-	*/
-	setLevel(level) {
-		if (level !== void 0 && defcon(level) > defcon(this.#options.minimumLevel)) this.#level = "info";
-		else this.#level = level;
-		return this;
-	}
-	/**
-	* Writes the arguments as a trace log entry.
-	* @param data Message or data to log.
-	* @returns This instance for chaining.
-	*/
-	trace(...data) {
-		return this.write({
-			level: "trace",
-			data,
-			scope: this.#scope
-		});
-	}
-	/**
-	* Writes the arguments as a warning log entry.
-	* @param data Message or data to log.
-	* @returns This instance for chaining.
-	*/
-	warn(...data) {
-		return this.write({
-			level: "warn",
-			data,
-			scope: this.#scope
-		});
-	}
-	/**
-	* Writes the log entry.
-	* @param entry Log entry to write.
-	* @returns This instance for chaining.
-	*/
-	write(entry) {
-		if (defcon(entry.level) <= defcon(this.level)) this.#options.targets.forEach((t) => t.write(entry));
-		return this;
-	}
-};
-/**
-* Provides a {@link LogTarget} capable of logging to a local file system.
-*/
-var FileTarget = class {
-	/**
-	* File path where logs will be written.
-	*/
-	#filePath;
-	/**
-	* Options that defines how logs should be written to the local file system.
-	*/
-	#options;
-	/**
-	* Current size of the logs that have been written to the {@link FileTarget.#filePath}.
-	*/
-	#size = 0;
-	/**
-	* Initializes a new instance of the {@link FileTarget} class.
-	* @param options Options that defines how logs should be written to the local file system.
-	*/
-	constructor(options) {
-		this.#options = options;
-		this.#filePath = this.getLogFilePath();
-		this.reIndex();
-	}
-	/**
-	* @inheritdoc
-	*/
-	write(entry) {
-		const fd = fs.openSync(this.#filePath, "a");
-		try {
-			const msg = this.#options.format(entry);
-			fs.writeSync(fd, msg + "\n");
-			this.#size += msg.length;
-		} finally {
-			fs.closeSync(fd);
-		}
-		if (this.#size >= this.#options.maxSize) {
-			this.reIndex();
-			this.#size = 0;
-		}
-	}
-	/**
-	* Gets the file path to an indexed log file.
-	* @param index Optional index of the log file to be included as part of the file name.
-	* @returns File path that represents the indexed log file.
-	*/
-	getLogFilePath(index = 0) {
-		return path.join(this.#options.dest, `${this.#options.fileName}.${index}.log`);
-	}
-	/**
-	* Gets the log files associated with this file target, including past and present.
-	* @returns Log file entries.
-	*/
-	getLogFiles() {
-		const regex = /^\.(\d+)\.log$/;
-		return fs.readdirSync(this.#options.dest, { withFileTypes: true }).reduce((prev, entry) => {
-			if (entry.isDirectory() || entry.name.indexOf(this.#options.fileName) < 0) return prev;
-			const match = entry.name.substring(this.#options.fileName.length).match(regex);
-			if (match?.length !== 2) return prev;
-			prev.push({
-				path: path.join(this.#options.dest, entry.name),
-				index: parseInt(match[1])
-			});
-			return prev;
-		}, []).sort(({ index: a }, { index: b }) => {
-			return a < b ? -1 : a > b ? 1 : 0;
-		});
-	}
-	/**
-	* Re-indexes the existing log files associated with this file target, removing old log files whose index exceeds the {@link FileTargetOptions.maxFileCount}, and renaming the
-	* remaining log files, leaving index "0" free for a new log file.
-	*/
-	reIndex() {
-		if (!fs.existsSync(this.#options.dest)) {
-			fs.mkdirSync(this.#options.dest);
-			return;
-		}
-		const logFiles = this.getLogFiles();
-		for (let i = logFiles.length - 1; i >= 0; i--) {
-			const log = logFiles[i];
-			if (i >= this.#options.maxFileCount - 1) fs.rmSync(log.path);
-			else fs.renameSync(log.path, this.getLogFilePath(i + 1));
-		}
-	}
-};
-var __isDebugMode = void 0;
-/**
-* Determines whether the current plugin is running in a debug environment; this is determined by the command-line arguments supplied to the plugin by Stream. Specifically, the result
-* is `true` when  either `--inspect`, `--inspect-brk` or `--inspect-port` are present as part of the processes' arguments.
-* @returns `true` when the plugin is running in debug mode; otherwise `false`.
-*/
-function isDebugMode() {
-	if (__isDebugMode === void 0) __isDebugMode = process.execArgv.some((arg) => {
-		const name = arg.split("=")[0];
-		return name === "--inspect" || name === "--inspect-brk" || name === "--inspect-port";
-	});
-	return __isDebugMode;
-}
-/**
-* Gets the plugin's unique-identifier from the current working directory.
-* @returns The plugin's unique-identifier.
-*/
-function getPluginUUID() {
-	const name = path.basename(process.cwd());
-	const suffixIndex = name.lastIndexOf(".sdPlugin");
-	return suffixIndex < 0 ? name : name.substring(0, suffixIndex);
-}
-var targets = [new FileTarget({
-	dest: path.join(cwd(), "logs"),
-	fileName: getPluginUUID(),
-	format: stringFormatter(),
-	maxFileCount: 10,
-	maxSize: 50 * 1024 * 1024
-})];
-if (isDebugMode()) targets.splice(0, 0, new ConsoleTarget());
-/**
-* Logger responsible for capturing log messages.
-*/
-const logger = new Logger({
-	level: isDebugMode() ? "debug" : "info",
-	minimumLevel: isDebugMode() ? "trace" : "debug",
-	targets
-});
-process.once("uncaughtException", (err) => logger.error("Process encountered uncaught exception", err));
-/**
-* Provides a connection between the plugin and the Stream Deck allowing for messages to be sent and received.
-*/
-var Connection = class extends EventEmitter {
-	/**
-	* Private backing field for {@link Connection.registrationParameters}.
-	*/
-	_registrationParameters;
-	/**
-	* Private backing field for {@link Connection.version}.
-	*/
-	_version;
-	/**
-	* Used to ensure {@link Connection.connect} is invoked as a singleton; `false` when a connection is occurring or established.
-	*/
-	canConnect = true;
-	/**
-	* Underlying web socket connection.
-	*/
-	connection = withResolvers();
-	/**
-	* Logger scoped to the connection.
-	*/
-	logger = logger.createScope("Connection");
-	/**
-	* Underlying connection information provided to the plugin to establish a connection with Stream Deck.
-	* @returns The registration parameters.
-	*/
-	get registrationParameters() {
-		return this._registrationParameters ??= this.getRegistrationParameters();
-	}
-	/**
-	* Version of Stream Deck this instance is connected to.
-	* @returns The version.
-	*/
-	get version() {
-		return this._version ??= new Version(this.registrationParameters.info.application.version);
-	}
-	/**
-	* Establishes a connection with the Stream Deck, allowing for the plugin to send and receive messages.
-	* @returns A promise that is resolved when a connection has been established.
-	*/
-	async connect() {
-		if (this.canConnect) {
-			this.canConnect = false;
-			const webSocket = new wrapper_default(`ws://127.0.0.1:${this.registrationParameters.port}`);
-			webSocket.onmessage = (ev) => this.tryEmit(ev);
-			webSocket.onopen = () => {
-				webSocket.send(JSON.stringify({
-					event: this.registrationParameters.registerEvent,
-					uuid: this.registrationParameters.pluginUUID
-				}));
-				this.connection.resolve(webSocket);
-				this.emit("connected", this.registrationParameters.info);
-			};
-		}
-		await this.connection.promise;
-	}
-	/**
-	* Sends the commands to the Stream Deck, once the connection has been established and registered.
-	* @param command Command being sent.
-	* @returns `Promise` resolved when the command is sent to Stream Deck.
-	*/
-	async send(command) {
-		const connection = await this.connection.promise;
-		const message = JSON.stringify(command);
-		this.logger.trace(message);
-		connection.send(message);
-	}
-	/**
-	* Gets the registration parameters, provided by Stream Deck, that provide information to the plugin, including how to establish a connection.
-	* @returns Parsed registration parameters.
-	*/
-	getRegistrationParameters() {
-		const params = {
-			port: void 0,
-			info: void 0,
-			pluginUUID: void 0,
-			registerEvent: void 0
-		};
-		const scopedLogger = logger.createScope("RegistrationParameters");
-		for (let i = 0; i < process.argv.length - 1; i++) {
-			const param = process.argv[i];
-			const value = process.argv[++i];
-			switch (param) {
-				case RegistrationParameter.Port:
-					scopedLogger.debug(`port=${value}`);
-					params.port = value;
-					break;
-				case RegistrationParameter.PluginUUID:
-					scopedLogger.debug(`pluginUUID=${value}`);
-					params.pluginUUID = value;
-					break;
-				case RegistrationParameter.RegisterEvent:
-					scopedLogger.debug(`registerEvent=${value}`);
-					params.registerEvent = value;
-					break;
-				case RegistrationParameter.Info:
-					scopedLogger.debug(`info=${value}`);
-					params.info = JSON.parse(value);
-					break;
-				default:
-					i--;
-					break;
-			}
-		}
-		const invalidArgs = [];
-		const validate = (name, value) => {
-			if (value === void 0) invalidArgs.push(name);
-		};
-		validate(RegistrationParameter.Port, params.port);
-		validate(RegistrationParameter.PluginUUID, params.pluginUUID);
-		validate(RegistrationParameter.RegisterEvent, params.registerEvent);
-		validate(RegistrationParameter.Info, params.info);
-		if (invalidArgs.length > 0) throw new Error(`Unable to establish a connection with Stream Deck, missing command line arguments: ${invalidArgs.join(", ")}`);
-		return params;
-	}
-	/**
-	* Attempts to emit the {@link ev} that was received from the {@link Connection.connection}.
-	* @param ev Event message data received from Stream Deck.
-	*/
-	tryEmit(ev) {
-		try {
-			const message = JSON.parse(ev.data.toString());
-			if (message.event) {
-				this.logger.trace(ev.data.toString());
-				this.emit(message.event, message);
-			} else this.logger.warn(`Received unknown message: ${ev.data}`);
-		} catch (err) {
-			this.logger.error(`Failed to parse message: ${ev.data}`, err);
-		}
-	}
-};
-const connection = new Connection();
-/**
-* Provides information for events received from Stream Deck.
-*/
-var Event = class {
-	/**
-	* Event that occurred.
-	*/
-	type;
-	/**
-	* Initializes a new instance of the {@link Event} class.
-	* @param source Source of the event, i.e. the original message from Stream Deck.
-	*/
-	constructor(source) {
-		this.type = source.event;
-	}
-};
-/**
-* Provides information for an event relating to an action.
-*/
-var ActionWithoutPayloadEvent = class extends Event {
-	action;
-	/**
-	* Initializes a new instance of the {@link ActionWithoutPayloadEvent} class.
-	* @param action Action that raised the event.
-	* @param source Source of the event, i.e. the original message from Stream Deck.
-	*/
-	constructor(action, source) {
-		super(source);
-		this.action = action;
-	}
-};
-/**
-* Provides information for an event relating to an action.
-*/
-var ActionEvent = class extends ActionWithoutPayloadEvent {
-	/**
-	* Provides additional information about the event that occurred, e.g. how many `ticks` the dial was rotated, the current `state` of the action, etc.
-	*/
-	payload;
-	/**
-	* Initializes a new instance of the {@link ActionEvent} class.
-	* @param action Action that raised the event.
-	* @param source Source of the event, i.e. the original message from Stream Deck.
-	*/
-	constructor(action, source) {
-		super(action, source);
-		this.payload = source.payload;
-	}
-};
-var manifest$1 = new Lazy(() => {
-	const path = join(process.cwd(), "manifest.json");
-	if (!existsSync(path)) throw new Error("Failed to read manifest.json as the file does not exist.");
-	try {
-		return JSON.parse(readFileSync(path, {
-			encoding: "utf-8",
-			flag: "r"
-		}).toString());
-	} catch (e) {
-		if (e instanceof SyntaxError) return null;
-		else throw e;
-	}
-});
-var softwareMinimumVersion = new Lazy(() => {
-	if (manifest$1.value === null) return null;
-	return new Version(manifest$1.value.Software.MinimumVersion);
-});
-/**
-* Gets the SDK version that the plugin requires.
-* @returns SDK version; otherwise `null` when the plugin is DRM protected.
-*/
-function getSDKVersion() {
-	return manifest$1.value?.SDKVersion ?? null;
-}
-/**
-* Gets the minimum version that the plugin requires.
-* @returns Minimum required version; otherwise `null` when the plugin is DRM protected.
-*/
-function getSoftwareMinimumVersion() {
-	return softwareMinimumVersion.value;
-}
-/**
-* Gets the manifest associated with the plugin.
-* @returns The manifest; otherwise `null` when the plugin is DRM protected.
-*/
-function getManifest() {
-	return manifest$1.value;
-}
-var __items$1 = /* @__PURE__ */ new Map();
-/**
-* Provides a read-only store of Stream Deck devices.
-*/
-var ReadOnlyActionStore = class extends Enumerable {
-	/**
-	* Initializes a new instance of the {@link ReadOnlyActionStore}.
-	*/
-	constructor() {
-		super(__items$1);
-	}
-	/**
-	* Gets the action with the specified identifier.
-	* @param id Identifier of action to search for.
-	* @returns The action, when present; otherwise `undefined`.
-	*/
-	getActionById(id) {
-		return __items$1.get(id);
-	}
-};
-/**
-* Provides a store of Stream Deck actions.
-*/
-var ActionStore = class extends ReadOnlyActionStore {
-	/**
-	* Deletes the action from the store.
-	* @param id The action's identifier.
-	*/
-	delete(id) {
-		__items$1.delete(id);
-	}
-	/**
-	* Adds the action to the store.
-	* @param action The action.
-	*/
-	set(action) {
-		__items$1.set(action.id, action);
-	}
-};
-/**
-* Singleton instance of the action store.
-*/
-const actionStore = new ActionStore();
-/**
-* Provides information for events relating to an application.
-*/
-var ApplicationEvent = class extends Event {
-	/**
-	* Monitored application that was launched/terminated.
-	*/
-	application;
-	/**
-	* Initializes a new instance of the {@link ApplicationEvent} class.
-	* @param source Source of the event, i.e. the original message from Stream Deck.
-	*/
-	constructor(source) {
-		super(source);
-		this.application = source.payload.application;
-	}
-};
-/**
-* Provides information for events relating to a device.
-*/
-var DeviceEvent = class extends Event {
-	device;
-	/**
-	* Initializes a new instance of the {@link DeviceEvent} class.
-	* @param source Source of the event, i.e. the original message from Stream Deck.
-	* @param device Device that event is associated with.
-	*/
-	constructor(source, device) {
-		super(source);
-		this.device = device;
-	}
-};
-/**
-* Event information received from Stream Deck as part of a deep-link message being routed to the plugin.
-*/
-var DidReceiveDeepLinkEvent = class extends Event {
-	/**
-	* Deep-link URL routed from Stream Deck.
-	*/
-	url;
-	/**
-	* Initializes a new instance of the {@link DidReceiveDeepLinkEvent} class.
-	* @param source Source of the event, i.e. the original message from Stream Deck.
-	*/
-	constructor(source) {
-		super(source);
-		this.url = new DeepLinkURL(source.payload.url);
-	}
-};
-var PREFIX = "streamdeck://";
-/**
-* Provides information associated with a URL received as part of a deep-link message, conforming to the URI syntax defined within RFC-3986 (https://datatracker.ietf.org/doc/html/rfc3986#section-3).
-*/
-var DeepLinkURL = class DeepLinkURL {
-	/**
-	* Fragment of the URL, with the number sign (#) omitted. For example, a URL of "/test#heading" would result in a {@link DeepLinkURL.fragment} of "heading".
-	*/
-	fragment;
-	/**
-	* Original URL. For example, a URL of "/test?one=two#heading" would result in a {@link DeepLinkURL.href} of "/test?one=two#heading".
-	*/
-	href;
-	/**
-	* Path of the URL; the full URL with the query and fragment omitted. For example, a URL of "/test?one=two#heading" would result in a {@link DeepLinkURL.path} of "/test".
-	*/
-	path;
-	/**
-	* Query of the URL, with the question mark (?) omitted. For example, a URL of "/test?name=elgato&key=123" would result in a {@link DeepLinkURL.query} of "name=elgato&key=123".
-	* See also {@link DeepLinkURL.queryParameters}.
-	*/
-	query;
-	/**
-	* Query string parameters parsed from the URL. See also {@link DeepLinkURL.query}.
-	*/
-	queryParameters;
-	/**
-	* Initializes a new instance of the {@link DeepLinkURL} class.
-	* @param url URL of the deep-link, with the schema and authority omitted.
-	*/
-	constructor(url) {
-		const refUrl = new URL(`${PREFIX}${url}`);
-		this.fragment = refUrl.hash.substring(1);
-		this.href = refUrl.href.substring(13);
-		this.path = DeepLinkURL.parsePath(this.href);
-		this.query = refUrl.search.substring(1);
-		this.queryParameters = refUrl.searchParams;
-	}
-	/**
-	* Parses the {@link DeepLinkURL.path} from the specified {@link href}.
-	* @param href Partial URL that contains the path to parse.
-	* @returns The path of the URL.
-	*/
-	static parsePath(href) {
-		const indexOf = (char) => {
-			const index = href.indexOf(char);
-			return index >= 0 ? index : href.length;
-		};
-		return href.substring(0, Math.min(indexOf("?"), indexOf("#")));
-	}
-};
-/**
-* Provides event information for when the plugin received the global settings.
-*/
-var DidReceiveGlobalSettingsEvent = class extends Event {
-	/**
-	* Settings associated with the event.
-	*/
-	settings;
-	/**
-	* Initializes a new instance of the {@link DidReceiveGlobalSettingsEvent} class.
-	* @param source Source of the event, i.e. the original message from Stream Deck.
-	*/
-	constructor(source) {
-		super(source);
-		this.settings = source.payload.settings;
-	}
-};
-/**
-* Provides information for an event triggered by a message being sent to the plugin, from the property inspector.
-*/
-var SendToPluginEvent = class extends Event {
-	action;
-	/**
-	* Payload sent from the property inspector.
-	*/
-	payload;
-	/**
-	* Initializes a new instance of the {@link SendToPluginEvent} class.
-	* @param action Action that raised the event.
-	* @param source Source of the event, i.e. the original message from Stream Deck.
-	*/
-	constructor(action, source) {
-		super(source);
-		this.action = action;
-		this.payload = source.payload;
-	}
-};
-/**
-* Validates the `SDKVersion` within the manifest fulfils the minimum required version for the specified
-* feature; when the version is not fulfilled, an error is thrown with the feature formatted into the message.
-* @param minimumVersion Minimum required SDKVersion.
-* @param feature Feature that requires the version.
-*/
-function requiresSDKVersion(minimumVersion, feature) {
-	const sdkVersion = getSDKVersion();
-	if (sdkVersion !== null && minimumVersion > sdkVersion) throw new Error(`[ERR_NOT_SUPPORTED]: ${feature} requires manifest SDK version ${minimumVersion} or higher, but found version ${sdkVersion}; please update the "SDKVersion" in the plugin's manifest to ${minimumVersion} or higher.`);
-}
-/**
-* Validates the {@link streamDeckVersion} and manifest's `Software.MinimumVersion` are at least the {@link minimumVersion};
-* when the version is not fulfilled, an error is thrown with the {@link feature} formatted into the message.
-* @param minimumVersion Minimum required version.
-* @param streamDeckVersion Actual application version.
-* @param feature Feature that requires the version.
-*/
-function requiresVersion(minimumVersion, streamDeckVersion, feature) {
-	const required = {
-		major: Math.floor(minimumVersion),
-		minor: Number(minimumVersion.toString().split(".").at(1) ?? 0),
-		patch: 0,
-		build: 0
-	};
-	if (streamDeckVersion.compareTo(required) === -1) throw new Error(`[ERR_NOT_SUPPORTED]: ${feature} requires Stream Deck version ${required.major}.${required.minor} or higher, but current version is ${streamDeckVersion.major}.${streamDeckVersion.minor}; please update Stream Deck and the "Software.MinimumVersion" in the plugin's manifest to "${required.major}.${required.minor}" or higher.`);
-	const softwareMinimumVersion = getSoftwareMinimumVersion();
-	if (softwareMinimumVersion !== null && softwareMinimumVersion.compareTo(required) === -1) throw new Error(`[ERR_NOT_SUPPORTED]: ${feature} requires Stream Deck version ${required.major}.${required.minor} or higher; please update the "Software.MinimumVersion" in the plugin's manifest to "${required.major}.${required.minor}" or higher.`);
-}
-var __useExperimentalMessageIdentifiers = false;
-const settings = {
-	get useExperimentalMessageIdentifiers() {
-		return __useExperimentalMessageIdentifiers;
-	},
-	set useExperimentalMessageIdentifiers(value) {
-		requiresVersion(7.1, connection.version, "Message identifiers");
-		__useExperimentalMessageIdentifiers = value;
-	},
-	getGlobalSettings: () => {
-		return new Promise((resolve) => {
-			connection.once("didReceiveGlobalSettings", (ev) => resolve(ev.payload.settings));
-			connection.send({
-				event: "getGlobalSettings",
-				context: connection.registrationParameters.pluginUUID,
-				id: randomUUID()
-			});
-		});
-	},
-	onDidReceiveGlobalSettings: (listener) => {
-		return connection.disposableOn("didReceiveGlobalSettings", (ev) => {
-			if (settings.useExperimentalMessageIdentifiers && ev.id) return;
-			listener(new DidReceiveGlobalSettingsEvent(ev));
-		});
-	},
-	onDidReceiveSettings: (listener) => {
-		return connection.disposableOn("didReceiveSettings", (ev) => {
-			if (settings.useExperimentalMessageIdentifiers && ev.id) return;
-			const action = actionStore.getActionById(ev.context);
-			if (action) listener(new ActionEvent(action, ev));
-		});
-	},
-	setGlobalSettings: async (settings) => {
-		await connection.send({
-			event: "setGlobalSettings",
-			context: connection.registrationParameters.pluginUUID,
-			payload: settings
-		});
-	}
-};
-/**
-* Controller capable of sending/receiving payloads with the property inspector, and listening for events.
-*/
-var UIController = class {
-	/**
-	* Action associated with the current property inspector.
-	*/
-	#action;
-	/**
-	* To overcome event races, the debounce counter keeps track of appear vs disappear events, ensuring
-	* we only clear the current ui when an equal number of matching disappear events occur.
-	*/
-	#appearanceStackCount = 0;
-	/**
-	* Initializes a new instance of the {@link UIController} class.
-	*/
-	constructor() {
-		this.onDidAppear((ev) => {
-			if (this.#isCurrent(ev.action)) this.#appearanceStackCount++;
-			else {
-				this.#appearanceStackCount = 1;
-				this.#action = ev.action;
-			}
-		});
-		this.onDidDisappear((ev) => {
-			if (this.#isCurrent(ev.action)) {
-				this.#appearanceStackCount--;
-				if (this.#appearanceStackCount <= 0) this.#action = void 0;
-			}
-		});
-	}
-	/**
-	* Gets the action associated with the current property.
-	* @returns The action; otherwise `undefined` when a property inspector is not visible.
-	*/
-	get action() {
-		return this.#action;
-	}
-	/**
-	* Occurs when the property inspector associated with the action becomes visible, i.e. the user
-	* selected an action in the Stream Deck application..
-	* @template T The type of settings associated with the action.
-	* @param listener Function to be invoked when the event occurs.
-	* @returns A disposable that, when disposed, removes the listener.
-	*/
-	onDidAppear(listener) {
-		return connection.disposableOn("propertyInspectorDidAppear", (ev) => {
-			const action = actionStore.getActionById(ev.context);
-			if (action) listener(new ActionWithoutPayloadEvent(action, ev));
-		});
-	}
-	/**
-	* Occurs when the property inspector associated with the action disappears, i.e. the user unselected
-	* the action in the Stream Deck application.
-	* @template T The type of settings associated with the action.
-	* @param listener Function to be invoked when the event occurs.
-	* @returns A disposable that, when disposed, removes the listener.
-	*/
-	onDidDisappear(listener) {
-		return connection.disposableOn("propertyInspectorDidDisappear", (ev) => {
-			const action = actionStore.getActionById(ev.context);
-			if (action) listener(new ActionWithoutPayloadEvent(action, ev));
-		});
-	}
-	/**
-	* Occurs when a message was sent to the plugin _from_ the property inspector.
-	* @template TPayload The type of the payload received from the property inspector.
-	* @template TSettings The type of settings associated with the action.
-	* @param listener Function to be invoked when the event occurs.
-	* @returns A disposable that, when disposed, removes the listener.
-	*/
-	onSendToPlugin(listener) {
-		return connection.disposableOn("sendToPlugin", (ev) => {
-			const action = actionStore.getActionById(ev.context);
-			if (action) listener(new SendToPluginEvent(action, ev));
-		});
-	}
-	/**
-	* Sends the payload to the property inspector; the payload is only sent when the property inspector
-	* is visible for an action provided by this plugin.
-	* @param payload Payload to send.
-	*/
-	async sendToPropertyInspector(payload) {
-		if (this.#action) await connection.send({
-			event: "sendToPropertyInspector",
-			context: this.#action.id,
-			payload
-		});
-	}
-	/**
-	* Determines whether the specified action is the action for the current property inspector.
-	* @param action Action to check against.
-	* @returns `true` when the actions are the same.
-	*/
-	#isCurrent(action) {
-		return this.#action?.id === action.id && this.#action?.manifestId === action.manifestId && this.#action?.device?.id === action.device.id;
-	}
-};
-const ui = new UIController();
-var __items = /* @__PURE__ */ new Map();
-/**
-* Provides a read-only store of Stream Deck devices.
-*/
-var ReadOnlyDeviceStore = class extends Enumerable {
-	/**
-	* Initializes a new instance of the {@link ReadOnlyDeviceStore}.
-	*/
-	constructor() {
-		super(__items);
-	}
-	/**
-	* Gets the Stream Deck {@link Device} associated with the specified {@link deviceId}.
-	* @param deviceId Identifier of the Stream Deck device.
-	* @returns The Stream Deck device information; otherwise `undefined` if a device with the {@link deviceId} does not exist.
-	*/
-	getDeviceById(deviceId) {
-		return __items.get(deviceId);
-	}
-};
-/**
-* Provides a store of Stream Deck devices.
-*/
-var DeviceStore = class extends ReadOnlyDeviceStore {
-	/**
-	* Adds the device to the store.
-	* @param device The device.
-	*/
-	set(device) {
-		__items.set(device.id, device);
-	}
-};
-/**
-* Singleton instance of the device store.
-*/
-const deviceStore = new DeviceStore();
-/**
-* Provides information about an instance of a Stream Deck action.
-*/
-var ActionContext$1 = class {
-	/**
-	* Device the action is associated with.
-	*/
-	#device;
-	/**
-	* Source of the action.
-	*/
-	#source;
-	/**
-	* Initializes a new instance of the {@link ActionContext} class.
-	* @param source Source of the action.
-	*/
-	constructor(source) {
-		this.#source = source;
-		const device = deviceStore.getDeviceById(source.device);
-		if (!device) throw new Error(`Failed to initialize action; device ${source.device} not found`);
-		this.#device = device;
-	}
-	/**
-	* Type of the action.
-	* - `Keypad` is a key.
-	* - `Encoder` is a dial and portion of the touch strip.
-	* @returns Controller type.
-	*/
-	get controllerType() {
-		return this.#source.payload.controller;
-	}
-	/**
-	* Stream Deck device the action is positioned on.
-	* @returns Stream Deck device.
-	*/
-	get device() {
-		return this.#device;
-	}
-	/**
-	* Action instance identifier.
-	* @returns Identifier.
-	*/
-	get id() {
-		return this.#source.context;
-	}
-	/**
-	* Manifest identifier (UUID) for this action type.
-	* @returns Manifest identifier.
-	*/
-	get manifestId() {
-		return this.#source.action;
-	}
-	/**
-	* Converts this instance to a serializable object.
-	* @returns The serializable object.
-	*/
-	toJSON() {
-		return {
-			controllerType: this.controllerType,
-			device: this.device,
-			id: this.id,
-			manifestId: this.manifestId
-		};
-	}
-};
-var REQUEST_TIMEOUT = 15 * 1e3;
-/**
-* Provides a contextualized instance of an {@link Action}, allowing for direct communication with the Stream Deck.
-* @template T The type of settings associated with the action.
-*/
-var Action = class extends ActionContext$1 {
-	/**
-	* Gets the resources (files) associated with this action; these resources are embedded into the
-	* action when it is exported, either individually, or as part of a profile.
-	*
-	* Available from Stream Deck 7.1.
-	* @returns The resources.
-	*/
-	async getResources() {
-		requiresVersion(7.1, connection.version, "getResources");
-		return (await this.#fetch("getResources", "didReceiveResources")).payload.resources;
-	}
-	/**
-	* Gets the settings associated this action instance.
-	* @template U The type of settings associated with the action.D
-	* @returns Promise containing the action instance's settings.
-	*/
-	async getSettings() {
-		return (await this.#fetch("getSettings", "didReceiveSettings")).payload.settings;
-	}
-	/**
-	* Determines whether this instance is a dial.
-	* @returns `true` when this instance is a dial; otherwise `false`.
-	*/
-	isDial() {
-		return this.controllerType === "Encoder";
-	}
-	/**
-	* Determines whether this instance is a key.
-	* @returns `true` when this instance is a key; otherwise `false`.
-	*/
-	isKey() {
-		return this.controllerType === "Keypad";
-	}
-	/**
-	* Sets the resources (files) associated with this action; these resources are embedded into the
-	* action when it is exported, either individually, or as part of a profile.
-	*
-	* Available from Stream Deck 7.1.
-	* @example
-	* action.setResources({
-	*   fileOne: "c:\\hello-world.txt",
-	*   anotherFile: "c:\\icon.png"
-	* });
-	* @param resources The resources as a map of file paths.
-	* @returns `Promise` resolved when the resources are saved to Stream Deck.
-	*/
-	setResources(resources) {
-		requiresVersion(7.1, connection.version, "setResources");
-		return connection.send({
-			event: "setResources",
-			context: this.id,
-			payload: resources
-		});
-	}
-	/**
-	* Sets the {@link settings} associated with this action instance. Use in conjunction with {@link Action.getSettings}.
-	* @param settings Settings to persist.
-	* @returns `Promise` resolved when the {@link settings} are sent to Stream Deck.
-	*/
-	setSettings(settings) {
-		return connection.send({
-			event: "setSettings",
-			context: this.id,
-			payload: settings
-		});
-	}
-	/**
-	* Temporarily shows an alert (i.e. warning), in the form of an exclamation mark in a yellow triangle, on this action instance. Used to provide visual feedback when an action failed.
-	* @returns `Promise` resolved when the request to show an alert has been sent to Stream Deck.
-	*/
-	showAlert() {
-		return connection.send({
-			event: "showAlert",
-			context: this.id
-		});
-	}
-	/**
-	* Fetches information from Stream Deck by sending the command, and awaiting the event.
-	* @param command Name of the event (command) to send.
-	* @param event Name of the event to await.
-	* @returns The payload from the received event.
-	*/
-	async #fetch(command, event) {
-		const { resolve, reject, promise } = withResolvers();
-		const timeoutId = setTimeout(() => {
-			listener.dispose();
-			reject("The request timed out");
-		}, REQUEST_TIMEOUT);
-		const listener = connection.disposableOn(event, (ev) => {
-			if (ev.context == this.id) {
-				clearTimeout(timeoutId);
-				listener.dispose();
-				resolve(ev);
-			}
-		});
-		await connection.send({
-			event: command,
-			context: this.id,
-			id: randomUUID()
-		});
-		return promise;
-	}
-};
-/**
-* Provides a contextualized instance of a dial action.
-* @template T The type of settings associated with the action.
-*/
-var DialAction = class extends Action {
-	/**
-	* Private backing field for {@link DialAction.coordinates}.
-	*/
-	#coordinates;
-	/**
-	* Initializes a new instance of the {@see DialAction} class.
-	* @param source Source of the action.
-	*/
-	constructor(source) {
-		super(source);
-		if (source.payload.controller !== "Encoder") throw new Error("Unable to create DialAction; source event is not a Encoder");
-		this.#coordinates = Object.freeze(source.payload.coordinates);
-	}
-	/**
-	* Coordinates of the dial.
-	* @returns The coordinates.
-	*/
-	get coordinates() {
-		return this.#coordinates;
-	}
-	/**
-	* Sets the feedback for the current layout associated with this action instance, allowing for the visual items to be updated. Layouts are a powerful way to provide dynamic information
-	* to users, and can be assigned in the manifest, or dynamically via {@link Action.setFeedbackLayout}.
-	*
-	* The {@link feedback} payload defines which items within the layout will be updated, and are identified by their property name (defined as the `key` in the layout's definition).
-	* The values can either by a complete new definition, a `string` for layout item types of `text` and `pixmap`, or a `number` for layout item types of `bar` and `gbar`.
-	* @param feedback Object containing information about the layout items to be updated.
-	* @returns `Promise` resolved when the request to set the {@link feedback} has been sent to Stream Deck.
-	*/
-	setFeedback(feedback) {
-		return connection.send({
-			event: "setFeedback",
-			context: this.id,
-			payload: feedback
-		});
-	}
-	/**
-	* Sets the layout associated with this action instance. The layout must be either a built-in layout identifier, or path to a local layout JSON file within the plugin's folder.
-	* Use in conjunction with {@link Action.setFeedback} to update the layout's current items' settings.
-	* @param layout Name of a pre-defined layout, or relative path to a custom one.
-	* @returns `Promise` resolved when the new layout has been sent to Stream Deck.
-	*/
-	setFeedbackLayout(layout) {
-		return connection.send({
-			event: "setFeedbackLayout",
-			context: this.id,
-			payload: { layout }
-		});
-	}
-	/**
-	* Sets the {@link image} to be display for this action instance within Stream Deck app.
-	*
-	* NB: The image can only be set by the plugin when the the user has not specified a custom image.
-	* @param image Image to display; this can be either a path to a local file within the plugin's folder, a base64 encoded `string` with the mime type declared (e.g. PNG, JPEG, etc.),
-	* or an SVG `string`. When `undefined`, the image from the manifest will be used.
-	* @returns `Promise` resolved when the request to set the {@link image} has been sent to Stream Deck.
-	*/
-	setImage(image) {
-		return connection.send({
-			event: "setImage",
-			context: this.id,
-			payload: { image }
-		});
-	}
-	/**
-	* Sets the {@link title} displayed for this action instance.
-	*
-	* NB: The title can only be set by the plugin when the the user has not specified a custom title.
-	* @param title Title to display.
-	* @returns `Promise` resolved when the request to set the {@link title} has been sent to Stream Deck.
-	*/
-	setTitle(title) {
-		return this.setFeedback({ title });
-	}
-	/**
-	* Sets the trigger (interaction) {@link descriptions} associated with this action instance. Descriptions are shown within the Stream Deck application, and informs the user what
-	* will happen when they interact with the action, e.g. rotate, touch, etc. When {@link descriptions} is `undefined`, the descriptions will be reset to the values provided as part
-	* of the manifest.
-	*
-	* NB: Applies to encoders (dials / touchscreens) found on Stream Deck + devices.
-	* @param descriptions Descriptions that detail the action's interaction.
-	* @returns `Promise` resolved when the request to set the {@link descriptions} has been sent to Stream Deck.
-	*/
-	setTriggerDescription(descriptions) {
-		return connection.send({
-			event: "setTriggerDescription",
-			context: this.id,
-			payload: descriptions || {}
-		});
-	}
-	/**
-	* @inheritdoc
-	*/
-	toJSON() {
-		return {
-			...super.toJSON(),
-			coordinates: this.coordinates
-		};
-	}
-};
-/**
-* Provides a contextualized instance of a key action.
-* @template T The type of settings associated with the action.
-*/
-var KeyAction = class extends Action {
-	/**
-	* Private backing field for {@link KeyAction.coordinates}.
-	*/
-	#coordinates;
-	/**
-	* Source of the action.
-	*/
-	#source;
-	/**
-	* Initializes a new instance of the {@see KeyAction} class.
-	* @param source Source of the action.
-	*/
-	constructor(source) {
-		super(source);
-		if (source.payload.controller !== "Keypad") throw new Error("Unable to create KeyAction; source event is not a Keypad");
-		this.#coordinates = !source.payload.isInMultiAction ? Object.freeze(source.payload.coordinates) : void 0;
-		this.#source = source;
-	}
-	/**
-	* Coordinates of the key; otherwise `undefined` when the action is part of a multi-action.
-	* @returns The coordinates.
-	*/
-	get coordinates() {
-		return this.#coordinates;
-	}
-	/**
-	* Determines whether the key is part of a multi-action.
-	* @returns `true` when in a multi-action; otherwise `false`.
-	*/
-	isInMultiAction() {
-		return this.#source.payload.isInMultiAction;
-	}
-	/**
-	* Sets the {@link image} to be display for this action instance.
-	*
-	* NB: The image can only be set by the plugin when the the user has not specified a custom image.
-	* @param image Image to display; this can be either a path to a local file within the plugin's folder, a base64 encoded `string` with the mime type declared (e.g. PNG, JPEG, etc.),
-	* or an SVG `string`. When `undefined`, the image from the manifest will be used.
-	* @param options Additional options that define where and how the image should be rendered.
-	* @returns `Promise` resolved when the request to set the {@link image} has been sent to Stream Deck.
-	*/
-	setImage(image, options) {
-		return connection.send({
-			event: "setImage",
-			context: this.id,
-			payload: {
-				image,
-				...options
-			}
-		});
-	}
-	/**
-	* Sets the current {@link state} of this action instance; only applies to actions that have multiple states defined within the manifest.
-	* @param state State to set; this be either 0, or 1.
-	* @returns `Promise` resolved when the request to set the state of an action instance has been sent to Stream Deck.
-	*/
-	setState(state) {
-		return connection.send({
-			event: "setState",
-			context: this.id,
-			payload: { state }
-		});
-	}
-	/**
-	* Sets the {@link title} displayed for this action instance.
-	*
-	* NB: The title can only be set by the plugin when the the user has not specified a custom title.
-	* @param title Title to display; when `undefined` the title within the manifest will be used.
-	* @param options Additional options that define where and how the title should be rendered.
-	* @returns `Promise` resolved when the request to set the {@link title} has been sent to Stream Deck.
-	*/
-	setTitle(title, options) {
-		return connection.send({
-			event: "setTitle",
-			context: this.id,
-			payload: {
-				title,
-				...options
-			}
-		});
-	}
-	/**
-	* Temporarily shows an "OK" (i.e. success), in the form of a check-mark in a green circle, on this action instance. Used to provide visual feedback when an action successfully
-	* executed.
-	* @returns `Promise` resolved when the request to show an "OK" has been sent to Stream Deck.
-	*/
-	showOk() {
-		return connection.send({
-			event: "showOk",
-			context: this.id
-		});
-	}
-	/**
-	* @inheritdoc
-	*/
-	toJSON() {
-		return {
-			...super.toJSON(),
-			coordinates: this.coordinates,
-			isInMultiAction: this.isInMultiAction()
-		};
-	}
-};
-var manifest = new Lazy(() => getManifest());
-/**
-* Provides functions, and information, for interacting with Stream Deck actions.
-*/
-var ActionService = class extends ReadOnlyActionStore {
-	/**
-	* Initializes a new instance of the {@link ActionService} class.
-	*/
-	constructor() {
-		super();
-		connection.prependListener("willAppear", (ev) => {
-			const action = ev.payload.controller === "Encoder" ? new DialAction(ev) : new KeyAction(ev);
-			actionStore.set(action);
-		});
-		connection.prependListener("willDisappear", (ev) => actionStore.delete(ev.context));
-	}
-	/**
-	* Occurs when the user presses a dial (Stream Deck +).
-	* @template T The type of settings associated with the action.
-	* @param listener Function to be invoked when the event occurs.
-	* @returns A disposable that, when disposed, removes the listener.
-	*/
-	onDialDown(listener) {
-		return connection.disposableOn("dialDown", (ev) => {
-			const action = actionStore.getActionById(ev.context);
-			if (action?.isDial()) listener(new ActionEvent(action, ev));
-		});
-	}
-	/**
-	* Occurs when the user rotates a dial (Stream Deck +).
-	* @template T The type of settings associated with the action.
-	* @param listener Function to be invoked when the event occurs.
-	* @returns A disposable that, when disposed, removes the listener.
-	*/
-	onDialRotate(listener) {
-		return connection.disposableOn("dialRotate", (ev) => {
-			const action = actionStore.getActionById(ev.context);
-			if (action?.isDial()) listener(new ActionEvent(action, ev));
-		});
-	}
-	/**
-	* Occurs when the user releases a pressed dial (Stream Deck +).
-	* @template T The type of settings associated with the action.
-	* @param listener Function to be invoked when the event occurs.
-	* @returns A disposable that, when disposed, removes the listener.
-	*/
-	onDialUp(listener) {
-		return connection.disposableOn("dialUp", (ev) => {
-			const action = actionStore.getActionById(ev.context);
-			if (action?.isDial()) listener(new ActionEvent(action, ev));
-		});
-	}
-	/**
-	* Occurs when the resources were updated within the property inspector.
-	* @param listener Function to be invoked when the event occurs.
-	* @returns A disposable that, when disposed, removes the listener.
-	*/
-	onDidReceiveResources(listener) {
-		return connection.disposableOn("didReceiveResources", (ev) => {
-			if (ev.id !== void 0) return;
-			const action = actionStore.getActionById(ev.context);
-			if (action) listener(new ActionEvent(action, ev));
-		});
-	}
-	/**
-	* Occurs when the user presses a action down.
-	* @template T The type of settings associated with the action.
-	* @param listener Function to be invoked when the event occurs.
-	* @returns A disposable that, when disposed, removes the listener.
-	*/
-	onKeyDown(listener) {
-		return connection.disposableOn("keyDown", (ev) => {
-			const action = actionStore.getActionById(ev.context);
-			if (action?.isKey()) listener(new ActionEvent(action, ev));
-		});
-	}
-	/**
-	* Occurs when the user releases a pressed action.
-	* @template T The type of settings associated with the action.
-	* @param listener Function to be invoked when the event occurs.
-	* @returns A disposable that, when disposed, removes the listener.
-	*/
-	onKeyUp(listener) {
-		return connection.disposableOn("keyUp", (ev) => {
-			const action = actionStore.getActionById(ev.context);
-			if (action?.isKey()) listener(new ActionEvent(action, ev));
-		});
-	}
-	/**
-	* Occurs when the user updates an action's title settings in the Stream Deck application. See also {@link Action.setTitle}.
-	* @template T The type of settings associated with the action.
-	* @param listener Function to be invoked when the event occurs.
-	* @returns A disposable that, when disposed, removes the listener.
-	*/
-	onTitleParametersDidChange(listener) {
-		return connection.disposableOn("titleParametersDidChange", (ev) => {
-			const action = actionStore.getActionById(ev.context);
-			if (action) listener(new ActionEvent(action, ev));
-		});
-	}
-	/**
-	* Occurs when the user taps the touchscreen (Stream Deck +).
-	* @template T The type of settings associated with the action.
-	* @param listener Function to be invoked when the event occurs.
-	* @returns A disposable that, when disposed, removes the listener.
-	*/
-	onTouchTap(listener) {
-		return connection.disposableOn("touchTap", (ev) => {
-			const action = actionStore.getActionById(ev.context);
-			if (action?.isDial()) listener(new ActionEvent(action, ev));
-		});
-	}
-	/**
-	* Occurs when an action appears on the Stream Deck due to the user navigating to another page, profile, folder, etc. This also occurs during startup if the action is on the "front
-	* page". An action refers to _all_ types of actions, e.g. keys, dials,
-	* @template T The type of settings associated with the action.
-	* @param listener Function to be invoked when the event occurs.
-	* @returns A disposable that, when disposed, removes the listener.
-	*/
-	onWillAppear(listener) {
-		return connection.disposableOn("willAppear", (ev) => {
-			const action = actionStore.getActionById(ev.context);
-			if (action) listener(new ActionEvent(action, ev));
-		});
-	}
-	/**
-	* Occurs when an action disappears from the Stream Deck due to the user navigating to another page, profile, folder, etc. An action refers to _all_ types of actions, e.g. keys,
-	* dials, touchscreens, pedals, etc.
-	* @template T The type of settings associated with the action.
-	* @param listener Function to be invoked when the event occurs.
-	* @returns A disposable that, when disposed, removes the listener.
-	*/
-	onWillDisappear(listener) {
-		return connection.disposableOn("willDisappear", (ev) => listener(new ActionEvent(new ActionContext$1(ev), ev)));
-	}
-	/**
-	* Registers the action with the Stream Deck, routing all events associated with the {@link SingletonAction.manifestId} to the specified {@link action}.
-	* @param action The action to register.
-	* @example
-	* ＠action({ UUID: "com.elgato.test.action" })
-	* class MyCustomAction extends SingletonAction {
-	*     export function onKeyDown(ev: KeyDownEvent) {
-	*         // Do some awesome thing.
-	*     }
-	* }
-	*
-	* streamDeck.actions.registerAction(new MyCustomAction());
-	*/
-	registerAction(action) {
-		if (action.manifestId === void 0) throw new Error("The action's manifestId cannot be undefined.");
-		if (manifest.value !== null && !manifest.value.Actions.some((a) => a.UUID === action.manifestId)) throw new Error(`The action's manifestId was not found within the manifest: ${action.manifestId}`);
-		const { manifestId } = action;
-		const route = (fn, listener) => {
-			const boundedListener = listener?.bind(action);
-			if (boundedListener === void 0) return;
-			fn.bind(action)(async (ev) => {
-				if (ev.action.manifestId == manifestId) await boundedListener(ev);
-			});
-		};
-		route(this.onDialDown, action.onDialDown);
-		route(this.onDialUp, action.onDialUp);
-		route(this.onDialRotate, action.onDialRotate);
-		route(ui.onSendToPlugin, action.onSendToPlugin);
-		route(this.onDidReceiveResources, action.onDidReceiveResources);
-		route(settings.onDidReceiveSettings, action.onDidReceiveSettings);
-		route(this.onKeyDown, action.onKeyDown);
-		route(this.onKeyUp, action.onKeyUp);
-		route(ui.onDidAppear, action.onPropertyInspectorDidAppear);
-		route(ui.onDidDisappear, action.onPropertyInspectorDidDisappear);
-		route(this.onTitleParametersDidChange, action.onTitleParametersDidChange);
-		route(this.onTouchTap, action.onTouchTap);
-		route(this.onWillAppear, action.onWillAppear);
-		route(this.onWillDisappear, action.onWillDisappear);
-	}
-};
-/**
-* Service for interacting with Stream Deck actions.
-*/
-const actionService = new ActionService();
-/**
-* Provides information about a device.
-*/
-var Device = class {
-	/**
-	* Private backing field for {@link Device.isConnected}.
-	*/
-	#isConnected = false;
-	/**
-	* Private backing field for the device's information.
-	*/
-	#info;
-	/**
-	* Unique identifier of the device.
-	*/
-	id;
-	/**
-	* Initializes a new instance of the {@link Device} class.
-	* @param id Device identifier.
-	* @param info Information about the device.
-	* @param isConnected Determines whether the device is connected.
-	*/
-	constructor(id, info, isConnected) {
-		this.id = id;
-		this.#info = info;
-		this.#isConnected = isConnected;
-		connection.prependListener("deviceDidConnect", (ev) => {
-			if (ev.device === this.id) {
-				this.#info = ev.deviceInfo;
-				this.#isConnected = true;
-			}
-		});
-		connection.prependListener("deviceDidChange", (ev) => {
-			if (ev.device === this.id) this.#info = ev.deviceInfo;
-		});
-		connection.prependListener("deviceDidDisconnect", (ev) => {
-			if (ev.device === this.id) this.#isConnected = false;
-		});
-	}
-	/**
-	* Actions currently visible on the device.
-	* @returns Collection of visible actions.
-	*/
-	get actions() {
-		return actionStore.filter((a) => a.device.id === this.id);
-	}
-	/**
-	* Determines whether the device is currently connected.
-	* @returns `true` when the device is connected; otherwise `false`.
-	*/
-	get isConnected() {
-		return this.#isConnected;
-	}
-	/**
-	* Name of the device, as specified by the user in the Stream Deck application.
-	* @returns Name of the device.
-	*/
-	get name() {
-		return this.#info.name;
-	}
-	/**
-	* Number of action slots, excluding dials / touchscreens, available to the device.
-	* @returns Size of the device.
-	*/
-	get size() {
-		return this.#info.size;
-	}
-	/**
-	* Type of the device that was connected, e.g. Stream Deck +, Stream Deck Pedal, etc. See {@link DeviceType}.
-	* @returns Type of the device.
-	*/
-	get type() {
-		return this.#info.type;
-	}
-};
-/**
-* Provides functions, and information, for interacting with Stream Deck actions.
-*/
-var DeviceService = class extends ReadOnlyDeviceStore {
-	/**
-	* Initializes a new instance of the {@link DeviceService}.
-	*/
-	constructor() {
-		super();
-		connection.once("connected", (info) => {
-			info.devices.forEach((dev) => deviceStore.set(new Device(dev.id, dev, false)));
-		});
-		connection.on("deviceDidConnect", ({ device: id, deviceInfo }) => {
-			if (!deviceStore.getDeviceById(id)) deviceStore.set(new Device(id, deviceInfo, true));
-		});
-		connection.on("deviceDidChange", ({ device: id, deviceInfo }) => {
-			if (!deviceStore.getDeviceById(id)) deviceStore.set(new Device(id, deviceInfo, false));
-		});
-	}
-	/**
-	* Occurs when a Stream Deck device changed, for example its name or size.
-	*
-	* Available from Stream Deck 7.0.
-	* @param listener Function to be invoked when the event occurs.
-	* @returns A disposable that, when disposed, removes the listener.
-	*/
-	onDeviceDidChange(listener) {
-		requiresVersion(7, connection.version, "onDeviceDidChange");
-		return connection.disposableOn("deviceDidChange", (ev) => listener(new DeviceEvent(ev, this.getDeviceById(ev.device))));
-	}
-	/**
-	* Occurs when a Stream Deck device is connected. See also {@link DeviceService.onDeviceDidConnect}.
-	* @param listener Function to be invoked when the event occurs.
-	* @returns A disposable that, when disposed, removes the listener.
-	*/
-	onDeviceDidConnect(listener) {
-		return connection.disposableOn("deviceDidConnect", (ev) => listener(new DeviceEvent(ev, this.getDeviceById(ev.device))));
-	}
-	/**
-	* Occurs when a Stream Deck device is disconnected. See also {@link DeviceService.onDeviceDidDisconnect}.
-	* @param listener Function to be invoked when the event occurs.
-	* @returns A disposable that, when disposed, removes the listener.
-	*/
-	onDeviceDidDisconnect(listener) {
-		return connection.disposableOn("deviceDidDisconnect", (ev) => listener(new DeviceEvent(ev, this.getDeviceById(ev.device))));
-	}
-};
-/**
-* Provides functions, and information, for interacting with Stream Deck actions.
-*/
-const deviceService = new DeviceService();
-/**
-* Loads a locale from the file system.
-* @param language Language to load.
-* @returns Contents of the locale.
-*/
-function fileSystemLocaleProvider(language) {
-	const filePath = path.join(process.cwd(), `${language}.json`);
-	if (!fs.existsSync(filePath)) return null;
-	try {
-		const contents = fs.readFileSync(filePath, { flag: "r" })?.toString();
-		return parseLocalizations(contents);
-	} catch (err) {
-		logger.error(`Failed to load translations from ${filePath}`, err);
-		return null;
-	}
-}
-/**
-* Parses the localizations from the specified contents, or throws a `TypeError` when unsuccessful.
-* @param contents Contents that represent the stringified JSON containing the localizations.
-* @returns The localizations; otherwise a `TypeError`.
-*/
-function parseLocalizations(contents) {
-	const json = JSON.parse(contents);
-	if (json !== void 0 && json !== null && typeof json === "object" && "Localization" in json) return json["Localization"];
-	throw new TypeError(`Translations must be a JSON object nested under a property named "Localization"`);
-}
-var profiles_exports = /* @__PURE__ */ __exportAll({ switchToProfile: () => switchToProfile });
-/**
-* Requests the Stream Deck switches the current profile of the specified {@link deviceId} to the {@link profile}; when no {@link profile} is provided the previously active profile
-* is activated.
-*
-* NB: Plugins may only switch to profiles distributed with the plugin, as defined within the manifest, and cannot access user-defined profiles.
-* @param deviceId Unique identifier of the device where the profile should be set.
-* @param profile Optional name of the profile to switch to; when `undefined` the previous profile will be activated. Name must be identical to the one provided in the manifest.
-* @param page Optional page to show when switching to the {@link profile}, indexed from 0. When `undefined`, the page that was previously visible (when switching away from the
-* profile) will be made visible.
-* @returns `Promise` resolved when the request to switch the `profile` has been sent to Stream Deck.
-*/
-function switchToProfile(deviceId, profile, page) {
-	if (page !== void 0) requiresVersion(6.5, connection.version, "Switching to a profile page");
-	return connection.send({
-		event: "switchToProfile",
-		context: connection.registrationParameters.pluginUUID,
-		device: deviceId,
-		payload: {
-			page,
-			profile
-		}
-	});
-}
-var system_exports = /* @__PURE__ */ __exportAll({
-	getSecrets: () => getSecrets,
-	onApplicationDidLaunch: () => onApplicationDidLaunch,
-	onApplicationDidTerminate: () => onApplicationDidTerminate,
-	onDidReceiveDeepLink: () => onDidReceiveDeepLink,
-	onSystemDidWakeUp: () => onSystemDidWakeUp,
-	openUrl: () => openUrl
-});
-/**
-* Occurs when a monitored application is launched. Monitored applications can be defined in the manifest via the {@link Manifest.ApplicationsToMonitor} property.
-* See also {@link onApplicationDidTerminate}.
-* @param listener Function to be invoked when the event occurs.
-* @returns A disposable that, when disposed, removes the listener.
-*/
-function onApplicationDidLaunch(listener) {
-	return connection.disposableOn("applicationDidLaunch", (ev) => listener(new ApplicationEvent(ev)));
-}
-/**
-* Occurs when a monitored application terminates. Monitored applications can be defined in the manifest via the {@link Manifest.ApplicationsToMonitor} property.
-* See also {@link onApplicationDidLaunch}.
-* @param listener Function to be invoked when the event occurs.
-* @returns A disposable that, when disposed, removes the listener.
-*/
-function onApplicationDidTerminate(listener) {
-	return connection.disposableOn("applicationDidTerminate", (ev) => listener(new ApplicationEvent(ev)));
-}
-/**
-* Occurs when a deep-link message is routed to the plugin from Stream Deck. One-way deep-link messages can be sent to plugins from external applications using the URL format
-* `streamdeck://plugins/message/<PLUGIN_UUID>/{MESSAGE}`.
-* @param listener Function to be invoked when the event occurs.
-* @returns A disposable that, when disposed, removes the listener.
-*/
-function onDidReceiveDeepLink(listener) {
-	requiresVersion(6.5, connection.version, "Receiving deep-link messages");
-	return connection.disposableOn("didReceiveDeepLink", (ev) => listener(new DidReceiveDeepLinkEvent(ev)));
-}
-/**
-* Occurs when the computer wakes up.
-* @param listener Function to be invoked when the event occurs.
-* @returns A disposable that, when disposed, removes the listener.
-*/
-function onSystemDidWakeUp(listener) {
-	return connection.disposableOn("systemDidWakeUp", (ev) => listener(new Event(ev)));
-}
-/**
-* Opens the specified `url` in the user's default browser.
-* @param url URL to open.
-* @returns `Promise` resolved when the request to open the `url` has been sent to Stream Deck.
-*/
-function openUrl(url) {
-	return connection.send({
-		event: "openUrl",
-		payload: { url }
-	});
-}
-/**
-* Gets the secrets associated with the plugin.
-* @returns `Promise` resolved with the secrets associated with the plugin.
-*/
-function getSecrets() {
-	requiresVersion(6.9, connection.version, "Secrets");
-	requiresSDKVersion(3, "Secrets");
-	return new Promise((resolve) => {
-		connection.once("didReceiveSecrets", (ev) => resolve(ev.payload.secrets));
-		connection.send({
-			event: "getSecrets",
-			context: connection.registrationParameters.pluginUUID
-		});
-	});
-}
-/**
-* Provides the main bridge between the plugin and the Stream Deck allowing the plugin to send requests and receive events, e.g. when the user presses an action.
-* @template T The type of settings associated with the action.
-*/
-var SingletonAction = class {
-	/**
-	* The universally-unique value that identifies the action within the manifest.
-	*/
-	manifestId;
-	/**
-	* Gets the visible actions with the `manifestId` that match this instance's.
-	* @returns The visible actions.
-	*/
-	get actions() {
-		return actionStore.filter((a) => a.manifestId === this.manifestId);
-	}
-};
-var i18n;
-const streamDeck = {
-	get actions() {
-		return actionService;
-	},
-	get devices() {
-		return deviceService;
-	},
-	get i18n() {
-		return i18n ??= new I18nProvider(this.info.application.language, fileSystemLocaleProvider);
-	},
-	get info() {
-		return connection.registrationParameters.info;
-	},
-	get logger() {
-		return logger;
-	},
-	get profiles() {
-		return profiles_exports;
-	},
-	get settings() {
-		return settings;
-	},
-	get system() {
-		return system_exports;
-	},
-	get ui() {
-		return ui;
-	},
-	connect() {
-		return connection.connect();
-	}
-};
-var require$1 = createRequire(import.meta.url);
-new URL("data:text/javascript;base64,Ly8gcHJldHRpZXItaWdub3JlCi8qIGVzbGludC1kaXNhYmxlICovCi8vIEB0cy1ub2NoZWNrCi8qIGF1dG8tZ2VuZXJhdGVkIGJ5IE5BUEktUlMgKi8KCmltcG9ydCB7IGNyZWF0ZVJlcXVpcmUgfSBmcm9tICdub2RlOm1vZHVsZScKY29uc3QgcmVxdWlyZSA9IGNyZWF0ZVJlcXVpcmUoaW1wb3J0Lm1ldGEudXJsKQpjb25zdCBfX2Rpcm5hbWUgPSBuZXcgVVJMKCcuJywgaW1wb3J0Lm1ldGEudXJsKS5wYXRobmFtZQoKY29uc3QgeyByZWFkRmlsZVN5bmMgfSA9IHJlcXVpcmUoJ25vZGU6ZnMnKQpsZXQgbmF0aXZlQmluZGluZyA9IG51bGwKY29uc3QgbG9hZEVycm9ycyA9IFtdCgpjb25zdCBpc011c2wgPSAoKSA9PiB7CiAgbGV0IG11c2wgPSBmYWxzZQogIGlmIChwcm9jZXNzLnBsYXRmb3JtID09PSAnbGludXgnKSB7CiAgICBtdXNsID0gaXNNdXNsRnJvbUZpbGVzeXN0ZW0oKQogICAgaWYgKG11c2wgPT09IG51bGwpIHsKICAgICAgbXVzbCA9IGlzTXVzbEZyb21SZXBvcnQoKQogICAgfQogICAgaWYgKG11c2wgPT09IG51bGwpIHsKICAgICAgbXVzbCA9IGlzTXVzbEZyb21DaGlsZFByb2Nlc3MoKQogICAgfQogIH0KICByZXR1cm4gbXVzbAp9Cgpjb25zdCBpc0ZpbGVNdXNsID0gKGYpID0+IGYuaW5jbHVkZXMoJ2xpYmMubXVzbC0nKSB8fCBmLmluY2x1ZGVzKCdsZC1tdXNsLScpCgpjb25zdCBpc011c2xGcm9tRmlsZXN5c3RlbSA9ICgpID0+IHsKICB0cnkgewogICAgcmV0dXJuIHJlYWRGaWxlU3luYygnL3Vzci9iaW4vbGRkJywgJ3V0Zi04JykuaW5jbHVkZXMoJ211c2wnKQogIH0gY2F0Y2ggewogICAgcmV0dXJuIG51bGwKICB9Cn0KCmNvbnN0IGlzTXVzbEZyb21SZXBvcnQgPSAoKSA9PiB7CiAgbGV0IHJlcG9ydCA9IG51bGwKICBpZiAodHlwZW9mIHByb2Nlc3MucmVwb3J0Py5nZXRSZXBvcnQgPT09ICdmdW5jdGlvbicpIHsKICAgIHByb2Nlc3MucmVwb3J0LmV4Y2x1ZGVOZXR3b3JrID0gdHJ1ZQogICAgcmVwb3J0ID0gcHJvY2Vzcy5yZXBvcnQuZ2V0UmVwb3J0KCkKICB9CiAgaWYgKCFyZXBvcnQpIHsKICAgIHJldHVybiBudWxsCiAgfQogIGlmIChyZXBvcnQuaGVhZGVyICYmIHJlcG9ydC5oZWFkZXIuZ2xpYmNWZXJzaW9uUnVudGltZSkgewogICAgcmV0dXJuIGZhbHNlCiAgfQogIGlmIChBcnJheS5pc0FycmF5KHJlcG9ydC5zaGFyZWRPYmplY3RzKSkgewogICAgaWYgKHJlcG9ydC5zaGFyZWRPYmplY3RzLnNvbWUoaXNGaWxlTXVzbCkpIHsKICAgICAgcmV0dXJuIHRydWUKICAgIH0KICB9CiAgcmV0dXJuIGZhbHNlCn0KCmNvbnN0IGlzTXVzbEZyb21DaGlsZFByb2Nlc3MgPSAoKSA9PiB7CiAgdHJ5IHsKICAgIHJldHVybiByZXF1aXJlKCdjaGlsZF9wcm9jZXNzJykuZXhlY1N5bmMoJ2xkZCAtLXZlcnNpb24nLCB7IGVuY29kaW5nOiAndXRmOCcgfSkuaW5jbHVkZXMoJ211c2wnKQogIH0gY2F0Y2ggKGUpIHsKICAgIC8vIElmIHdlIHJlYWNoIHRoaXMgY2FzZSwgd2UgZG9uJ3Qga25vdyBpZiB0aGUgc3lzdGVtIGlzIG11c2wgb3Igbm90LCBzbyBpcyBiZXR0ZXIgdG8ganVzdCBmYWxsYmFjayB0byBmYWxzZQogICAgcmV0dXJuIGZhbHNlCiAgfQp9CgpmdW5jdGlvbiByZXF1aXJlTmF0aXZlKCkgewogIGlmIChwcm9jZXNzLmVudi5OQVBJX1JTX05BVElWRV9MSUJSQVJZX1BBVEgpIHsKICAgIHRyeSB7CiAgICAgIHJldHVybiByZXF1aXJlKHByb2Nlc3MuZW52Lk5BUElfUlNfTkFUSVZFX0xJQlJBUllfUEFUSCk7CiAgICB9IGNhdGNoIChlcnIpIHsKICAgICAgbG9hZEVycm9ycy5wdXNoKGVycikKICAgIH0KICB9IGVsc2UgaWYgKHByb2Nlc3MucGxhdGZvcm0gPT09ICdhbmRyb2lkJykgewogICAgaWYgKHByb2Nlc3MuYXJjaCA9PT0gJ2FybTY0JykgewogICAgICB0cnkgewogICAgICAgIHJldHVybiByZXF1aXJlKCcuL2NvcmUuYW5kcm9pZC1hcm02NC5ub2RlJykKICAgICAgfSBjYXRjaCAoZSkgewogICAgICAgIGxvYWRFcnJvcnMucHVzaChlKQogICAgICB9CiAgICAgIHRyeSB7CiAgICAgICAgY29uc3QgYmluZGluZyA9IHJlcXVpcmUoJ0B0YWt1bWktcnMvY29yZS1hbmRyb2lkLWFybTY0JykKICAgICAgICBjb25zdCBiaW5kaW5nUGFja2FnZVZlcnNpb24gPSByZXF1aXJlKCdAdGFrdW1pLXJzL2NvcmUtYW5kcm9pZC1hcm02NC9wYWNrYWdlLmpzb24nKS52ZXJzaW9uCiAgICAgICAgaWYgKGJpbmRpbmdQYWNrYWdlVmVyc2lvbiAhPT0gJzAuNzAuNCcgJiYgcHJvY2Vzcy5lbnYuTkFQSV9SU19FTkZPUkNFX1ZFUlNJT05fQ0hFQ0sgJiYgcHJvY2Vzcy5lbnYuTkFQSV9SU19FTkZPUkNFX1ZFUlNJT05fQ0hFQ0sgIT09ICcwJykgewogICAgICAgICAgdGhyb3cgbmV3IEVycm9yKGBOYXRpdmUgYmluZGluZyBwYWNrYWdlIHZlcnNpb24gbWlzbWF0Y2gsIGV4cGVjdGVkIDAuNzAuNCBidXQgZ290ICR7YmluZGluZ1BhY2thZ2VWZXJzaW9ufS4gWW91IGNhbiByZWluc3RhbGwgZGVwZW5kZW5jaWVzIHRvIGZpeCB0aGlzIGlzc3VlLmApCiAgICAgICAgfQogICAgICAgIHJldHVybiBiaW5kaW5nCiAgICAgIH0gY2F0Y2ggKGUpIHsKICAgICAgICBsb2FkRXJyb3JzLnB1c2goZSkKICAgICAgfQogICAgfSBlbHNlIGlmIChwcm9jZXNzLmFyY2ggPT09ICdhcm0nKSB7CiAgICAgIHRyeSB7CiAgICAgICAgcmV0dXJuIHJlcXVpcmUoJy4vY29yZS5hbmRyb2lkLWFybS1lYWJpLm5vZGUnKQogICAgICB9IGNhdGNoIChlKSB7CiAgICAgICAgbG9hZEVycm9ycy5wdXNoKGUpCiAgICAgIH0KICAgICAgdHJ5IHsKICAgICAgICBjb25zdCBiaW5kaW5nID0gcmVxdWlyZSgnQHRha3VtaS1ycy9jb3JlLWFuZHJvaWQtYXJtLWVhYmknKQogICAgICAgIGNvbnN0IGJpbmRpbmdQYWNrYWdlVmVyc2lvbiA9IHJlcXVpcmUoJ0B0YWt1bWktcnMvY29yZS1hbmRyb2lkLWFybS1lYWJpL3BhY2thZ2UuanNvbicpLnZlcnNpb24KICAgICAgICBpZiAoYmluZGluZ1BhY2thZ2VWZXJzaW9uICE9PSAnMC43MC40JyAmJiBwcm9jZXNzLmVudi5OQVBJX1JTX0VORk9SQ0VfVkVSU0lPTl9DSEVDSyAmJiBwcm9jZXNzLmVudi5OQVBJX1JTX0VORk9SQ0VfVkVSU0lPTl9DSEVDSyAhPT0gJzAnKSB7CiAgICAgICAgICB0aHJvdyBuZXcgRXJyb3IoYE5hdGl2ZSBiaW5kaW5nIHBhY2thZ2UgdmVyc2lvbiBtaXNtYXRjaCwgZXhwZWN0ZWQgMC43MC40IGJ1dCBnb3QgJHtiaW5kaW5nUGFja2FnZVZlcnNpb259LiBZb3UgY2FuIHJlaW5zdGFsbCBkZXBlbmRlbmNpZXMgdG8gZml4IHRoaXMgaXNzdWUuYCkKICAgICAgICB9CiAgICAgICAgcmV0dXJuIGJpbmRpbmcKICAgICAgfSBjYXRjaCAoZSkgewogICAgICAgIGxvYWRFcnJvcnMucHVzaChlKQogICAgICB9CiAgICB9IGVsc2UgewogICAgICBsb2FkRXJyb3JzLnB1c2gobmV3IEVycm9yKGBVbnN1cHBvcnRlZCBhcmNoaXRlY3R1cmUgb24gQW5kcm9pZCAke3Byb2Nlc3MuYXJjaH1gKSkKICAgIH0KICB9IGVsc2UgaWYgKHByb2Nlc3MucGxhdGZvcm0gPT09ICd3aW4zMicpIHsKICAgIGlmIChwcm9jZXNzLmFyY2ggPT09ICd4NjQnKSB7CiAgICAgIGlmIChwcm9jZXNzLmNvbmZpZz8udmFyaWFibGVzPy5zaGxpYl9zdWZmaXggPT09ICdkbGwuYScgfHwgcHJvY2Vzcy5jb25maWc/LnZhcmlhYmxlcz8ubm9kZV90YXJnZXRfdHlwZSA9PT0gJ3NoYXJlZF9saWJyYXJ5JykgewogICAgICAgIHRyeSB7CiAgICAgICAgcmV0dXJuIHJlcXVpcmUoJy4vY29yZS53aW4zMi14NjQtZ251Lm5vZGUnKQogICAgICB9IGNhdGNoIChlKSB7CiAgICAgICAgbG9hZEVycm9ycy5wdXNoKGUpCiAgICAgIH0KICAgICAgdHJ5IHsKICAgICAgICBjb25zdCBiaW5kaW5nID0gcmVxdWlyZSgnQHRha3VtaS1ycy9jb3JlLXdpbjMyLXg2NC1nbnUnKQogICAgICAgIGNvbnN0IGJpbmRpbmdQYWNrYWdlVmVyc2lvbiA9IHJlcXVpcmUoJ0B0YWt1bWktcnMvY29yZS13aW4zMi14NjQtZ251L3BhY2thZ2UuanNvbicpLnZlcnNpb24KICAgICAgICBpZiAoYmluZGluZ1BhY2thZ2VWZXJzaW9uICE9PSAnMC43MC40JyAmJiBwcm9jZXNzLmVudi5OQVBJX1JTX0VORk9SQ0VfVkVSU0lPTl9DSEVDSyAmJiBwcm9jZXNzLmVudi5OQVBJX1JTX0VORk9SQ0VfVkVSU0lPTl9DSEVDSyAhPT0gJzAnKSB7CiAgICAgICAgICB0aHJvdyBuZXcgRXJyb3IoYE5hdGl2ZSBiaW5kaW5nIHBhY2thZ2UgdmVyc2lvbiBtaXNtYXRjaCwgZXhwZWN0ZWQgMC43MC40IGJ1dCBnb3QgJHtiaW5kaW5nUGFja2FnZVZlcnNpb259LiBZb3UgY2FuIHJlaW5zdGFsbCBkZXBlbmRlbmNpZXMgdG8gZml4IHRoaXMgaXNzdWUuYCkKICAgICAgICB9CiAgICAgICAgcmV0dXJuIGJpbmRpbmcKICAgICAgfSBjYXRjaCAoZSkgewogICAgICAgIGxvYWRFcnJvcnMucHVzaChlKQogICAgICB9CiAgICAgIH0gZWxzZSB7CiAgICAgICAgdHJ5IHsKICAgICAgICByZXR1cm4gcmVxdWlyZSgnLi9jb3JlLndpbjMyLXg2NC1tc3ZjLm5vZGUnKQogICAgICB9IGNhdGNoIChlKSB7CiAgICAgICAgbG9hZEVycm9ycy5wdXNoKGUpCiAgICAgIH0KICAgICAgdHJ5IHsKICAgICAgICBjb25zdCBiaW5kaW5nID0gcmVxdWlyZSgnQHRha3VtaS1ycy9jb3JlLXdpbjMyLXg2NC1tc3ZjJykKICAgICAgICBjb25zdCBiaW5kaW5nUGFja2FnZVZlcnNpb24gPSByZXF1aXJlKCdAdGFrdW1pLXJzL2NvcmUtd2luMzIteDY0LW1zdmMvcGFja2FnZS5qc29uJykudmVyc2lvbgogICAgICAgIGlmIChiaW5kaW5nUGFja2FnZVZlcnNpb24gIT09ICcwLjcwLjQnICYmIHByb2Nlc3MuZW52Lk5BUElfUlNfRU5GT1JDRV9WRVJTSU9OX0NIRUNLICYmIHByb2Nlc3MuZW52Lk5BUElfUlNfRU5GT1JDRV9WRVJTSU9OX0NIRUNLICE9PSAnMCcpIHsKICAgICAgICAgIHRocm93IG5ldyBFcnJvcihgTmF0aXZlIGJpbmRpbmcgcGFja2FnZSB2ZXJzaW9uIG1pc21hdGNoLCBleHBlY3RlZCAwLjcwLjQgYnV0IGdvdCAke2JpbmRpbmdQYWNrYWdlVmVyc2lvbn0uIFlvdSBjYW4gcmVpbnN0YWxsIGRlcGVuZGVuY2llcyB0byBmaXggdGhpcyBpc3N1ZS5gKQogICAgICAgIH0KICAgICAgICByZXR1cm4gYmluZGluZwogICAgICB9IGNhdGNoIChlKSB7CiAgICAgICAgbG9hZEVycm9ycy5wdXNoKGUpCiAgICAgIH0KICAgICAgfQogICAgfSBlbHNlIGlmIChwcm9jZXNzLmFyY2ggPT09ICdpYTMyJykgewogICAgICB0cnkgewogICAgICAgIHJldHVybiByZXF1aXJlKCcuL2NvcmUud2luMzItaWEzMi1tc3ZjLm5vZGUnKQogICAgICB9IGNhdGNoIChlKSB7CiAgICAgICAgbG9hZEVycm9ycy5wdXNoKGUpCiAgICAgIH0KICAgICAgdHJ5IHsKICAgICAgICBjb25zdCBiaW5kaW5nID0gcmVxdWlyZSgnQHRha3VtaS1ycy9jb3JlLXdpbjMyLWlhMzItbXN2YycpCiAgICAgICAgY29uc3QgYmluZGluZ1BhY2thZ2VWZXJzaW9uID0gcmVxdWlyZSgnQHRha3VtaS1ycy9jb3JlLXdpbjMyLWlhMzItbXN2Yy9wYWNrYWdlLmpzb24nKS52ZXJzaW9uCiAgICAgICAgaWYgKGJpbmRpbmdQYWNrYWdlVmVyc2lvbiAhPT0gJzAuNzAuNCcgJiYgcHJvY2Vzcy5lbnYuTkFQSV9SU19FTkZPUkNFX1ZFUlNJT05fQ0hFQ0sgJiYgcHJvY2Vzcy5lbnYuTkFQSV9SU19FTkZPUkNFX1ZFUlNJT05fQ0hFQ0sgIT09ICcwJykgewogICAgICAgICAgdGhyb3cgbmV3IEVycm9yKGBOYXRpdmUgYmluZGluZyBwYWNrYWdlIHZlcnNpb24gbWlzbWF0Y2gsIGV4cGVjdGVkIDAuNzAuNCBidXQgZ290ICR7YmluZGluZ1BhY2thZ2VWZXJzaW9ufS4gWW91IGNhbiByZWluc3RhbGwgZGVwZW5kZW5jaWVzIHRvIGZpeCB0aGlzIGlzc3VlLmApCiAgICAgICAgfQogICAgICAgIHJldHVybiBiaW5kaW5nCiAgICAgIH0gY2F0Y2ggKGUpIHsKICAgICAgICBsb2FkRXJyb3JzLnB1c2goZSkKICAgICAgfQogICAgfSBlbHNlIGlmIChwcm9jZXNzLmFyY2ggPT09ICdhcm02NCcpIHsKICAgICAgdHJ5IHsKICAgICAgICByZXR1cm4gcmVxdWlyZSgnLi9jb3JlLndpbjMyLWFybTY0LW1zdmMubm9kZScpCiAgICAgIH0gY2F0Y2ggKGUpIHsKICAgICAgICBsb2FkRXJyb3JzLnB1c2goZSkKICAgICAgfQogICAgICB0cnkgewogICAgICAgIGNvbnN0IGJpbmRpbmcgPSByZXF1aXJlKCdAdGFrdW1pLXJzL2NvcmUtd2luMzItYXJtNjQtbXN2YycpCiAgICAgICAgY29uc3QgYmluZGluZ1BhY2thZ2VWZXJzaW9uID0gcmVxdWlyZSgnQHRha3VtaS1ycy9jb3JlLXdpbjMyLWFybTY0LW1zdmMvcGFja2FnZS5qc29uJykudmVyc2lvbgogICAgICAgIGlmIChiaW5kaW5nUGFja2FnZVZlcnNpb24gIT09ICcwLjcwLjQnICYmIHByb2Nlc3MuZW52Lk5BUElfUlNfRU5GT1JDRV9WRVJTSU9OX0NIRUNLICYmIHByb2Nlc3MuZW52Lk5BUElfUlNfRU5GT1JDRV9WRVJTSU9OX0NIRUNLICE9PSAnMCcpIHsKICAgICAgICAgIHRocm93IG5ldyBFcnJvcihgTmF0aXZlIGJpbmRpbmcgcGFja2FnZSB2ZXJzaW9uIG1pc21hdGNoLCBleHBlY3RlZCAwLjcwLjQgYnV0IGdvdCAke2JpbmRpbmdQYWNrYWdlVmVyc2lvbn0uIFlvdSBjYW4gcmVpbnN0YWxsIGRlcGVuZGVuY2llcyB0byBmaXggdGhpcyBpc3N1ZS5gKQogICAgICAgIH0KICAgICAgICByZXR1cm4gYmluZGluZwogICAgICB9IGNhdGNoIChlKSB7CiAgICAgICAgbG9hZEVycm9ycy5wdXNoKGUpCiAgICAgIH0KICAgIH0gZWxzZSB7CiAgICAgIGxvYWRFcnJvcnMucHVzaChuZXcgRXJyb3IoYFVuc3VwcG9ydGVkIGFyY2hpdGVjdHVyZSBvbiBXaW5kb3dzOiAke3Byb2Nlc3MuYXJjaH1gKSkKICAgIH0KICB9IGVsc2UgaWYgKHByb2Nlc3MucGxhdGZvcm0gPT09ICdkYXJ3aW4nKSB7CiAgICB0cnkgewogICAgICByZXR1cm4gcmVxdWlyZSgnLi9jb3JlLmRhcndpbi11bml2ZXJzYWwubm9kZScpCiAgICB9IGNhdGNoIChlKSB7CiAgICAgIGxvYWRFcnJvcnMucHVzaChlKQogICAgfQogICAgdHJ5IHsKICAgICAgY29uc3QgYmluZGluZyA9IHJlcXVpcmUoJ0B0YWt1bWktcnMvY29yZS1kYXJ3aW4tdW5pdmVyc2FsJykKICAgICAgY29uc3QgYmluZGluZ1BhY2thZ2VWZXJzaW9uID0gcmVxdWlyZSgnQHRha3VtaS1ycy9jb3JlLWRhcndpbi11bml2ZXJzYWwvcGFja2FnZS5qc29uJykudmVyc2lvbgogICAgICBpZiAoYmluZGluZ1BhY2thZ2VWZXJzaW9uICE9PSAnMC43MC40JyAmJiBwcm9jZXNzLmVudi5OQVBJX1JTX0VORk9SQ0VfVkVSU0lPTl9DSEVDSyAmJiBwcm9jZXNzLmVudi5OQVBJX1JTX0VORk9SQ0VfVkVSU0lPTl9DSEVDSyAhPT0gJzAnKSB7CiAgICAgICAgdGhyb3cgbmV3IEVycm9yKGBOYXRpdmUgYmluZGluZyBwYWNrYWdlIHZlcnNpb24gbWlzbWF0Y2gsIGV4cGVjdGVkIDAuNzAuNCBidXQgZ290ICR7YmluZGluZ1BhY2thZ2VWZXJzaW9ufS4gWW91IGNhbiByZWluc3RhbGwgZGVwZW5kZW5jaWVzIHRvIGZpeCB0aGlzIGlzc3VlLmApCiAgICAgIH0KICAgICAgcmV0dXJuIGJpbmRpbmcKICAgIH0gY2F0Y2ggKGUpIHsKICAgICAgbG9hZEVycm9ycy5wdXNoKGUpCiAgICB9CiAgICBpZiAocHJvY2Vzcy5hcmNoID09PSAneDY0JykgewogICAgICB0cnkgewogICAgICAgIHJldHVybiByZXF1aXJlKCcuL2NvcmUuZGFyd2luLXg2NC5ub2RlJykKICAgICAgfSBjYXRjaCAoZSkgewogICAgICAgIGxvYWRFcnJvcnMucHVzaChlKQogICAgICB9CiAgICAgIHRyeSB7CiAgICAgICAgY29uc3QgYmluZGluZyA9IHJlcXVpcmUoJ0B0YWt1bWktcnMvY29yZS1kYXJ3aW4teDY0JykKICAgICAgICBjb25zdCBiaW5kaW5nUGFja2FnZVZlcnNpb24gPSByZXF1aXJlKCdAdGFrdW1pLXJzL2NvcmUtZGFyd2luLXg2NC9wYWNrYWdlLmpzb24nKS52ZXJzaW9uCiAgICAgICAgaWYgKGJpbmRpbmdQYWNrYWdlVmVyc2lvbiAhPT0gJzAuNzAuNCcgJiYgcHJvY2Vzcy5lbnYuTkFQSV9SU19FTkZPUkNFX1ZFUlNJT05fQ0hFQ0sgJiYgcHJvY2Vzcy5lbnYuTkFQSV9SU19FTkZPUkNFX1ZFUlNJT05fQ0hFQ0sgIT09ICcwJykgewogICAgICAgICAgdGhyb3cgbmV3IEVycm9yKGBOYXRpdmUgYmluZGluZyBwYWNrYWdlIHZlcnNpb24gbWlzbWF0Y2gsIGV4cGVjdGVkIDAuNzAuNCBidXQgZ290ICR7YmluZGluZ1BhY2thZ2VWZXJzaW9ufS4gWW91IGNhbiByZWluc3RhbGwgZGVwZW5kZW5jaWVzIHRvIGZpeCB0aGlzIGlzc3VlLmApCiAgICAgICAgfQogICAgICAgIHJldHVybiBiaW5kaW5nCiAgICAgIH0gY2F0Y2ggKGUpIHsKICAgICAgICBsb2FkRXJyb3JzLnB1c2goZSkKICAgICAgfQogICAgfSBlbHNlIGlmIChwcm9jZXNzLmFyY2ggPT09ICdhcm02NCcpIHsKICAgICAgdHJ5IHsKICAgICAgICByZXR1cm4gcmVxdWlyZSgnLi9jb3JlLmRhcndpbi1hcm02NC5ub2RlJykKICAgICAgfSBjYXRjaCAoZSkgewogICAgICAgIGxvYWRFcnJvcnMucHVzaChlKQogICAgICB9CiAgICAgIHRyeSB7CiAgICAgICAgY29uc3QgYmluZGluZyA9IHJlcXVpcmUoJ0B0YWt1bWktcnMvY29yZS1kYXJ3aW4tYXJtNjQnKQogICAgICAgIGNvbnN0IGJpbmRpbmdQYWNrYWdlVmVyc2lvbiA9IHJlcXVpcmUoJ0B0YWt1bWktcnMvY29yZS1kYXJ3aW4tYXJtNjQvcGFja2FnZS5qc29uJykudmVyc2lvbgogICAgICAgIGlmIChiaW5kaW5nUGFja2FnZVZlcnNpb24gIT09ICcwLjcwLjQnICYmIHByb2Nlc3MuZW52Lk5BUElfUlNfRU5GT1JDRV9WRVJTSU9OX0NIRUNLICYmIHByb2Nlc3MuZW52Lk5BUElfUlNfRU5GT1JDRV9WRVJTSU9OX0NIRUNLICE9PSAnMCcpIHsKICAgICAgICAgIHRocm93IG5ldyBFcnJvcihgTmF0aXZlIGJpbmRpbmcgcGFja2FnZSB2ZXJzaW9uIG1pc21hdGNoLCBleHBlY3RlZCAwLjcwLjQgYnV0IGdvdCAke2JpbmRpbmdQYWNrYWdlVmVyc2lvbn0uIFlvdSBjYW4gcmVpbnN0YWxsIGRlcGVuZGVuY2llcyB0byBmaXggdGhpcyBpc3N1ZS5gKQogICAgICAgIH0KICAgICAgICByZXR1cm4gYmluZGluZwogICAgICB9IGNhdGNoIChlKSB7CiAgICAgICAgbG9hZEVycm9ycy5wdXNoKGUpCiAgICAgIH0KICAgIH0gZWxzZSB7CiAgICAgIGxvYWRFcnJvcnMucHVzaChuZXcgRXJyb3IoYFVuc3VwcG9ydGVkIGFyY2hpdGVjdHVyZSBvbiBtYWNPUzogJHtwcm9jZXNzLmFyY2h9YCkpCiAgICB9CiAgfSBlbHNlIGlmIChwcm9jZXNzLnBsYXRmb3JtID09PSAnZnJlZWJzZCcpIHsKICAgIGlmIChwcm9jZXNzLmFyY2ggPT09ICd4NjQnKSB7CiAgICAgIHRyeSB7CiAgICAgICAgcmV0dXJuIHJlcXVpcmUoJy4vY29yZS5mcmVlYnNkLXg2NC5ub2RlJykKICAgICAgfSBjYXRjaCAoZSkgewogICAgICAgIGxvYWRFcnJvcnMucHVzaChlKQogICAgICB9CiAgICAgIHRyeSB7CiAgICAgICAgY29uc3QgYmluZGluZyA9IHJlcXVpcmUoJ0B0YWt1bWktcnMvY29yZS1mcmVlYnNkLXg2NCcpCiAgICAgICAgY29uc3QgYmluZGluZ1BhY2thZ2VWZXJzaW9uID0gcmVxdWlyZSgnQHRha3VtaS1ycy9jb3JlLWZyZWVic2QteDY0L3BhY2thZ2UuanNvbicpLnZlcnNpb24KICAgICAgICBpZiAoYmluZGluZ1BhY2thZ2VWZXJzaW9uICE9PSAnMC43MC40JyAmJiBwcm9jZXNzLmVudi5OQVBJX1JTX0VORk9SQ0VfVkVSU0lPTl9DSEVDSyAmJiBwcm9jZXNzLmVudi5OQVBJX1JTX0VORk9SQ0VfVkVSU0lPTl9DSEVDSyAhPT0gJzAnKSB7CiAgICAgICAgICB0aHJvdyBuZXcgRXJyb3IoYE5hdGl2ZSBiaW5kaW5nIHBhY2thZ2UgdmVyc2lvbiBtaXNtYXRjaCwgZXhwZWN0ZWQgMC43MC40IGJ1dCBnb3QgJHtiaW5kaW5nUGFja2FnZVZlcnNpb259LiBZb3UgY2FuIHJlaW5zdGFsbCBkZXBlbmRlbmNpZXMgdG8gZml4IHRoaXMgaXNzdWUuYCkKICAgICAgICB9CiAgICAgICAgcmV0dXJuIGJpbmRpbmcKICAgICAgfSBjYXRjaCAoZSkgewogICAgICAgIGxvYWRFcnJvcnMucHVzaChlKQogICAgICB9CiAgICB9IGVsc2UgaWYgKHByb2Nlc3MuYXJjaCA9PT0gJ2FybTY0JykgewogICAgICB0cnkgewogICAgICAgIHJldHVybiByZXF1aXJlKCcuL2NvcmUuZnJlZWJzZC1hcm02NC5ub2RlJykKICAgICAgfSBjYXRjaCAoZSkgewogICAgICAgIGxvYWRFcnJvcnMucHVzaChlKQogICAgICB9CiAgICAgIHRyeSB7CiAgICAgICAgY29uc3QgYmluZGluZyA9IHJlcXVpcmUoJ0B0YWt1bWktcnMvY29yZS1mcmVlYnNkLWFybTY0JykKICAgICAgICBjb25zdCBiaW5kaW5nUGFja2FnZVZlcnNpb24gPSByZXF1aXJlKCdAdGFrdW1pLXJzL2NvcmUtZnJlZWJzZC1hcm02NC9wYWNrYWdlLmpzb24nKS52ZXJzaW9uCiAgICAgICAgaWYgKGJpbmRpbmdQYWNrYWdlVmVyc2lvbiAhPT0gJzAuNzAuNCcgJiYgcHJvY2Vzcy5lbnYuTkFQSV9SU19FTkZPUkNFX1ZFUlNJT05fQ0hFQ0sgJiYgcHJvY2Vzcy5lbnYuTkFQSV9SU19FTkZPUkNFX1ZFUlNJT05fQ0hFQ0sgIT09ICcwJykgewogICAgICAgICAgdGhyb3cgbmV3IEVycm9yKGBOYXRpdmUgYmluZGluZyBwYWNrYWdlIHZlcnNpb24gbWlzbWF0Y2gsIGV4cGVjdGVkIDAuNzAuNCBidXQgZ290ICR7YmluZGluZ1BhY2thZ2VWZXJzaW9ufS4gWW91IGNhbiByZWluc3RhbGwgZGVwZW5kZW5jaWVzIHRvIGZpeCB0aGlzIGlzc3VlLmApCiAgICAgICAgfQogICAgICAgIHJldHVybiBiaW5kaW5nCiAgICAgIH0gY2F0Y2ggKGUpIHsKICAgICAgICBsb2FkRXJyb3JzLnB1c2goZSkKICAgICAgfQogICAgfSBlbHNlIHsKICAgICAgbG9hZEVycm9ycy5wdXNoKG5ldyBFcnJvcihgVW5zdXBwb3J0ZWQgYXJjaGl0ZWN0dXJlIG9uIEZyZWVCU0Q6ICR7cHJvY2Vzcy5hcmNofWApKQogICAgfQogIH0gZWxzZSBpZiAocHJvY2Vzcy5wbGF0Zm9ybSA9PT0gJ2xpbnV4JykgewogICAgaWYgKHByb2Nlc3MuYXJjaCA9PT0gJ3g2NCcpIHsKICAgICAgaWYgKGlzTXVzbCgpKSB7CiAgICAgICAgdHJ5IHsKICAgICAgICAgIHJldHVybiByZXF1aXJlKCcuL2NvcmUubGludXgteDY0LW11c2wubm9kZScpCiAgICAgICAgfSBjYXRjaCAoZSkgewogICAgICAgICAgbG9hZEVycm9ycy5wdXNoKGUpCiAgICAgICAgfQogICAgICAgIHRyeSB7CiAgICAgICAgICBjb25zdCBiaW5kaW5nID0gcmVxdWlyZSgnQHRha3VtaS1ycy9jb3JlLWxpbnV4LXg2NC1tdXNsJykKICAgICAgICAgIGNvbnN0IGJpbmRpbmdQYWNrYWdlVmVyc2lvbiA9IHJlcXVpcmUoJ0B0YWt1bWktcnMvY29yZS1saW51eC14NjQtbXVzbC9wYWNrYWdlLmpzb24nKS52ZXJzaW9uCiAgICAgICAgICBpZiAoYmluZGluZ1BhY2thZ2VWZXJzaW9uICE9PSAnMC43MC40JyAmJiBwcm9jZXNzLmVudi5OQVBJX1JTX0VORk9SQ0VfVkVSU0lPTl9DSEVDSyAmJiBwcm9jZXNzLmVudi5OQVBJX1JTX0VORk9SQ0VfVkVSU0lPTl9DSEVDSyAhPT0gJzAnKSB7CiAgICAgICAgICAgIHRocm93IG5ldyBFcnJvcihgTmF0aXZlIGJpbmRpbmcgcGFja2FnZSB2ZXJzaW9uIG1pc21hdGNoLCBleHBlY3RlZCAwLjcwLjQgYnV0IGdvdCAke2JpbmRpbmdQYWNrYWdlVmVyc2lvbn0uIFlvdSBjYW4gcmVpbnN0YWxsIGRlcGVuZGVuY2llcyB0byBmaXggdGhpcyBpc3N1ZS5gKQogICAgICAgICAgfQogICAgICAgICAgcmV0dXJuIGJpbmRpbmcKICAgICAgICB9IGNhdGNoIChlKSB7CiAgICAgICAgICBsb2FkRXJyb3JzLnB1c2goZSkKICAgICAgICB9CiAgICAgIH0gZWxzZSB7CiAgICAgICAgdHJ5IHsKICAgICAgICAgIHJldHVybiByZXF1aXJlKCcuL2NvcmUubGludXgteDY0LWdudS5ub2RlJykKICAgICAgICB9IGNhdGNoIChlKSB7CiAgICAgICAgICBsb2FkRXJyb3JzLnB1c2goZSkKICAgICAgICB9CiAgICAgICAgdHJ5IHsKICAgICAgICAgIGNvbnN0IGJpbmRpbmcgPSByZXF1aXJlKCdAdGFrdW1pLXJzL2NvcmUtbGludXgteDY0LWdudScpCiAgICAgICAgICBjb25zdCBiaW5kaW5nUGFja2FnZVZlcnNpb24gPSByZXF1aXJlKCdAdGFrdW1pLXJzL2NvcmUtbGludXgteDY0LWdudS9wYWNrYWdlLmpzb24nKS52ZXJzaW9uCiAgICAgICAgICBpZiAoYmluZGluZ1BhY2thZ2VWZXJzaW9uICE9PSAnMC43MC40JyAmJiBwcm9jZXNzLmVudi5OQVBJX1JTX0VORk9SQ0VfVkVSU0lPTl9DSEVDSyAmJiBwcm9jZXNzLmVudi5OQVBJX1JTX0VORk9SQ0VfVkVSU0lPTl9DSEVDSyAhPT0gJzAnKSB7CiAgICAgICAgICAgIHRocm93IG5ldyBFcnJvcihgTmF0aXZlIGJpbmRpbmcgcGFja2FnZSB2ZXJzaW9uIG1pc21hdGNoLCBleHBlY3RlZCAwLjcwLjQgYnV0IGdvdCAke2JpbmRpbmdQYWNrYWdlVmVyc2lvbn0uIFlvdSBjYW4gcmVpbnN0YWxsIGRlcGVuZGVuY2llcyB0byBmaXggdGhpcyBpc3N1ZS5gKQogICAgICAgICAgfQogICAgICAgICAgcmV0dXJuIGJpbmRpbmcKICAgICAgICB9IGNhdGNoIChlKSB7CiAgICAgICAgICBsb2FkRXJyb3JzLnB1c2goZSkKICAgICAgICB9CiAgICAgIH0KICAgIH0gZWxzZSBpZiAocHJvY2Vzcy5hcmNoID09PSAnYXJtNjQnKSB7CiAgICAgIGlmIChpc011c2woKSkgewogICAgICAgIHRyeSB7CiAgICAgICAgICByZXR1cm4gcmVxdWlyZSgnLi9jb3JlLmxpbnV4LWFybTY0LW11c2wubm9kZScpCiAgICAgICAgfSBjYXRjaCAoZSkgewogICAgICAgICAgbG9hZEVycm9ycy5wdXNoKGUpCiAgICAgICAgfQogICAgICAgIHRyeSB7CiAgICAgICAgICBjb25zdCBiaW5kaW5nID0gcmVxdWlyZSgnQHRha3VtaS1ycy9jb3JlLWxpbnV4LWFybTY0LW11c2wnKQogICAgICAgICAgY29uc3QgYmluZGluZ1BhY2thZ2VWZXJzaW9uID0gcmVxdWlyZSgnQHRha3VtaS1ycy9jb3JlLWxpbnV4LWFybTY0LW11c2wvcGFja2FnZS5qc29uJykudmVyc2lvbgogICAgICAgICAgaWYgKGJpbmRpbmdQYWNrYWdlVmVyc2lvbiAhPT0gJzAuNzAuNCcgJiYgcHJvY2Vzcy5lbnYuTkFQSV9SU19FTkZPUkNFX1ZFUlNJT05fQ0hFQ0sgJiYgcHJvY2Vzcy5lbnYuTkFQSV9SU19FTkZPUkNFX1ZFUlNJT05fQ0hFQ0sgIT09ICcwJykgewogICAgICAgICAgICB0aHJvdyBuZXcgRXJyb3IoYE5hdGl2ZSBiaW5kaW5nIHBhY2thZ2UgdmVyc2lvbiBtaXNtYXRjaCwgZXhwZWN0ZWQgMC43MC40IGJ1dCBnb3QgJHtiaW5kaW5nUGFja2FnZVZlcnNpb259LiBZb3UgY2FuIHJlaW5zdGFsbCBkZXBlbmRlbmNpZXMgdG8gZml4IHRoaXMgaXNzdWUuYCkKICAgICAgICAgIH0KICAgICAgICAgIHJldHVybiBiaW5kaW5nCiAgICAgICAgfSBjYXRjaCAoZSkgewogICAgICAgICAgbG9hZEVycm9ycy5wdXNoKGUpCiAgICAgICAgfQogICAgICB9IGVsc2UgewogICAgICAgIHRyeSB7CiAgICAgICAgICByZXR1cm4gcmVxdWlyZSgnLi9jb3JlLmxpbnV4LWFybTY0LWdudS5ub2RlJykKICAgICAgICB9IGNhdGNoIChlKSB7CiAgICAgICAgICBsb2FkRXJyb3JzLnB1c2goZSkKICAgICAgICB9CiAgICAgICAgdHJ5IHsKICAgICAgICAgIGNvbnN0IGJpbmRpbmcgPSByZXF1aXJlKCdAdGFrdW1pLXJzL2NvcmUtbGludXgtYXJtNjQtZ251JykKICAgICAgICAgIGNvbnN0IGJpbmRpbmdQYWNrYWdlVmVyc2lvbiA9IHJlcXVpcmUoJ0B0YWt1bWktcnMvY29yZS1saW51eC1hcm02NC1nbnUvcGFja2FnZS5qc29uJykudmVyc2lvbgogICAgICAgICAgaWYgKGJpbmRpbmdQYWNrYWdlVmVyc2lvbiAhPT0gJzAuNzAuNCcgJiYgcHJvY2Vzcy5lbnYuTkFQSV9SU19FTkZPUkNFX1ZFUlNJT05fQ0hFQ0sgJiYgcHJvY2Vzcy5lbnYuTkFQSV9SU19FTkZPUkNFX1ZFUlNJT05fQ0hFQ0sgIT09ICcwJykgewogICAgICAgICAgICB0aHJvdyBuZXcgRXJyb3IoYE5hdGl2ZSBiaW5kaW5nIHBhY2thZ2UgdmVyc2lvbiBtaXNtYXRjaCwgZXhwZWN0ZWQgMC43MC40IGJ1dCBnb3QgJHtiaW5kaW5nUGFja2FnZVZlcnNpb259LiBZb3UgY2FuIHJlaW5zdGFsbCBkZXBlbmRlbmNpZXMgdG8gZml4IHRoaXMgaXNzdWUuYCkKICAgICAgICAgIH0KICAgICAgICAgIHJldHVybiBiaW5kaW5nCiAgICAgICAgfSBjYXRjaCAoZSkgewogICAgICAgICAgbG9hZEVycm9ycy5wdXNoKGUpCiAgICAgICAgfQogICAgICB9CiAgICB9IGVsc2UgaWYgKHByb2Nlc3MuYXJjaCA9PT0gJ2FybScpIHsKICAgICAgaWYgKGlzTXVzbCgpKSB7CiAgICAgICAgdHJ5IHsKICAgICAgICAgIHJldHVybiByZXF1aXJlKCcuL2NvcmUubGludXgtYXJtLW11c2xlYWJpaGYubm9kZScpCiAgICAgICAgfSBjYXRjaCAoZSkgewogICAgICAgICAgbG9hZEVycm9ycy5wdXNoKGUpCiAgICAgICAgfQogICAgICAgIHRyeSB7CiAgICAgICAgICBjb25zdCBiaW5kaW5nID0gcmVxdWlyZSgnQHRha3VtaS1ycy9jb3JlLWxpbnV4LWFybS1tdXNsZWFiaWhmJykKICAgICAgICAgIGNvbnN0IGJpbmRpbmdQYWNrYWdlVmVyc2lvbiA9IHJlcXVpcmUoJ0B0YWt1bWktcnMvY29yZS1saW51eC1hcm0tbXVzbGVhYmloZi9wYWNrYWdlLmpzb24nKS52ZXJzaW9uCiAgICAgICAgICBpZiAoYmluZGluZ1BhY2thZ2VWZXJzaW9uICE9PSAnMC43MC40JyAmJiBwcm9jZXNzLmVudi5OQVBJX1JTX0VORk9SQ0VfVkVSU0lPTl9DSEVDSyAmJiBwcm9jZXNzLmVudi5OQVBJX1JTX0VORk9SQ0VfVkVSU0lPTl9DSEVDSyAhPT0gJzAnKSB7CiAgICAgICAgICAgIHRocm93IG5ldyBFcnJvcihgTmF0aXZlIGJpbmRpbmcgcGFja2FnZSB2ZXJzaW9uIG1pc21hdGNoLCBleHBlY3RlZCAwLjcwLjQgYnV0IGdvdCAke2JpbmRpbmdQYWNrYWdlVmVyc2lvbn0uIFlvdSBjYW4gcmVpbnN0YWxsIGRlcGVuZGVuY2llcyB0byBmaXggdGhpcyBpc3N1ZS5gKQogICAgICAgICAgfQogICAgICAgICAgcmV0dXJuIGJpbmRpbmcKICAgICAgICB9IGNhdGNoIChlKSB7CiAgICAgICAgICBsb2FkRXJyb3JzLnB1c2goZSkKICAgICAgICB9CiAgICAgIH0gZWxzZSB7CiAgICAgICAgdHJ5IHsKICAgICAgICAgIHJldHVybiByZXF1aXJlKCcuL2NvcmUubGludXgtYXJtLWdudWVhYmloZi5ub2RlJykKICAgICAgICB9IGNhdGNoIChlKSB7CiAgICAgICAgICBsb2FkRXJyb3JzLnB1c2goZSkKICAgICAgICB9CiAgICAgICAgdHJ5IHsKICAgICAgICAgIGNvbnN0IGJpbmRpbmcgPSByZXF1aXJlKCdAdGFrdW1pLXJzL2NvcmUtbGludXgtYXJtLWdudWVhYmloZicpCiAgICAgICAgICBjb25zdCBiaW5kaW5nUGFja2FnZVZlcnNpb24gPSByZXF1aXJlKCdAdGFrdW1pLXJzL2NvcmUtbGludXgtYXJtLWdudWVhYmloZi9wYWNrYWdlLmpzb24nKS52ZXJzaW9uCiAgICAgICAgICBpZiAoYmluZGluZ1BhY2thZ2VWZXJzaW9uICE9PSAnMC43MC40JyAmJiBwcm9jZXNzLmVudi5OQVBJX1JTX0VORk9SQ0VfVkVSU0lPTl9DSEVDSyAmJiBwcm9jZXNzLmVudi5OQVBJX1JTX0VORk9SQ0VfVkVSU0lPTl9DSEVDSyAhPT0gJzAnKSB7CiAgICAgICAgICAgIHRocm93IG5ldyBFcnJvcihgTmF0aXZlIGJpbmRpbmcgcGFja2FnZSB2ZXJzaW9uIG1pc21hdGNoLCBleHBlY3RlZCAwLjcwLjQgYnV0IGdvdCAke2JpbmRpbmdQYWNrYWdlVmVyc2lvbn0uIFlvdSBjYW4gcmVpbnN0YWxsIGRlcGVuZGVuY2llcyB0byBmaXggdGhpcyBpc3N1ZS5gKQogICAgICAgICAgfQogICAgICAgICAgcmV0dXJuIGJpbmRpbmcKICAgICAgICB9IGNhdGNoIChlKSB7CiAgICAgICAgICBsb2FkRXJyb3JzLnB1c2goZSkKICAgICAgICB9CiAgICAgIH0KICAgIH0gZWxzZSBpZiAocHJvY2Vzcy5hcmNoID09PSAnbG9vbmc2NCcpIHsKICAgICAgaWYgKGlzTXVzbCgpKSB7CiAgICAgICAgdHJ5IHsKICAgICAgICAgIHJldHVybiByZXF1aXJlKCcuL2NvcmUubGludXgtbG9vbmc2NC1tdXNsLm5vZGUnKQogICAgICAgIH0gY2F0Y2ggKGUpIHsKICAgICAgICAgIGxvYWRFcnJvcnMucHVzaChlKQogICAgICAgIH0KICAgICAgICB0cnkgewogICAgICAgICAgY29uc3QgYmluZGluZyA9IHJlcXVpcmUoJ0B0YWt1bWktcnMvY29yZS1saW51eC1sb29uZzY0LW11c2wnKQogICAgICAgICAgY29uc3QgYmluZGluZ1BhY2thZ2VWZXJzaW9uID0gcmVxdWlyZSgnQHRha3VtaS1ycy9jb3JlLWxpbnV4LWxvb25nNjQtbXVzbC9wYWNrYWdlLmpzb24nKS52ZXJzaW9uCiAgICAgICAgICBpZiAoYmluZGluZ1BhY2thZ2VWZXJzaW9uICE9PSAnMC43MC40JyAmJiBwcm9jZXNzLmVudi5OQVBJX1JTX0VORk9SQ0VfVkVSU0lPTl9DSEVDSyAmJiBwcm9jZXNzLmVudi5OQVBJX1JTX0VORk9SQ0VfVkVSU0lPTl9DSEVDSyAhPT0gJzAnKSB7CiAgICAgICAgICAgIHRocm93IG5ldyBFcnJvcihgTmF0aXZlIGJpbmRpbmcgcGFja2FnZSB2ZXJzaW9uIG1pc21hdGNoLCBleHBlY3RlZCAwLjcwLjQgYnV0IGdvdCAke2JpbmRpbmdQYWNrYWdlVmVyc2lvbn0uIFlvdSBjYW4gcmVpbnN0YWxsIGRlcGVuZGVuY2llcyB0byBmaXggdGhpcyBpc3N1ZS5gKQogICAgICAgICAgfQogICAgICAgICAgcmV0dXJuIGJpbmRpbmcKICAgICAgICB9IGNhdGNoIChlKSB7CiAgICAgICAgICBsb2FkRXJyb3JzLnB1c2goZSkKICAgICAgICB9CiAgICAgIH0gZWxzZSB7CiAgICAgICAgdHJ5IHsKICAgICAgICAgIHJldHVybiByZXF1aXJlKCcuL2NvcmUubGludXgtbG9vbmc2NC1nbnUubm9kZScpCiAgICAgICAgfSBjYXRjaCAoZSkgewogICAgICAgICAgbG9hZEVycm9ycy5wdXNoKGUpCiAgICAgICAgfQogICAgICAgIHRyeSB7CiAgICAgICAgICBjb25zdCBiaW5kaW5nID0gcmVxdWlyZSgnQHRha3VtaS1ycy9jb3JlLWxpbnV4LWxvb25nNjQtZ251JykKICAgICAgICAgIGNvbnN0IGJpbmRpbmdQYWNrYWdlVmVyc2lvbiA9IHJlcXVpcmUoJ0B0YWt1bWktcnMvY29yZS1saW51eC1sb29uZzY0LWdudS9wYWNrYWdlLmpzb24nKS52ZXJzaW9uCiAgICAgICAgICBpZiAoYmluZGluZ1BhY2thZ2VWZXJzaW9uICE9PSAnMC43MC40JyAmJiBwcm9jZXNzLmVudi5OQVBJX1JTX0VORk9SQ0VfVkVSU0lPTl9DSEVDSyAmJiBwcm9jZXNzLmVudi5OQVBJX1JTX0VORk9SQ0VfVkVSU0lPTl9DSEVDSyAhPT0gJzAnKSB7CiAgICAgICAgICAgIHRocm93IG5ldyBFcnJvcihgTmF0aXZlIGJpbmRpbmcgcGFja2FnZSB2ZXJzaW9uIG1pc21hdGNoLCBleHBlY3RlZCAwLjcwLjQgYnV0IGdvdCAke2JpbmRpbmdQYWNrYWdlVmVyc2lvbn0uIFlvdSBjYW4gcmVpbnN0YWxsIGRlcGVuZGVuY2llcyB0byBmaXggdGhpcyBpc3N1ZS5gKQogICAgICAgICAgfQogICAgICAgICAgcmV0dXJuIGJpbmRpbmcKICAgICAgICB9IGNhdGNoIChlKSB7CiAgICAgICAgICBsb2FkRXJyb3JzLnB1c2goZSkKICAgICAgICB9CiAgICAgIH0KICAgIH0gZWxzZSBpZiAocHJvY2Vzcy5hcmNoID09PSAncmlzY3Y2NCcpIHsKICAgICAgaWYgKGlzTXVzbCgpKSB7CiAgICAgICAgdHJ5IHsKICAgICAgICAgIHJldHVybiByZXF1aXJlKCcuL2NvcmUubGludXgtcmlzY3Y2NC1tdXNsLm5vZGUnKQogICAgICAgIH0gY2F0Y2ggKGUpIHsKICAgICAgICAgIGxvYWRFcnJvcnMucHVzaChlKQogICAgICAgIH0KICAgICAgICB0cnkgewogICAgICAgICAgY29uc3QgYmluZGluZyA9IHJlcXVpcmUoJ0B0YWt1bWktcnMvY29yZS1saW51eC1yaXNjdjY0LW11c2wnKQogICAgICAgICAgY29uc3QgYmluZGluZ1BhY2thZ2VWZXJzaW9uID0gcmVxdWlyZSgnQHRha3VtaS1ycy9jb3JlLWxpbnV4LXJpc2N2NjQtbXVzbC9wYWNrYWdlLmpzb24nKS52ZXJzaW9uCiAgICAgICAgICBpZiAoYmluZGluZ1BhY2thZ2VWZXJzaW9uICE9PSAnMC43MC40JyAmJiBwcm9jZXNzLmVudi5OQVBJX1JTX0VORk9SQ0VfVkVSU0lPTl9DSEVDSyAmJiBwcm9jZXNzLmVudi5OQVBJX1JTX0VORk9SQ0VfVkVSU0lPTl9DSEVDSyAhPT0gJzAnKSB7CiAgICAgICAgICAgIHRocm93IG5ldyBFcnJvcihgTmF0aXZlIGJpbmRpbmcgcGFja2FnZSB2ZXJzaW9uIG1pc21hdGNoLCBleHBlY3RlZCAwLjcwLjQgYnV0IGdvdCAke2JpbmRpbmdQYWNrYWdlVmVyc2lvbn0uIFlvdSBjYW4gcmVpbnN0YWxsIGRlcGVuZGVuY2llcyB0byBmaXggdGhpcyBpc3N1ZS5gKQogICAgICAgICAgfQogICAgICAgICAgcmV0dXJuIGJpbmRpbmcKICAgICAgICB9IGNhdGNoIChlKSB7CiAgICAgICAgICBsb2FkRXJyb3JzLnB1c2goZSkKICAgICAgICB9CiAgICAgIH0gZWxzZSB7CiAgICAgICAgdHJ5IHsKICAgICAgICAgIHJldHVybiByZXF1aXJlKCcuL2NvcmUubGludXgtcmlzY3Y2NC1nbnUubm9kZScpCiAgICAgICAgfSBjYXRjaCAoZSkgewogICAgICAgICAgbG9hZEVycm9ycy5wdXNoKGUpCiAgICAgICAgfQogICAgICAgIHRyeSB7CiAgICAgICAgICBjb25zdCBiaW5kaW5nID0gcmVxdWlyZSgnQHRha3VtaS1ycy9jb3JlLWxpbnV4LXJpc2N2NjQtZ251JykKICAgICAgICAgIGNvbnN0IGJpbmRpbmdQYWNrYWdlVmVyc2lvbiA9IHJlcXVpcmUoJ0B0YWt1bWktcnMvY29yZS1saW51eC1yaXNjdjY0LWdudS9wYWNrYWdlLmpzb24nKS52ZXJzaW9uCiAgICAgICAgICBpZiAoYmluZGluZ1BhY2thZ2VWZXJzaW9uICE9PSAnMC43MC40JyAmJiBwcm9jZXNzLmVudi5OQVBJX1JTX0VORk9SQ0VfVkVSU0lPTl9DSEVDSyAmJiBwcm9jZXNzLmVudi5OQVBJX1JTX0VORk9SQ0VfVkVSU0lPTl9DSEVDSyAhPT0gJzAnKSB7CiAgICAgICAgICAgIHRocm93IG5ldyBFcnJvcihgTmF0aXZlIGJpbmRpbmcgcGFja2FnZSB2ZXJzaW9uIG1pc21hdGNoLCBleHBlY3RlZCAwLjcwLjQgYnV0IGdvdCAke2JpbmRpbmdQYWNrYWdlVmVyc2lvbn0uIFlvdSBjYW4gcmVpbnN0YWxsIGRlcGVuZGVuY2llcyB0byBmaXggdGhpcyBpc3N1ZS5gKQogICAgICAgICAgfQogICAgICAgICAgcmV0dXJuIGJpbmRpbmcKICAgICAgICB9IGNhdGNoIChlKSB7CiAgICAgICAgICBsb2FkRXJyb3JzLnB1c2goZSkKICAgICAgICB9CiAgICAgIH0KICAgIH0gZWxzZSBpZiAocHJvY2Vzcy5hcmNoID09PSAncHBjNjQnKSB7CiAgICAgIHRyeSB7CiAgICAgICAgcmV0dXJuIHJlcXVpcmUoJy4vY29yZS5saW51eC1wcGM2NC1nbnUubm9kZScpCiAgICAgIH0gY2F0Y2ggKGUpIHsKICAgICAgICBsb2FkRXJyb3JzLnB1c2goZSkKICAgICAgfQogICAgICB0cnkgewogICAgICAgIGNvbnN0IGJpbmRpbmcgPSByZXF1aXJlKCdAdGFrdW1pLXJzL2NvcmUtbGludXgtcHBjNjQtZ251JykKICAgICAgICBjb25zdCBiaW5kaW5nUGFja2FnZVZlcnNpb24gPSByZXF1aXJlKCdAdGFrdW1pLXJzL2NvcmUtbGludXgtcHBjNjQtZ251L3BhY2thZ2UuanNvbicpLnZlcnNpb24KICAgICAgICBpZiAoYmluZGluZ1BhY2thZ2VWZXJzaW9uICE9PSAnMC43MC40JyAmJiBwcm9jZXNzLmVudi5OQVBJX1JTX0VORk9SQ0VfVkVSU0lPTl9DSEVDSyAmJiBwcm9jZXNzLmVudi5OQVBJX1JTX0VORk9SQ0VfVkVSU0lPTl9DSEVDSyAhPT0gJzAnKSB7CiAgICAgICAgICB0aHJvdyBuZXcgRXJyb3IoYE5hdGl2ZSBiaW5kaW5nIHBhY2thZ2UgdmVyc2lvbiBtaXNtYXRjaCwgZXhwZWN0ZWQgMC43MC40IGJ1dCBnb3QgJHtiaW5kaW5nUGFja2FnZVZlcnNpb259LiBZb3UgY2FuIHJlaW5zdGFsbCBkZXBlbmRlbmNpZXMgdG8gZml4IHRoaXMgaXNzdWUuYCkKICAgICAgICB9CiAgICAgICAgcmV0dXJuIGJpbmRpbmcKICAgICAgfSBjYXRjaCAoZSkgewogICAgICAgIGxvYWRFcnJvcnMucHVzaChlKQogICAgICB9CiAgICB9IGVsc2UgaWYgKHByb2Nlc3MuYXJjaCA9PT0gJ3MzOTB4JykgewogICAgICB0cnkgewogICAgICAgIHJldHVybiByZXF1aXJlKCcuL2NvcmUubGludXgtczM5MHgtZ251Lm5vZGUnKQogICAgICB9IGNhdGNoIChlKSB7CiAgICAgICAgbG9hZEVycm9ycy5wdXNoKGUpCiAgICAgIH0KICAgICAgdHJ5IHsKICAgICAgICBjb25zdCBiaW5kaW5nID0gcmVxdWlyZSgnQHRha3VtaS1ycy9jb3JlLWxpbnV4LXMzOTB4LWdudScpCiAgICAgICAgY29uc3QgYmluZGluZ1BhY2thZ2VWZXJzaW9uID0gcmVxdWlyZSgnQHRha3VtaS1ycy9jb3JlLWxpbnV4LXMzOTB4LWdudS9wYWNrYWdlLmpzb24nKS52ZXJzaW9uCiAgICAgICAgaWYgKGJpbmRpbmdQYWNrYWdlVmVyc2lvbiAhPT0gJzAuNzAuNCcgJiYgcHJvY2Vzcy5lbnYuTkFQSV9SU19FTkZPUkNFX1ZFUlNJT05fQ0hFQ0sgJiYgcHJvY2Vzcy5lbnYuTkFQSV9SU19FTkZPUkNFX1ZFUlNJT05fQ0hFQ0sgIT09ICcwJykgewogICAgICAgICAgdGhyb3cgbmV3IEVycm9yKGBOYXRpdmUgYmluZGluZyBwYWNrYWdlIHZlcnNpb24gbWlzbWF0Y2gsIGV4cGVjdGVkIDAuNzAuNCBidXQgZ290ICR7YmluZGluZ1BhY2thZ2VWZXJzaW9ufS4gWW91IGNhbiByZWluc3RhbGwgZGVwZW5kZW5jaWVzIHRvIGZpeCB0aGlzIGlzc3VlLmApCiAgICAgICAgfQogICAgICAgIHJldHVybiBiaW5kaW5nCiAgICAgIH0gY2F0Y2ggKGUpIHsKICAgICAgICBsb2FkRXJyb3JzLnB1c2goZSkKICAgICAgfQogICAgfSBlbHNlIHsKICAgICAgbG9hZEVycm9ycy5wdXNoKG5ldyBFcnJvcihgVW5zdXBwb3J0ZWQgYXJjaGl0ZWN0dXJlIG9uIExpbnV4OiAke3Byb2Nlc3MuYXJjaH1gKSkKICAgIH0KICB9IGVsc2UgaWYgKHByb2Nlc3MucGxhdGZvcm0gPT09ICdvcGVuaGFybW9ueScpIHsKICAgIGlmIChwcm9jZXNzLmFyY2ggPT09ICdhcm02NCcpIHsKICAgICAgdHJ5IHsKICAgICAgICByZXR1cm4gcmVxdWlyZSgnLi9jb3JlLm9wZW5oYXJtb255LWFybTY0Lm5vZGUnKQogICAgICB9IGNhdGNoIChlKSB7CiAgICAgICAgbG9hZEVycm9ycy5wdXNoKGUpCiAgICAgIH0KICAgICAgdHJ5IHsKICAgICAgICBjb25zdCBiaW5kaW5nID0gcmVxdWlyZSgnQHRha3VtaS1ycy9jb3JlLW9wZW5oYXJtb255LWFybTY0JykKICAgICAgICBjb25zdCBiaW5kaW5nUGFja2FnZVZlcnNpb24gPSByZXF1aXJlKCdAdGFrdW1pLXJzL2NvcmUtb3Blbmhhcm1vbnktYXJtNjQvcGFja2FnZS5qc29uJykudmVyc2lvbgogICAgICAgIGlmIChiaW5kaW5nUGFja2FnZVZlcnNpb24gIT09ICcwLjcwLjQnICYmIHByb2Nlc3MuZW52Lk5BUElfUlNfRU5GT1JDRV9WRVJTSU9OX0NIRUNLICYmIHByb2Nlc3MuZW52Lk5BUElfUlNfRU5GT1JDRV9WRVJTSU9OX0NIRUNLICE9PSAnMCcpIHsKICAgICAgICAgIHRocm93IG5ldyBFcnJvcihgTmF0aXZlIGJpbmRpbmcgcGFja2FnZSB2ZXJzaW9uIG1pc21hdGNoLCBleHBlY3RlZCAwLjcwLjQgYnV0IGdvdCAke2JpbmRpbmdQYWNrYWdlVmVyc2lvbn0uIFlvdSBjYW4gcmVpbnN0YWxsIGRlcGVuZGVuY2llcyB0byBmaXggdGhpcyBpc3N1ZS5gKQogICAgICAgIH0KICAgICAgICByZXR1cm4gYmluZGluZwogICAgICB9IGNhdGNoIChlKSB7CiAgICAgICAgbG9hZEVycm9ycy5wdXNoKGUpCiAgICAgIH0KICAgIH0gZWxzZSBpZiAocHJvY2Vzcy5hcmNoID09PSAneDY0JykgewogICAgICB0cnkgewogICAgICAgIHJldHVybiByZXF1aXJlKCcuL2NvcmUub3Blbmhhcm1vbnkteDY0Lm5vZGUnKQogICAgICB9IGNhdGNoIChlKSB7CiAgICAgICAgbG9hZEVycm9ycy5wdXNoKGUpCiAgICAgIH0KICAgICAgdHJ5IHsKICAgICAgICBjb25zdCBiaW5kaW5nID0gcmVxdWlyZSgnQHRha3VtaS1ycy9jb3JlLW9wZW5oYXJtb255LXg2NCcpCiAgICAgICAgY29uc3QgYmluZGluZ1BhY2thZ2VWZXJzaW9uID0gcmVxdWlyZSgnQHRha3VtaS1ycy9jb3JlLW9wZW5oYXJtb255LXg2NC9wYWNrYWdlLmpzb24nKS52ZXJzaW9uCiAgICAgICAgaWYgKGJpbmRpbmdQYWNrYWdlVmVyc2lvbiAhPT0gJzAuNzAuNCcgJiYgcHJvY2Vzcy5lbnYuTkFQSV9SU19FTkZPUkNFX1ZFUlNJT05fQ0hFQ0sgJiYgcHJvY2Vzcy5lbnYuTkFQSV9SU19FTkZPUkNFX1ZFUlNJT05fQ0hFQ0sgIT09ICcwJykgewogICAgICAgICAgdGhyb3cgbmV3IEVycm9yKGBOYXRpdmUgYmluZGluZyBwYWNrYWdlIHZlcnNpb24gbWlzbWF0Y2gsIGV4cGVjdGVkIDAuNzAuNCBidXQgZ290ICR7YmluZGluZ1BhY2thZ2VWZXJzaW9ufS4gWW91IGNhbiByZWluc3RhbGwgZGVwZW5kZW5jaWVzIHRvIGZpeCB0aGlzIGlzc3VlLmApCiAgICAgICAgfQogICAgICAgIHJldHVybiBiaW5kaW5nCiAgICAgIH0gY2F0Y2ggKGUpIHsKICAgICAgICBsb2FkRXJyb3JzLnB1c2goZSkKICAgICAgfQogICAgfSBlbHNlIGlmIChwcm9jZXNzLmFyY2ggPT09ICdhcm0nKSB7CiAgICAgIHRyeSB7CiAgICAgICAgcmV0dXJuIHJlcXVpcmUoJy4vY29yZS5vcGVuaGFybW9ueS1hcm0ubm9kZScpCiAgICAgIH0gY2F0Y2ggKGUpIHsKICAgICAgICBsb2FkRXJyb3JzLnB1c2goZSkKICAgICAgfQogICAgICB0cnkgewogICAgICAgIGNvbnN0IGJpbmRpbmcgPSByZXF1aXJlKCdAdGFrdW1pLXJzL2NvcmUtb3Blbmhhcm1vbnktYXJtJykKICAgICAgICBjb25zdCBiaW5kaW5nUGFja2FnZVZlcnNpb24gPSByZXF1aXJlKCdAdGFrdW1pLXJzL2NvcmUtb3Blbmhhcm1vbnktYXJtL3BhY2thZ2UuanNvbicpLnZlcnNpb24KICAgICAgICBpZiAoYmluZGluZ1BhY2thZ2VWZXJzaW9uICE9PSAnMC43MC40JyAmJiBwcm9jZXNzLmVudi5OQVBJX1JTX0VORk9SQ0VfVkVSU0lPTl9DSEVDSyAmJiBwcm9jZXNzLmVudi5OQVBJX1JTX0VORk9SQ0VfVkVSU0lPTl9DSEVDSyAhPT0gJzAnKSB7CiAgICAgICAgICB0aHJvdyBuZXcgRXJyb3IoYE5hdGl2ZSBiaW5kaW5nIHBhY2thZ2UgdmVyc2lvbiBtaXNtYXRjaCwgZXhwZWN0ZWQgMC43MC40IGJ1dCBnb3QgJHtiaW5kaW5nUGFja2FnZVZlcnNpb259LiBZb3UgY2FuIHJlaW5zdGFsbCBkZXBlbmRlbmNpZXMgdG8gZml4IHRoaXMgaXNzdWUuYCkKICAgICAgICB9CiAgICAgICAgcmV0dXJuIGJpbmRpbmcKICAgICAgfSBjYXRjaCAoZSkgewogICAgICAgIGxvYWRFcnJvcnMucHVzaChlKQogICAgICB9CiAgICB9IGVsc2UgewogICAgICBsb2FkRXJyb3JzLnB1c2gobmV3IEVycm9yKGBVbnN1cHBvcnRlZCBhcmNoaXRlY3R1cmUgb24gT3Blbkhhcm1vbnk6ICR7cHJvY2Vzcy5hcmNofWApKQogICAgfQogIH0gZWxzZSB7CiAgICBsb2FkRXJyb3JzLnB1c2gobmV3IEVycm9yKGBVbnN1cHBvcnRlZCBPUzogJHtwcm9jZXNzLnBsYXRmb3JtfSwgYXJjaGl0ZWN0dXJlOiAke3Byb2Nlc3MuYXJjaH1gKSkKICB9Cn0KCm5hdGl2ZUJpbmRpbmcgPSByZXF1aXJlTmF0aXZlKCkKCmlmICghbmF0aXZlQmluZGluZyB8fCBwcm9jZXNzLmVudi5OQVBJX1JTX0ZPUkNFX1dBU0kpIHsKICBsZXQgd2FzaUJpbmRpbmcgPSBudWxsCiAgbGV0IHdhc2lCaW5kaW5nRXJyb3IgPSBudWxsCiAgdHJ5IHsKICAgIHdhc2lCaW5kaW5nID0gcmVxdWlyZSgnLi9jb3JlLndhc2kuY2pzJykKICAgIG5hdGl2ZUJpbmRpbmcgPSB3YXNpQmluZGluZwogIH0gY2F0Y2ggKGVycikgewogICAgaWYgKHByb2Nlc3MuZW52Lk5BUElfUlNfRk9SQ0VfV0FTSSkgewogICAgICB3YXNpQmluZGluZ0Vycm9yID0gZXJyCiAgICB9CiAgfQogIGlmICghbmF0aXZlQmluZGluZyB8fCBwcm9jZXNzLmVudi5OQVBJX1JTX0ZPUkNFX1dBU0kpIHsKICAgIHRyeSB7CiAgICAgIHdhc2lCaW5kaW5nID0gcmVxdWlyZSgnQHRha3VtaS1ycy9jb3JlLXdhc20zMi13YXNpJykKICAgICAgbmF0aXZlQmluZGluZyA9IHdhc2lCaW5kaW5nCiAgICB9IGNhdGNoIChlcnIpIHsKICAgICAgaWYgKHByb2Nlc3MuZW52Lk5BUElfUlNfRk9SQ0VfV0FTSSkgewogICAgICAgIGlmICghd2FzaUJpbmRpbmdFcnJvcikgewogICAgICAgICAgd2FzaUJpbmRpbmdFcnJvciA9IGVycgogICAgICAgIH0gZWxzZSB7CiAgICAgICAgICB3YXNpQmluZGluZ0Vycm9yLmNhdXNlID0gZXJyCiAgICAgICAgfQogICAgICAgIGxvYWRFcnJvcnMucHVzaChlcnIpCiAgICAgIH0KICAgIH0KICB9CiAgaWYgKHByb2Nlc3MuZW52Lk5BUElfUlNfRk9SQ0VfV0FTSSA9PT0gJ2Vycm9yJyAmJiAhd2FzaUJpbmRpbmcpIHsKICAgIGNvbnN0IGVycm9yID0gbmV3IEVycm9yKCdXQVNJIGJpbmRpbmcgbm90IGZvdW5kIGFuZCBOQVBJX1JTX0ZPUkNFX1dBU0kgaXMgc2V0IHRvIGVycm9yJykKICAgIGVycm9yLmNhdXNlID0gd2FzaUJpbmRpbmdFcnJvcgogICAgdGhyb3cgZXJyb3IKICB9Cn0KCmlmICghbmF0aXZlQmluZGluZykgewogIGlmIChsb2FkRXJyb3JzLmxlbmd0aCA+IDApIHsKICAgIHRocm93IG5ldyBFcnJvcigKICAgICAgYENhbm5vdCBmaW5kIG5hdGl2ZSBiaW5kaW5nLiBgICsKICAgICAgICBgbnBtIGhhcyBhIGJ1ZyByZWxhdGVkIHRvIG9wdGlvbmFsIGRlcGVuZGVuY2llcyAoaHR0cHM6Ly9naXRodWIuY29tL25wbS9jbGkvaXNzdWVzLzQ4MjgpLiBgICsKICAgICAgICAnUGxlYXNlIHRyeSBgbnBtIGlgIGFnYWluIGFmdGVyIHJlbW92aW5nIGJvdGggcGFja2FnZS1sb2NrLmpzb24gYW5kIG5vZGVfbW9kdWxlcyBkaXJlY3RvcnkuJywKICAgICAgewogICAgICAgIGNhdXNlOiBsb2FkRXJyb3JzLnJlZHVjZSgoZXJyLCBjdXIpID0+IHsKICAgICAgICAgIGN1ci5jYXVzZSA9IGVycgogICAgICAgICAgcmV0dXJuIGN1cgogICAgICAgIH0pLAogICAgICB9LAogICAgKQogIH0KICB0aHJvdyBuZXcgRXJyb3IoYEZhaWxlZCB0byBsb2FkIG5hdGl2ZSBiaW5kaW5nYCkKfQoKY29uc3QgeyBSZW5kZXJlciwgQW5pbWF0aW9uT3V0cHV0Rm9ybWF0LCBleHRyYWN0UmVzb3VyY2VVcmxzLCBPdXRwdXRGb3JtYXQgfSA9IG5hdGl2ZUJpbmRpbmcKZXhwb3J0IHsgUmVuZGVyZXIgfQpleHBvcnQgeyBBbmltYXRpb25PdXRwdXRGb3JtYXQgfQpleHBvcnQgeyBleHRyYWN0UmVzb3VyY2VVcmxzIH0KZXhwb3J0IHsgT3V0cHV0Rm9ybWF0IH0K", "" + import.meta.url).pathname;
-var { readFileSync: readFileSync$1 } = require$1("node:fs");
-var nativeBinding = null;
-var loadErrors = [];
-var isMusl = () => {
-	let musl = false;
-	if (process.platform === "linux") {
-		musl = isMuslFromFilesystem();
-		if (musl === null) musl = isMuslFromReport();
-		if (musl === null) musl = isMuslFromChildProcess();
-	}
-	return musl;
-};
-var isFileMusl = (f) => f.includes("libc.musl-") || f.includes("ld-musl-");
-var isMuslFromFilesystem = () => {
-	try {
-		return readFileSync$1("/usr/bin/ldd", "utf-8").includes("musl");
-	} catch {
-		return null;
-	}
-};
-var isMuslFromReport = () => {
-	let report = null;
-	if (typeof process.report?.getReport === "function") {
-		process.report.excludeNetwork = true;
-		report = process.report.getReport();
-	}
-	if (!report) return null;
-	if (report.header && report.header.glibcVersionRuntime) return false;
-	if (Array.isArray(report.sharedObjects)) {
-		if (report.sharedObjects.some(isFileMusl)) return true;
-	}
-	return false;
-};
-var isMuslFromChildProcess = () => {
-	try {
-		return require$1("child_process").execSync("ldd --version", { encoding: "utf8" }).includes("musl");
-	} catch (e) {
-		return false;
-	}
-};
-function requireNative() {
-	if (process.env.NAPI_RS_NATIVE_LIBRARY_PATH) try {
-		return require$1(process.env.NAPI_RS_NATIVE_LIBRARY_PATH);
-	} catch (err) {
-		loadErrors.push(err);
-	}
-	else if (process.platform === "android") if (process.arch === "arm64") {
-		try {
-			return require$1("./core.android-arm64.node");
-		} catch (e) {
-			loadErrors.push(e);
-		}
-		try {
-			const binding = require$1("@takumi-rs/core-android-arm64");
-			const bindingPackageVersion = require$1("@takumi-rs/core-android-arm64/package.json").version;
-			if (bindingPackageVersion !== "0.70.4" && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== "0") throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`);
-			return binding;
-		} catch (e) {
-			loadErrors.push(e);
-		}
-	} else if (process.arch === "arm") {
-		try {
-			return require$1("./core.android-arm-eabi.node");
-		} catch (e) {
-			loadErrors.push(e);
-		}
-		try {
-			const binding = require$1("@takumi-rs/core-android-arm-eabi");
-			const bindingPackageVersion = require$1("@takumi-rs/core-android-arm-eabi/package.json").version;
-			if (bindingPackageVersion !== "0.70.4" && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== "0") throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`);
-			return binding;
-		} catch (e) {
-			loadErrors.push(e);
-		}
-	} else loadErrors.push(/* @__PURE__ */ new Error(`Unsupported architecture on Android ${process.arch}`));
-	else if (process.platform === "win32") if (process.arch === "x64") if (process.config?.variables?.shlib_suffix === "dll.a" || process.config?.variables?.node_target_type === "shared_library") {
-		try {
-			return require$1("./core.win32-x64-gnu.node");
-		} catch (e) {
-			loadErrors.push(e);
-		}
-		try {
-			const binding = require$1("@takumi-rs/core-win32-x64-gnu");
-			const bindingPackageVersion = require$1("@takumi-rs/core-win32-x64-gnu/package.json").version;
-			if (bindingPackageVersion !== "0.70.4" && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== "0") throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`);
-			return binding;
-		} catch (e) {
-			loadErrors.push(e);
-		}
-	} else {
-		try {
-			return require$1("./core.win32-x64-msvc.node");
-		} catch (e) {
-			loadErrors.push(e);
-		}
-		try {
-			const binding = require$1("@takumi-rs/core-win32-x64-msvc");
-			const bindingPackageVersion = require$1("@takumi-rs/core-win32-x64-msvc/package.json").version;
-			if (bindingPackageVersion !== "0.70.4" && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== "0") throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`);
-			return binding;
-		} catch (e) {
-			loadErrors.push(e);
-		}
-	}
-	else if (process.arch === "ia32") {
-		try {
-			return require$1("./core.win32-ia32-msvc.node");
-		} catch (e) {
-			loadErrors.push(e);
-		}
-		try {
-			const binding = require$1("@takumi-rs/core-win32-ia32-msvc");
-			const bindingPackageVersion = require$1("@takumi-rs/core-win32-ia32-msvc/package.json").version;
-			if (bindingPackageVersion !== "0.70.4" && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== "0") throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`);
-			return binding;
-		} catch (e) {
-			loadErrors.push(e);
-		}
-	} else if (process.arch === "arm64") {
-		try {
-			return require$1("./core.win32-arm64-msvc.node");
-		} catch (e) {
-			loadErrors.push(e);
-		}
-		try {
-			const binding = require$1("@takumi-rs/core-win32-arm64-msvc");
-			const bindingPackageVersion = require$1("@takumi-rs/core-win32-arm64-msvc/package.json").version;
-			if (bindingPackageVersion !== "0.70.4" && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== "0") throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`);
-			return binding;
-		} catch (e) {
-			loadErrors.push(e);
-		}
-	} else loadErrors.push(/* @__PURE__ */ new Error(`Unsupported architecture on Windows: ${process.arch}`));
-	else if (process.platform === "darwin") {
-		try {
-			return require$1("./core.darwin-universal.node");
-		} catch (e) {
-			loadErrors.push(e);
-		}
-		try {
-			const binding = require$1("@takumi-rs/core-darwin-universal");
-			const bindingPackageVersion = require$1("@takumi-rs/core-darwin-universal/package.json").version;
-			if (bindingPackageVersion !== "0.70.4" && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== "0") throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`);
-			return binding;
-		} catch (e) {
-			loadErrors.push(e);
-		}
-		if (process.arch === "x64") {
-			try {
-				return require$1("./core.darwin-x64.node");
-			} catch (e) {
-				loadErrors.push(e);
-			}
-			try {
-				const binding = require$1("@takumi-rs/core-darwin-x64");
-				const bindingPackageVersion = require$1("@takumi-rs/core-darwin-x64/package.json").version;
-				if (bindingPackageVersion !== "0.70.4" && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== "0") throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`);
-				return binding;
-			} catch (e) {
-				loadErrors.push(e);
-			}
-		} else if (process.arch === "arm64") {
-			try {
-				return require$1("./core.darwin-arm64.node");
-			} catch (e) {
-				loadErrors.push(e);
-			}
-			try {
-				const binding = require$1("@takumi-rs/core-darwin-arm64");
-				const bindingPackageVersion = require$1("@takumi-rs/core-darwin-arm64/package.json").version;
-				if (bindingPackageVersion !== "0.70.4" && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== "0") throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`);
-				return binding;
-			} catch (e) {
-				loadErrors.push(e);
-			}
-		} else loadErrors.push(/* @__PURE__ */ new Error(`Unsupported architecture on macOS: ${process.arch}`));
-	} else if (process.platform === "freebsd") if (process.arch === "x64") {
-		try {
-			return require$1("./core.freebsd-x64.node");
-		} catch (e) {
-			loadErrors.push(e);
-		}
-		try {
-			const binding = require$1("@takumi-rs/core-freebsd-x64");
-			const bindingPackageVersion = require$1("@takumi-rs/core-freebsd-x64/package.json").version;
-			if (bindingPackageVersion !== "0.70.4" && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== "0") throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`);
-			return binding;
-		} catch (e) {
-			loadErrors.push(e);
-		}
-	} else if (process.arch === "arm64") {
-		try {
-			return require$1("./core.freebsd-arm64.node");
-		} catch (e) {
-			loadErrors.push(e);
-		}
-		try {
-			const binding = require$1("@takumi-rs/core-freebsd-arm64");
-			const bindingPackageVersion = require$1("@takumi-rs/core-freebsd-arm64/package.json").version;
-			if (bindingPackageVersion !== "0.70.4" && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== "0") throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`);
-			return binding;
-		} catch (e) {
-			loadErrors.push(e);
-		}
-	} else loadErrors.push(/* @__PURE__ */ new Error(`Unsupported architecture on FreeBSD: ${process.arch}`));
-	else if (process.platform === "linux") if (process.arch === "x64") if (isMusl()) {
-		try {
-			return require$1("./core.linux-x64-musl.node");
-		} catch (e) {
-			loadErrors.push(e);
-		}
-		try {
-			const binding = require$1("@takumi-rs/core-linux-x64-musl");
-			const bindingPackageVersion = require$1("@takumi-rs/core-linux-x64-musl/package.json").version;
-			if (bindingPackageVersion !== "0.70.4" && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== "0") throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`);
-			return binding;
-		} catch (e) {
-			loadErrors.push(e);
-		}
-	} else {
-		try {
-			return require$1("./core.linux-x64-gnu.node");
-		} catch (e) {
-			loadErrors.push(e);
-		}
-		try {
-			const binding = require$1("@takumi-rs/core-linux-x64-gnu");
-			const bindingPackageVersion = require$1("@takumi-rs/core-linux-x64-gnu/package.json").version;
-			if (bindingPackageVersion !== "0.70.4" && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== "0") throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`);
-			return binding;
-		} catch (e) {
-			loadErrors.push(e);
-		}
-	}
-	else if (process.arch === "arm64") if (isMusl()) {
-		try {
-			return require$1("./core.linux-arm64-musl.node");
-		} catch (e) {
-			loadErrors.push(e);
-		}
-		try {
-			const binding = require$1("@takumi-rs/core-linux-arm64-musl");
-			const bindingPackageVersion = require$1("@takumi-rs/core-linux-arm64-musl/package.json").version;
-			if (bindingPackageVersion !== "0.70.4" && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== "0") throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`);
-			return binding;
-		} catch (e) {
-			loadErrors.push(e);
-		}
-	} else {
-		try {
-			return require$1("./core.linux-arm64-gnu.node");
-		} catch (e) {
-			loadErrors.push(e);
-		}
-		try {
-			const binding = require$1("@takumi-rs/core-linux-arm64-gnu");
-			const bindingPackageVersion = require$1("@takumi-rs/core-linux-arm64-gnu/package.json").version;
-			if (bindingPackageVersion !== "0.70.4" && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== "0") throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`);
-			return binding;
-		} catch (e) {
-			loadErrors.push(e);
-		}
-	}
-	else if (process.arch === "arm") if (isMusl()) {
-		try {
-			return require$1("./core.linux-arm-musleabihf.node");
-		} catch (e) {
-			loadErrors.push(e);
-		}
-		try {
-			const binding = require$1("@takumi-rs/core-linux-arm-musleabihf");
-			const bindingPackageVersion = require$1("@takumi-rs/core-linux-arm-musleabihf/package.json").version;
-			if (bindingPackageVersion !== "0.70.4" && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== "0") throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`);
-			return binding;
-		} catch (e) {
-			loadErrors.push(e);
-		}
-	} else {
-		try {
-			return require$1("./core.linux-arm-gnueabihf.node");
-		} catch (e) {
-			loadErrors.push(e);
-		}
-		try {
-			const binding = require$1("@takumi-rs/core-linux-arm-gnueabihf");
-			const bindingPackageVersion = require$1("@takumi-rs/core-linux-arm-gnueabihf/package.json").version;
-			if (bindingPackageVersion !== "0.70.4" && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== "0") throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`);
-			return binding;
-		} catch (e) {
-			loadErrors.push(e);
-		}
-	}
-	else if (process.arch === "loong64") if (isMusl()) {
-		try {
-			return require$1("./core.linux-loong64-musl.node");
-		} catch (e) {
-			loadErrors.push(e);
-		}
-		try {
-			const binding = require$1("@takumi-rs/core-linux-loong64-musl");
-			const bindingPackageVersion = require$1("@takumi-rs/core-linux-loong64-musl/package.json").version;
-			if (bindingPackageVersion !== "0.70.4" && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== "0") throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`);
-			return binding;
-		} catch (e) {
-			loadErrors.push(e);
-		}
-	} else {
-		try {
-			return require$1("./core.linux-loong64-gnu.node");
-		} catch (e) {
-			loadErrors.push(e);
-		}
-		try {
-			const binding = require$1("@takumi-rs/core-linux-loong64-gnu");
-			const bindingPackageVersion = require$1("@takumi-rs/core-linux-loong64-gnu/package.json").version;
-			if (bindingPackageVersion !== "0.70.4" && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== "0") throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`);
-			return binding;
-		} catch (e) {
-			loadErrors.push(e);
-		}
-	}
-	else if (process.arch === "riscv64") if (isMusl()) {
-		try {
-			return require$1("./core.linux-riscv64-musl.node");
-		} catch (e) {
-			loadErrors.push(e);
-		}
-		try {
-			const binding = require$1("@takumi-rs/core-linux-riscv64-musl");
-			const bindingPackageVersion = require$1("@takumi-rs/core-linux-riscv64-musl/package.json").version;
-			if (bindingPackageVersion !== "0.70.4" && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== "0") throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`);
-			return binding;
-		} catch (e) {
-			loadErrors.push(e);
-		}
-	} else {
-		try {
-			return require$1("./core.linux-riscv64-gnu.node");
-		} catch (e) {
-			loadErrors.push(e);
-		}
-		try {
-			const binding = require$1("@takumi-rs/core-linux-riscv64-gnu");
-			const bindingPackageVersion = require$1("@takumi-rs/core-linux-riscv64-gnu/package.json").version;
-			if (bindingPackageVersion !== "0.70.4" && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== "0") throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`);
-			return binding;
-		} catch (e) {
-			loadErrors.push(e);
-		}
-	}
-	else if (process.arch === "ppc64") {
-		try {
-			return require$1("./core.linux-ppc64-gnu.node");
-		} catch (e) {
-			loadErrors.push(e);
-		}
-		try {
-			const binding = require$1("@takumi-rs/core-linux-ppc64-gnu");
-			const bindingPackageVersion = require$1("@takumi-rs/core-linux-ppc64-gnu/package.json").version;
-			if (bindingPackageVersion !== "0.70.4" && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== "0") throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`);
-			return binding;
-		} catch (e) {
-			loadErrors.push(e);
-		}
-	} else if (process.arch === "s390x") {
-		try {
-			return require$1("./core.linux-s390x-gnu.node");
-		} catch (e) {
-			loadErrors.push(e);
-		}
-		try {
-			const binding = require$1("@takumi-rs/core-linux-s390x-gnu");
-			const bindingPackageVersion = require$1("@takumi-rs/core-linux-s390x-gnu/package.json").version;
-			if (bindingPackageVersion !== "0.70.4" && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== "0") throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`);
-			return binding;
-		} catch (e) {
-			loadErrors.push(e);
-		}
-	} else loadErrors.push(/* @__PURE__ */ new Error(`Unsupported architecture on Linux: ${process.arch}`));
-	else if (process.platform === "openharmony") if (process.arch === "arm64") {
-		try {
-			return require$1("./core.openharmony-arm64.node");
-		} catch (e) {
-			loadErrors.push(e);
-		}
-		try {
-			const binding = require$1("@takumi-rs/core-openharmony-arm64");
-			const bindingPackageVersion = require$1("@takumi-rs/core-openharmony-arm64/package.json").version;
-			if (bindingPackageVersion !== "0.70.4" && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== "0") throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`);
-			return binding;
-		} catch (e) {
-			loadErrors.push(e);
-		}
-	} else if (process.arch === "x64") {
-		try {
-			return require$1("./core.openharmony-x64.node");
-		} catch (e) {
-			loadErrors.push(e);
-		}
-		try {
-			const binding = require$1("@takumi-rs/core-openharmony-x64");
-			const bindingPackageVersion = require$1("@takumi-rs/core-openharmony-x64/package.json").version;
-			if (bindingPackageVersion !== "0.70.4" && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== "0") throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`);
-			return binding;
-		} catch (e) {
-			loadErrors.push(e);
-		}
-	} else if (process.arch === "arm") {
-		try {
-			return require$1("./core.openharmony-arm.node");
-		} catch (e) {
-			loadErrors.push(e);
-		}
-		try {
-			const binding = require$1("@takumi-rs/core-openharmony-arm");
-			const bindingPackageVersion = require$1("@takumi-rs/core-openharmony-arm/package.json").version;
-			if (bindingPackageVersion !== "0.70.4" && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== "0") throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`);
-			return binding;
-		} catch (e) {
-			loadErrors.push(e);
-		}
-	} else loadErrors.push(/* @__PURE__ */ new Error(`Unsupported architecture on OpenHarmony: ${process.arch}`));
-	else loadErrors.push(/* @__PURE__ */ new Error(`Unsupported OS: ${process.platform}, architecture: ${process.arch}`));
-}
-nativeBinding = requireNative();
-if (!nativeBinding || process.env.NAPI_RS_FORCE_WASI) {
-	let wasiBinding = null;
-	let wasiBindingError = null;
-	try {
-		wasiBinding = require$1("./core.wasi.cjs");
-		nativeBinding = wasiBinding;
-	} catch (err) {
-		if (process.env.NAPI_RS_FORCE_WASI) wasiBindingError = err;
-	}
-	if (!nativeBinding || process.env.NAPI_RS_FORCE_WASI) try {
-		wasiBinding = require$1("@takumi-rs/core-wasm32-wasi");
-		nativeBinding = wasiBinding;
-	} catch (err) {
-		if (process.env.NAPI_RS_FORCE_WASI) {
-			if (!wasiBindingError) wasiBindingError = err;
-			else wasiBindingError.cause = err;
-			loadErrors.push(err);
-		}
-	}
-	if (process.env.NAPI_RS_FORCE_WASI === "error" && !wasiBinding) {
-		const error = /* @__PURE__ */ new Error("WASI binding not found and NAPI_RS_FORCE_WASI is set to error");
-		error.cause = wasiBindingError;
-		throw error;
-	}
-}
-if (!nativeBinding) {
-	if (loadErrors.length > 0) throw new Error("Cannot find native binding. npm has a bug related to optional dependencies (https://github.com/npm/cli/issues/4828). Please try `npm i` again after removing both package-lock.json and node_modules directory.", { cause: loadErrors.reduce((err, cur) => {
-		cur.cause = err;
-		return cur;
-	}) });
-	throw new Error(`Failed to load native binding`);
-}
-var { Renderer, AnimationOutputFormat, extractResourceUrls, OutputFormat } = nativeBinding;
 /**
 * @license React
 * react.production.js
@@ -7730,6 +1167,193 @@ var require_react = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	if (process.env.NODE_ENV === "production") module.exports = require_react_production();
 	else module.exports = require_react_development();
 }));
+var import_react = /* @__PURE__ */ __toESM(require_react(), 1);
+function createVNode(type, props) {
+	return {
+		type,
+		props,
+		children: []
+	};
+}
+function createTextVNode(text) {
+	return {
+		type: "#text",
+		props: {},
+		children: [],
+		text
+	};
+}
+function createVContainer(renderCallback) {
+	return {
+		children: [],
+		scheduledRender: false,
+		lastSvgHash: 0,
+		renderCallback,
+		renderTimer: null
+	};
+}
+function vnodeToElement(node) {
+	if (node.type === "#text") return node.text ?? "";
+	const { children: _children, className, ...restProps } = node.props;
+	if (typeof className === "string" && className.length > 0) restProps.tw = (typeof restProps.tw === "string" ? restProps.tw + " " : "") + className;
+	const childElements = node.children.map(vnodeToElement);
+	return (0, import_react.createElement)(node.type, restProps, ...childElements);
+}
+/**
+* @license React
+* react-reconciler-constants.production.js
+*
+* Copyright (c) Meta Platforms, Inc. and affiliates.
+*
+* This source code is licensed under the MIT license found in the
+* LICENSE file in the root directory of this source tree.
+*/
+var require_react_reconciler_constants_production = /* @__PURE__ */ __commonJSMin(((exports) => {
+	exports.ConcurrentRoot = 1;
+	exports.ContinuousEventPriority = 8;
+	exports.DefaultEventPriority = 32;
+	exports.DiscreteEventPriority = 2;
+	exports.IdleEventPriority = 268435456;
+	exports.LegacyRoot = 0;
+	exports.NoEventPriority = 0;
+}));
+/**
+* @license React
+* react-reconciler-constants.development.js
+*
+* Copyright (c) Meta Platforms, Inc. and affiliates.
+*
+* This source code is licensed under the MIT license found in the
+* LICENSE file in the root directory of this source tree.
+*/
+var require_react_reconciler_constants_development = /* @__PURE__ */ __commonJSMin(((exports) => {
+	"production" !== process.env.NODE_ENV && (exports.ConcurrentRoot = 1, exports.ContinuousEventPriority = 8, exports.DefaultEventPriority = 32, exports.DiscreteEventPriority = 2, exports.IdleEventPriority = 268435456, exports.LegacyRoot = 0, exports.NoEventPriority = 0);
+}));
+var import_constants = (/* @__PURE__ */ __commonJSMin(((exports, module) => {
+	if (process.env.NODE_ENV === "production") module.exports = require_react_reconciler_constants_production();
+	else module.exports = require_react_reconciler_constants_development();
+})))();
+var NO_CONTEXT = {};
+var hostConfig = {
+	supportsMutation: true,
+	supportsPersistence: false,
+	supportsHydration: false,
+	isPrimaryRenderer: true,
+	noTimeout: -1,
+	now: Date.now,
+	getCurrentEventPriority: () => import_constants.DefaultEventPriority,
+	getInstanceFromNode: () => null,
+	prepareScopeUpdate: () => {},
+	getInstanceFromScope: () => null,
+	detachDeletedInstance: () => {},
+	beforeActiveInstanceBlur: () => {},
+	afterActiveInstanceBlur: () => {},
+	setCurrentUpdatePriority: () => {},
+	getCurrentUpdatePriority: () => import_constants.DefaultEventPriority,
+	resolveUpdatePriority: () => import_constants.DefaultEventPriority,
+	shouldAttemptEagerTransition: () => false,
+	requestPostPaintCallback: () => {},
+	maySuspendCommit: () => false,
+	preloadInstance: () => true,
+	startSuspendingCommit: () => {},
+	suspendInstance: () => {},
+	waitForCommitToBeReady: () => null,
+	NotPendingTransition: null,
+	resetFormInstance: () => {},
+	trackSchedulerEvent: () => {},
+	HostTransitionContext: (0, import_react.createContext)(null),
+	resolveEventType: () => null,
+	resolveEventTimeStamp: () => -1.1,
+	getRootHostContext: () => NO_CONTEXT,
+	getChildHostContext: () => NO_CONTEXT,
+	createInstance(type, props) {
+		const { children: _, ...cleanProps } = props;
+		return createVNode(type, cleanProps);
+	},
+	createTextInstance(text) {
+		return createTextVNode(text);
+	},
+	shouldSetTextContent() {
+		return false;
+	},
+	appendInitialChild(parent, child) {
+		parent.children.push(child);
+	},
+	finalizeInitialChildren() {
+		return false;
+	},
+	getPublicInstance(instance) {
+		return instance;
+	},
+	prepareForCommit() {
+		return null;
+	},
+	resetAfterCommit(container) {
+		if (!container.scheduledRender) {
+			container.scheduledRender = true;
+			queueMicrotask(() => {
+				container.scheduledRender = false;
+				try {
+					container.renderCallback();
+				} catch (err) {
+					console.error("[@fcannizzaro/streamdeck-react] Commit render error:", err);
+				}
+			});
+		}
+	},
+	prepareUpdate(_instance, _type, oldProps, newProps) {
+		const oldKeys = Object.keys(oldProps);
+		const newKeys = Object.keys(newProps);
+		if (oldKeys.length !== newKeys.length) return true;
+		for (const key of newKeys) {
+			if (key === "children") continue;
+			if (oldProps[key] !== newProps[key]) return true;
+		}
+		return null;
+	},
+	appendChild(parent, child) {
+		parent.children.push(child);
+	},
+	appendChildToContainer(container, child) {
+		container.children.push(child);
+	},
+	insertBefore(parent, child, beforeChild) {
+		const index = parent.children.indexOf(beforeChild);
+		if (index >= 0) parent.children.splice(index, 0, child);
+		else parent.children.push(child);
+	},
+	insertInContainerBefore(container, child, beforeChild) {
+		const index = container.children.indexOf(beforeChild);
+		if (index >= 0) container.children.splice(index, 0, child);
+		else container.children.push(child);
+	},
+	removeChild(parent, child) {
+		const index = parent.children.indexOf(child);
+		if (index >= 0) parent.children.splice(index, 1);
+	},
+	removeChildFromContainer(container, child) {
+		const index = container.children.indexOf(child);
+		if (index >= 0) container.children.splice(index, 1);
+	},
+	commitUpdate(instance, _type, _oldProps, newProps) {
+		const { children: _, ...cleanProps } = newProps;
+		instance.props = cleanProps;
+	},
+	commitTextUpdate(textInstance, _oldText, newText) {
+		textInstance.text = newText;
+	},
+	hideInstance() {},
+	unhideInstance() {},
+	hideTextInstance() {},
+	unhideTextInstance() {},
+	clearContainer(container) {
+		container.children = [];
+	},
+	scheduleTimeout: setTimeout,
+	cancelTimeout: clearTimeout,
+	scheduleMicrotask: queueMicrotask,
+	preparePortalMount: () => {}
+};
 /**
 * @license React
 * scheduler.production.js
@@ -23788,204 +17412,27 @@ var require_react_reconciler_development = /* @__PURE__ */ __commonJSMin(((expor
 		return exports$1;
 	}, module.exports.default = module.exports, Object.defineProperty(module.exports, "__esModule", { value: !0 }));
 }));
-var require_react_reconciler = /* @__PURE__ */ __commonJSMin(((exports, module) => {
+var reconciler = (0, (/* @__PURE__ */ __toESM((/* @__PURE__ */ __commonJSMin(((exports, module) => {
 	if (process.env.NODE_ENV === "production") module.exports = require_react_reconciler_production();
 	else module.exports = require_react_reconciler_development();
-}));
-/**
-* @license React
-* react-reconciler-constants.production.js
-*
-* Copyright (c) Meta Platforms, Inc. and affiliates.
-*
-* This source code is licensed under the MIT license found in the
-* LICENSE file in the root directory of this source tree.
-*/
-var require_react_reconciler_constants_production = /* @__PURE__ */ __commonJSMin(((exports) => {
-	exports.ConcurrentRoot = 1;
-	exports.ContinuousEventPriority = 8;
-	exports.DefaultEventPriority = 32;
-	exports.DiscreteEventPriority = 2;
-	exports.IdleEventPriority = 268435456;
-	exports.LegacyRoot = 0;
-	exports.NoEventPriority = 0;
-}));
-/**
-* @license React
-* react-reconciler-constants.development.js
-*
-* Copyright (c) Meta Platforms, Inc. and affiliates.
-*
-* This source code is licensed under the MIT license found in the
-* LICENSE file in the root directory of this source tree.
-*/
-var require_react_reconciler_constants_development = /* @__PURE__ */ __commonJSMin(((exports) => {
-	"production" !== process.env.NODE_ENV && (exports.ConcurrentRoot = 1, exports.ContinuousEventPriority = 8, exports.DefaultEventPriority = 32, exports.DiscreteEventPriority = 2, exports.IdleEventPriority = 268435456, exports.LegacyRoot = 0, exports.NoEventPriority = 0);
-}));
-var import_constants = (/* @__PURE__ */ __commonJSMin(((exports, module) => {
-	if (process.env.NODE_ENV === "production") module.exports = require_react_reconciler_constants_production();
-	else module.exports = require_react_reconciler_constants_development();
-})))();
-var import_react_reconciler = /* @__PURE__ */ __toESM(require_react_reconciler(), 1);
-var import_react = /* @__PURE__ */ __toESM(require_react(), 1);
-function createVNode(type, props) {
-	return {
-		type,
-		props,
-		children: []
-	};
-}
-function createTextVNode(text) {
-	return {
-		type: "#text",
-		props: {},
-		children: [],
-		text
-	};
-}
-function createVContainer(renderCallback) {
-	return {
-		children: [],
-		scheduledRender: false,
-		lastSvgHash: 0,
-		renderCallback,
-		renderTimer: null
-	};
-}
-function vnodeToElement(node) {
-	if (node.type === "#text") return node.text ?? "";
-	const { children: _children, className, ...restProps } = node.props;
-	if (typeof className === "string" && className.length > 0) restProps.tw = (typeof restProps.tw === "string" ? restProps.tw + " " : "") + className;
-	const childElements = node.children.map(vnodeToElement);
-	return (0, import_react.createElement)(node.type, restProps, ...childElements);
-}
-var NO_CONTEXT = {};
-var hostConfig = {
-	supportsMutation: true,
-	supportsPersistence: false,
-	supportsHydration: false,
-	isPrimaryRenderer: true,
-	noTimeout: -1,
-	now: Date.now,
-	getCurrentEventPriority: () => import_constants.DefaultEventPriority,
-	getInstanceFromNode: () => null,
-	prepareScopeUpdate: () => {},
-	getInstanceFromScope: () => null,
-	detachDeletedInstance: () => {},
-	beforeActiveInstanceBlur: () => {},
-	afterActiveInstanceBlur: () => {},
-	setCurrentUpdatePriority: () => {},
-	getCurrentUpdatePriority: () => import_constants.DefaultEventPriority,
-	resolveUpdatePriority: () => import_constants.DefaultEventPriority,
-	shouldAttemptEagerTransition: () => false,
-	requestPostPaintCallback: () => {},
-	maySuspendCommit: () => false,
-	preloadInstance: () => true,
-	startSuspendingCommit: () => {},
-	suspendInstance: () => {},
-	waitForCommitToBeReady: () => null,
-	NotPendingTransition: null,
-	resetFormInstance: () => {},
-	trackSchedulerEvent: () => {},
-	HostTransitionContext: (0, import_react.createContext)(null),
-	resolveEventType: () => null,
-	resolveEventTimeStamp: () => -1.1,
-	getRootHostContext: () => NO_CONTEXT,
-	getChildHostContext: () => NO_CONTEXT,
-	createInstance(type, props) {
-		const { children: _, ...cleanProps } = props;
-		return createVNode(type, cleanProps);
-	},
-	createTextInstance(text) {
-		return createTextVNode(text);
-	},
-	shouldSetTextContent() {
-		return false;
-	},
-	appendInitialChild(parent, child) {
-		parent.children.push(child);
-	},
-	finalizeInitialChildren() {
-		return false;
-	},
-	getPublicInstance(instance) {
-		return instance;
-	},
-	prepareForCommit() {
-		return null;
-	},
-	resetAfterCommit(container) {
-		if (!container.scheduledRender) {
-			container.scheduledRender = true;
-			queueMicrotask(() => {
-				container.scheduledRender = false;
-				try {
-					container.renderCallback();
-				} catch (err) {
-					console.error("[@fcannizzaro/streamdeck-react] Commit render error:", err);
-				}
-			});
-		}
-	},
-	prepareUpdate(_instance, _type, oldProps, newProps) {
-		const oldKeys = Object.keys(oldProps);
-		const newKeys = Object.keys(newProps);
-		if (oldKeys.length !== newKeys.length) return true;
-		for (const key of newKeys) {
-			if (key === "children") continue;
-			if (oldProps[key] !== newProps[key]) return true;
-		}
-		return null;
-	},
-	appendChild(parent, child) {
-		parent.children.push(child);
-	},
-	appendChildToContainer(container, child) {
-		container.children.push(child);
-	},
-	insertBefore(parent, child, beforeChild) {
-		const index = parent.children.indexOf(beforeChild);
-		if (index >= 0) parent.children.splice(index, 0, child);
-		else parent.children.push(child);
-	},
-	insertInContainerBefore(container, child, beforeChild) {
-		const index = container.children.indexOf(beforeChild);
-		if (index >= 0) container.children.splice(index, 0, child);
-		else container.children.push(child);
-	},
-	removeChild(parent, child) {
-		const index = parent.children.indexOf(child);
-		if (index >= 0) parent.children.splice(index, 1);
-	},
-	removeChildFromContainer(container, child) {
-		const index = container.children.indexOf(child);
-		if (index >= 0) container.children.splice(index, 1);
-	},
-	commitUpdate(instance, _type, _oldProps, newProps) {
-		const { children: _, ...cleanProps } = newProps;
-		instance.props = cleanProps;
-	},
-	commitTextUpdate(textInstance, _oldText, newText) {
-		textInstance.text = newText;
-	},
-	hideInstance() {},
-	unhideInstance() {},
-	hideTextInstance() {},
-	unhideTextInstance() {},
-	clearContainer(container) {
-		container.children = [];
-	},
-	scheduleTimeout: setTimeout,
-	cancelTimeout: clearTimeout,
-	scheduleMicrotask: queueMicrotask,
-	preparePortalMount: () => {}
-};
-var reconciler = (0, import_react_reconciler.default)(hostConfig);
+})))(), 1)).default)(hostConfig);
 reconciler.injectIntoDevTools({
 	bundleType: process.env.NODE_ENV === "production" ? 0 : 1,
 	rendererPackageName: "@fcannizzaro/streamdeck-react",
 	version: "0.1.0"
 });
+function fnv1a(input) {
+	let hash = 2166136261;
+	if (typeof input === "string") for (let i = 0; i < input.length; i++) {
+		hash ^= input.charCodeAt(i);
+		hash = Math.imul(hash, 16777619);
+	}
+	else for (let i = 0; i < input.length; i++) {
+		hash ^= input[i];
+		hash = Math.imul(hash, 16777619);
+	}
+	return hash >>> 0;
+}
 function g(e, t) {
 	t && Object.keys(t).length > 0 && (e.style = t);
 }
@@ -24351,12 +17798,12 @@ function Z(e, t) {
 		}
 	}
 }
-function m(e) {
+function m$10(e) {
 	if (typeof e.props == "object" && e.props !== null && "children" in e.props) return e.props.children;
 }
 function z(e) {
 	if (!c(e)) return;
-	let t = m(e);
+	let t = m$10(e);
 	if (typeof t == "string") return t;
 	if (typeof t == "number") return String(t);
 	if (Array.isArray(t) || typeof t == "object" && t !== null && Symbol.iterator in t) return J(t);
@@ -24377,8 +17824,8 @@ function b(e) {
 	if (e == null || typeof e == "boolean" || typeof e == "symbol") return "";
 	if (typeof e == "object" && Symbol.iterator in e) return $(e);
 	if (!c(e)) return;
-	if (x(e)) return b(m(e));
-	let t = m(e);
+	if (x(e)) return b(m$10(e));
+	let t = m$10(e);
 	return t === void 0 ? "" : typeof t == "object" && t !== null && Symbol.iterator in t ? $(t) : b(t);
 }
 function J(e) {
@@ -24403,7 +17850,7 @@ async function j(e, t) {
 	if (r !== void 0) return r;
 	if (x(e)) return I(e, t);
 	if (f(e, "style")) {
-		let p = b(m(e));
+		let p = b(m$10(e));
 		return {
 			nodes: [],
 			stylesheets: p && p.length > 0 ? [p] : []
@@ -24511,7 +17958,7 @@ function P(e, t) {
 	if (typeof n == "string") return n;
 }
 function I(e, t) {
-	let r = m(e);
+	let r = m$10(e);
 	return r === void 0 ? Promise.resolve({
 		nodes: [],
 		stylesheets: []
@@ -24535,18 +17982,6 @@ async function te(e, t) {
 		nodes: o,
 		stylesheets: s
 	};
-}
-function fnv1a(input) {
-	let hash = 2166136261;
-	if (typeof input === "string") for (let i = 0; i < input.length; i++) {
-		hash ^= input.charCodeAt(i);
-		hash = Math.imul(hash, 16777619);
-	}
-	else for (let i = 0; i < input.length; i++) {
-		hash ^= input[i];
-		hash = Math.imul(hash, 16777619);
-	}
-	return hash >>> 0;
 }
 function bufferToDataUri$1(buffer, format) {
 	return `data:image/${format};base64,${(Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer)).toString("base64")}`;
@@ -24604,7 +18039,7 @@ var EventBus = class {
 };
 var SettingsContext = (0, import_react.createContext)(null);
 var GlobalSettingsContext = (0, import_react.createContext)(null);
-var ActionContext = (0, import_react.createContext)(null);
+var ActionContext$1 = (0, import_react.createContext)(null);
 var DeviceContext = (0, import_react.createContext)(null);
 var CanvasContext = (0, import_react.createContext)(null);
 var EventBusContext = (0, import_react.createContext)(null);
@@ -24623,6 +18058,23 @@ var DEFAULT_DIAL_LAYOUT = {
 	}]
 };
 var ReactRoot = class {
+	eventBus = new EventBus();
+	container;
+	fiberRoot;
+	settings;
+	globalSettings;
+	setSettingsFn;
+	setGlobalSettingsFn;
+	renderDebounceMs;
+	renderConfig;
+	canvas;
+	resolvedDialLayout;
+	sdkAction;
+	sdkInstance;
+	disposed = false;
+	streamDeckValue;
+	settingsValue;
+	globalSettingsValue;
 	constructor(component, actionInfo, deviceInfo, canvas, initialSettings, initialGlobalSettings, sdkAction, sdkInstance, renderConfig, renderDebounceMs, onSettingsChange, onGlobalSettingsChange, pluginWrapper, actionWrapper, dialLayout) {
 		this.component = component;
 		this.actionInfo = actionInfo;
@@ -24688,23 +18140,6 @@ var ReactRoot = class {
 		}
 		this.render();
 	}
-	eventBus = new EventBus();
-	container;
-	fiberRoot;
-	settings;
-	globalSettings;
-	setSettingsFn;
-	setGlobalSettingsFn;
-	renderDebounceMs;
-	renderConfig;
-	canvas;
-	resolvedDialLayout;
-	sdkAction;
-	sdkInstance;
-	disposed = false;
-	streamDeckValue;
-	settingsValue;
-	globalSettingsValue;
 	render() {
 		const element = this.buildTree();
 		reconciler.updateContainer(element, this.fiberRoot, null, () => {});
@@ -24713,7 +18148,7 @@ var ReactRoot = class {
 		let child = (0, import_react.createElement)(this.component);
 		if (this.actionWrapper) child = (0, import_react.createElement)(this.actionWrapper, null, child);
 		if (this.pluginWrapper) child = (0, import_react.createElement)(this.pluginWrapper, null, child);
-		return (0, import_react.createElement)(ActionContext.Provider, { value: this.actionInfo }, (0, import_react.createElement)(DeviceContext.Provider, { value: this.deviceInfo }, (0, import_react.createElement)(CanvasContext.Provider, { value: this.canvas }, (0, import_react.createElement)(EventBusContext.Provider, { value: this.eventBus }, (0, import_react.createElement)(StreamDeckContext.Provider, { value: this.streamDeckValue }, (0, import_react.createElement)(GlobalSettingsContext.Provider, { value: this.globalSettingsValue }, (0, import_react.createElement)(SettingsContext.Provider, { value: this.settingsValue }, child)))))));
+		return (0, import_react.createElement)(ActionContext$1.Provider, { value: this.actionInfo }, (0, import_react.createElement)(DeviceContext.Provider, { value: this.deviceInfo }, (0, import_react.createElement)(CanvasContext.Provider, { value: this.canvas }, (0, import_react.createElement)(EventBusContext.Provider, { value: this.eventBus }, (0, import_react.createElement)(StreamDeckContext.Provider, { value: this.streamDeckValue }, (0, import_react.createElement)(GlobalSettingsContext.Provider, { value: this.globalSettingsValue }, (0, import_react.createElement)(SettingsContext.Provider, { value: this.settingsValue }, child)))))));
 	}
 	scheduleRerender() {
 		if (this.disposed) return;
@@ -24825,8 +18260,16 @@ var KEY_SIZES = {
 		height: 144
 	},
 	11: {
-		width: 72,
-		height: 72
+		width: 144,
+		height: 144
+	},
+	12: {
+		width: 144,
+		height: 144
+	},
+	13: {
+		width: 144,
+		height: 144
 	}
 };
 var DIAL_SIZE = {
@@ -24923,6 +18366,6569 @@ var RootRegistry = class {
 		this.roots.clear();
 	}
 };
+/**
+* Creates a {@link IDisposable} that defers the disposing to the {@link dispose} function; disposing is guarded so that it may only occur once.
+* @param dispose Function responsible for disposing.
+* @returns Disposable whereby the disposing is delegated to the {@link dispose}  function.
+*/
+function deferredDisposable(dispose) {
+	let isDisposed = false;
+	const guardedDispose = () => {
+		if (!isDisposed) {
+			dispose();
+			isDisposed = true;
+		}
+	};
+	return {
+		[Symbol.dispose]: guardedDispose,
+		dispose: guardedDispose
+	};
+}
+/**
+* An event emitter that enables the listening for, and emitting of, events.
+*/
+var EventEmitter = class {
+	/**
+	* Underlying collection of events and their listeners.
+	*/
+	events = /* @__PURE__ */ new Map();
+	/**
+	* Adds the event {@link listener} for the event named {@link eventName}.
+	* @param eventName Name of the event.
+	* @param listener Event handler function.
+	* @returns This instance with the {@link listener} added.
+	*/
+	addListener(eventName, listener) {
+		return this.add(eventName, listener, (listeners) => listeners.push({ listener }));
+	}
+	/**
+	* Adds the event {@link listener} for the event named {@link eventName}, and returns a disposable capable of removing the event listener.
+	* @param eventName Name of the event.
+	* @param listener Event handler function.
+	* @returns A disposable that removes the listener when disposed.
+	*/
+	disposableOn(eventName, listener) {
+		this.add(eventName, listener, (listeners) => listeners.push({ listener }));
+		return deferredDisposable(() => this.removeListener(eventName, listener));
+	}
+	/**
+	* Emits the {@link eventName}, invoking all event listeners with the specified {@link args}.
+	* @param eventName Name of the event.
+	* @param args Arguments supplied to each event listener.
+	* @returns `true` when there was a listener associated with the event; otherwise `false`.
+	*/
+	emit(eventName, ...args) {
+		const listeners = this.events.get(eventName);
+		if (listeners === void 0) return false;
+		for (let i = 0; i < listeners.length;) {
+			const { listener, once } = listeners[i];
+			if (once) this.remove(eventName, listeners, i);
+			else i++;
+			listener(...args);
+		}
+		return true;
+	}
+	/**
+	* Gets the event names with event listeners.
+	* @returns Event names.
+	*/
+	eventNames() {
+		return Array.from(this.events.keys());
+	}
+	/**
+	* Gets the number of event listeners for the event named {@link eventName}. When a {@link listener} is defined, only matching event listeners are counted.
+	* @param eventName Name of the event.
+	* @param listener Optional event listener to count.
+	* @returns Number of event listeners.
+	*/
+	listenerCount(eventName, listener) {
+		const listeners = this.events.get(eventName);
+		if (listeners === void 0 || listener == void 0) return listeners?.length || 0;
+		let count = 0;
+		listeners.forEach((ev) => {
+			if (ev.listener === listener) count++;
+		});
+		return count;
+	}
+	/**
+	* Gets the event listeners for the event named {@link eventName}.
+	* @param eventName Name of the event.
+	* @returns The event listeners.
+	*/
+	listeners(eventName) {
+		return Array.from(this.events.get(eventName) || []).map(({ listener }) => listener);
+	}
+	/**
+	* Removes the event {@link listener} for the event named {@link eventName}.
+	* @param eventName Name of the event.
+	* @param listener Event handler function.
+	* @returns This instance with the event {@link listener} removed.
+	*/
+	off(eventName, listener) {
+		const listeners = this.events.get(eventName) ?? [];
+		for (let i = listeners.length - 1; i >= 0; i--) if (listeners[i].listener === listener) this.remove(eventName, listeners, i);
+		return this;
+	}
+	/**
+	* Adds the event {@link listener} for the event named {@link eventName}.
+	* @param eventName Name of the event.
+	* @param listener Event handler function.
+	* @returns This instance with the event {@link listener} added.
+	*/
+	on(eventName, listener) {
+		return this.add(eventName, listener, (listeners) => listeners.push({ listener }));
+	}
+	/**
+	* Adds the **one-time** event {@link listener} for the event named {@link eventName}.
+	* @param eventName Name of the event.
+	* @param listener Event handler function.
+	* @returns This instance with the event {@link listener} added.
+	*/
+	once(eventName, listener) {
+		return this.add(eventName, listener, (listeners) => listeners.push({
+			listener,
+			once: true
+		}));
+	}
+	/**
+	* Adds the event {@link listener} to the beginning of the listeners for the event named {@link eventName}.
+	* @param eventName Name of the event.
+	* @param listener Event handler function.
+	* @returns This instance with the event {@link listener} prepended.
+	*/
+	prependListener(eventName, listener) {
+		return this.add(eventName, listener, (listeners) => listeners.splice(0, 0, { listener }));
+	}
+	/**
+	* Adds the **one-time** event {@link listener} to the beginning of the listeners for the event named {@link eventName}.
+	* @param eventName Name of the event.
+	* @param listener Event handler function.
+	* @returns This instance with the event {@link listener} prepended.
+	*/
+	prependOnceListener(eventName, listener) {
+		return this.add(eventName, listener, (listeners) => listeners.splice(0, 0, {
+			listener,
+			once: true
+		}));
+	}
+	/**
+	* Removes all event listeners for the event named {@link eventName}.
+	* @param eventName Name of the event.
+	* @returns This instance with the event listeners removed
+	*/
+	removeAllListeners(eventName) {
+		const listeners = this.events.get(eventName) ?? [];
+		while (listeners.length > 0) this.remove(eventName, listeners, 0);
+		this.events.delete(eventName);
+		return this;
+	}
+	/**
+	* Removes the event {@link listener} for the event named {@link eventName}.
+	* @param eventName Name of the event.
+	* @param listener Event handler function.
+	* @returns This instance with the event {@link listener} removed.
+	*/
+	removeListener(eventName, listener) {
+		return this.off(eventName, listener);
+	}
+	/**
+	* Adds the event {@link listener} for the event named {@link eventName}.
+	* @param eventName Name of the event.
+	* @param listener Event handler function.
+	* @param fn Function responsible for adding the new event handler function.
+	* @returns This instance with event {@link listener} added.
+	*/
+	add(eventName, listener, fn) {
+		let listeners = this.events.get(eventName);
+		if (listeners === void 0) {
+			listeners = [];
+			this.events.set(eventName, listeners);
+		}
+		fn(listeners);
+		if (eventName !== "newListener") {
+			const args = [eventName, listener];
+			this.emit("newListener", ...args);
+		}
+		return this;
+	}
+	/**
+	* Removes the listener at the given index.
+	* @param eventName Name of the event.
+	* @param listeners Listeners registered with the event.
+	* @param index Index of the listener to remove.
+	*/
+	remove(eventName, listeners, index) {
+		const [{ listener }] = listeners.splice(index, 1);
+		if (eventName !== "removeListener") {
+			const args = [eventName, listener];
+			this.emit("removeListener", ...args);
+		}
+	}
+};
+/**
+* Prevents the modification of existing property attributes and values on the value, and all of its child properties, and prevents the addition of new properties.
+* @param value Value to freeze.
+*/
+function freeze(value) {
+	if (value !== void 0 && value !== null && typeof value === "object" && !Object.isFrozen(value)) {
+		Object.freeze(value);
+		Object.values(value).forEach(freeze);
+	}
+}
+/**
+* Gets the value at the specified {@link path}.
+* @param source Source object that is being read from.
+* @param path Path to the property to get.
+* @returns Value of the property.
+*/
+function get(source, path) {
+	return path.split(".").reduce((obj, prop) => obj && obj[prop], source);
+}
+/**
+* Internalization provider, responsible for managing localizations and translating resources.
+*/
+var I18nProvider = class {
+	/**
+	* Backing field for the default language.
+	*/
+	#language;
+	/**
+	* Map of localized resources, indexed by their language.
+	*/
+	#translations = /* @__PURE__ */ new Map();
+	/**
+	* Function responsible for providing localized resources for a given language.
+	*/
+	#readTranslations;
+	/**
+	* Internal events handler.
+	*/
+	#events = new EventEmitter();
+	/**
+	* Initializes a new instance of the {@link I18nProvider} class.
+	* @param language The default language to be used when retrieving translations for a given key.
+	* @param readTranslations Function responsible for providing localized resources for a given language.
+	*/
+	constructor(language, readTranslations) {
+		this.#language = language;
+		this.#readTranslations = readTranslations;
+	}
+	/**
+	* The default language of the provider.
+	* @returns The language.
+	*/
+	get language() {
+		return this.#language;
+	}
+	/**
+	* The default language of the provider.
+	* @param value The language.
+	*/
+	set language(value) {
+		if (this.#language !== value) {
+			this.#language = value;
+			this.#events.emit("languageChange", value);
+		}
+	}
+	/**
+	* Adds an event listener that is called when the language within the provider changes.
+	* @param listener Listener function to be called.
+	* @returns Resource manager that, when disposed, removes the event listener.
+	*/
+	onLanguageChange(listener) {
+		return this.#events.disposableOn("languageChange", listener);
+	}
+	/**
+	* Translates the specified {@link key}, as defined within the resources for the {@link language}.
+	* When the key is not found, the default language is checked. Alias of {@link I18nProvider.translate}.
+	* @param key Key of the translation.
+	* @param language Optional language to get the translation for; otherwise the default language.
+	* @returns The translation; otherwise the key.
+	*/
+	t(key, language = this.language) {
+		return this.translate(key, language);
+	}
+	/**
+	* Translates the specified {@link key}, as defined within the resources for the {@link language}.
+	* When the key is not found, the default language is checked.
+	* @param key Key of the translation.
+	* @param language Optional language to get the translation for; otherwise the default language.
+	* @returns The translation; otherwise the key.
+	*/
+	translate(key, language = this.language) {
+		const languages = new Set([
+			language,
+			language.replaceAll("_", "-").split("-").at(0),
+			"en"
+		]);
+		for (const language of languages) {
+			const resource = get(this.getTranslations(language), key);
+			if (resource) return resource.toString();
+		}
+		return key;
+	}
+	/**
+	* Gets the translations for the specified language.
+	* @param language Language whose translations are being retrieved.
+	* @returns The translations; otherwise `null`.
+	*/
+	getTranslations(language) {
+		let translations = this.#translations.get(language);
+		if (translations === void 0) {
+			translations = this.#readTranslations(language);
+			freeze(translations);
+			this.#translations.set(language, translations);
+		}
+		return translations;
+	}
+};
+/**
+* Provides a read-only iterable collection of items that also acts as a partial polyfill for iterator helpers.
+*/
+var Enumerable = class Enumerable {
+	/**
+	* Backing function responsible for providing the iterator of items.
+	*/
+	#items;
+	/**
+	* Backing function for {@link Enumerable.length}.
+	*/
+	#length;
+	/**
+	* Captured iterator from the underlying iterable; used to fulfil {@link IterableIterator} methods.
+	*/
+	#iterator;
+	/**
+	* Initializes a new instance of the {@link Enumerable} class.
+	* @param source Source that contains the items.
+	* @returns The enumerable.
+	*/
+	constructor(source) {
+		if (source instanceof Enumerable) {
+			this.#items = source.#items;
+			this.#length = source.#length;
+		} else if (Array.isArray(source)) {
+			this.#items = () => source.values();
+			this.#length = () => source.length;
+		} else if (source instanceof Map || source instanceof Set) {
+			this.#items = () => source.values();
+			this.#length = () => source.size;
+		} else {
+			this.#items = source;
+			this.#length = () => {
+				let i = 0;
+				for (const _ of this) i++;
+				return i;
+			};
+		}
+	}
+	/**
+	* Gets the number of items in the enumerable.
+	* @returns The number of items.
+	*/
+	get length() {
+		return this.#length();
+	}
+	/**
+	* Gets the iterator for the enumerable.
+	* @yields The items.
+	*/
+	*[Symbol.iterator]() {
+		for (const item of this.#items()) yield item;
+	}
+	/**
+	* Transforms each item within this iterator to an indexed pair, with each pair represented as an array.
+	* @returns An iterator of indexed pairs.
+	*/
+	asIndexedPairs() {
+		return new Enumerable(function* () {
+			let i = 0;
+			for (const item of this) yield [i++, item];
+		}.bind(this));
+	}
+	/**
+	* Returns an iterator with the first items dropped, up to the specified limit.
+	* @param limit The number of elements to drop from the start of the iteration.
+	* @returns An iterator of items after the limit.
+	*/
+	drop(limit) {
+		if (isNaN(limit) || limit < 0) throw new RangeError("limit must be 0, or a positive number");
+		return new Enumerable(function* () {
+			let i = 0;
+			for (const item of this) if (i++ >= limit) yield item;
+		}.bind(this));
+	}
+	/**
+	* Determines whether all items satisfy the specified predicate.
+	* @param predicate Function that determines whether each item fulfils the predicate.
+	* @returns `true` when all items satisfy the predicate; otherwise `false`.
+	*/
+	every(predicate) {
+		for (const item of this) if (!predicate(item)) return false;
+		return true;
+	}
+	/**
+	* Returns an iterator of items that meet the specified predicate..
+	* @param predicate Function that determines which items to filter.
+	* @returns An iterator of filtered items.
+	*/
+	filter(predicate) {
+		return new Enumerable(function* () {
+			for (const item of this) if (predicate(item)) yield item;
+		}.bind(this));
+	}
+	/**
+	* Finds the first item that satisfies the specified predicate.
+	* @param predicate Predicate to match items against.
+	* @returns The first item that satisfied the predicate; otherwise `undefined`.
+	*/
+	find(predicate) {
+		for (const item of this) if (predicate(item)) return item;
+	}
+	/**
+	* Finds the last item that satisfies the specified predicate.
+	* @param predicate Predicate to match items against.
+	* @returns The first item that satisfied the predicate; otherwise `undefined`.
+	*/
+	findLast(predicate) {
+		let result = void 0;
+		for (const item of this) if (predicate(item)) result = item;
+		return result;
+	}
+	/**
+	* Returns an iterator containing items transformed using the specified mapper function.
+	* @param mapper Function responsible for transforming each item.
+	* @returns An iterator of transformed items.
+	*/
+	flatMap(mapper) {
+		return new Enumerable(function* () {
+			for (const item of this) for (const mapped of mapper(item)) yield mapped;
+		}.bind(this));
+	}
+	/**
+	* Iterates over each item, and invokes the specified function.
+	* @param fn Function to invoke against each item.
+	*/
+	forEach(fn) {
+		for (const item of this) fn(item);
+	}
+	/**
+	* Determines whether the search item exists in the collection exists.
+	* @param search Item to search for.
+	* @returns `true` when the item was found; otherwise `false`.
+	*/
+	includes(search) {
+		return this.some((item) => item === search);
+	}
+	/**
+	* Returns an iterator of mapped items using the mapper function.
+	* @param mapper Function responsible for mapping the items.
+	* @returns An iterator of mapped items.
+	*/
+	map(mapper) {
+		return new Enumerable(function* () {
+			for (const item of this) yield mapper(item);
+		}.bind(this));
+	}
+	/**
+	* Captures the underlying iterable, if it is not already captured, and gets the next item in the iterator.
+	* @param args Optional values to send to the generator.
+	* @returns An iterator result of the current iteration; when `done` is `false`, the current `value` is provided.
+	*/
+	next(...args) {
+		this.#iterator ??= this.#items();
+		const result = this.#iterator.next(...args);
+		if (result.done) this.#iterator = void 0;
+		return result;
+	}
+	/**
+	* Applies the accumulator function to each item, and returns the result.
+	* @param accumulator Function responsible for accumulating all items within the collection.
+	* @param initial Initial value supplied to the accumulator.
+	* @returns Result of accumulating each value.
+	*/
+	reduce(accumulator, initial) {
+		if (this.length === 0) {
+			if (initial === void 0) throw new TypeError("Reduce of empty enumerable with no initial value.");
+			return initial;
+		}
+		let result = initial;
+		for (const item of this) if (result === void 0) result = item;
+		else result = accumulator(result, item);
+		return result;
+	}
+	/**
+	* Acts as if a `return` statement is inserted in the generator's body at the current suspended position.
+	*
+	* Please note, in the context of an {@link Enumerable}, calling {@link Enumerable.return} will clear the captured iterator,
+	* if there is one. Subsequent calls to {@link Enumerable.next} will result in re-capturing the underlying iterable, and
+	* yielding items from the beginning.
+	* @param value Value to return.
+	* @returns The value as an iterator result.
+	*/
+	return(value) {
+		this.#iterator = void 0;
+		return {
+			done: true,
+			value
+		};
+	}
+	/**
+	* Determines whether an item in the collection exists that satisfies the specified predicate.
+	* @param predicate Function used to search for an item.
+	* @returns `true` when the item was found; otherwise `false`.
+	*/
+	some(predicate) {
+		for (const item of this) if (predicate(item)) return true;
+		return false;
+	}
+	/**
+	* Returns an iterator with the items, from 0, up to the specified limit.
+	* @param limit Limit of items to take.
+	* @returns An iterator of items from 0 to the limit.
+	*/
+	take(limit) {
+		if (isNaN(limit) || limit < 0) throw new RangeError("limit must be 0, or a positive number");
+		return new Enumerable(function* () {
+			let i = 0;
+			for (const item of this) if (i++ < limit) yield item;
+		}.bind(this));
+	}
+	/**
+	* Acts as if a `throw` statement is inserted in the generator's body at the current suspended position.
+	* @param e Error to throw.
+	*/
+	throw(e) {
+		throw e;
+	}
+	/**
+	* Converts this iterator to an array.
+	* @returns The array of items from this iterator.
+	*/
+	toArray() {
+		return Array.from(this);
+	}
+	/**
+	* Converts this iterator to serializable collection.
+	* @returns The serializable collection of items.
+	*/
+	toJSON() {
+		return this.toArray();
+	}
+	/**
+	* Converts this iterator to a string.
+	* @returns The string.
+	*/
+	toString() {
+		return `${this.toArray()}`;
+	}
+};
+Symbol.dispose;
+Symbol.dispose ??= Symbol("Symbol.dispose");
+/**
+* Provides a wrapper around a value that is lazily instantiated.
+*/
+var Lazy = class {
+	/**
+	* Private backing field for {@link Lazy.value}.
+	*/
+	#value = void 0;
+	/**
+	* Factory responsible for instantiating the value.
+	*/
+	#valueFactory;
+	/**
+	* Initializes a new instance of the {@link Lazy} class.
+	* @param valueFactory The factory responsible for instantiating the value.
+	*/
+	constructor(valueFactory) {
+		this.#valueFactory = valueFactory;
+	}
+	/**
+	* Gets the value.
+	* @returns The value.
+	*/
+	get value() {
+		if (this.#value === void 0) this.#value = this.#valueFactory();
+		return this.#value;
+	}
+};
+promisify(execFile);
+promisify(execFile);
+/**
+* Returns an object that contains a promise and two functions to resolve or reject it.
+* @returns The promise, and the resolve and reject functions.
+*/
+function withResolvers() {
+	let resolve;
+	let reject;
+	return {
+		promise: new Promise((res, rej) => {
+			resolve = res;
+			reject = rej;
+		}),
+		resolve,
+		reject
+	};
+}
+var require_builtin_esm_external_require_events = /* @__PURE__ */ __commonJSMin(((exports, module) => {
+	module.exports = m$9.default;
+}));
+var require_builtin_esm_external_require_https = /* @__PURE__ */ __commonJSMin(((exports, module) => {
+	module.exports = m$8.default;
+}));
+var require_builtin_esm_external_require_http = /* @__PURE__ */ __commonJSMin(((exports, module) => {
+	module.exports = m$7.default;
+}));
+var require_builtin_esm_external_require_net = /* @__PURE__ */ __commonJSMin(((exports, module) => {
+	module.exports = m$6.default;
+}));
+var require_builtin_esm_external_require_tls = /* @__PURE__ */ __commonJSMin(((exports, module) => {
+	module.exports = m$5.default;
+}));
+var require_builtin_esm_external_require_crypto = /* @__PURE__ */ __commonJSMin(((exports, module) => {
+	module.exports = m$4.default;
+}));
+var require_builtin_esm_external_require_stream = /* @__PURE__ */ __commonJSMin(((exports, module) => {
+	module.exports = m$3.default;
+}));
+var require_builtin_esm_external_require_url = /* @__PURE__ */ __commonJSMin(((exports, module) => {
+	module.exports = m$2.default;
+}));
+var require_builtin_esm_external_require_zlib = /* @__PURE__ */ __commonJSMin(((exports, module) => {
+	module.exports = m$1.default;
+}));
+var require_constants = /* @__PURE__ */ __commonJSMin(((exports, module) => {
+	var BINARY_TYPES = [
+		"nodebuffer",
+		"arraybuffer",
+		"fragments"
+	];
+	var hasBlob = typeof Blob !== "undefined";
+	if (hasBlob) BINARY_TYPES.push("blob");
+	module.exports = {
+		BINARY_TYPES,
+		CLOSE_TIMEOUT: 3e4,
+		EMPTY_BUFFER: Buffer.alloc(0),
+		GUID: "258EAFA5-E914-47DA-95CA-C5AB0DC85B11",
+		hasBlob,
+		kForOnEventAttribute: Symbol("kIsForOnEventAttribute"),
+		kListener: Symbol("kListener"),
+		kStatusCode: Symbol("status-code"),
+		kWebSocket: Symbol("websocket"),
+		NOOP: () => {}
+	};
+}));
+var __vite_optional_peer_dep_bufferutil_ws_exports = /* @__PURE__ */ __exportAll({ default: () => __vite_optional_peer_dep_bufferutil_ws_default });
+var __vite_optional_peer_dep_bufferutil_ws_default;
+var init___vite_optional_peer_dep_bufferutil_ws = __esmMin((() => {
+	__vite_optional_peer_dep_bufferutil_ws_default = {};
+	throw new Error(`Could not resolve "bufferutil" imported by "ws". Is it installed?`);
+}));
+var require_buffer_util = /* @__PURE__ */ __commonJSMin(((exports, module) => {
+	var { EMPTY_BUFFER } = require_constants();
+	var FastBuffer = Buffer[Symbol.species];
+	/**
+	* Merges an array of buffers into a new buffer.
+	*
+	* @param {Buffer[]} list The array of buffers to concat
+	* @param {Number} totalLength The total length of buffers in the list
+	* @return {Buffer} The resulting buffer
+	* @public
+	*/
+	function concat(list, totalLength) {
+		if (list.length === 0) return EMPTY_BUFFER;
+		if (list.length === 1) return list[0];
+		const target = Buffer.allocUnsafe(totalLength);
+		let offset = 0;
+		for (let i = 0; i < list.length; i++) {
+			const buf = list[i];
+			target.set(buf, offset);
+			offset += buf.length;
+		}
+		if (offset < totalLength) return new FastBuffer(target.buffer, target.byteOffset, offset);
+		return target;
+	}
+	/**
+	* Masks a buffer using the given mask.
+	*
+	* @param {Buffer} source The buffer to mask
+	* @param {Buffer} mask The mask to use
+	* @param {Buffer} output The buffer where to store the result
+	* @param {Number} offset The offset at which to start writing
+	* @param {Number} length The number of bytes to mask.
+	* @public
+	*/
+	function _mask(source, mask, output, offset, length) {
+		for (let i = 0; i < length; i++) output[offset + i] = source[i] ^ mask[i & 3];
+	}
+	/**
+	* Unmasks a buffer using the given mask.
+	*
+	* @param {Buffer} buffer The buffer to unmask
+	* @param {Buffer} mask The mask to use
+	* @public
+	*/
+	function _unmask(buffer, mask) {
+		for (let i = 0; i < buffer.length; i++) buffer[i] ^= mask[i & 3];
+	}
+	/**
+	* Converts a buffer to an `ArrayBuffer`.
+	*
+	* @param {Buffer} buf The buffer to convert
+	* @return {ArrayBuffer} Converted buffer
+	* @public
+	*/
+	function toArrayBuffer(buf) {
+		if (buf.length === buf.buffer.byteLength) return buf.buffer;
+		return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.length);
+	}
+	/**
+	* Converts `data` to a `Buffer`.
+	*
+	* @param {*} data The data to convert
+	* @return {Buffer} The buffer
+	* @throws {TypeError}
+	* @public
+	*/
+	function toBuffer(data) {
+		toBuffer.readOnly = true;
+		if (Buffer.isBuffer(data)) return data;
+		let buf;
+		if (data instanceof ArrayBuffer) buf = new FastBuffer(data);
+		else if (ArrayBuffer.isView(data)) buf = new FastBuffer(data.buffer, data.byteOffset, data.byteLength);
+		else {
+			buf = Buffer.from(data);
+			toBuffer.readOnly = false;
+		}
+		return buf;
+	}
+	module.exports = {
+		concat,
+		mask: _mask,
+		toArrayBuffer,
+		toBuffer,
+		unmask: _unmask
+	};
+	/* istanbul ignore else  */
+	if (!process.env.WS_NO_BUFFER_UTIL) try {
+		const bufferUtil = (init___vite_optional_peer_dep_bufferutil_ws(), __toCommonJS(__vite_optional_peer_dep_bufferutil_ws_exports));
+		module.exports.mask = function(source, mask, output, offset, length) {
+			if (length < 48) _mask(source, mask, output, offset, length);
+			else bufferUtil.mask(source, mask, output, offset, length);
+		};
+		module.exports.unmask = function(buffer, mask) {
+			if (buffer.length < 32) _unmask(buffer, mask);
+			else bufferUtil.unmask(buffer, mask);
+		};
+	} catch (e) {}
+}));
+var require_limiter = /* @__PURE__ */ __commonJSMin(((exports, module) => {
+	var kDone = Symbol("kDone");
+	var kRun = Symbol("kRun");
+	/**
+	* A very simple job queue with adjustable concurrency. Adapted from
+	* https://github.com/STRML/async-limiter
+	*/
+	var Limiter = class {
+		/**
+		* Creates a new `Limiter`.
+		*
+		* @param {Number} [concurrency=Infinity] The maximum number of jobs allowed
+		*     to run concurrently
+		*/
+		constructor(concurrency) {
+			this[kDone] = () => {
+				this.pending--;
+				this[kRun]();
+			};
+			this.concurrency = concurrency || Infinity;
+			this.jobs = [];
+			this.pending = 0;
+		}
+		/**
+		* Adds a job to the queue.
+		*
+		* @param {Function} job The job to run
+		* @public
+		*/
+		add(job) {
+			this.jobs.push(job);
+			this[kRun]();
+		}
+		/**
+		* Removes a job from the queue and runs it if possible.
+		*
+		* @private
+		*/
+		[kRun]() {
+			if (this.pending === this.concurrency) return;
+			if (this.jobs.length) {
+				const job = this.jobs.shift();
+				this.pending++;
+				job(this[kDone]);
+			}
+		}
+	};
+	module.exports = Limiter;
+}));
+var require_permessage_deflate = /* @__PURE__ */ __commonJSMin(((exports, module) => {
+	var zlib = require_builtin_esm_external_require_zlib();
+	var bufferUtil = require_buffer_util();
+	var Limiter = require_limiter();
+	var { kStatusCode } = require_constants();
+	var FastBuffer = Buffer[Symbol.species];
+	var TRAILER = Buffer.from([
+		0,
+		0,
+		255,
+		255
+	]);
+	var kPerMessageDeflate = Symbol("permessage-deflate");
+	var kTotalLength = Symbol("total-length");
+	var kCallback = Symbol("callback");
+	var kBuffers = Symbol("buffers");
+	var kError = Symbol("error");
+	var zlibLimiter;
+	/**
+	* permessage-deflate implementation.
+	*/
+	var PerMessageDeflate = class {
+		/**
+		* Creates a PerMessageDeflate instance.
+		*
+		* @param {Object} [options] Configuration options
+		* @param {(Boolean|Number)} [options.clientMaxWindowBits] Advertise support
+		*     for, or request, a custom client window size
+		* @param {Boolean} [options.clientNoContextTakeover=false] Advertise/
+		*     acknowledge disabling of client context takeover
+		* @param {Number} [options.concurrencyLimit=10] The number of concurrent
+		*     calls to zlib
+		* @param {(Boolean|Number)} [options.serverMaxWindowBits] Request/confirm the
+		*     use of a custom server window size
+		* @param {Boolean} [options.serverNoContextTakeover=false] Request/accept
+		*     disabling of server context takeover
+		* @param {Number} [options.threshold=1024] Size (in bytes) below which
+		*     messages should not be compressed if context takeover is disabled
+		* @param {Object} [options.zlibDeflateOptions] Options to pass to zlib on
+		*     deflate
+		* @param {Object} [options.zlibInflateOptions] Options to pass to zlib on
+		*     inflate
+		* @param {Boolean} [isServer=false] Create the instance in either server or
+		*     client mode
+		* @param {Number} [maxPayload=0] The maximum allowed message length
+		*/
+		constructor(options, isServer, maxPayload) {
+			this._maxPayload = maxPayload | 0;
+			this._options = options || {};
+			this._threshold = this._options.threshold !== void 0 ? this._options.threshold : 1024;
+			this._isServer = !!isServer;
+			this._deflate = null;
+			this._inflate = null;
+			this.params = null;
+			if (!zlibLimiter) zlibLimiter = new Limiter(this._options.concurrencyLimit !== void 0 ? this._options.concurrencyLimit : 10);
+		}
+		/**
+		* @type {String}
+		*/
+		static get extensionName() {
+			return "permessage-deflate";
+		}
+		/**
+		* Create an extension negotiation offer.
+		*
+		* @return {Object} Extension parameters
+		* @public
+		*/
+		offer() {
+			const params = {};
+			if (this._options.serverNoContextTakeover) params.server_no_context_takeover = true;
+			if (this._options.clientNoContextTakeover) params.client_no_context_takeover = true;
+			if (this._options.serverMaxWindowBits) params.server_max_window_bits = this._options.serverMaxWindowBits;
+			if (this._options.clientMaxWindowBits) params.client_max_window_bits = this._options.clientMaxWindowBits;
+			else if (this._options.clientMaxWindowBits == null) params.client_max_window_bits = true;
+			return params;
+		}
+		/**
+		* Accept an extension negotiation offer/response.
+		*
+		* @param {Array} configurations The extension negotiation offers/reponse
+		* @return {Object} Accepted configuration
+		* @public
+		*/
+		accept(configurations) {
+			configurations = this.normalizeParams(configurations);
+			this.params = this._isServer ? this.acceptAsServer(configurations) : this.acceptAsClient(configurations);
+			return this.params;
+		}
+		/**
+		* Releases all resources used by the extension.
+		*
+		* @public
+		*/
+		cleanup() {
+			if (this._inflate) {
+				this._inflate.close();
+				this._inflate = null;
+			}
+			if (this._deflate) {
+				const callback = this._deflate[kCallback];
+				this._deflate.close();
+				this._deflate = null;
+				if (callback) callback(/* @__PURE__ */ new Error("The deflate stream was closed while data was being processed"));
+			}
+		}
+		/**
+		*  Accept an extension negotiation offer.
+		*
+		* @param {Array} offers The extension negotiation offers
+		* @return {Object} Accepted configuration
+		* @private
+		*/
+		acceptAsServer(offers) {
+			const opts = this._options;
+			const accepted = offers.find((params) => {
+				if (opts.serverNoContextTakeover === false && params.server_no_context_takeover || params.server_max_window_bits && (opts.serverMaxWindowBits === false || typeof opts.serverMaxWindowBits === "number" && opts.serverMaxWindowBits > params.server_max_window_bits) || typeof opts.clientMaxWindowBits === "number" && !params.client_max_window_bits) return false;
+				return true;
+			});
+			if (!accepted) throw new Error("None of the extension offers can be accepted");
+			if (opts.serverNoContextTakeover) accepted.server_no_context_takeover = true;
+			if (opts.clientNoContextTakeover) accepted.client_no_context_takeover = true;
+			if (typeof opts.serverMaxWindowBits === "number") accepted.server_max_window_bits = opts.serverMaxWindowBits;
+			if (typeof opts.clientMaxWindowBits === "number") accepted.client_max_window_bits = opts.clientMaxWindowBits;
+			else if (accepted.client_max_window_bits === true || opts.clientMaxWindowBits === false) delete accepted.client_max_window_bits;
+			return accepted;
+		}
+		/**
+		* Accept the extension negotiation response.
+		*
+		* @param {Array} response The extension negotiation response
+		* @return {Object} Accepted configuration
+		* @private
+		*/
+		acceptAsClient(response) {
+			const params = response[0];
+			if (this._options.clientNoContextTakeover === false && params.client_no_context_takeover) throw new Error("Unexpected parameter \"client_no_context_takeover\"");
+			if (!params.client_max_window_bits) {
+				if (typeof this._options.clientMaxWindowBits === "number") params.client_max_window_bits = this._options.clientMaxWindowBits;
+			} else if (this._options.clientMaxWindowBits === false || typeof this._options.clientMaxWindowBits === "number" && params.client_max_window_bits > this._options.clientMaxWindowBits) throw new Error("Unexpected or invalid parameter \"client_max_window_bits\"");
+			return params;
+		}
+		/**
+		* Normalize parameters.
+		*
+		* @param {Array} configurations The extension negotiation offers/reponse
+		* @return {Array} The offers/response with normalized parameters
+		* @private
+		*/
+		normalizeParams(configurations) {
+			configurations.forEach((params) => {
+				Object.keys(params).forEach((key) => {
+					let value = params[key];
+					if (value.length > 1) throw new Error(`Parameter "${key}" must have only a single value`);
+					value = value[0];
+					if (key === "client_max_window_bits") {
+						if (value !== true) {
+							const num = +value;
+							if (!Number.isInteger(num) || num < 8 || num > 15) throw new TypeError(`Invalid value for parameter "${key}": ${value}`);
+							value = num;
+						} else if (!this._isServer) throw new TypeError(`Invalid value for parameter "${key}": ${value}`);
+					} else if (key === "server_max_window_bits") {
+						const num = +value;
+						if (!Number.isInteger(num) || num < 8 || num > 15) throw new TypeError(`Invalid value for parameter "${key}": ${value}`);
+						value = num;
+					} else if (key === "client_no_context_takeover" || key === "server_no_context_takeover") {
+						if (value !== true) throw new TypeError(`Invalid value for parameter "${key}": ${value}`);
+					} else throw new Error(`Unknown parameter "${key}"`);
+					params[key] = value;
+				});
+			});
+			return configurations;
+		}
+		/**
+		* Decompress data. Concurrency limited.
+		*
+		* @param {Buffer} data Compressed data
+		* @param {Boolean} fin Specifies whether or not this is the last fragment
+		* @param {Function} callback Callback
+		* @public
+		*/
+		decompress(data, fin, callback) {
+			zlibLimiter.add((done) => {
+				this._decompress(data, fin, (err, result) => {
+					done();
+					callback(err, result);
+				});
+			});
+		}
+		/**
+		* Compress data. Concurrency limited.
+		*
+		* @param {(Buffer|String)} data Data to compress
+		* @param {Boolean} fin Specifies whether or not this is the last fragment
+		* @param {Function} callback Callback
+		* @public
+		*/
+		compress(data, fin, callback) {
+			zlibLimiter.add((done) => {
+				this._compress(data, fin, (err, result) => {
+					done();
+					callback(err, result);
+				});
+			});
+		}
+		/**
+		* Decompress data.
+		*
+		* @param {Buffer} data Compressed data
+		* @param {Boolean} fin Specifies whether or not this is the last fragment
+		* @param {Function} callback Callback
+		* @private
+		*/
+		_decompress(data, fin, callback) {
+			const endpoint = this._isServer ? "client" : "server";
+			if (!this._inflate) {
+				const key = `${endpoint}_max_window_bits`;
+				const windowBits = typeof this.params[key] !== "number" ? zlib.Z_DEFAULT_WINDOWBITS : this.params[key];
+				this._inflate = zlib.createInflateRaw({
+					...this._options.zlibInflateOptions,
+					windowBits
+				});
+				this._inflate[kPerMessageDeflate] = this;
+				this._inflate[kTotalLength] = 0;
+				this._inflate[kBuffers] = [];
+				this._inflate.on("error", inflateOnError);
+				this._inflate.on("data", inflateOnData);
+			}
+			this._inflate[kCallback] = callback;
+			this._inflate.write(data);
+			if (fin) this._inflate.write(TRAILER);
+			this._inflate.flush(() => {
+				const err = this._inflate[kError];
+				if (err) {
+					this._inflate.close();
+					this._inflate = null;
+					callback(err);
+					return;
+				}
+				const data = bufferUtil.concat(this._inflate[kBuffers], this._inflate[kTotalLength]);
+				if (this._inflate._readableState.endEmitted) {
+					this._inflate.close();
+					this._inflate = null;
+				} else {
+					this._inflate[kTotalLength] = 0;
+					this._inflate[kBuffers] = [];
+					if (fin && this.params[`${endpoint}_no_context_takeover`]) this._inflate.reset();
+				}
+				callback(null, data);
+			});
+		}
+		/**
+		* Compress data.
+		*
+		* @param {(Buffer|String)} data Data to compress
+		* @param {Boolean} fin Specifies whether or not this is the last fragment
+		* @param {Function} callback Callback
+		* @private
+		*/
+		_compress(data, fin, callback) {
+			const endpoint = this._isServer ? "server" : "client";
+			if (!this._deflate) {
+				const key = `${endpoint}_max_window_bits`;
+				const windowBits = typeof this.params[key] !== "number" ? zlib.Z_DEFAULT_WINDOWBITS : this.params[key];
+				this._deflate = zlib.createDeflateRaw({
+					...this._options.zlibDeflateOptions,
+					windowBits
+				});
+				this._deflate[kTotalLength] = 0;
+				this._deflate[kBuffers] = [];
+				this._deflate.on("data", deflateOnData);
+			}
+			this._deflate[kCallback] = callback;
+			this._deflate.write(data);
+			this._deflate.flush(zlib.Z_SYNC_FLUSH, () => {
+				if (!this._deflate) return;
+				let data = bufferUtil.concat(this._deflate[kBuffers], this._deflate[kTotalLength]);
+				if (fin) data = new FastBuffer(data.buffer, data.byteOffset, data.length - 4);
+				this._deflate[kCallback] = null;
+				this._deflate[kTotalLength] = 0;
+				this._deflate[kBuffers] = [];
+				if (fin && this.params[`${endpoint}_no_context_takeover`]) this._deflate.reset();
+				callback(null, data);
+			});
+		}
+	};
+	module.exports = PerMessageDeflate;
+	/**
+	* The listener of the `zlib.DeflateRaw` stream `'data'` event.
+	*
+	* @param {Buffer} chunk A chunk of data
+	* @private
+	*/
+	function deflateOnData(chunk) {
+		this[kBuffers].push(chunk);
+		this[kTotalLength] += chunk.length;
+	}
+	/**
+	* The listener of the `zlib.InflateRaw` stream `'data'` event.
+	*
+	* @param {Buffer} chunk A chunk of data
+	* @private
+	*/
+	function inflateOnData(chunk) {
+		this[kTotalLength] += chunk.length;
+		if (this[kPerMessageDeflate]._maxPayload < 1 || this[kTotalLength] <= this[kPerMessageDeflate]._maxPayload) {
+			this[kBuffers].push(chunk);
+			return;
+		}
+		this[kError] = /* @__PURE__ */ new RangeError("Max payload size exceeded");
+		this[kError].code = "WS_ERR_UNSUPPORTED_MESSAGE_LENGTH";
+		this[kError][kStatusCode] = 1009;
+		this.removeListener("data", inflateOnData);
+		this.reset();
+	}
+	/**
+	* The listener of the `zlib.InflateRaw` stream `'error'` event.
+	*
+	* @param {Error} err The emitted error
+	* @private
+	*/
+	function inflateOnError(err) {
+		this[kPerMessageDeflate]._inflate = null;
+		if (this[kError]) {
+			this[kCallback](this[kError]);
+			return;
+		}
+		err[kStatusCode] = 1007;
+		this[kCallback](err);
+	}
+}));
+var require_builtin_esm_external_require_buffer = /* @__PURE__ */ __commonJSMin(((exports, module) => {
+	module.exports = m.default;
+}));
+var __vite_optional_peer_dep_utf_8_validate_ws_exports = /* @__PURE__ */ __exportAll({ default: () => __vite_optional_peer_dep_utf_8_validate_ws_default });
+var __vite_optional_peer_dep_utf_8_validate_ws_default;
+var init___vite_optional_peer_dep_utf_8_validate_ws = __esmMin((() => {
+	__vite_optional_peer_dep_utf_8_validate_ws_default = {};
+	throw new Error(`Could not resolve "utf-8-validate" imported by "ws". Is it installed?`);
+}));
+var require_validation = /* @__PURE__ */ __commonJSMin(((exports, module) => {
+	var { isUtf8 } = require_builtin_esm_external_require_buffer();
+	var { hasBlob } = require_constants();
+	var tokenChars = [
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		1,
+		0,
+		1,
+		1,
+		1,
+		1,
+		1,
+		0,
+		0,
+		1,
+		1,
+		0,
+		1,
+		1,
+		0,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		0,
+		0,
+		0,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		0,
+		1,
+		0,
+		1,
+		0
+	];
+	/**
+	* Checks if a status code is allowed in a close frame.
+	*
+	* @param {Number} code The status code
+	* @return {Boolean} `true` if the status code is valid, else `false`
+	* @public
+	*/
+	function isValidStatusCode(code) {
+		return code >= 1e3 && code <= 1014 && code !== 1004 && code !== 1005 && code !== 1006 || code >= 3e3 && code <= 4999;
+	}
+	/**
+	* Checks if a given buffer contains only correct UTF-8.
+	* Ported from https://www.cl.cam.ac.uk/%7Emgk25/ucs/utf8_check.c by
+	* Markus Kuhn.
+	*
+	* @param {Buffer} buf The buffer to check
+	* @return {Boolean} `true` if `buf` contains only correct UTF-8, else `false`
+	* @public
+	*/
+	function _isValidUTF8(buf) {
+		const len = buf.length;
+		let i = 0;
+		while (i < len) if ((buf[i] & 128) === 0) i++;
+		else if ((buf[i] & 224) === 192) {
+			if (i + 1 === len || (buf[i + 1] & 192) !== 128 || (buf[i] & 254) === 192) return false;
+			i += 2;
+		} else if ((buf[i] & 240) === 224) {
+			if (i + 2 >= len || (buf[i + 1] & 192) !== 128 || (buf[i + 2] & 192) !== 128 || buf[i] === 224 && (buf[i + 1] & 224) === 128 || buf[i] === 237 && (buf[i + 1] & 224) === 160) return false;
+			i += 3;
+		} else if ((buf[i] & 248) === 240) {
+			if (i + 3 >= len || (buf[i + 1] & 192) !== 128 || (buf[i + 2] & 192) !== 128 || (buf[i + 3] & 192) !== 128 || buf[i] === 240 && (buf[i + 1] & 240) === 128 || buf[i] === 244 && buf[i + 1] > 143 || buf[i] > 244) return false;
+			i += 4;
+		} else return false;
+		return true;
+	}
+	/**
+	* Determines whether a value is a `Blob`.
+	*
+	* @param {*} value The value to be tested
+	* @return {Boolean} `true` if `value` is a `Blob`, else `false`
+	* @private
+	*/
+	function isBlob(value) {
+		return hasBlob && typeof value === "object" && typeof value.arrayBuffer === "function" && typeof value.type === "string" && typeof value.stream === "function" && (value[Symbol.toStringTag] === "Blob" || value[Symbol.toStringTag] === "File");
+	}
+	module.exports = {
+		isBlob,
+		isValidStatusCode,
+		isValidUTF8: _isValidUTF8,
+		tokenChars
+	};
+	if (isUtf8) module.exports.isValidUTF8 = function(buf) {
+		return buf.length < 24 ? _isValidUTF8(buf) : isUtf8(buf);
+	};
+	else if (!process.env.WS_NO_UTF_8_VALIDATE) try {
+		const isValidUTF8 = (init___vite_optional_peer_dep_utf_8_validate_ws(), __toCommonJS(__vite_optional_peer_dep_utf_8_validate_ws_exports));
+		module.exports.isValidUTF8 = function(buf) {
+			return buf.length < 32 ? _isValidUTF8(buf) : isValidUTF8(buf);
+		};
+	} catch (e) {}
+}));
+var require_receiver = /* @__PURE__ */ __commonJSMin(((exports, module) => {
+	var { Writable } = require_builtin_esm_external_require_stream();
+	var PerMessageDeflate = require_permessage_deflate();
+	var { BINARY_TYPES, EMPTY_BUFFER, kStatusCode, kWebSocket } = require_constants();
+	var { concat, toArrayBuffer, unmask } = require_buffer_util();
+	var { isValidStatusCode, isValidUTF8 } = require_validation();
+	var FastBuffer = Buffer[Symbol.species];
+	var GET_INFO = 0;
+	var GET_PAYLOAD_LENGTH_16 = 1;
+	var GET_PAYLOAD_LENGTH_64 = 2;
+	var GET_MASK = 3;
+	var GET_DATA = 4;
+	var INFLATING = 5;
+	var DEFER_EVENT = 6;
+	/**
+	* HyBi Receiver implementation.
+	*
+	* @extends Writable
+	*/
+	var Receiver = class extends Writable {
+		/**
+		* Creates a Receiver instance.
+		*
+		* @param {Object} [options] Options object
+		* @param {Boolean} [options.allowSynchronousEvents=true] Specifies whether
+		*     any of the `'message'`, `'ping'`, and `'pong'` events can be emitted
+		*     multiple times in the same tick
+		* @param {String} [options.binaryType=nodebuffer] The type for binary data
+		* @param {Object} [options.extensions] An object containing the negotiated
+		*     extensions
+		* @param {Boolean} [options.isServer=false] Specifies whether to operate in
+		*     client or server mode
+		* @param {Number} [options.maxPayload=0] The maximum allowed message length
+		* @param {Boolean} [options.skipUTF8Validation=false] Specifies whether or
+		*     not to skip UTF-8 validation for text and close messages
+		*/
+		constructor(options = {}) {
+			super();
+			this._allowSynchronousEvents = options.allowSynchronousEvents !== void 0 ? options.allowSynchronousEvents : true;
+			this._binaryType = options.binaryType || BINARY_TYPES[0];
+			this._extensions = options.extensions || {};
+			this._isServer = !!options.isServer;
+			this._maxPayload = options.maxPayload | 0;
+			this._skipUTF8Validation = !!options.skipUTF8Validation;
+			this[kWebSocket] = void 0;
+			this._bufferedBytes = 0;
+			this._buffers = [];
+			this._compressed = false;
+			this._payloadLength = 0;
+			this._mask = void 0;
+			this._fragmented = 0;
+			this._masked = false;
+			this._fin = false;
+			this._opcode = 0;
+			this._totalPayloadLength = 0;
+			this._messageLength = 0;
+			this._fragments = [];
+			this._errored = false;
+			this._loop = false;
+			this._state = GET_INFO;
+		}
+		/**
+		* Implements `Writable.prototype._write()`.
+		*
+		* @param {Buffer} chunk The chunk of data to write
+		* @param {String} encoding The character encoding of `chunk`
+		* @param {Function} cb Callback
+		* @private
+		*/
+		_write(chunk, encoding, cb) {
+			if (this._opcode === 8 && this._state == GET_INFO) return cb();
+			this._bufferedBytes += chunk.length;
+			this._buffers.push(chunk);
+			this.startLoop(cb);
+		}
+		/**
+		* Consumes `n` bytes from the buffered data.
+		*
+		* @param {Number} n The number of bytes to consume
+		* @return {Buffer} The consumed bytes
+		* @private
+		*/
+		consume(n) {
+			this._bufferedBytes -= n;
+			if (n === this._buffers[0].length) return this._buffers.shift();
+			if (n < this._buffers[0].length) {
+				const buf = this._buffers[0];
+				this._buffers[0] = new FastBuffer(buf.buffer, buf.byteOffset + n, buf.length - n);
+				return new FastBuffer(buf.buffer, buf.byteOffset, n);
+			}
+			const dst = Buffer.allocUnsafe(n);
+			do {
+				const buf = this._buffers[0];
+				const offset = dst.length - n;
+				if (n >= buf.length) dst.set(this._buffers.shift(), offset);
+				else {
+					dst.set(new Uint8Array(buf.buffer, buf.byteOffset, n), offset);
+					this._buffers[0] = new FastBuffer(buf.buffer, buf.byteOffset + n, buf.length - n);
+				}
+				n -= buf.length;
+			} while (n > 0);
+			return dst;
+		}
+		/**
+		* Starts the parsing loop.
+		*
+		* @param {Function} cb Callback
+		* @private
+		*/
+		startLoop(cb) {
+			this._loop = true;
+			do
+				switch (this._state) {
+					case GET_INFO:
+						this.getInfo(cb);
+						break;
+					case GET_PAYLOAD_LENGTH_16:
+						this.getPayloadLength16(cb);
+						break;
+					case GET_PAYLOAD_LENGTH_64:
+						this.getPayloadLength64(cb);
+						break;
+					case GET_MASK:
+						this.getMask();
+						break;
+					case GET_DATA:
+						this.getData(cb);
+						break;
+					case INFLATING:
+					case DEFER_EVENT:
+						this._loop = false;
+						return;
+				}
+			while (this._loop);
+			if (!this._errored) cb();
+		}
+		/**
+		* Reads the first two bytes of a frame.
+		*
+		* @param {Function} cb Callback
+		* @private
+		*/
+		getInfo(cb) {
+			if (this._bufferedBytes < 2) {
+				this._loop = false;
+				return;
+			}
+			const buf = this.consume(2);
+			if ((buf[0] & 48) !== 0) {
+				cb(this.createError(RangeError, "RSV2 and RSV3 must be clear", true, 1002, "WS_ERR_UNEXPECTED_RSV_2_3"));
+				return;
+			}
+			const compressed = (buf[0] & 64) === 64;
+			if (compressed && !this._extensions[PerMessageDeflate.extensionName]) {
+				cb(this.createError(RangeError, "RSV1 must be clear", true, 1002, "WS_ERR_UNEXPECTED_RSV_1"));
+				return;
+			}
+			this._fin = (buf[0] & 128) === 128;
+			this._opcode = buf[0] & 15;
+			this._payloadLength = buf[1] & 127;
+			if (this._opcode === 0) {
+				if (compressed) {
+					cb(this.createError(RangeError, "RSV1 must be clear", true, 1002, "WS_ERR_UNEXPECTED_RSV_1"));
+					return;
+				}
+				if (!this._fragmented) {
+					cb(this.createError(RangeError, "invalid opcode 0", true, 1002, "WS_ERR_INVALID_OPCODE"));
+					return;
+				}
+				this._opcode = this._fragmented;
+			} else if (this._opcode === 1 || this._opcode === 2) {
+				if (this._fragmented) {
+					cb(this.createError(RangeError, `invalid opcode ${this._opcode}`, true, 1002, "WS_ERR_INVALID_OPCODE"));
+					return;
+				}
+				this._compressed = compressed;
+			} else if (this._opcode > 7 && this._opcode < 11) {
+				if (!this._fin) {
+					cb(this.createError(RangeError, "FIN must be set", true, 1002, "WS_ERR_EXPECTED_FIN"));
+					return;
+				}
+				if (compressed) {
+					cb(this.createError(RangeError, "RSV1 must be clear", true, 1002, "WS_ERR_UNEXPECTED_RSV_1"));
+					return;
+				}
+				if (this._payloadLength > 125 || this._opcode === 8 && this._payloadLength === 1) {
+					cb(this.createError(RangeError, `invalid payload length ${this._payloadLength}`, true, 1002, "WS_ERR_INVALID_CONTROL_PAYLOAD_LENGTH"));
+					return;
+				}
+			} else {
+				cb(this.createError(RangeError, `invalid opcode ${this._opcode}`, true, 1002, "WS_ERR_INVALID_OPCODE"));
+				return;
+			}
+			if (!this._fin && !this._fragmented) this._fragmented = this._opcode;
+			this._masked = (buf[1] & 128) === 128;
+			if (this._isServer) {
+				if (!this._masked) {
+					cb(this.createError(RangeError, "MASK must be set", true, 1002, "WS_ERR_EXPECTED_MASK"));
+					return;
+				}
+			} else if (this._masked) {
+				cb(this.createError(RangeError, "MASK must be clear", true, 1002, "WS_ERR_UNEXPECTED_MASK"));
+				return;
+			}
+			if (this._payloadLength === 126) this._state = GET_PAYLOAD_LENGTH_16;
+			else if (this._payloadLength === 127) this._state = GET_PAYLOAD_LENGTH_64;
+			else this.haveLength(cb);
+		}
+		/**
+		* Gets extended payload length (7+16).
+		*
+		* @param {Function} cb Callback
+		* @private
+		*/
+		getPayloadLength16(cb) {
+			if (this._bufferedBytes < 2) {
+				this._loop = false;
+				return;
+			}
+			this._payloadLength = this.consume(2).readUInt16BE(0);
+			this.haveLength(cb);
+		}
+		/**
+		* Gets extended payload length (7+64).
+		*
+		* @param {Function} cb Callback
+		* @private
+		*/
+		getPayloadLength64(cb) {
+			if (this._bufferedBytes < 8) {
+				this._loop = false;
+				return;
+			}
+			const buf = this.consume(8);
+			const num = buf.readUInt32BE(0);
+			if (num > Math.pow(2, 21) - 1) {
+				cb(this.createError(RangeError, "Unsupported WebSocket frame: payload length > 2^53 - 1", false, 1009, "WS_ERR_UNSUPPORTED_DATA_PAYLOAD_LENGTH"));
+				return;
+			}
+			this._payloadLength = num * Math.pow(2, 32) + buf.readUInt32BE(4);
+			this.haveLength(cb);
+		}
+		/**
+		* Payload length has been read.
+		*
+		* @param {Function} cb Callback
+		* @private
+		*/
+		haveLength(cb) {
+			if (this._payloadLength && this._opcode < 8) {
+				this._totalPayloadLength += this._payloadLength;
+				if (this._totalPayloadLength > this._maxPayload && this._maxPayload > 0) {
+					cb(this.createError(RangeError, "Max payload size exceeded", false, 1009, "WS_ERR_UNSUPPORTED_MESSAGE_LENGTH"));
+					return;
+				}
+			}
+			if (this._masked) this._state = GET_MASK;
+			else this._state = GET_DATA;
+		}
+		/**
+		* Reads mask bytes.
+		*
+		* @private
+		*/
+		getMask() {
+			if (this._bufferedBytes < 4) {
+				this._loop = false;
+				return;
+			}
+			this._mask = this.consume(4);
+			this._state = GET_DATA;
+		}
+		/**
+		* Reads data bytes.
+		*
+		* @param {Function} cb Callback
+		* @private
+		*/
+		getData(cb) {
+			let data = EMPTY_BUFFER;
+			if (this._payloadLength) {
+				if (this._bufferedBytes < this._payloadLength) {
+					this._loop = false;
+					return;
+				}
+				data = this.consume(this._payloadLength);
+				if (this._masked && (this._mask[0] | this._mask[1] | this._mask[2] | this._mask[3]) !== 0) unmask(data, this._mask);
+			}
+			if (this._opcode > 7) {
+				this.controlMessage(data, cb);
+				return;
+			}
+			if (this._compressed) {
+				this._state = INFLATING;
+				this.decompress(data, cb);
+				return;
+			}
+			if (data.length) {
+				this._messageLength = this._totalPayloadLength;
+				this._fragments.push(data);
+			}
+			this.dataMessage(cb);
+		}
+		/**
+		* Decompresses data.
+		*
+		* @param {Buffer} data Compressed data
+		* @param {Function} cb Callback
+		* @private
+		*/
+		decompress(data, cb) {
+			this._extensions[PerMessageDeflate.extensionName].decompress(data, this._fin, (err, buf) => {
+				if (err) return cb(err);
+				if (buf.length) {
+					this._messageLength += buf.length;
+					if (this._messageLength > this._maxPayload && this._maxPayload > 0) {
+						cb(this.createError(RangeError, "Max payload size exceeded", false, 1009, "WS_ERR_UNSUPPORTED_MESSAGE_LENGTH"));
+						return;
+					}
+					this._fragments.push(buf);
+				}
+				this.dataMessage(cb);
+				if (this._state === GET_INFO) this.startLoop(cb);
+			});
+		}
+		/**
+		* Handles a data message.
+		*
+		* @param {Function} cb Callback
+		* @private
+		*/
+		dataMessage(cb) {
+			if (!this._fin) {
+				this._state = GET_INFO;
+				return;
+			}
+			const messageLength = this._messageLength;
+			const fragments = this._fragments;
+			this._totalPayloadLength = 0;
+			this._messageLength = 0;
+			this._fragmented = 0;
+			this._fragments = [];
+			if (this._opcode === 2) {
+				let data;
+				if (this._binaryType === "nodebuffer") data = concat(fragments, messageLength);
+				else if (this._binaryType === "arraybuffer") data = toArrayBuffer(concat(fragments, messageLength));
+				else if (this._binaryType === "blob") data = new Blob(fragments);
+				else data = fragments;
+				if (this._allowSynchronousEvents) {
+					this.emit("message", data, true);
+					this._state = GET_INFO;
+				} else {
+					this._state = DEFER_EVENT;
+					setImmediate(() => {
+						this.emit("message", data, true);
+						this._state = GET_INFO;
+						this.startLoop(cb);
+					});
+				}
+			} else {
+				const buf = concat(fragments, messageLength);
+				if (!this._skipUTF8Validation && !isValidUTF8(buf)) {
+					cb(this.createError(Error, "invalid UTF-8 sequence", true, 1007, "WS_ERR_INVALID_UTF8"));
+					return;
+				}
+				if (this._state === INFLATING || this._allowSynchronousEvents) {
+					this.emit("message", buf, false);
+					this._state = GET_INFO;
+				} else {
+					this._state = DEFER_EVENT;
+					setImmediate(() => {
+						this.emit("message", buf, false);
+						this._state = GET_INFO;
+						this.startLoop(cb);
+					});
+				}
+			}
+		}
+		/**
+		* Handles a control message.
+		*
+		* @param {Buffer} data Data to handle
+		* @return {(Error|RangeError|undefined)} A possible error
+		* @private
+		*/
+		controlMessage(data, cb) {
+			if (this._opcode === 8) {
+				if (data.length === 0) {
+					this._loop = false;
+					this.emit("conclude", 1005, EMPTY_BUFFER);
+					this.end();
+				} else {
+					const code = data.readUInt16BE(0);
+					if (!isValidStatusCode(code)) {
+						cb(this.createError(RangeError, `invalid status code ${code}`, true, 1002, "WS_ERR_INVALID_CLOSE_CODE"));
+						return;
+					}
+					const buf = new FastBuffer(data.buffer, data.byteOffset + 2, data.length - 2);
+					if (!this._skipUTF8Validation && !isValidUTF8(buf)) {
+						cb(this.createError(Error, "invalid UTF-8 sequence", true, 1007, "WS_ERR_INVALID_UTF8"));
+						return;
+					}
+					this._loop = false;
+					this.emit("conclude", code, buf);
+					this.end();
+				}
+				this._state = GET_INFO;
+				return;
+			}
+			if (this._allowSynchronousEvents) {
+				this.emit(this._opcode === 9 ? "ping" : "pong", data);
+				this._state = GET_INFO;
+			} else {
+				this._state = DEFER_EVENT;
+				setImmediate(() => {
+					this.emit(this._opcode === 9 ? "ping" : "pong", data);
+					this._state = GET_INFO;
+					this.startLoop(cb);
+				});
+			}
+		}
+		/**
+		* Builds an error object.
+		*
+		* @param {function(new:Error|RangeError)} ErrorCtor The error constructor
+		* @param {String} message The error message
+		* @param {Boolean} prefix Specifies whether or not to add a default prefix to
+		*     `message`
+		* @param {Number} statusCode The status code
+		* @param {String} errorCode The exposed error code
+		* @return {(Error|RangeError)} The error
+		* @private
+		*/
+		createError(ErrorCtor, message, prefix, statusCode, errorCode) {
+			this._loop = false;
+			this._errored = true;
+			const err = new ErrorCtor(prefix ? `Invalid WebSocket frame: ${message}` : message);
+			Error.captureStackTrace(err, this.createError);
+			err.code = errorCode;
+			err[kStatusCode] = statusCode;
+			return err;
+		}
+	};
+	module.exports = Receiver;
+}));
+var require_sender = /* @__PURE__ */ __commonJSMin(((exports, module) => {
+	var { Duplex } = require_builtin_esm_external_require_stream();
+	var { randomFillSync } = require_builtin_esm_external_require_crypto();
+	var PerMessageDeflate = require_permessage_deflate();
+	var { EMPTY_BUFFER, kWebSocket, NOOP } = require_constants();
+	var { isBlob, isValidStatusCode } = require_validation();
+	var { mask: applyMask, toBuffer } = require_buffer_util();
+	var kByteLength = Symbol("kByteLength");
+	var maskBuffer = Buffer.alloc(4);
+	var RANDOM_POOL_SIZE = 8 * 1024;
+	var randomPool;
+	var randomPoolPointer = RANDOM_POOL_SIZE;
+	var DEFAULT = 0;
+	var DEFLATING = 1;
+	var GET_BLOB_DATA = 2;
+	module.exports = class Sender {
+		/**
+		* Creates a Sender instance.
+		*
+		* @param {Duplex} socket The connection socket
+		* @param {Object} [extensions] An object containing the negotiated extensions
+		* @param {Function} [generateMask] The function used to generate the masking
+		*     key
+		*/
+		constructor(socket, extensions, generateMask) {
+			this._extensions = extensions || {};
+			if (generateMask) {
+				this._generateMask = generateMask;
+				this._maskBuffer = Buffer.alloc(4);
+			}
+			this._socket = socket;
+			this._firstFragment = true;
+			this._compress = false;
+			this._bufferedBytes = 0;
+			this._queue = [];
+			this._state = DEFAULT;
+			this.onerror = NOOP;
+			this[kWebSocket] = void 0;
+		}
+		/**
+		* Frames a piece of data according to the HyBi WebSocket protocol.
+		*
+		* @param {(Buffer|String)} data The data to frame
+		* @param {Object} options Options object
+		* @param {Boolean} [options.fin=false] Specifies whether or not to set the
+		*     FIN bit
+		* @param {Function} [options.generateMask] The function used to generate the
+		*     masking key
+		* @param {Boolean} [options.mask=false] Specifies whether or not to mask
+		*     `data`
+		* @param {Buffer} [options.maskBuffer] The buffer used to store the masking
+		*     key
+		* @param {Number} options.opcode The opcode
+		* @param {Boolean} [options.readOnly=false] Specifies whether `data` can be
+		*     modified
+		* @param {Boolean} [options.rsv1=false] Specifies whether or not to set the
+		*     RSV1 bit
+		* @return {(Buffer|String)[]} The framed data
+		* @public
+		*/
+		static frame(data, options) {
+			let mask;
+			let merge = false;
+			let offset = 2;
+			let skipMasking = false;
+			if (options.mask) {
+				mask = options.maskBuffer || maskBuffer;
+				if (options.generateMask) options.generateMask(mask);
+				else {
+					if (randomPoolPointer === RANDOM_POOL_SIZE) {
+						/* istanbul ignore else  */
+						if (randomPool === void 0) randomPool = Buffer.alloc(RANDOM_POOL_SIZE);
+						randomFillSync(randomPool, 0, RANDOM_POOL_SIZE);
+						randomPoolPointer = 0;
+					}
+					mask[0] = randomPool[randomPoolPointer++];
+					mask[1] = randomPool[randomPoolPointer++];
+					mask[2] = randomPool[randomPoolPointer++];
+					mask[3] = randomPool[randomPoolPointer++];
+				}
+				skipMasking = (mask[0] | mask[1] | mask[2] | mask[3]) === 0;
+				offset = 6;
+			}
+			let dataLength;
+			if (typeof data === "string") if ((!options.mask || skipMasking) && options[kByteLength] !== void 0) dataLength = options[kByteLength];
+			else {
+				data = Buffer.from(data);
+				dataLength = data.length;
+			}
+			else {
+				dataLength = data.length;
+				merge = options.mask && options.readOnly && !skipMasking;
+			}
+			let payloadLength = dataLength;
+			if (dataLength >= 65536) {
+				offset += 8;
+				payloadLength = 127;
+			} else if (dataLength > 125) {
+				offset += 2;
+				payloadLength = 126;
+			}
+			const target = Buffer.allocUnsafe(merge ? dataLength + offset : offset);
+			target[0] = options.fin ? options.opcode | 128 : options.opcode;
+			if (options.rsv1) target[0] |= 64;
+			target[1] = payloadLength;
+			if (payloadLength === 126) target.writeUInt16BE(dataLength, 2);
+			else if (payloadLength === 127) {
+				target[2] = target[3] = 0;
+				target.writeUIntBE(dataLength, 4, 6);
+			}
+			if (!options.mask) return [target, data];
+			target[1] |= 128;
+			target[offset - 4] = mask[0];
+			target[offset - 3] = mask[1];
+			target[offset - 2] = mask[2];
+			target[offset - 1] = mask[3];
+			if (skipMasking) return [target, data];
+			if (merge) {
+				applyMask(data, mask, target, offset, dataLength);
+				return [target];
+			}
+			applyMask(data, mask, data, 0, dataLength);
+			return [target, data];
+		}
+		/**
+		* Sends a close message to the other peer.
+		*
+		* @param {Number} [code] The status code component of the body
+		* @param {(String|Buffer)} [data] The message component of the body
+		* @param {Boolean} [mask=false] Specifies whether or not to mask the message
+		* @param {Function} [cb] Callback
+		* @public
+		*/
+		close(code, data, mask, cb) {
+			let buf;
+			if (code === void 0) buf = EMPTY_BUFFER;
+			else if (typeof code !== "number" || !isValidStatusCode(code)) throw new TypeError("First argument must be a valid error code number");
+			else if (data === void 0 || !data.length) {
+				buf = Buffer.allocUnsafe(2);
+				buf.writeUInt16BE(code, 0);
+			} else {
+				const length = Buffer.byteLength(data);
+				if (length > 123) throw new RangeError("The message must not be greater than 123 bytes");
+				buf = Buffer.allocUnsafe(2 + length);
+				buf.writeUInt16BE(code, 0);
+				if (typeof data === "string") buf.write(data, 2);
+				else buf.set(data, 2);
+			}
+			const options = {
+				[kByteLength]: buf.length,
+				fin: true,
+				generateMask: this._generateMask,
+				mask,
+				maskBuffer: this._maskBuffer,
+				opcode: 8,
+				readOnly: false,
+				rsv1: false
+			};
+			if (this._state !== DEFAULT) this.enqueue([
+				this.dispatch,
+				buf,
+				false,
+				options,
+				cb
+			]);
+			else this.sendFrame(Sender.frame(buf, options), cb);
+		}
+		/**
+		* Sends a ping message to the other peer.
+		*
+		* @param {*} data The message to send
+		* @param {Boolean} [mask=false] Specifies whether or not to mask `data`
+		* @param {Function} [cb] Callback
+		* @public
+		*/
+		ping(data, mask, cb) {
+			let byteLength;
+			let readOnly;
+			if (typeof data === "string") {
+				byteLength = Buffer.byteLength(data);
+				readOnly = false;
+			} else if (isBlob(data)) {
+				byteLength = data.size;
+				readOnly = false;
+			} else {
+				data = toBuffer(data);
+				byteLength = data.length;
+				readOnly = toBuffer.readOnly;
+			}
+			if (byteLength > 125) throw new RangeError("The data size must not be greater than 125 bytes");
+			const options = {
+				[kByteLength]: byteLength,
+				fin: true,
+				generateMask: this._generateMask,
+				mask,
+				maskBuffer: this._maskBuffer,
+				opcode: 9,
+				readOnly,
+				rsv1: false
+			};
+			if (isBlob(data)) if (this._state !== DEFAULT) this.enqueue([
+				this.getBlobData,
+				data,
+				false,
+				options,
+				cb
+			]);
+			else this.getBlobData(data, false, options, cb);
+			else if (this._state !== DEFAULT) this.enqueue([
+				this.dispatch,
+				data,
+				false,
+				options,
+				cb
+			]);
+			else this.sendFrame(Sender.frame(data, options), cb);
+		}
+		/**
+		* Sends a pong message to the other peer.
+		*
+		* @param {*} data The message to send
+		* @param {Boolean} [mask=false] Specifies whether or not to mask `data`
+		* @param {Function} [cb] Callback
+		* @public
+		*/
+		pong(data, mask, cb) {
+			let byteLength;
+			let readOnly;
+			if (typeof data === "string") {
+				byteLength = Buffer.byteLength(data);
+				readOnly = false;
+			} else if (isBlob(data)) {
+				byteLength = data.size;
+				readOnly = false;
+			} else {
+				data = toBuffer(data);
+				byteLength = data.length;
+				readOnly = toBuffer.readOnly;
+			}
+			if (byteLength > 125) throw new RangeError("The data size must not be greater than 125 bytes");
+			const options = {
+				[kByteLength]: byteLength,
+				fin: true,
+				generateMask: this._generateMask,
+				mask,
+				maskBuffer: this._maskBuffer,
+				opcode: 10,
+				readOnly,
+				rsv1: false
+			};
+			if (isBlob(data)) if (this._state !== DEFAULT) this.enqueue([
+				this.getBlobData,
+				data,
+				false,
+				options,
+				cb
+			]);
+			else this.getBlobData(data, false, options, cb);
+			else if (this._state !== DEFAULT) this.enqueue([
+				this.dispatch,
+				data,
+				false,
+				options,
+				cb
+			]);
+			else this.sendFrame(Sender.frame(data, options), cb);
+		}
+		/**
+		* Sends a data message to the other peer.
+		*
+		* @param {*} data The message to send
+		* @param {Object} options Options object
+		* @param {Boolean} [options.binary=false] Specifies whether `data` is binary
+		*     or text
+		* @param {Boolean} [options.compress=false] Specifies whether or not to
+		*     compress `data`
+		* @param {Boolean} [options.fin=false] Specifies whether the fragment is the
+		*     last one
+		* @param {Boolean} [options.mask=false] Specifies whether or not to mask
+		*     `data`
+		* @param {Function} [cb] Callback
+		* @public
+		*/
+		send(data, options, cb) {
+			const perMessageDeflate = this._extensions[PerMessageDeflate.extensionName];
+			let opcode = options.binary ? 2 : 1;
+			let rsv1 = options.compress;
+			let byteLength;
+			let readOnly;
+			if (typeof data === "string") {
+				byteLength = Buffer.byteLength(data);
+				readOnly = false;
+			} else if (isBlob(data)) {
+				byteLength = data.size;
+				readOnly = false;
+			} else {
+				data = toBuffer(data);
+				byteLength = data.length;
+				readOnly = toBuffer.readOnly;
+			}
+			if (this._firstFragment) {
+				this._firstFragment = false;
+				if (rsv1 && perMessageDeflate && perMessageDeflate.params[perMessageDeflate._isServer ? "server_no_context_takeover" : "client_no_context_takeover"]) rsv1 = byteLength >= perMessageDeflate._threshold;
+				this._compress = rsv1;
+			} else {
+				rsv1 = false;
+				opcode = 0;
+			}
+			if (options.fin) this._firstFragment = true;
+			const opts = {
+				[kByteLength]: byteLength,
+				fin: options.fin,
+				generateMask: this._generateMask,
+				mask: options.mask,
+				maskBuffer: this._maskBuffer,
+				opcode,
+				readOnly,
+				rsv1
+			};
+			if (isBlob(data)) if (this._state !== DEFAULT) this.enqueue([
+				this.getBlobData,
+				data,
+				this._compress,
+				opts,
+				cb
+			]);
+			else this.getBlobData(data, this._compress, opts, cb);
+			else if (this._state !== DEFAULT) this.enqueue([
+				this.dispatch,
+				data,
+				this._compress,
+				opts,
+				cb
+			]);
+			else this.dispatch(data, this._compress, opts, cb);
+		}
+		/**
+		* Gets the contents of a blob as binary data.
+		*
+		* @param {Blob} blob The blob
+		* @param {Boolean} [compress=false] Specifies whether or not to compress
+		*     the data
+		* @param {Object} options Options object
+		* @param {Boolean} [options.fin=false] Specifies whether or not to set the
+		*     FIN bit
+		* @param {Function} [options.generateMask] The function used to generate the
+		*     masking key
+		* @param {Boolean} [options.mask=false] Specifies whether or not to mask
+		*     `data`
+		* @param {Buffer} [options.maskBuffer] The buffer used to store the masking
+		*     key
+		* @param {Number} options.opcode The opcode
+		* @param {Boolean} [options.readOnly=false] Specifies whether `data` can be
+		*     modified
+		* @param {Boolean} [options.rsv1=false] Specifies whether or not to set the
+		*     RSV1 bit
+		* @param {Function} [cb] Callback
+		* @private
+		*/
+		getBlobData(blob, compress, options, cb) {
+			this._bufferedBytes += options[kByteLength];
+			this._state = GET_BLOB_DATA;
+			blob.arrayBuffer().then((arrayBuffer) => {
+				if (this._socket.destroyed) {
+					const err = /* @__PURE__ */ new Error("The socket was closed while the blob was being read");
+					process.nextTick(callCallbacks, this, err, cb);
+					return;
+				}
+				this._bufferedBytes -= options[kByteLength];
+				const data = toBuffer(arrayBuffer);
+				if (!compress) {
+					this._state = DEFAULT;
+					this.sendFrame(Sender.frame(data, options), cb);
+					this.dequeue();
+				} else this.dispatch(data, compress, options, cb);
+			}).catch((err) => {
+				process.nextTick(onError, this, err, cb);
+			});
+		}
+		/**
+		* Dispatches a message.
+		*
+		* @param {(Buffer|String)} data The message to send
+		* @param {Boolean} [compress=false] Specifies whether or not to compress
+		*     `data`
+		* @param {Object} options Options object
+		* @param {Boolean} [options.fin=false] Specifies whether or not to set the
+		*     FIN bit
+		* @param {Function} [options.generateMask] The function used to generate the
+		*     masking key
+		* @param {Boolean} [options.mask=false] Specifies whether or not to mask
+		*     `data`
+		* @param {Buffer} [options.maskBuffer] The buffer used to store the masking
+		*     key
+		* @param {Number} options.opcode The opcode
+		* @param {Boolean} [options.readOnly=false] Specifies whether `data` can be
+		*     modified
+		* @param {Boolean} [options.rsv1=false] Specifies whether or not to set the
+		*     RSV1 bit
+		* @param {Function} [cb] Callback
+		* @private
+		*/
+		dispatch(data, compress, options, cb) {
+			if (!compress) {
+				this.sendFrame(Sender.frame(data, options), cb);
+				return;
+			}
+			const perMessageDeflate = this._extensions[PerMessageDeflate.extensionName];
+			this._bufferedBytes += options[kByteLength];
+			this._state = DEFLATING;
+			perMessageDeflate.compress(data, options.fin, (_, buf) => {
+				if (this._socket.destroyed) {
+					callCallbacks(this, /* @__PURE__ */ new Error("The socket was closed while data was being compressed"), cb);
+					return;
+				}
+				this._bufferedBytes -= options[kByteLength];
+				this._state = DEFAULT;
+				options.readOnly = false;
+				this.sendFrame(Sender.frame(buf, options), cb);
+				this.dequeue();
+			});
+		}
+		/**
+		* Executes queued send operations.
+		*
+		* @private
+		*/
+		dequeue() {
+			while (this._state === DEFAULT && this._queue.length) {
+				const params = this._queue.shift();
+				this._bufferedBytes -= params[3][kByteLength];
+				Reflect.apply(params[0], this, params.slice(1));
+			}
+		}
+		/**
+		* Enqueues a send operation.
+		*
+		* @param {Array} params Send operation parameters.
+		* @private
+		*/
+		enqueue(params) {
+			this._bufferedBytes += params[3][kByteLength];
+			this._queue.push(params);
+		}
+		/**
+		* Sends a frame.
+		*
+		* @param {(Buffer | String)[]} list The frame to send
+		* @param {Function} [cb] Callback
+		* @private
+		*/
+		sendFrame(list, cb) {
+			if (list.length === 2) {
+				this._socket.cork();
+				this._socket.write(list[0]);
+				this._socket.write(list[1], cb);
+				this._socket.uncork();
+			} else this._socket.write(list[0], cb);
+		}
+	};
+	/**
+	* Calls queued callbacks with an error.
+	*
+	* @param {Sender} sender The `Sender` instance
+	* @param {Error} err The error to call the callbacks with
+	* @param {Function} [cb] The first callback
+	* @private
+	*/
+	function callCallbacks(sender, err, cb) {
+		if (typeof cb === "function") cb(err);
+		for (let i = 0; i < sender._queue.length; i++) {
+			const params = sender._queue[i];
+			const callback = params[params.length - 1];
+			if (typeof callback === "function") callback(err);
+		}
+	}
+	/**
+	* Handles a `Sender` error.
+	*
+	* @param {Sender} sender The `Sender` instance
+	* @param {Error} err The error
+	* @param {Function} [cb] The first pending callback
+	* @private
+	*/
+	function onError(sender, err, cb) {
+		callCallbacks(sender, err, cb);
+		sender.onerror(err);
+	}
+}));
+var require_event_target = /* @__PURE__ */ __commonJSMin(((exports, module) => {
+	var { kForOnEventAttribute, kListener } = require_constants();
+	var kCode = Symbol("kCode");
+	var kData = Symbol("kData");
+	var kError = Symbol("kError");
+	var kMessage = Symbol("kMessage");
+	var kReason = Symbol("kReason");
+	var kTarget = Symbol("kTarget");
+	var kType = Symbol("kType");
+	var kWasClean = Symbol("kWasClean");
+	/**
+	* Class representing an event.
+	*/
+	var Event = class {
+		/**
+		* Create a new `Event`.
+		*
+		* @param {String} type The name of the event
+		* @throws {TypeError} If the `type` argument is not specified
+		*/
+		constructor(type) {
+			this[kTarget] = null;
+			this[kType] = type;
+		}
+		/**
+		* @type {*}
+		*/
+		get target() {
+			return this[kTarget];
+		}
+		/**
+		* @type {String}
+		*/
+		get type() {
+			return this[kType];
+		}
+	};
+	Object.defineProperty(Event.prototype, "target", { enumerable: true });
+	Object.defineProperty(Event.prototype, "type", { enumerable: true });
+	/**
+	* Class representing a close event.
+	*
+	* @extends Event
+	*/
+	var CloseEvent = class extends Event {
+		/**
+		* Create a new `CloseEvent`.
+		*
+		* @param {String} type The name of the event
+		* @param {Object} [options] A dictionary object that allows for setting
+		*     attributes via object members of the same name
+		* @param {Number} [options.code=0] The status code explaining why the
+		*     connection was closed
+		* @param {String} [options.reason=''] A human-readable string explaining why
+		*     the connection was closed
+		* @param {Boolean} [options.wasClean=false] Indicates whether or not the
+		*     connection was cleanly closed
+		*/
+		constructor(type, options = {}) {
+			super(type);
+			this[kCode] = options.code === void 0 ? 0 : options.code;
+			this[kReason] = options.reason === void 0 ? "" : options.reason;
+			this[kWasClean] = options.wasClean === void 0 ? false : options.wasClean;
+		}
+		/**
+		* @type {Number}
+		*/
+		get code() {
+			return this[kCode];
+		}
+		/**
+		* @type {String}
+		*/
+		get reason() {
+			return this[kReason];
+		}
+		/**
+		* @type {Boolean}
+		*/
+		get wasClean() {
+			return this[kWasClean];
+		}
+	};
+	Object.defineProperty(CloseEvent.prototype, "code", { enumerable: true });
+	Object.defineProperty(CloseEvent.prototype, "reason", { enumerable: true });
+	Object.defineProperty(CloseEvent.prototype, "wasClean", { enumerable: true });
+	/**
+	* Class representing an error event.
+	*
+	* @extends Event
+	*/
+	var ErrorEvent = class extends Event {
+		/**
+		* Create a new `ErrorEvent`.
+		*
+		* @param {String} type The name of the event
+		* @param {Object} [options] A dictionary object that allows for setting
+		*     attributes via object members of the same name
+		* @param {*} [options.error=null] The error that generated this event
+		* @param {String} [options.message=''] The error message
+		*/
+		constructor(type, options = {}) {
+			super(type);
+			this[kError] = options.error === void 0 ? null : options.error;
+			this[kMessage] = options.message === void 0 ? "" : options.message;
+		}
+		/**
+		* @type {*}
+		*/
+		get error() {
+			return this[kError];
+		}
+		/**
+		* @type {String}
+		*/
+		get message() {
+			return this[kMessage];
+		}
+	};
+	Object.defineProperty(ErrorEvent.prototype, "error", { enumerable: true });
+	Object.defineProperty(ErrorEvent.prototype, "message", { enumerable: true });
+	/**
+	* Class representing a message event.
+	*
+	* @extends Event
+	*/
+	var MessageEvent = class extends Event {
+		/**
+		* Create a new `MessageEvent`.
+		*
+		* @param {String} type The name of the event
+		* @param {Object} [options] A dictionary object that allows for setting
+		*     attributes via object members of the same name
+		* @param {*} [options.data=null] The message content
+		*/
+		constructor(type, options = {}) {
+			super(type);
+			this[kData] = options.data === void 0 ? null : options.data;
+		}
+		/**
+		* @type {*}
+		*/
+		get data() {
+			return this[kData];
+		}
+	};
+	Object.defineProperty(MessageEvent.prototype, "data", { enumerable: true });
+	module.exports = {
+		CloseEvent,
+		ErrorEvent,
+		Event,
+		EventTarget: {
+			addEventListener(type, handler, options = {}) {
+				for (const listener of this.listeners(type)) if (!options[kForOnEventAttribute] && listener[kListener] === handler && !listener[kForOnEventAttribute]) return;
+				let wrapper;
+				if (type === "message") wrapper = function onMessage(data, isBinary) {
+					const event = new MessageEvent("message", { data: isBinary ? data : data.toString() });
+					event[kTarget] = this;
+					callListener(handler, this, event);
+				};
+				else if (type === "close") wrapper = function onClose(code, message) {
+					const event = new CloseEvent("close", {
+						code,
+						reason: message.toString(),
+						wasClean: this._closeFrameReceived && this._closeFrameSent
+					});
+					event[kTarget] = this;
+					callListener(handler, this, event);
+				};
+				else if (type === "error") wrapper = function onError(error) {
+					const event = new ErrorEvent("error", {
+						error,
+						message: error.message
+					});
+					event[kTarget] = this;
+					callListener(handler, this, event);
+				};
+				else if (type === "open") wrapper = function onOpen() {
+					const event = new Event("open");
+					event[kTarget] = this;
+					callListener(handler, this, event);
+				};
+				else return;
+				wrapper[kForOnEventAttribute] = !!options[kForOnEventAttribute];
+				wrapper[kListener] = handler;
+				if (options.once) this.once(type, wrapper);
+				else this.on(type, wrapper);
+			},
+			removeEventListener(type, handler) {
+				for (const listener of this.listeners(type)) if (listener[kListener] === handler && !listener[kForOnEventAttribute]) {
+					this.removeListener(type, listener);
+					break;
+				}
+			}
+		},
+		MessageEvent
+	};
+	/**
+	* Call an event listener
+	*
+	* @param {(Function|Object)} listener The listener to call
+	* @param {*} thisArg The value to use as `this`` when calling the listener
+	* @param {Event} event The event to pass to the listener
+	* @private
+	*/
+	function callListener(listener, thisArg, event) {
+		if (typeof listener === "object" && listener.handleEvent) listener.handleEvent.call(listener, event);
+		else listener.call(thisArg, event);
+	}
+}));
+var require_extension = /* @__PURE__ */ __commonJSMin(((exports, module) => {
+	var { tokenChars } = require_validation();
+	/**
+	* Adds an offer to the map of extension offers or a parameter to the map of
+	* parameters.
+	*
+	* @param {Object} dest The map of extension offers or parameters
+	* @param {String} name The extension or parameter name
+	* @param {(Object|Boolean|String)} elem The extension parameters or the
+	*     parameter value
+	* @private
+	*/
+	function push(dest, name, elem) {
+		if (dest[name] === void 0) dest[name] = [elem];
+		else dest[name].push(elem);
+	}
+	/**
+	* Parses the `Sec-WebSocket-Extensions` header into an object.
+	*
+	* @param {String} header The field value of the header
+	* @return {Object} The parsed object
+	* @public
+	*/
+	function parse(header) {
+		const offers = Object.create(null);
+		let params = Object.create(null);
+		let mustUnescape = false;
+		let isEscaping = false;
+		let inQuotes = false;
+		let extensionName;
+		let paramName;
+		let start = -1;
+		let code = -1;
+		let end = -1;
+		let i = 0;
+		for (; i < header.length; i++) {
+			code = header.charCodeAt(i);
+			if (extensionName === void 0) if (end === -1 && tokenChars[code] === 1) {
+				if (start === -1) start = i;
+			} else if (i !== 0 && (code === 32 || code === 9)) {
+				if (end === -1 && start !== -1) end = i;
+			} else if (code === 59 || code === 44) {
+				if (start === -1) throw new SyntaxError(`Unexpected character at index ${i}`);
+				if (end === -1) end = i;
+				const name = header.slice(start, end);
+				if (code === 44) {
+					push(offers, name, params);
+					params = Object.create(null);
+				} else extensionName = name;
+				start = end = -1;
+			} else throw new SyntaxError(`Unexpected character at index ${i}`);
+			else if (paramName === void 0) if (end === -1 && tokenChars[code] === 1) {
+				if (start === -1) start = i;
+			} else if (code === 32 || code === 9) {
+				if (end === -1 && start !== -1) end = i;
+			} else if (code === 59 || code === 44) {
+				if (start === -1) throw new SyntaxError(`Unexpected character at index ${i}`);
+				if (end === -1) end = i;
+				push(params, header.slice(start, end), true);
+				if (code === 44) {
+					push(offers, extensionName, params);
+					params = Object.create(null);
+					extensionName = void 0;
+				}
+				start = end = -1;
+			} else if (code === 61 && start !== -1 && end === -1) {
+				paramName = header.slice(start, i);
+				start = end = -1;
+			} else throw new SyntaxError(`Unexpected character at index ${i}`);
+			else if (isEscaping) {
+				if (tokenChars[code] !== 1) throw new SyntaxError(`Unexpected character at index ${i}`);
+				if (start === -1) start = i;
+				else if (!mustUnescape) mustUnescape = true;
+				isEscaping = false;
+			} else if (inQuotes) if (tokenChars[code] === 1) {
+				if (start === -1) start = i;
+			} else if (code === 34 && start !== -1) {
+				inQuotes = false;
+				end = i;
+			} else if (code === 92) isEscaping = true;
+			else throw new SyntaxError(`Unexpected character at index ${i}`);
+			else if (code === 34 && header.charCodeAt(i - 1) === 61) inQuotes = true;
+			else if (end === -1 && tokenChars[code] === 1) {
+				if (start === -1) start = i;
+			} else if (start !== -1 && (code === 32 || code === 9)) {
+				if (end === -1) end = i;
+			} else if (code === 59 || code === 44) {
+				if (start === -1) throw new SyntaxError(`Unexpected character at index ${i}`);
+				if (end === -1) end = i;
+				let value = header.slice(start, end);
+				if (mustUnescape) {
+					value = value.replace(/\\/g, "");
+					mustUnescape = false;
+				}
+				push(params, paramName, value);
+				if (code === 44) {
+					push(offers, extensionName, params);
+					params = Object.create(null);
+					extensionName = void 0;
+				}
+				paramName = void 0;
+				start = end = -1;
+			} else throw new SyntaxError(`Unexpected character at index ${i}`);
+		}
+		if (start === -1 || inQuotes || code === 32 || code === 9) throw new SyntaxError("Unexpected end of input");
+		if (end === -1) end = i;
+		const token = header.slice(start, end);
+		if (extensionName === void 0) push(offers, token, params);
+		else {
+			if (paramName === void 0) push(params, token, true);
+			else if (mustUnescape) push(params, paramName, token.replace(/\\/g, ""));
+			else push(params, paramName, token);
+			push(offers, extensionName, params);
+		}
+		return offers;
+	}
+	/**
+	* Builds the `Sec-WebSocket-Extensions` header field value.
+	*
+	* @param {Object} extensions The map of extensions and parameters to format
+	* @return {String} A string representing the given object
+	* @public
+	*/
+	function format(extensions) {
+		return Object.keys(extensions).map((extension) => {
+			let configurations = extensions[extension];
+			if (!Array.isArray(configurations)) configurations = [configurations];
+			return configurations.map((params) => {
+				return [extension].concat(Object.keys(params).map((k) => {
+					let values = params[k];
+					if (!Array.isArray(values)) values = [values];
+					return values.map((v) => v === true ? k : `${k}=${v}`).join("; ");
+				})).join("; ");
+			}).join(", ");
+		}).join(", ");
+	}
+	module.exports = {
+		format,
+		parse
+	};
+}));
+var require_websocket = /* @__PURE__ */ __commonJSMin(((exports, module) => {
+	var EventEmitter = require_builtin_esm_external_require_events();
+	var https = require_builtin_esm_external_require_https();
+	var http = require_builtin_esm_external_require_http();
+	var net = require_builtin_esm_external_require_net();
+	var tls = require_builtin_esm_external_require_tls();
+	var { randomBytes, createHash } = require_builtin_esm_external_require_crypto();
+	var { Duplex, Readable } = require_builtin_esm_external_require_stream();
+	var { URL } = require_builtin_esm_external_require_url();
+	var PerMessageDeflate = require_permessage_deflate();
+	var Receiver = require_receiver();
+	var Sender = require_sender();
+	var { isBlob } = require_validation();
+	var { BINARY_TYPES, CLOSE_TIMEOUT, EMPTY_BUFFER, GUID, kForOnEventAttribute, kListener, kStatusCode, kWebSocket, NOOP } = require_constants();
+	var { EventTarget: { addEventListener, removeEventListener } } = require_event_target();
+	var { format, parse } = require_extension();
+	var { toBuffer } = require_buffer_util();
+	var kAborted = Symbol("kAborted");
+	var protocolVersions = [8, 13];
+	var readyStates = [
+		"CONNECTING",
+		"OPEN",
+		"CLOSING",
+		"CLOSED"
+	];
+	var subprotocolRegex = /^[!#$%&'*+\-.0-9A-Z^_`|a-z~]+$/;
+	/**
+	* Class representing a WebSocket.
+	*
+	* @extends EventEmitter
+	*/
+	var WebSocket = class WebSocket extends EventEmitter {
+		/**
+		* Create a new `WebSocket`.
+		*
+		* @param {(String|URL)} address The URL to which to connect
+		* @param {(String|String[])} [protocols] The subprotocols
+		* @param {Object} [options] Connection options
+		*/
+		constructor(address, protocols, options) {
+			super();
+			this._binaryType = BINARY_TYPES[0];
+			this._closeCode = 1006;
+			this._closeFrameReceived = false;
+			this._closeFrameSent = false;
+			this._closeMessage = EMPTY_BUFFER;
+			this._closeTimer = null;
+			this._errorEmitted = false;
+			this._extensions = {};
+			this._paused = false;
+			this._protocol = "";
+			this._readyState = WebSocket.CONNECTING;
+			this._receiver = null;
+			this._sender = null;
+			this._socket = null;
+			if (address !== null) {
+				this._bufferedAmount = 0;
+				this._isServer = false;
+				this._redirects = 0;
+				if (protocols === void 0) protocols = [];
+				else if (!Array.isArray(protocols)) if (typeof protocols === "object" && protocols !== null) {
+					options = protocols;
+					protocols = [];
+				} else protocols = [protocols];
+				initAsClient(this, address, protocols, options);
+			} else {
+				this._autoPong = options.autoPong;
+				this._closeTimeout = options.closeTimeout;
+				this._isServer = true;
+			}
+		}
+		/**
+		* For historical reasons, the custom "nodebuffer" type is used by the default
+		* instead of "blob".
+		*
+		* @type {String}
+		*/
+		get binaryType() {
+			return this._binaryType;
+		}
+		set binaryType(type) {
+			if (!BINARY_TYPES.includes(type)) return;
+			this._binaryType = type;
+			if (this._receiver) this._receiver._binaryType = type;
+		}
+		/**
+		* @type {Number}
+		*/
+		get bufferedAmount() {
+			if (!this._socket) return this._bufferedAmount;
+			return this._socket._writableState.length + this._sender._bufferedBytes;
+		}
+		/**
+		* @type {String}
+		*/
+		get extensions() {
+			return Object.keys(this._extensions).join();
+		}
+		/**
+		* @type {Boolean}
+		*/
+		get isPaused() {
+			return this._paused;
+		}
+		/**
+		* @type {Function}
+		*/
+		/* istanbul ignore next */
+		get onclose() {
+			return null;
+		}
+		/**
+		* @type {Function}
+		*/
+		/* istanbul ignore next */
+		get onerror() {
+			return null;
+		}
+		/**
+		* @type {Function}
+		*/
+		/* istanbul ignore next */
+		get onopen() {
+			return null;
+		}
+		/**
+		* @type {Function}
+		*/
+		/* istanbul ignore next */
+		get onmessage() {
+			return null;
+		}
+		/**
+		* @type {String}
+		*/
+		get protocol() {
+			return this._protocol;
+		}
+		/**
+		* @type {Number}
+		*/
+		get readyState() {
+			return this._readyState;
+		}
+		/**
+		* @type {String}
+		*/
+		get url() {
+			return this._url;
+		}
+		/**
+		* Set up the socket and the internal resources.
+		*
+		* @param {Duplex} socket The network socket between the server and client
+		* @param {Buffer} head The first packet of the upgraded stream
+		* @param {Object} options Options object
+		* @param {Boolean} [options.allowSynchronousEvents=false] Specifies whether
+		*     any of the `'message'`, `'ping'`, and `'pong'` events can be emitted
+		*     multiple times in the same tick
+		* @param {Function} [options.generateMask] The function used to generate the
+		*     masking key
+		* @param {Number} [options.maxPayload=0] The maximum allowed message size
+		* @param {Boolean} [options.skipUTF8Validation=false] Specifies whether or
+		*     not to skip UTF-8 validation for text and close messages
+		* @private
+		*/
+		setSocket(socket, head, options) {
+			const receiver = new Receiver({
+				allowSynchronousEvents: options.allowSynchronousEvents,
+				binaryType: this.binaryType,
+				extensions: this._extensions,
+				isServer: this._isServer,
+				maxPayload: options.maxPayload,
+				skipUTF8Validation: options.skipUTF8Validation
+			});
+			const sender = new Sender(socket, this._extensions, options.generateMask);
+			this._receiver = receiver;
+			this._sender = sender;
+			this._socket = socket;
+			receiver[kWebSocket] = this;
+			sender[kWebSocket] = this;
+			socket[kWebSocket] = this;
+			receiver.on("conclude", receiverOnConclude);
+			receiver.on("drain", receiverOnDrain);
+			receiver.on("error", receiverOnError);
+			receiver.on("message", receiverOnMessage);
+			receiver.on("ping", receiverOnPing);
+			receiver.on("pong", receiverOnPong);
+			sender.onerror = senderOnError;
+			if (socket.setTimeout) socket.setTimeout(0);
+			if (socket.setNoDelay) socket.setNoDelay();
+			if (head.length > 0) socket.unshift(head);
+			socket.on("close", socketOnClose);
+			socket.on("data", socketOnData);
+			socket.on("end", socketOnEnd);
+			socket.on("error", socketOnError);
+			this._readyState = WebSocket.OPEN;
+			this.emit("open");
+		}
+		/**
+		* Emit the `'close'` event.
+		*
+		* @private
+		*/
+		emitClose() {
+			if (!this._socket) {
+				this._readyState = WebSocket.CLOSED;
+				this.emit("close", this._closeCode, this._closeMessage);
+				return;
+			}
+			if (this._extensions[PerMessageDeflate.extensionName]) this._extensions[PerMessageDeflate.extensionName].cleanup();
+			this._receiver.removeAllListeners();
+			this._readyState = WebSocket.CLOSED;
+			this.emit("close", this._closeCode, this._closeMessage);
+		}
+		/**
+		* Start a closing handshake.
+		*
+		*          +----------+   +-----------+   +----------+
+		*     - - -|ws.close()|-->|close frame|-->|ws.close()|- - -
+		*    |     +----------+   +-----------+   +----------+     |
+		*          +----------+   +-----------+         |
+		* CLOSING  |ws.close()|<--|close frame|<--+-----+       CLOSING
+		*          +----------+   +-----------+   |
+		*    |           |                        |   +---+        |
+		*                +------------------------+-->|fin| - - - -
+		*    |         +---+                      |   +---+
+		*     - - - - -|fin|<---------------------+
+		*              +---+
+		*
+		* @param {Number} [code] Status code explaining why the connection is closing
+		* @param {(String|Buffer)} [data] The reason why the connection is
+		*     closing
+		* @public
+		*/
+		close(code, data) {
+			if (this.readyState === WebSocket.CLOSED) return;
+			if (this.readyState === WebSocket.CONNECTING) {
+				abortHandshake(this, this._req, "WebSocket was closed before the connection was established");
+				return;
+			}
+			if (this.readyState === WebSocket.CLOSING) {
+				if (this._closeFrameSent && (this._closeFrameReceived || this._receiver._writableState.errorEmitted)) this._socket.end();
+				return;
+			}
+			this._readyState = WebSocket.CLOSING;
+			this._sender.close(code, data, !this._isServer, (err) => {
+				if (err) return;
+				this._closeFrameSent = true;
+				if (this._closeFrameReceived || this._receiver._writableState.errorEmitted) this._socket.end();
+			});
+			setCloseTimer(this);
+		}
+		/**
+		* Pause the socket.
+		*
+		* @public
+		*/
+		pause() {
+			if (this.readyState === WebSocket.CONNECTING || this.readyState === WebSocket.CLOSED) return;
+			this._paused = true;
+			this._socket.pause();
+		}
+		/**
+		* Send a ping.
+		*
+		* @param {*} [data] The data to send
+		* @param {Boolean} [mask] Indicates whether or not to mask `data`
+		* @param {Function} [cb] Callback which is executed when the ping is sent
+		* @public
+		*/
+		ping(data, mask, cb) {
+			if (this.readyState === WebSocket.CONNECTING) throw new Error("WebSocket is not open: readyState 0 (CONNECTING)");
+			if (typeof data === "function") {
+				cb = data;
+				data = mask = void 0;
+			} else if (typeof mask === "function") {
+				cb = mask;
+				mask = void 0;
+			}
+			if (typeof data === "number") data = data.toString();
+			if (this.readyState !== WebSocket.OPEN) {
+				sendAfterClose(this, data, cb);
+				return;
+			}
+			if (mask === void 0) mask = !this._isServer;
+			this._sender.ping(data || EMPTY_BUFFER, mask, cb);
+		}
+		/**
+		* Send a pong.
+		*
+		* @param {*} [data] The data to send
+		* @param {Boolean} [mask] Indicates whether or not to mask `data`
+		* @param {Function} [cb] Callback which is executed when the pong is sent
+		* @public
+		*/
+		pong(data, mask, cb) {
+			if (this.readyState === WebSocket.CONNECTING) throw new Error("WebSocket is not open: readyState 0 (CONNECTING)");
+			if (typeof data === "function") {
+				cb = data;
+				data = mask = void 0;
+			} else if (typeof mask === "function") {
+				cb = mask;
+				mask = void 0;
+			}
+			if (typeof data === "number") data = data.toString();
+			if (this.readyState !== WebSocket.OPEN) {
+				sendAfterClose(this, data, cb);
+				return;
+			}
+			if (mask === void 0) mask = !this._isServer;
+			this._sender.pong(data || EMPTY_BUFFER, mask, cb);
+		}
+		/**
+		* Resume the socket.
+		*
+		* @public
+		*/
+		resume() {
+			if (this.readyState === WebSocket.CONNECTING || this.readyState === WebSocket.CLOSED) return;
+			this._paused = false;
+			if (!this._receiver._writableState.needDrain) this._socket.resume();
+		}
+		/**
+		* Send a data message.
+		*
+		* @param {*} data The message to send
+		* @param {Object} [options] Options object
+		* @param {Boolean} [options.binary] Specifies whether `data` is binary or
+		*     text
+		* @param {Boolean} [options.compress] Specifies whether or not to compress
+		*     `data`
+		* @param {Boolean} [options.fin=true] Specifies whether the fragment is the
+		*     last one
+		* @param {Boolean} [options.mask] Specifies whether or not to mask `data`
+		* @param {Function} [cb] Callback which is executed when data is written out
+		* @public
+		*/
+		send(data, options, cb) {
+			if (this.readyState === WebSocket.CONNECTING) throw new Error("WebSocket is not open: readyState 0 (CONNECTING)");
+			if (typeof options === "function") {
+				cb = options;
+				options = {};
+			}
+			if (typeof data === "number") data = data.toString();
+			if (this.readyState !== WebSocket.OPEN) {
+				sendAfterClose(this, data, cb);
+				return;
+			}
+			const opts = {
+				binary: typeof data !== "string",
+				mask: !this._isServer,
+				compress: true,
+				fin: true,
+				...options
+			};
+			if (!this._extensions[PerMessageDeflate.extensionName]) opts.compress = false;
+			this._sender.send(data || EMPTY_BUFFER, opts, cb);
+		}
+		/**
+		* Forcibly close the connection.
+		*
+		* @public
+		*/
+		terminate() {
+			if (this.readyState === WebSocket.CLOSED) return;
+			if (this.readyState === WebSocket.CONNECTING) {
+				abortHandshake(this, this._req, "WebSocket was closed before the connection was established");
+				return;
+			}
+			if (this._socket) {
+				this._readyState = WebSocket.CLOSING;
+				this._socket.destroy();
+			}
+		}
+	};
+	/**
+	* @constant {Number} CONNECTING
+	* @memberof WebSocket
+	*/
+	Object.defineProperty(WebSocket, "CONNECTING", {
+		enumerable: true,
+		value: readyStates.indexOf("CONNECTING")
+	});
+	/**
+	* @constant {Number} CONNECTING
+	* @memberof WebSocket.prototype
+	*/
+	Object.defineProperty(WebSocket.prototype, "CONNECTING", {
+		enumerable: true,
+		value: readyStates.indexOf("CONNECTING")
+	});
+	/**
+	* @constant {Number} OPEN
+	* @memberof WebSocket
+	*/
+	Object.defineProperty(WebSocket, "OPEN", {
+		enumerable: true,
+		value: readyStates.indexOf("OPEN")
+	});
+	/**
+	* @constant {Number} OPEN
+	* @memberof WebSocket.prototype
+	*/
+	Object.defineProperty(WebSocket.prototype, "OPEN", {
+		enumerable: true,
+		value: readyStates.indexOf("OPEN")
+	});
+	/**
+	* @constant {Number} CLOSING
+	* @memberof WebSocket
+	*/
+	Object.defineProperty(WebSocket, "CLOSING", {
+		enumerable: true,
+		value: readyStates.indexOf("CLOSING")
+	});
+	/**
+	* @constant {Number} CLOSING
+	* @memberof WebSocket.prototype
+	*/
+	Object.defineProperty(WebSocket.prototype, "CLOSING", {
+		enumerable: true,
+		value: readyStates.indexOf("CLOSING")
+	});
+	/**
+	* @constant {Number} CLOSED
+	* @memberof WebSocket
+	*/
+	Object.defineProperty(WebSocket, "CLOSED", {
+		enumerable: true,
+		value: readyStates.indexOf("CLOSED")
+	});
+	/**
+	* @constant {Number} CLOSED
+	* @memberof WebSocket.prototype
+	*/
+	Object.defineProperty(WebSocket.prototype, "CLOSED", {
+		enumerable: true,
+		value: readyStates.indexOf("CLOSED")
+	});
+	[
+		"binaryType",
+		"bufferedAmount",
+		"extensions",
+		"isPaused",
+		"protocol",
+		"readyState",
+		"url"
+	].forEach((property) => {
+		Object.defineProperty(WebSocket.prototype, property, { enumerable: true });
+	});
+	[
+		"open",
+		"error",
+		"close",
+		"message"
+	].forEach((method) => {
+		Object.defineProperty(WebSocket.prototype, `on${method}`, {
+			enumerable: true,
+			get() {
+				for (const listener of this.listeners(method)) if (listener[kForOnEventAttribute]) return listener[kListener];
+				return null;
+			},
+			set(handler) {
+				for (const listener of this.listeners(method)) if (listener[kForOnEventAttribute]) {
+					this.removeListener(method, listener);
+					break;
+				}
+				if (typeof handler !== "function") return;
+				this.addEventListener(method, handler, { [kForOnEventAttribute]: true });
+			}
+		});
+	});
+	WebSocket.prototype.addEventListener = addEventListener;
+	WebSocket.prototype.removeEventListener = removeEventListener;
+	module.exports = WebSocket;
+	/**
+	* Initialize a WebSocket client.
+	*
+	* @param {WebSocket} websocket The client to initialize
+	* @param {(String|URL)} address The URL to which to connect
+	* @param {Array} protocols The subprotocols
+	* @param {Object} [options] Connection options
+	* @param {Boolean} [options.allowSynchronousEvents=true] Specifies whether any
+	*     of the `'message'`, `'ping'`, and `'pong'` events can be emitted multiple
+	*     times in the same tick
+	* @param {Boolean} [options.autoPong=true] Specifies whether or not to
+	*     automatically send a pong in response to a ping
+	* @param {Number} [options.closeTimeout=30000] Duration in milliseconds to wait
+	*     for the closing handshake to finish after `websocket.close()` is called
+	* @param {Function} [options.finishRequest] A function which can be used to
+	*     customize the headers of each http request before it is sent
+	* @param {Boolean} [options.followRedirects=false] Whether or not to follow
+	*     redirects
+	* @param {Function} [options.generateMask] The function used to generate the
+	*     masking key
+	* @param {Number} [options.handshakeTimeout] Timeout in milliseconds for the
+	*     handshake request
+	* @param {Number} [options.maxPayload=104857600] The maximum allowed message
+	*     size
+	* @param {Number} [options.maxRedirects=10] The maximum number of redirects
+	*     allowed
+	* @param {String} [options.origin] Value of the `Origin` or
+	*     `Sec-WebSocket-Origin` header
+	* @param {(Boolean|Object)} [options.perMessageDeflate=true] Enable/disable
+	*     permessage-deflate
+	* @param {Number} [options.protocolVersion=13] Value of the
+	*     `Sec-WebSocket-Version` header
+	* @param {Boolean} [options.skipUTF8Validation=false] Specifies whether or
+	*     not to skip UTF-8 validation for text and close messages
+	* @private
+	*/
+	function initAsClient(websocket, address, protocols, options) {
+		const opts = {
+			allowSynchronousEvents: true,
+			autoPong: true,
+			closeTimeout: CLOSE_TIMEOUT,
+			protocolVersion: protocolVersions[1],
+			maxPayload: 100 * 1024 * 1024,
+			skipUTF8Validation: false,
+			perMessageDeflate: true,
+			followRedirects: false,
+			maxRedirects: 10,
+			...options,
+			socketPath: void 0,
+			hostname: void 0,
+			protocol: void 0,
+			timeout: void 0,
+			method: "GET",
+			host: void 0,
+			path: void 0,
+			port: void 0
+		};
+		websocket._autoPong = opts.autoPong;
+		websocket._closeTimeout = opts.closeTimeout;
+		if (!protocolVersions.includes(opts.protocolVersion)) throw new RangeError(`Unsupported protocol version: ${opts.protocolVersion} (supported versions: ${protocolVersions.join(", ")})`);
+		let parsedUrl;
+		if (address instanceof URL) parsedUrl = address;
+		else try {
+			parsedUrl = new URL(address);
+		} catch (e) {
+			throw new SyntaxError(`Invalid URL: ${address}`);
+		}
+		if (parsedUrl.protocol === "http:") parsedUrl.protocol = "ws:";
+		else if (parsedUrl.protocol === "https:") parsedUrl.protocol = "wss:";
+		websocket._url = parsedUrl.href;
+		const isSecure = parsedUrl.protocol === "wss:";
+		const isIpcUrl = parsedUrl.protocol === "ws+unix:";
+		let invalidUrlMessage;
+		if (parsedUrl.protocol !== "ws:" && !isSecure && !isIpcUrl) invalidUrlMessage = "The URL's protocol must be one of \"ws:\", \"wss:\", \"http:\", \"https:\", or \"ws+unix:\"";
+		else if (isIpcUrl && !parsedUrl.pathname) invalidUrlMessage = "The URL's pathname is empty";
+		else if (parsedUrl.hash) invalidUrlMessage = "The URL contains a fragment identifier";
+		if (invalidUrlMessage) {
+			const err = new SyntaxError(invalidUrlMessage);
+			if (websocket._redirects === 0) throw err;
+			else {
+				emitErrorAndClose(websocket, err);
+				return;
+			}
+		}
+		const defaultPort = isSecure ? 443 : 80;
+		const key = randomBytes(16).toString("base64");
+		const request = isSecure ? https.request : http.request;
+		const protocolSet = /* @__PURE__ */ new Set();
+		let perMessageDeflate;
+		opts.createConnection = opts.createConnection || (isSecure ? tlsConnect : netConnect);
+		opts.defaultPort = opts.defaultPort || defaultPort;
+		opts.port = parsedUrl.port || defaultPort;
+		opts.host = parsedUrl.hostname.startsWith("[") ? parsedUrl.hostname.slice(1, -1) : parsedUrl.hostname;
+		opts.headers = {
+			...opts.headers,
+			"Sec-WebSocket-Version": opts.protocolVersion,
+			"Sec-WebSocket-Key": key,
+			Connection: "Upgrade",
+			Upgrade: "websocket"
+		};
+		opts.path = parsedUrl.pathname + parsedUrl.search;
+		opts.timeout = opts.handshakeTimeout;
+		if (opts.perMessageDeflate) {
+			perMessageDeflate = new PerMessageDeflate(opts.perMessageDeflate !== true ? opts.perMessageDeflate : {}, false, opts.maxPayload);
+			opts.headers["Sec-WebSocket-Extensions"] = format({ [PerMessageDeflate.extensionName]: perMessageDeflate.offer() });
+		}
+		if (protocols.length) {
+			for (const protocol of protocols) {
+				if (typeof protocol !== "string" || !subprotocolRegex.test(protocol) || protocolSet.has(protocol)) throw new SyntaxError("An invalid or duplicated subprotocol was specified");
+				protocolSet.add(protocol);
+			}
+			opts.headers["Sec-WebSocket-Protocol"] = protocols.join(",");
+		}
+		if (opts.origin) if (opts.protocolVersion < 13) opts.headers["Sec-WebSocket-Origin"] = opts.origin;
+		else opts.headers.Origin = opts.origin;
+		if (parsedUrl.username || parsedUrl.password) opts.auth = `${parsedUrl.username}:${parsedUrl.password}`;
+		if (isIpcUrl) {
+			const parts = opts.path.split(":");
+			opts.socketPath = parts[0];
+			opts.path = parts[1];
+		}
+		let req;
+		if (opts.followRedirects) {
+			if (websocket._redirects === 0) {
+				websocket._originalIpc = isIpcUrl;
+				websocket._originalSecure = isSecure;
+				websocket._originalHostOrSocketPath = isIpcUrl ? opts.socketPath : parsedUrl.host;
+				const headers = options && options.headers;
+				options = {
+					...options,
+					headers: {}
+				};
+				if (headers) for (const [key, value] of Object.entries(headers)) options.headers[key.toLowerCase()] = value;
+			} else if (websocket.listenerCount("redirect") === 0) {
+				const isSameHost = isIpcUrl ? websocket._originalIpc ? opts.socketPath === websocket._originalHostOrSocketPath : false : websocket._originalIpc ? false : parsedUrl.host === websocket._originalHostOrSocketPath;
+				if (!isSameHost || websocket._originalSecure && !isSecure) {
+					delete opts.headers.authorization;
+					delete opts.headers.cookie;
+					if (!isSameHost) delete opts.headers.host;
+					opts.auth = void 0;
+				}
+			}
+			if (opts.auth && !options.headers.authorization) options.headers.authorization = "Basic " + Buffer.from(opts.auth).toString("base64");
+			req = websocket._req = request(opts);
+			if (websocket._redirects) websocket.emit("redirect", websocket.url, req);
+		} else req = websocket._req = request(opts);
+		if (opts.timeout) req.on("timeout", () => {
+			abortHandshake(websocket, req, "Opening handshake has timed out");
+		});
+		req.on("error", (err) => {
+			if (req === null || req[kAborted]) return;
+			req = websocket._req = null;
+			emitErrorAndClose(websocket, err);
+		});
+		req.on("response", (res) => {
+			const location = res.headers.location;
+			const statusCode = res.statusCode;
+			if (location && opts.followRedirects && statusCode >= 300 && statusCode < 400) {
+				if (++websocket._redirects > opts.maxRedirects) {
+					abortHandshake(websocket, req, "Maximum redirects exceeded");
+					return;
+				}
+				req.abort();
+				let addr;
+				try {
+					addr = new URL(location, address);
+				} catch (e) {
+					emitErrorAndClose(websocket, /* @__PURE__ */ new SyntaxError(`Invalid URL: ${location}`));
+					return;
+				}
+				initAsClient(websocket, addr, protocols, options);
+			} else if (!websocket.emit("unexpected-response", req, res)) abortHandshake(websocket, req, `Unexpected server response: ${res.statusCode}`);
+		});
+		req.on("upgrade", (res, socket, head) => {
+			websocket.emit("upgrade", res);
+			if (websocket.readyState !== WebSocket.CONNECTING) return;
+			req = websocket._req = null;
+			const upgrade = res.headers.upgrade;
+			if (upgrade === void 0 || upgrade.toLowerCase() !== "websocket") {
+				abortHandshake(websocket, socket, "Invalid Upgrade header");
+				return;
+			}
+			const digest = createHash("sha1").update(key + GUID).digest("base64");
+			if (res.headers["sec-websocket-accept"] !== digest) {
+				abortHandshake(websocket, socket, "Invalid Sec-WebSocket-Accept header");
+				return;
+			}
+			const serverProt = res.headers["sec-websocket-protocol"];
+			let protError;
+			if (serverProt !== void 0) {
+				if (!protocolSet.size) protError = "Server sent a subprotocol but none was requested";
+				else if (!protocolSet.has(serverProt)) protError = "Server sent an invalid subprotocol";
+			} else if (protocolSet.size) protError = "Server sent no subprotocol";
+			if (protError) {
+				abortHandshake(websocket, socket, protError);
+				return;
+			}
+			if (serverProt) websocket._protocol = serverProt;
+			const secWebSocketExtensions = res.headers["sec-websocket-extensions"];
+			if (secWebSocketExtensions !== void 0) {
+				if (!perMessageDeflate) {
+					abortHandshake(websocket, socket, "Server sent a Sec-WebSocket-Extensions header but no extension was requested");
+					return;
+				}
+				let extensions;
+				try {
+					extensions = parse(secWebSocketExtensions);
+				} catch (err) {
+					abortHandshake(websocket, socket, "Invalid Sec-WebSocket-Extensions header");
+					return;
+				}
+				const extensionNames = Object.keys(extensions);
+				if (extensionNames.length !== 1 || extensionNames[0] !== PerMessageDeflate.extensionName) {
+					abortHandshake(websocket, socket, "Server indicated an extension that was not requested");
+					return;
+				}
+				try {
+					perMessageDeflate.accept(extensions[PerMessageDeflate.extensionName]);
+				} catch (err) {
+					abortHandshake(websocket, socket, "Invalid Sec-WebSocket-Extensions header");
+					return;
+				}
+				websocket._extensions[PerMessageDeflate.extensionName] = perMessageDeflate;
+			}
+			websocket.setSocket(socket, head, {
+				allowSynchronousEvents: opts.allowSynchronousEvents,
+				generateMask: opts.generateMask,
+				maxPayload: opts.maxPayload,
+				skipUTF8Validation: opts.skipUTF8Validation
+			});
+		});
+		if (opts.finishRequest) opts.finishRequest(req, websocket);
+		else req.end();
+	}
+	/**
+	* Emit the `'error'` and `'close'` events.
+	*
+	* @param {WebSocket} websocket The WebSocket instance
+	* @param {Error} The error to emit
+	* @private
+	*/
+	function emitErrorAndClose(websocket, err) {
+		websocket._readyState = WebSocket.CLOSING;
+		websocket._errorEmitted = true;
+		websocket.emit("error", err);
+		websocket.emitClose();
+	}
+	/**
+	* Create a `net.Socket` and initiate a connection.
+	*
+	* @param {Object} options Connection options
+	* @return {net.Socket} The newly created socket used to start the connection
+	* @private
+	*/
+	function netConnect(options) {
+		options.path = options.socketPath;
+		return net.connect(options);
+	}
+	/**
+	* Create a `tls.TLSSocket` and initiate a connection.
+	*
+	* @param {Object} options Connection options
+	* @return {tls.TLSSocket} The newly created socket used to start the connection
+	* @private
+	*/
+	function tlsConnect(options) {
+		options.path = void 0;
+		if (!options.servername && options.servername !== "") options.servername = net.isIP(options.host) ? "" : options.host;
+		return tls.connect(options);
+	}
+	/**
+	* Abort the handshake and emit an error.
+	*
+	* @param {WebSocket} websocket The WebSocket instance
+	* @param {(http.ClientRequest|net.Socket|tls.Socket)} stream The request to
+	*     abort or the socket to destroy
+	* @param {String} message The error message
+	* @private
+	*/
+	function abortHandshake(websocket, stream, message) {
+		websocket._readyState = WebSocket.CLOSING;
+		const err = new Error(message);
+		Error.captureStackTrace(err, abortHandshake);
+		if (stream.setHeader) {
+			stream[kAborted] = true;
+			stream.abort();
+			if (stream.socket && !stream.socket.destroyed) stream.socket.destroy();
+			process.nextTick(emitErrorAndClose, websocket, err);
+		} else {
+			stream.destroy(err);
+			stream.once("error", websocket.emit.bind(websocket, "error"));
+			stream.once("close", websocket.emitClose.bind(websocket));
+		}
+	}
+	/**
+	* Handle cases where the `ping()`, `pong()`, or `send()` methods are called
+	* when the `readyState` attribute is `CLOSING` or `CLOSED`.
+	*
+	* @param {WebSocket} websocket The WebSocket instance
+	* @param {*} [data] The data to send
+	* @param {Function} [cb] Callback
+	* @private
+	*/
+	function sendAfterClose(websocket, data, cb) {
+		if (data) {
+			const length = isBlob(data) ? data.size : toBuffer(data).length;
+			if (websocket._socket) websocket._sender._bufferedBytes += length;
+			else websocket._bufferedAmount += length;
+		}
+		if (cb) {
+			const err = /* @__PURE__ */ new Error(`WebSocket is not open: readyState ${websocket.readyState} (${readyStates[websocket.readyState]})`);
+			process.nextTick(cb, err);
+		}
+	}
+	/**
+	* The listener of the `Receiver` `'conclude'` event.
+	*
+	* @param {Number} code The status code
+	* @param {Buffer} reason The reason for closing
+	* @private
+	*/
+	function receiverOnConclude(code, reason) {
+		const websocket = this[kWebSocket];
+		websocket._closeFrameReceived = true;
+		websocket._closeMessage = reason;
+		websocket._closeCode = code;
+		if (websocket._socket[kWebSocket] === void 0) return;
+		websocket._socket.removeListener("data", socketOnData);
+		process.nextTick(resume, websocket._socket);
+		if (code === 1005) websocket.close();
+		else websocket.close(code, reason);
+	}
+	/**
+	* The listener of the `Receiver` `'drain'` event.
+	*
+	* @private
+	*/
+	function receiverOnDrain() {
+		const websocket = this[kWebSocket];
+		if (!websocket.isPaused) websocket._socket.resume();
+	}
+	/**
+	* The listener of the `Receiver` `'error'` event.
+	*
+	* @param {(RangeError|Error)} err The emitted error
+	* @private
+	*/
+	function receiverOnError(err) {
+		const websocket = this[kWebSocket];
+		if (websocket._socket[kWebSocket] !== void 0) {
+			websocket._socket.removeListener("data", socketOnData);
+			process.nextTick(resume, websocket._socket);
+			websocket.close(err[kStatusCode]);
+		}
+		if (!websocket._errorEmitted) {
+			websocket._errorEmitted = true;
+			websocket.emit("error", err);
+		}
+	}
+	/**
+	* The listener of the `Receiver` `'finish'` event.
+	*
+	* @private
+	*/
+	function receiverOnFinish() {
+		this[kWebSocket].emitClose();
+	}
+	/**
+	* The listener of the `Receiver` `'message'` event.
+	*
+	* @param {Buffer|ArrayBuffer|Buffer[])} data The message
+	* @param {Boolean} isBinary Specifies whether the message is binary or not
+	* @private
+	*/
+	function receiverOnMessage(data, isBinary) {
+		this[kWebSocket].emit("message", data, isBinary);
+	}
+	/**
+	* The listener of the `Receiver` `'ping'` event.
+	*
+	* @param {Buffer} data The data included in the ping frame
+	* @private
+	*/
+	function receiverOnPing(data) {
+		const websocket = this[kWebSocket];
+		if (websocket._autoPong) websocket.pong(data, !this._isServer, NOOP);
+		websocket.emit("ping", data);
+	}
+	/**
+	* The listener of the `Receiver` `'pong'` event.
+	*
+	* @param {Buffer} data The data included in the pong frame
+	* @private
+	*/
+	function receiverOnPong(data) {
+		this[kWebSocket].emit("pong", data);
+	}
+	/**
+	* Resume a readable stream
+	*
+	* @param {Readable} stream The readable stream
+	* @private
+	*/
+	function resume(stream) {
+		stream.resume();
+	}
+	/**
+	* The `Sender` error event handler.
+	*
+	* @param {Error} The error
+	* @private
+	*/
+	function senderOnError(err) {
+		const websocket = this[kWebSocket];
+		if (websocket.readyState === WebSocket.CLOSED) return;
+		if (websocket.readyState === WebSocket.OPEN) {
+			websocket._readyState = WebSocket.CLOSING;
+			setCloseTimer(websocket);
+		}
+		this._socket.end();
+		if (!websocket._errorEmitted) {
+			websocket._errorEmitted = true;
+			websocket.emit("error", err);
+		}
+	}
+	/**
+	* Set a timer to destroy the underlying raw socket of a WebSocket.
+	*
+	* @param {WebSocket} websocket The WebSocket instance
+	* @private
+	*/
+	function setCloseTimer(websocket) {
+		websocket._closeTimer = setTimeout(websocket._socket.destroy.bind(websocket._socket), websocket._closeTimeout);
+	}
+	/**
+	* The listener of the socket `'close'` event.
+	*
+	* @private
+	*/
+	function socketOnClose() {
+		const websocket = this[kWebSocket];
+		this.removeListener("close", socketOnClose);
+		this.removeListener("data", socketOnData);
+		this.removeListener("end", socketOnEnd);
+		websocket._readyState = WebSocket.CLOSING;
+		if (!this._readableState.endEmitted && !websocket._closeFrameReceived && !websocket._receiver._writableState.errorEmitted && this._readableState.length !== 0) {
+			const chunk = this.read(this._readableState.length);
+			websocket._receiver.write(chunk);
+		}
+		websocket._receiver.end();
+		this[kWebSocket] = void 0;
+		clearTimeout(websocket._closeTimer);
+		if (websocket._receiver._writableState.finished || websocket._receiver._writableState.errorEmitted) websocket.emitClose();
+		else {
+			websocket._receiver.on("error", receiverOnFinish);
+			websocket._receiver.on("finish", receiverOnFinish);
+		}
+	}
+	/**
+	* The listener of the socket `'data'` event.
+	*
+	* @param {Buffer} chunk A chunk of data
+	* @private
+	*/
+	function socketOnData(chunk) {
+		if (!this[kWebSocket]._receiver.write(chunk)) this.pause();
+	}
+	/**
+	* The listener of the socket `'end'` event.
+	*
+	* @private
+	*/
+	function socketOnEnd() {
+		const websocket = this[kWebSocket];
+		websocket._readyState = WebSocket.CLOSING;
+		websocket._receiver.end();
+		this.end();
+	}
+	/**
+	* The listener of the socket `'error'` event.
+	*
+	* @private
+	*/
+	function socketOnError() {
+		const websocket = this[kWebSocket];
+		this.removeListener("error", socketOnError);
+		this.on("error", NOOP);
+		if (websocket) {
+			websocket._readyState = WebSocket.CLOSING;
+			this.destroy();
+		}
+	}
+}));
+var require_stream = /* @__PURE__ */ __commonJSMin(((exports, module) => {
+	require_websocket();
+	var { Duplex } = require_builtin_esm_external_require_stream();
+	/**
+	* Emits the `'close'` event on a stream.
+	*
+	* @param {Duplex} stream The stream.
+	* @private
+	*/
+	function emitClose(stream) {
+		stream.emit("close");
+	}
+	/**
+	* The listener of the `'end'` event.
+	*
+	* @private
+	*/
+	function duplexOnEnd() {
+		if (!this.destroyed && this._writableState.finished) this.destroy();
+	}
+	/**
+	* The listener of the `'error'` event.
+	*
+	* @param {Error} err The error
+	* @private
+	*/
+	function duplexOnError(err) {
+		this.removeListener("error", duplexOnError);
+		this.destroy();
+		if (this.listenerCount("error") === 0) this.emit("error", err);
+	}
+	/**
+	* Wraps a `WebSocket` in a duplex stream.
+	*
+	* @param {WebSocket} ws The `WebSocket` to wrap
+	* @param {Object} [options] The options for the `Duplex` constructor
+	* @return {Duplex} The duplex stream
+	* @public
+	*/
+	function createWebSocketStream(ws, options) {
+		let terminateOnDestroy = true;
+		const duplex = new Duplex({
+			...options,
+			autoDestroy: false,
+			emitClose: false,
+			objectMode: false,
+			writableObjectMode: false
+		});
+		ws.on("message", function message(msg, isBinary) {
+			const data = !isBinary && duplex._readableState.objectMode ? msg.toString() : msg;
+			if (!duplex.push(data)) ws.pause();
+		});
+		ws.once("error", function error(err) {
+			if (duplex.destroyed) return;
+			terminateOnDestroy = false;
+			duplex.destroy(err);
+		});
+		ws.once("close", function close() {
+			if (duplex.destroyed) return;
+			duplex.push(null);
+		});
+		duplex._destroy = function(err, callback) {
+			if (ws.readyState === ws.CLOSED) {
+				callback(err);
+				process.nextTick(emitClose, duplex);
+				return;
+			}
+			let called = false;
+			ws.once("error", function error(err) {
+				called = true;
+				callback(err);
+			});
+			ws.once("close", function close() {
+				if (!called) callback(err);
+				process.nextTick(emitClose, duplex);
+			});
+			if (terminateOnDestroy) ws.terminate();
+		};
+		duplex._final = function(callback) {
+			if (ws.readyState === ws.CONNECTING) {
+				ws.once("open", function open() {
+					duplex._final(callback);
+				});
+				return;
+			}
+			if (ws._socket === null) return;
+			if (ws._socket._writableState.finished) {
+				callback();
+				if (duplex._readableState.endEmitted) duplex.destroy();
+			} else {
+				ws._socket.once("finish", function finish() {
+					callback();
+				});
+				ws.close();
+			}
+		};
+		duplex._read = function() {
+			if (ws.isPaused) ws.resume();
+		};
+		duplex._write = function(chunk, encoding, callback) {
+			if (ws.readyState === ws.CONNECTING) {
+				ws.once("open", function open() {
+					duplex._write(chunk, encoding, callback);
+				});
+				return;
+			}
+			ws.send(chunk, callback);
+		};
+		duplex.on("end", duplexOnEnd);
+		duplex.on("error", duplexOnError);
+		return duplex;
+	}
+	module.exports = createWebSocketStream;
+}));
+var require_subprotocol = /* @__PURE__ */ __commonJSMin(((exports, module) => {
+	var { tokenChars } = require_validation();
+	/**
+	* Parses the `Sec-WebSocket-Protocol` header into a set of subprotocol names.
+	*
+	* @param {String} header The field value of the header
+	* @return {Set} The subprotocol names
+	* @public
+	*/
+	function parse(header) {
+		const protocols = /* @__PURE__ */ new Set();
+		let start = -1;
+		let end = -1;
+		let i = 0;
+		for (; i < header.length; i++) {
+			const code = header.charCodeAt(i);
+			if (end === -1 && tokenChars[code] === 1) {
+				if (start === -1) start = i;
+			} else if (i !== 0 && (code === 32 || code === 9)) {
+				if (end === -1 && start !== -1) end = i;
+			} else if (code === 44) {
+				if (start === -1) throw new SyntaxError(`Unexpected character at index ${i}`);
+				if (end === -1) end = i;
+				const protocol = header.slice(start, end);
+				if (protocols.has(protocol)) throw new SyntaxError(`The "${protocol}" subprotocol is duplicated`);
+				protocols.add(protocol);
+				start = end = -1;
+			} else throw new SyntaxError(`Unexpected character at index ${i}`);
+		}
+		if (start === -1 || end !== -1) throw new SyntaxError("Unexpected end of input");
+		const protocol = header.slice(start, i);
+		if (protocols.has(protocol)) throw new SyntaxError(`The "${protocol}" subprotocol is duplicated`);
+		protocols.add(protocol);
+		return protocols;
+	}
+	module.exports = { parse };
+}));
+var require_websocket_server = /* @__PURE__ */ __commonJSMin(((exports, module) => {
+	var EventEmitter = require_builtin_esm_external_require_events();
+	var http = require_builtin_esm_external_require_http();
+	var { Duplex } = require_builtin_esm_external_require_stream();
+	var { createHash } = require_builtin_esm_external_require_crypto();
+	var extension = require_extension();
+	var PerMessageDeflate = require_permessage_deflate();
+	var subprotocol = require_subprotocol();
+	var WebSocket = require_websocket();
+	var { CLOSE_TIMEOUT, GUID, kWebSocket } = require_constants();
+	var keyRegex = /^[+/0-9A-Za-z]{22}==$/;
+	var RUNNING = 0;
+	var CLOSING = 1;
+	var CLOSED = 2;
+	/**
+	* Class representing a WebSocket server.
+	*
+	* @extends EventEmitter
+	*/
+	var WebSocketServer = class extends EventEmitter {
+		/**
+		* Create a `WebSocketServer` instance.
+		*
+		* @param {Object} options Configuration options
+		* @param {Boolean} [options.allowSynchronousEvents=true] Specifies whether
+		*     any of the `'message'`, `'ping'`, and `'pong'` events can be emitted
+		*     multiple times in the same tick
+		* @param {Boolean} [options.autoPong=true] Specifies whether or not to
+		*     automatically send a pong in response to a ping
+		* @param {Number} [options.backlog=511] The maximum length of the queue of
+		*     pending connections
+		* @param {Boolean} [options.clientTracking=true] Specifies whether or not to
+		*     track clients
+		* @param {Number} [options.closeTimeout=30000] Duration in milliseconds to
+		*     wait for the closing handshake to finish after `websocket.close()` is
+		*     called
+		* @param {Function} [options.handleProtocols] A hook to handle protocols
+		* @param {String} [options.host] The hostname where to bind the server
+		* @param {Number} [options.maxPayload=104857600] The maximum allowed message
+		*     size
+		* @param {Boolean} [options.noServer=false] Enable no server mode
+		* @param {String} [options.path] Accept only connections matching this path
+		* @param {(Boolean|Object)} [options.perMessageDeflate=false] Enable/disable
+		*     permessage-deflate
+		* @param {Number} [options.port] The port where to bind the server
+		* @param {(http.Server|https.Server)} [options.server] A pre-created HTTP/S
+		*     server to use
+		* @param {Boolean} [options.skipUTF8Validation=false] Specifies whether or
+		*     not to skip UTF-8 validation for text and close messages
+		* @param {Function} [options.verifyClient] A hook to reject connections
+		* @param {Function} [options.WebSocket=WebSocket] Specifies the `WebSocket`
+		*     class to use. It must be the `WebSocket` class or class that extends it
+		* @param {Function} [callback] A listener for the `listening` event
+		*/
+		constructor(options, callback) {
+			super();
+			options = {
+				allowSynchronousEvents: true,
+				autoPong: true,
+				maxPayload: 100 * 1024 * 1024,
+				skipUTF8Validation: false,
+				perMessageDeflate: false,
+				handleProtocols: null,
+				clientTracking: true,
+				closeTimeout: CLOSE_TIMEOUT,
+				verifyClient: null,
+				noServer: false,
+				backlog: null,
+				server: null,
+				host: null,
+				path: null,
+				port: null,
+				WebSocket,
+				...options
+			};
+			if (options.port == null && !options.server && !options.noServer || options.port != null && (options.server || options.noServer) || options.server && options.noServer) throw new TypeError("One and only one of the \"port\", \"server\", or \"noServer\" options must be specified");
+			if (options.port != null) {
+				this._server = http.createServer((req, res) => {
+					const body = http.STATUS_CODES[426];
+					res.writeHead(426, {
+						"Content-Length": body.length,
+						"Content-Type": "text/plain"
+					});
+					res.end(body);
+				});
+				this._server.listen(options.port, options.host, options.backlog, callback);
+			} else if (options.server) this._server = options.server;
+			if (this._server) {
+				const emitConnection = this.emit.bind(this, "connection");
+				this._removeListeners = addListeners(this._server, {
+					listening: this.emit.bind(this, "listening"),
+					error: this.emit.bind(this, "error"),
+					upgrade: (req, socket, head) => {
+						this.handleUpgrade(req, socket, head, emitConnection);
+					}
+				});
+			}
+			if (options.perMessageDeflate === true) options.perMessageDeflate = {};
+			if (options.clientTracking) {
+				this.clients = /* @__PURE__ */ new Set();
+				this._shouldEmitClose = false;
+			}
+			this.options = options;
+			this._state = RUNNING;
+		}
+		/**
+		* Returns the bound address, the address family name, and port of the server
+		* as reported by the operating system if listening on an IP socket.
+		* If the server is listening on a pipe or UNIX domain socket, the name is
+		* returned as a string.
+		*
+		* @return {(Object|String|null)} The address of the server
+		* @public
+		*/
+		address() {
+			if (this.options.noServer) throw new Error("The server is operating in \"noServer\" mode");
+			if (!this._server) return null;
+			return this._server.address();
+		}
+		/**
+		* Stop the server from accepting new connections and emit the `'close'` event
+		* when all existing connections are closed.
+		*
+		* @param {Function} [cb] A one-time listener for the `'close'` event
+		* @public
+		*/
+		close(cb) {
+			if (this._state === CLOSED) {
+				if (cb) this.once("close", () => {
+					cb(/* @__PURE__ */ new Error("The server is not running"));
+				});
+				process.nextTick(emitClose, this);
+				return;
+			}
+			if (cb) this.once("close", cb);
+			if (this._state === CLOSING) return;
+			this._state = CLOSING;
+			if (this.options.noServer || this.options.server) {
+				if (this._server) {
+					this._removeListeners();
+					this._removeListeners = this._server = null;
+				}
+				if (this.clients) if (!this.clients.size) process.nextTick(emitClose, this);
+				else this._shouldEmitClose = true;
+				else process.nextTick(emitClose, this);
+			} else {
+				const server = this._server;
+				this._removeListeners();
+				this._removeListeners = this._server = null;
+				server.close(() => {
+					emitClose(this);
+				});
+			}
+		}
+		/**
+		* See if a given request should be handled by this server instance.
+		*
+		* @param {http.IncomingMessage} req Request object to inspect
+		* @return {Boolean} `true` if the request is valid, else `false`
+		* @public
+		*/
+		shouldHandle(req) {
+			if (this.options.path) {
+				const index = req.url.indexOf("?");
+				if ((index !== -1 ? req.url.slice(0, index) : req.url) !== this.options.path) return false;
+			}
+			return true;
+		}
+		/**
+		* Handle a HTTP Upgrade request.
+		*
+		* @param {http.IncomingMessage} req The request object
+		* @param {Duplex} socket The network socket between the server and client
+		* @param {Buffer} head The first packet of the upgraded stream
+		* @param {Function} cb Callback
+		* @public
+		*/
+		handleUpgrade(req, socket, head, cb) {
+			socket.on("error", socketOnError);
+			const key = req.headers["sec-websocket-key"];
+			const upgrade = req.headers.upgrade;
+			const version = +req.headers["sec-websocket-version"];
+			if (req.method !== "GET") {
+				abortHandshakeOrEmitwsClientError(this, req, socket, 405, "Invalid HTTP method");
+				return;
+			}
+			if (upgrade === void 0 || upgrade.toLowerCase() !== "websocket") {
+				abortHandshakeOrEmitwsClientError(this, req, socket, 400, "Invalid Upgrade header");
+				return;
+			}
+			if (key === void 0 || !keyRegex.test(key)) {
+				abortHandshakeOrEmitwsClientError(this, req, socket, 400, "Missing or invalid Sec-WebSocket-Key header");
+				return;
+			}
+			if (version !== 13 && version !== 8) {
+				abortHandshakeOrEmitwsClientError(this, req, socket, 400, "Missing or invalid Sec-WebSocket-Version header", { "Sec-WebSocket-Version": "13, 8" });
+				return;
+			}
+			if (!this.shouldHandle(req)) {
+				abortHandshake(socket, 400);
+				return;
+			}
+			const secWebSocketProtocol = req.headers["sec-websocket-protocol"];
+			let protocols = /* @__PURE__ */ new Set();
+			if (secWebSocketProtocol !== void 0) try {
+				protocols = subprotocol.parse(secWebSocketProtocol);
+			} catch (err) {
+				abortHandshakeOrEmitwsClientError(this, req, socket, 400, "Invalid Sec-WebSocket-Protocol header");
+				return;
+			}
+			const secWebSocketExtensions = req.headers["sec-websocket-extensions"];
+			const extensions = {};
+			if (this.options.perMessageDeflate && secWebSocketExtensions !== void 0) {
+				const perMessageDeflate = new PerMessageDeflate(this.options.perMessageDeflate, true, this.options.maxPayload);
+				try {
+					const offers = extension.parse(secWebSocketExtensions);
+					if (offers[PerMessageDeflate.extensionName]) {
+						perMessageDeflate.accept(offers[PerMessageDeflate.extensionName]);
+						extensions[PerMessageDeflate.extensionName] = perMessageDeflate;
+					}
+				} catch (err) {
+					abortHandshakeOrEmitwsClientError(this, req, socket, 400, "Invalid or unacceptable Sec-WebSocket-Extensions header");
+					return;
+				}
+			}
+			if (this.options.verifyClient) {
+				const info = {
+					origin: req.headers[`${version === 8 ? "sec-websocket-origin" : "origin"}`],
+					secure: !!(req.socket.authorized || req.socket.encrypted),
+					req
+				};
+				if (this.options.verifyClient.length === 2) {
+					this.options.verifyClient(info, (verified, code, message, headers) => {
+						if (!verified) return abortHandshake(socket, code || 401, message, headers);
+						this.completeUpgrade(extensions, key, protocols, req, socket, head, cb);
+					});
+					return;
+				}
+				if (!this.options.verifyClient(info)) return abortHandshake(socket, 401);
+			}
+			this.completeUpgrade(extensions, key, protocols, req, socket, head, cb);
+		}
+		/**
+		* Upgrade the connection to WebSocket.
+		*
+		* @param {Object} extensions The accepted extensions
+		* @param {String} key The value of the `Sec-WebSocket-Key` header
+		* @param {Set} protocols The subprotocols
+		* @param {http.IncomingMessage} req The request object
+		* @param {Duplex} socket The network socket between the server and client
+		* @param {Buffer} head The first packet of the upgraded stream
+		* @param {Function} cb Callback
+		* @throws {Error} If called more than once with the same socket
+		* @private
+		*/
+		completeUpgrade(extensions, key, protocols, req, socket, head, cb) {
+			if (!socket.readable || !socket.writable) return socket.destroy();
+			if (socket[kWebSocket]) throw new Error("server.handleUpgrade() was called more than once with the same socket, possibly due to a misconfiguration");
+			if (this._state > RUNNING) return abortHandshake(socket, 503);
+			const headers = [
+				"HTTP/1.1 101 Switching Protocols",
+				"Upgrade: websocket",
+				"Connection: Upgrade",
+				`Sec-WebSocket-Accept: ${createHash("sha1").update(key + GUID).digest("base64")}`
+			];
+			const ws = new this.options.WebSocket(null, void 0, this.options);
+			if (protocols.size) {
+				const protocol = this.options.handleProtocols ? this.options.handleProtocols(protocols, req) : protocols.values().next().value;
+				if (protocol) {
+					headers.push(`Sec-WebSocket-Protocol: ${protocol}`);
+					ws._protocol = protocol;
+				}
+			}
+			if (extensions[PerMessageDeflate.extensionName]) {
+				const params = extensions[PerMessageDeflate.extensionName].params;
+				const value = extension.format({ [PerMessageDeflate.extensionName]: [params] });
+				headers.push(`Sec-WebSocket-Extensions: ${value}`);
+				ws._extensions = extensions;
+			}
+			this.emit("headers", headers, req);
+			socket.write(headers.concat("\r\n").join("\r\n"));
+			socket.removeListener("error", socketOnError);
+			ws.setSocket(socket, head, {
+				allowSynchronousEvents: this.options.allowSynchronousEvents,
+				maxPayload: this.options.maxPayload,
+				skipUTF8Validation: this.options.skipUTF8Validation
+			});
+			if (this.clients) {
+				this.clients.add(ws);
+				ws.on("close", () => {
+					this.clients.delete(ws);
+					if (this._shouldEmitClose && !this.clients.size) process.nextTick(emitClose, this);
+				});
+			}
+			cb(ws, req);
+		}
+	};
+	module.exports = WebSocketServer;
+	/**
+	* Add event listeners on an `EventEmitter` using a map of <event, listener>
+	* pairs.
+	*
+	* @param {EventEmitter} server The event emitter
+	* @param {Object.<String, Function>} map The listeners to add
+	* @return {Function} A function that will remove the added listeners when
+	*     called
+	* @private
+	*/
+	function addListeners(server, map) {
+		for (const event of Object.keys(map)) server.on(event, map[event]);
+		return function removeListeners() {
+			for (const event of Object.keys(map)) server.removeListener(event, map[event]);
+		};
+	}
+	/**
+	* Emit a `'close'` event on an `EventEmitter`.
+	*
+	* @param {EventEmitter} server The event emitter
+	* @private
+	*/
+	function emitClose(server) {
+		server._state = CLOSED;
+		server.emit("close");
+	}
+	/**
+	* Handle socket errors.
+	*
+	* @private
+	*/
+	function socketOnError() {
+		this.destroy();
+	}
+	/**
+	* Close the connection when preconditions are not fulfilled.
+	*
+	* @param {Duplex} socket The socket of the upgrade request
+	* @param {Number} code The HTTP response status code
+	* @param {String} [message] The HTTP response body
+	* @param {Object} [headers] Additional HTTP response headers
+	* @private
+	*/
+	function abortHandshake(socket, code, message, headers) {
+		message = message || http.STATUS_CODES[code];
+		headers = {
+			Connection: "close",
+			"Content-Type": "text/html",
+			"Content-Length": Buffer.byteLength(message),
+			...headers
+		};
+		socket.once("finish", socket.destroy);
+		socket.end(`HTTP/1.1 ${code} ${http.STATUS_CODES[code]}\r\n` + Object.keys(headers).map((h) => `${h}: ${headers[h]}`).join("\r\n") + "\r\n\r\n" + message);
+	}
+	/**
+	* Emit a `'wsClientError'` event on a `WebSocketServer` if there is at least
+	* one listener for it, otherwise call `abortHandshake()`.
+	*
+	* @param {WebSocketServer} server The WebSocket server
+	* @param {http.IncomingMessage} req The request object
+	* @param {Duplex} socket The socket of the upgrade request
+	* @param {Number} code The HTTP response status code
+	* @param {String} message The HTTP response body
+	* @param {Object} [headers] The HTTP response headers
+	* @private
+	*/
+	function abortHandshakeOrEmitwsClientError(server, req, socket, code, message, headers) {
+		if (server.listenerCount("wsClientError")) {
+			const err = new Error(message);
+			Error.captureStackTrace(err, abortHandshakeOrEmitwsClientError);
+			server.emit("wsClientError", err, socket, req);
+		} else abortHandshake(socket, code, message, headers);
+	}
+}));
+require_stream();
+require_receiver();
+require_sender();
+var import_websocket = /* @__PURE__ */ __toESM(require_websocket(), 1);
+require_websocket_server();
+var wrapper_default = import_websocket.default;
+/**!
+* @author Elgato
+* @module elgato/streamdeck
+* @license MIT
+* @copyright Copyright (c) Corsair Memory Inc.
+*/
+/**
+* Stream Deck device types.
+*/
+var DeviceType;
+(function(DeviceType) {
+	/**
+	* Stream Deck, comprised of 15 customizable LCD keys in a 5 x 3 layout.
+	*/
+	DeviceType[DeviceType["StreamDeck"] = 0] = "StreamDeck";
+	/**
+	* Stream Deck Mini, comprised of 6 customizable LCD keys in a 3 x 2 layout.
+	*/
+	DeviceType[DeviceType["StreamDeckMini"] = 1] = "StreamDeckMini";
+	/**
+	* Stream Deck XL, comprised of 32 customizable LCD keys in an 8 x 4 layout.
+	*/
+	DeviceType[DeviceType["StreamDeckXL"] = 2] = "StreamDeckXL";
+	/**
+	* Stream Deck Mobile, for iOS and Android.
+	*/
+	DeviceType[DeviceType["StreamDeckMobile"] = 3] = "StreamDeckMobile";
+	/**
+	* Corsair G Keys, available on select Corsair keyboards.
+	*/
+	DeviceType[DeviceType["CorsairGKeys"] = 4] = "CorsairGKeys";
+	/**
+	* Stream Deck Pedal, comprised of 3 customizable pedals.
+	*/
+	DeviceType[DeviceType["StreamDeckPedal"] = 5] = "StreamDeckPedal";
+	/**
+	* Corsair Voyager laptop, comprising 10 buttons in a horizontal line above the keyboard.
+	*/
+	DeviceType[DeviceType["CorsairVoyager"] = 6] = "CorsairVoyager";
+	/**
+	* Stream Deck +, comprised of 8 customizable LCD keys in a 4 x 2 layout, a touch strip, and 4 dials.
+	*/
+	DeviceType[DeviceType["StreamDeckPlus"] = 7] = "StreamDeckPlus";
+	/**
+	* SCUF controller G keys, available on select SCUF controllers, for example SCUF Envision.
+	*/
+	DeviceType[DeviceType["SCUFController"] = 8] = "SCUFController";
+	/**
+	* Stream Deck Neo, comprised of 8 customizable LCD keys in a 4 x 2 layout, an info bar, and 2 touch points for page navigation.
+	*/
+	DeviceType[DeviceType["StreamDeckNeo"] = 9] = "StreamDeckNeo";
+	/**
+	* Stream Deck Studio, comprised of 32 customizable LCD keys in a 16 x 2 layout, and 2 dials (1 on either side).
+	*/
+	DeviceType[DeviceType["StreamDeckStudio"] = 10] = "StreamDeckStudio";
+	/**
+	* Virtual Stream Deck, comprised of 1 to 64 action (on-screen) on a scalable canvas, with a maximum layout of 8 x 8.
+	*/
+	DeviceType[DeviceType["VirtualStreamDeck"] = 11] = "VirtualStreamDeck";
+})(DeviceType || (DeviceType = {}));
+/**
+* List of available types that can be applied to {@link Bar} and {@link GBar} to determine their style.
+*/
+var BarSubType;
+(function(BarSubType) {
+	/**
+	* Rectangle bar; the bar fills from left to right, determined by the {@link Bar.value}, similar to a standard progress bar.
+	*/
+	BarSubType[BarSubType["Rectangle"] = 0] = "Rectangle";
+	/**
+	* Rectangle bar; the bar fills outwards from the centre of the bar, determined by the {@link Bar.value}.
+	* @example
+	* // Value is 2, range is 1-10.
+	* // [  ███     ]
+	* @example
+	* // Value is 10, range is 1-10.
+	* // [     █████]
+	*/
+	BarSubType[BarSubType["DoubleRectangle"] = 1] = "DoubleRectangle";
+	/**
+	* Trapezoid bar, represented as a right-angle triangle; the bar fills from left to right, determined by the {@link Bar.value}, similar to a volume meter.
+	*/
+	BarSubType[BarSubType["Trapezoid"] = 2] = "Trapezoid";
+	/**
+	* Trapezoid bar, represented by two right-angle triangles; the bar fills outwards from the centre of the bar, determined by the {@link Bar.value}. See {@link BarSubType.DoubleRectangle}.
+	*/
+	BarSubType[BarSubType["DoubleTrapezoid"] = 3] = "DoubleTrapezoid";
+	/**
+	* Rounded rectangle bar; the bar fills from left to right, determined by the {@link Bar.value}, similar to a standard progress bar.
+	*/
+	BarSubType[BarSubType["Groove"] = 4] = "Groove";
+})(BarSubType || (BarSubType = {}));
+/**
+* Defines the type of argument supplied by Stream Deck.
+*/
+var RegistrationParameter;
+(function(RegistrationParameter) {
+	/**
+	* Identifies the argument that specifies the web socket port that Stream Deck is listening on.
+	*/
+	RegistrationParameter["Port"] = "-port";
+	/**
+	* Identifies the argument that supplies information about the Stream Deck and the plugin.
+	*/
+	RegistrationParameter["Info"] = "-info";
+	/**
+	* Identifies the argument that specifies the unique identifier that can be used when registering the plugin.
+	*/
+	RegistrationParameter["PluginUUID"] = "-pluginUUID";
+	/**
+	* Identifies the argument that specifies the event to be sent to Stream Deck as part of the registration procedure.
+	*/
+	RegistrationParameter["RegisterEvent"] = "-registerEvent";
+})(RegistrationParameter || (RegistrationParameter = {}));
+/**
+* Defines the target of a request, i.e. whether the request should update the Stream Deck hardware, Stream Deck software (application), or both, when calling `setImage` and `setState`.
+*/
+var Target;
+(function(Target) {
+	/**
+	* Hardware and software should be updated as part of the request.
+	*/
+	Target[Target["HardwareAndSoftware"] = 0] = "HardwareAndSoftware";
+	/**
+	* Hardware only should be updated as part of the request.
+	*/
+	Target[Target["Hardware"] = 1] = "Hardware";
+	/**
+	* Software only should be updated as part of the request.
+	*/
+	Target[Target["Software"] = 2] = "Software";
+})(Target || (Target = {}));
+/**
+* Provides information for a version, as parsed from a string denoted as a collection of numbers separated by a period, for example `1.45.2`, `4.0.2.13098`. Parsing is opinionated
+* and strings should strictly conform to the format `{major}[.{minor}[.{patch}[.{build}]]]`; version numbers that form the version are optional, and when `undefined` will default to
+* 0, for example the `minor`, `patch`, or `build` number may be omitted.
+*
+* NB: This implementation should be considered fit-for-purpose, and should be used sparing.
+*/
+var Version = class {
+	/**
+	* Build version number.
+	*/
+	build;
+	/**
+	* Major version number.
+	*/
+	major;
+	/**
+	* Minor version number.
+	*/
+	minor;
+	/**
+	* Patch version number.
+	*/
+	patch;
+	/**
+	* Initializes a new instance of the {@link Version} class.
+	* @param value Value to parse the version from.
+	*/
+	constructor(value) {
+		const result = value.match(/^(0|[1-9]\d*)(?:\.(0|[1-9]\d*))?(?:\.(0|[1-9]\d*))?(?:\.(0|[1-9]\d*))?$/);
+		if (result === null) throw new Error(`Invalid format; expected "{major}[.{minor}[.{patch}[.{build}]]]" but was "${value}"`);
+		[, this.major, this.minor, this.patch, this.build] = [...result.map((value) => parseInt(value) || 0)];
+	}
+	/**
+	* Compares this instance to the {@link other} {@link Version}.
+	* @param other The {@link Version} to compare to.
+	* @returns `-1` when this instance is less than the {@link other}, `1` when this instance is greater than {@link other}, otherwise `0`.
+	*/
+	compareTo(other) {
+		const segments = ({ major, minor, build, patch }) => [
+			major,
+			minor,
+			build,
+			patch
+		];
+		const thisSegments = segments(this);
+		const otherSegments = segments(other);
+		for (let i = 0; i < 4; i++) if (thisSegments[i] < otherSegments[i]) return -1;
+		else if (thisSegments[i] > otherSegments[i]) return 1;
+		return 0;
+	}
+	/** @inheritdoc */
+	toString() {
+		return `${this.major}.${this.minor}`;
+	}
+};
+/**
+* Provides a {@link LogTarget} that logs to the console.
+*/
+var ConsoleTarget = class {
+	/**
+	* @inheritdoc
+	*/
+	write(entry) {
+		switch (entry.level) {
+			case "error":
+				console.error(...entry.data);
+				break;
+			case "warn":
+				console.warn(...entry.data);
+				break;
+			default: console.log(...entry.data);
+		}
+	}
+};
+var EOL = "\n";
+/**
+* Creates a new string log entry formatter.
+* @param opts Options that defines the type for the formatter.
+* @returns The string {@link LogEntryFormatter}.
+*/
+function stringFormatter(opts) {
+	if (opts?.dataOnly) return ({ data }) => `${reduce(data)}`;
+	else return (entry) => {
+		const { data, level, scope } = entry;
+		let prefix = `${(/* @__PURE__ */ new Date()).toISOString()} ${level.toUpperCase().padEnd(5)} `;
+		if (scope) prefix += `${scope}: `;
+		return `${prefix}${reduce(data)}`;
+	};
+}
+/**
+* Stringifies the provided data parameters that make up the log entry.
+* @param data Data parameters.
+* @returns The data represented as a single `string`.
+*/
+function reduce(data) {
+	let result = "";
+	let previousWasError = false;
+	for (const value of data) {
+		if (typeof value === "object" && value instanceof Error) {
+			result += `${EOL}${value.stack}`;
+			previousWasError = true;
+			continue;
+		}
+		if (previousWasError) {
+			result += EOL;
+			previousWasError = false;
+		}
+		result += typeof value === "object" ? JSON.stringify(value) : value;
+		result += " ";
+	}
+	return result.trimEnd();
+}
+/**
+* Gets the priority of the specified log level as a number; low numbers signify a higher priority.
+* @param level Log level.
+* @returns The priority as a number.
+*/
+function defcon(level) {
+	switch (level) {
+		case "error": return 0;
+		case "warn": return 1;
+		case "info": return 2;
+		case "debug": return 3;
+		default: return 4;
+	}
+}
+/**
+* Logger capable of forwarding messages to a {@link LogTarget}.
+*/
+var Logger = class Logger {
+	/**
+	* Backing field for the {@link Logger.level}.
+	*/
+	#level;
+	/**
+	* Options that define the loggers behavior.
+	*/
+	#options;
+	/**
+	* Scope associated with this {@link Logger}.
+	*/
+	#scope;
+	/**
+	* Initializes a new instance of the {@link Logger} class.
+	* @param opts Options that define the loggers behavior.
+	*/
+	constructor(opts) {
+		this.#options = {
+			minimumLevel: "trace",
+			...opts
+		};
+		this.#scope = this.#options.scope === void 0 || this.#options.scope.trim() === "" ? "" : this.#options.scope;
+		if (typeof this.#options.level !== "function") this.setLevel(this.#options.level);
+	}
+	/**
+	* Gets the {@link LogLevel}.
+	* @returns The {@link LogLevel}.
+	*/
+	get level() {
+		if (this.#level !== void 0) return this.#level;
+		return typeof this.#options.level === "function" ? this.#options.level() : this.#options.level;
+	}
+	/**
+	* Creates a scoped logger with the given {@link scope}; logs created by scoped-loggers include their scope to enable their source to be easily identified.
+	* @param scope Value that represents the scope of the new logger.
+	* @returns The scoped logger, or this instance when {@link scope} is not defined.
+	*/
+	createScope(scope) {
+		scope = scope.trim();
+		if (scope === "") return this;
+		return new Logger({
+			...this.#options,
+			level: () => this.level,
+			scope: this.#options.scope ? `${this.#options.scope}->${scope}` : scope
+		});
+	}
+	/**
+	* Writes the arguments as a debug log entry.
+	* @param data Message or data to log.
+	* @returns This instance for chaining.
+	*/
+	debug(...data) {
+		return this.write({
+			level: "debug",
+			data,
+			scope: this.#scope
+		});
+	}
+	/**
+	* Writes the arguments as error log entry.
+	* @param data Message or data to log.
+	* @returns This instance for chaining.
+	*/
+	error(...data) {
+		return this.write({
+			level: "error",
+			data,
+			scope: this.#scope
+		});
+	}
+	/**
+	* Writes the arguments as an info log entry.
+	* @param data Message or data to log.
+	* @returns This instance for chaining.
+	*/
+	info(...data) {
+		return this.write({
+			level: "info",
+			data,
+			scope: this.#scope
+		});
+	}
+	/**
+	* Sets the log-level that determines which logs should be written. The specified level will be inherited by all scoped loggers unless they have log-level explicitly defined.
+	* @param level The log-level that determines which logs should be written; when `undefined`, the level will be inherited from the parent logger, or default to the environment level.
+	* @returns This instance for chaining.
+	*/
+	setLevel(level) {
+		if (level !== void 0 && defcon(level) > defcon(this.#options.minimumLevel)) this.#level = "info";
+		else this.#level = level;
+		return this;
+	}
+	/**
+	* Writes the arguments as a trace log entry.
+	* @param data Message or data to log.
+	* @returns This instance for chaining.
+	*/
+	trace(...data) {
+		return this.write({
+			level: "trace",
+			data,
+			scope: this.#scope
+		});
+	}
+	/**
+	* Writes the arguments as a warning log entry.
+	* @param data Message or data to log.
+	* @returns This instance for chaining.
+	*/
+	warn(...data) {
+		return this.write({
+			level: "warn",
+			data,
+			scope: this.#scope
+		});
+	}
+	/**
+	* Writes the log entry.
+	* @param entry Log entry to write.
+	* @returns This instance for chaining.
+	*/
+	write(entry) {
+		if (defcon(entry.level) <= defcon(this.level)) this.#options.targets.forEach((t) => t.write(entry));
+		return this;
+	}
+};
+/**
+* Provides a {@link LogTarget} capable of logging to a local file system.
+*/
+var FileTarget = class {
+	/**
+	* File path where logs will be written.
+	*/
+	#filePath;
+	/**
+	* Options that defines how logs should be written to the local file system.
+	*/
+	#options;
+	/**
+	* Current size of the logs that have been written to the {@link FileTarget.#filePath}.
+	*/
+	#size = 0;
+	/**
+	* Initializes a new instance of the {@link FileTarget} class.
+	* @param options Options that defines how logs should be written to the local file system.
+	*/
+	constructor(options) {
+		this.#options = options;
+		this.#filePath = this.getLogFilePath();
+		this.reIndex();
+	}
+	/**
+	* @inheritdoc
+	*/
+	write(entry) {
+		const fd = fs.openSync(this.#filePath, "a");
+		try {
+			const msg = this.#options.format(entry);
+			fs.writeSync(fd, msg + "\n");
+			this.#size += msg.length;
+		} finally {
+			fs.closeSync(fd);
+		}
+		if (this.#size >= this.#options.maxSize) {
+			this.reIndex();
+			this.#size = 0;
+		}
+	}
+	/**
+	* Gets the file path to an indexed log file.
+	* @param index Optional index of the log file to be included as part of the file name.
+	* @returns File path that represents the indexed log file.
+	*/
+	getLogFilePath(index = 0) {
+		return path.join(this.#options.dest, `${this.#options.fileName}.${index}.log`);
+	}
+	/**
+	* Gets the log files associated with this file target, including past and present.
+	* @returns Log file entries.
+	*/
+	getLogFiles() {
+		const regex = /^\.(\d+)\.log$/;
+		return fs.readdirSync(this.#options.dest, { withFileTypes: true }).reduce((prev, entry) => {
+			if (entry.isDirectory() || entry.name.indexOf(this.#options.fileName) < 0) return prev;
+			const match = entry.name.substring(this.#options.fileName.length).match(regex);
+			if (match?.length !== 2) return prev;
+			prev.push({
+				path: path.join(this.#options.dest, entry.name),
+				index: parseInt(match[1])
+			});
+			return prev;
+		}, []).sort(({ index: a }, { index: b }) => {
+			return a < b ? -1 : a > b ? 1 : 0;
+		});
+	}
+	/**
+	* Re-indexes the existing log files associated with this file target, removing old log files whose index exceeds the {@link FileTargetOptions.maxFileCount}, and renaming the
+	* remaining log files, leaving index "0" free for a new log file.
+	*/
+	reIndex() {
+		if (!fs.existsSync(this.#options.dest)) {
+			fs.mkdirSync(this.#options.dest);
+			return;
+		}
+		const logFiles = this.getLogFiles();
+		for (let i = logFiles.length - 1; i >= 0; i--) {
+			const log = logFiles[i];
+			if (i >= this.#options.maxFileCount - 1) fs.rmSync(log.path);
+			else fs.renameSync(log.path, this.getLogFilePath(i + 1));
+		}
+	}
+};
+var __isDebugMode = void 0;
+/**
+* Determines whether the current plugin is running in a debug environment; this is determined by the command-line arguments supplied to the plugin by Stream. Specifically, the result
+* is `true` when  either `--inspect`, `--inspect-brk` or `--inspect-port` are present as part of the processes' arguments.
+* @returns `true` when the plugin is running in debug mode; otherwise `false`.
+*/
+function isDebugMode() {
+	if (__isDebugMode === void 0) __isDebugMode = process.execArgv.some((arg) => {
+		const name = arg.split("=")[0];
+		return name === "--inspect" || name === "--inspect-brk" || name === "--inspect-port";
+	});
+	return __isDebugMode;
+}
+/**
+* Gets the plugin's unique-identifier from the current working directory.
+* @returns The plugin's unique-identifier.
+*/
+function getPluginUUID() {
+	const name = path.basename(process.cwd());
+	const suffixIndex = name.lastIndexOf(".sdPlugin");
+	return suffixIndex < 0 ? name : name.substring(0, suffixIndex);
+}
+var targets = [new FileTarget({
+	dest: path.join(cwd(), "logs"),
+	fileName: getPluginUUID(),
+	format: stringFormatter(),
+	maxFileCount: 10,
+	maxSize: 50 * 1024 * 1024
+})];
+if (isDebugMode()) targets.splice(0, 0, new ConsoleTarget());
+/**
+* Logger responsible for capturing log messages.
+*/
+const logger = new Logger({
+	level: isDebugMode() ? "debug" : "info",
+	minimumLevel: isDebugMode() ? "trace" : "debug",
+	targets
+});
+process.once("uncaughtException", (err) => logger.error("Process encountered uncaught exception", err));
+/**
+* Provides a connection between the plugin and the Stream Deck allowing for messages to be sent and received.
+*/
+var Connection = class extends EventEmitter {
+	/**
+	* Private backing field for {@link Connection.registrationParameters}.
+	*/
+	_registrationParameters;
+	/**
+	* Private backing field for {@link Connection.version}.
+	*/
+	_version;
+	/**
+	* Used to ensure {@link Connection.connect} is invoked as a singleton; `false` when a connection is occurring or established.
+	*/
+	canConnect = true;
+	/**
+	* Underlying web socket connection.
+	*/
+	connection = withResolvers();
+	/**
+	* Logger scoped to the connection.
+	*/
+	logger = logger.createScope("Connection");
+	/**
+	* Underlying connection information provided to the plugin to establish a connection with Stream Deck.
+	* @returns The registration parameters.
+	*/
+	get registrationParameters() {
+		return this._registrationParameters ??= this.getRegistrationParameters();
+	}
+	/**
+	* Version of Stream Deck this instance is connected to.
+	* @returns The version.
+	*/
+	get version() {
+		return this._version ??= new Version(this.registrationParameters.info.application.version);
+	}
+	/**
+	* Establishes a connection with the Stream Deck, allowing for the plugin to send and receive messages.
+	* @returns A promise that is resolved when a connection has been established.
+	*/
+	async connect() {
+		if (this.canConnect) {
+			this.canConnect = false;
+			const webSocket = new wrapper_default(`ws://127.0.0.1:${this.registrationParameters.port}`);
+			webSocket.onmessage = (ev) => this.tryEmit(ev);
+			webSocket.onopen = () => {
+				webSocket.send(JSON.stringify({
+					event: this.registrationParameters.registerEvent,
+					uuid: this.registrationParameters.pluginUUID
+				}));
+				this.connection.resolve(webSocket);
+				this.emit("connected", this.registrationParameters.info);
+			};
+		}
+		await this.connection.promise;
+	}
+	/**
+	* Sends the commands to the Stream Deck, once the connection has been established and registered.
+	* @param command Command being sent.
+	* @returns `Promise` resolved when the command is sent to Stream Deck.
+	*/
+	async send(command) {
+		const connection = await this.connection.promise;
+		const message = JSON.stringify(command);
+		this.logger.trace(message);
+		connection.send(message);
+	}
+	/**
+	* Gets the registration parameters, provided by Stream Deck, that provide information to the plugin, including how to establish a connection.
+	* @returns Parsed registration parameters.
+	*/
+	getRegistrationParameters() {
+		const params = {
+			port: void 0,
+			info: void 0,
+			pluginUUID: void 0,
+			registerEvent: void 0
+		};
+		const scopedLogger = logger.createScope("RegistrationParameters");
+		for (let i = 0; i < process.argv.length - 1; i++) {
+			const param = process.argv[i];
+			const value = process.argv[++i];
+			switch (param) {
+				case RegistrationParameter.Port:
+					scopedLogger.debug(`port=${value}`);
+					params.port = value;
+					break;
+				case RegistrationParameter.PluginUUID:
+					scopedLogger.debug(`pluginUUID=${value}`);
+					params.pluginUUID = value;
+					break;
+				case RegistrationParameter.RegisterEvent:
+					scopedLogger.debug(`registerEvent=${value}`);
+					params.registerEvent = value;
+					break;
+				case RegistrationParameter.Info:
+					scopedLogger.debug(`info=${value}`);
+					params.info = JSON.parse(value);
+					break;
+				default:
+					i--;
+					break;
+			}
+		}
+		const invalidArgs = [];
+		const validate = (name, value) => {
+			if (value === void 0) invalidArgs.push(name);
+		};
+		validate(RegistrationParameter.Port, params.port);
+		validate(RegistrationParameter.PluginUUID, params.pluginUUID);
+		validate(RegistrationParameter.RegisterEvent, params.registerEvent);
+		validate(RegistrationParameter.Info, params.info);
+		if (invalidArgs.length > 0) throw new Error(`Unable to establish a connection with Stream Deck, missing command line arguments: ${invalidArgs.join(", ")}`);
+		return params;
+	}
+	/**
+	* Attempts to emit the {@link ev} that was received from the {@link Connection.connection}.
+	* @param ev Event message data received from Stream Deck.
+	*/
+	tryEmit(ev) {
+		try {
+			const message = JSON.parse(ev.data.toString());
+			if (message.event) {
+				this.logger.trace(ev.data.toString());
+				this.emit(message.event, message);
+			} else this.logger.warn(`Received unknown message: ${ev.data}`);
+		} catch (err) {
+			this.logger.error(`Failed to parse message: ${ev.data}`, err);
+		}
+	}
+};
+const connection = new Connection();
+/**
+* Provides information for events received from Stream Deck.
+*/
+var Event = class {
+	/**
+	* Event that occurred.
+	*/
+	type;
+	/**
+	* Initializes a new instance of the {@link Event} class.
+	* @param source Source of the event, i.e. the original message from Stream Deck.
+	*/
+	constructor(source) {
+		this.type = source.event;
+	}
+};
+/**
+* Provides information for an event relating to an action.
+*/
+var ActionWithoutPayloadEvent = class extends Event {
+	action;
+	/**
+	* Initializes a new instance of the {@link ActionWithoutPayloadEvent} class.
+	* @param action Action that raised the event.
+	* @param source Source of the event, i.e. the original message from Stream Deck.
+	*/
+	constructor(action, source) {
+		super(source);
+		this.action = action;
+	}
+};
+/**
+* Provides information for an event relating to an action.
+*/
+var ActionEvent = class extends ActionWithoutPayloadEvent {
+	/**
+	* Provides additional information about the event that occurred, e.g. how many `ticks` the dial was rotated, the current `state` of the action, etc.
+	*/
+	payload;
+	/**
+	* Initializes a new instance of the {@link ActionEvent} class.
+	* @param action Action that raised the event.
+	* @param source Source of the event, i.e. the original message from Stream Deck.
+	*/
+	constructor(action, source) {
+		super(action, source);
+		this.payload = source.payload;
+	}
+};
+var manifest$1 = new Lazy(() => {
+	const path = join(process.cwd(), "manifest.json");
+	if (!existsSync(path)) throw new Error("Failed to read manifest.json as the file does not exist.");
+	try {
+		return JSON.parse(readFileSync(path, {
+			encoding: "utf-8",
+			flag: "r"
+		}).toString());
+	} catch (e) {
+		if (e instanceof SyntaxError) return null;
+		else throw e;
+	}
+});
+var softwareMinimumVersion = new Lazy(() => {
+	if (manifest$1.value === null) return null;
+	return new Version(manifest$1.value.Software.MinimumVersion);
+});
+/**
+* Gets the SDK version that the plugin requires.
+* @returns SDK version; otherwise `null` when the plugin is DRM protected.
+*/
+function getSDKVersion() {
+	return manifest$1.value?.SDKVersion ?? null;
+}
+/**
+* Gets the minimum version that the plugin requires.
+* @returns Minimum required version; otherwise `null` when the plugin is DRM protected.
+*/
+function getSoftwareMinimumVersion() {
+	return softwareMinimumVersion.value;
+}
+/**
+* Gets the manifest associated with the plugin.
+* @returns The manifest; otherwise `null` when the plugin is DRM protected.
+*/
+function getManifest() {
+	return manifest$1.value;
+}
+var __items$1 = /* @__PURE__ */ new Map();
+/**
+* Provides a read-only store of Stream Deck devices.
+*/
+var ReadOnlyActionStore = class extends Enumerable {
+	/**
+	* Initializes a new instance of the {@link ReadOnlyActionStore}.
+	*/
+	constructor() {
+		super(__items$1);
+	}
+	/**
+	* Gets the action with the specified identifier.
+	* @param id Identifier of action to search for.
+	* @returns The action, when present; otherwise `undefined`.
+	*/
+	getActionById(id) {
+		return __items$1.get(id);
+	}
+};
+/**
+* Provides a store of Stream Deck actions.
+*/
+var ActionStore = class extends ReadOnlyActionStore {
+	/**
+	* Deletes the action from the store.
+	* @param id The action's identifier.
+	*/
+	delete(id) {
+		__items$1.delete(id);
+	}
+	/**
+	* Adds the action to the store.
+	* @param action The action.
+	*/
+	set(action) {
+		__items$1.set(action.id, action);
+	}
+};
+/**
+* Singleton instance of the action store.
+*/
+const actionStore = new ActionStore();
+/**
+* Provides information for events relating to an application.
+*/
+var ApplicationEvent = class extends Event {
+	/**
+	* Monitored application that was launched/terminated.
+	*/
+	application;
+	/**
+	* Initializes a new instance of the {@link ApplicationEvent} class.
+	* @param source Source of the event, i.e. the original message from Stream Deck.
+	*/
+	constructor(source) {
+		super(source);
+		this.application = source.payload.application;
+	}
+};
+/**
+* Provides information for events relating to a device.
+*/
+var DeviceEvent = class extends Event {
+	device;
+	/**
+	* Initializes a new instance of the {@link DeviceEvent} class.
+	* @param source Source of the event, i.e. the original message from Stream Deck.
+	* @param device Device that event is associated with.
+	*/
+	constructor(source, device) {
+		super(source);
+		this.device = device;
+	}
+};
+/**
+* Event information received from Stream Deck as part of a deep-link message being routed to the plugin.
+*/
+var DidReceiveDeepLinkEvent = class extends Event {
+	/**
+	* Deep-link URL routed from Stream Deck.
+	*/
+	url;
+	/**
+	* Initializes a new instance of the {@link DidReceiveDeepLinkEvent} class.
+	* @param source Source of the event, i.e. the original message from Stream Deck.
+	*/
+	constructor(source) {
+		super(source);
+		this.url = new DeepLinkURL(source.payload.url);
+	}
+};
+var PREFIX = "streamdeck://";
+/**
+* Provides information associated with a URL received as part of a deep-link message, conforming to the URI syntax defined within RFC-3986 (https://datatracker.ietf.org/doc/html/rfc3986#section-3).
+*/
+var DeepLinkURL = class DeepLinkURL {
+	/**
+	* Fragment of the URL, with the number sign (#) omitted. For example, a URL of "/test#heading" would result in a {@link DeepLinkURL.fragment} of "heading".
+	*/
+	fragment;
+	/**
+	* Original URL. For example, a URL of "/test?one=two#heading" would result in a {@link DeepLinkURL.href} of "/test?one=two#heading".
+	*/
+	href;
+	/**
+	* Path of the URL; the full URL with the query and fragment omitted. For example, a URL of "/test?one=two#heading" would result in a {@link DeepLinkURL.path} of "/test".
+	*/
+	path;
+	/**
+	* Query of the URL, with the question mark (?) omitted. For example, a URL of "/test?name=elgato&key=123" would result in a {@link DeepLinkURL.query} of "name=elgato&key=123".
+	* See also {@link DeepLinkURL.queryParameters}.
+	*/
+	query;
+	/**
+	* Query string parameters parsed from the URL. See also {@link DeepLinkURL.query}.
+	*/
+	queryParameters;
+	/**
+	* Initializes a new instance of the {@link DeepLinkURL} class.
+	* @param url URL of the deep-link, with the schema and authority omitted.
+	*/
+	constructor(url) {
+		const refUrl = new URL(`${PREFIX}${url}`);
+		this.fragment = refUrl.hash.substring(1);
+		this.href = refUrl.href.substring(13);
+		this.path = DeepLinkURL.parsePath(this.href);
+		this.query = refUrl.search.substring(1);
+		this.queryParameters = refUrl.searchParams;
+	}
+	/**
+	* Parses the {@link DeepLinkURL.path} from the specified {@link href}.
+	* @param href Partial URL that contains the path to parse.
+	* @returns The path of the URL.
+	*/
+	static parsePath(href) {
+		const indexOf = (char) => {
+			const index = href.indexOf(char);
+			return index >= 0 ? index : href.length;
+		};
+		return href.substring(0, Math.min(indexOf("?"), indexOf("#")));
+	}
+};
+/**
+* Provides event information for when the plugin received the global settings.
+*/
+var DidReceiveGlobalSettingsEvent = class extends Event {
+	/**
+	* Settings associated with the event.
+	*/
+	settings;
+	/**
+	* Initializes a new instance of the {@link DidReceiveGlobalSettingsEvent} class.
+	* @param source Source of the event, i.e. the original message from Stream Deck.
+	*/
+	constructor(source) {
+		super(source);
+		this.settings = source.payload.settings;
+	}
+};
+/**
+* Provides information for an event triggered by a message being sent to the plugin, from the property inspector.
+*/
+var SendToPluginEvent = class extends Event {
+	action;
+	/**
+	* Payload sent from the property inspector.
+	*/
+	payload;
+	/**
+	* Initializes a new instance of the {@link SendToPluginEvent} class.
+	* @param action Action that raised the event.
+	* @param source Source of the event, i.e. the original message from Stream Deck.
+	*/
+	constructor(action, source) {
+		super(source);
+		this.action = action;
+		this.payload = source.payload;
+	}
+};
+/**
+* Validates the `SDKVersion` within the manifest fulfils the minimum required version for the specified
+* feature; when the version is not fulfilled, an error is thrown with the feature formatted into the message.
+* @param minimumVersion Minimum required SDKVersion.
+* @param feature Feature that requires the version.
+*/
+function requiresSDKVersion(minimumVersion, feature) {
+	const sdkVersion = getSDKVersion();
+	if (sdkVersion !== null && minimumVersion > sdkVersion) throw new Error(`[ERR_NOT_SUPPORTED]: ${feature} requires manifest SDK version ${minimumVersion} or higher, but found version ${sdkVersion}; please update the "SDKVersion" in the plugin's manifest to ${minimumVersion} or higher.`);
+}
+/**
+* Validates the {@link streamDeckVersion} and manifest's `Software.MinimumVersion` are at least the {@link minimumVersion};
+* when the version is not fulfilled, an error is thrown with the {@link feature} formatted into the message.
+* @param minimumVersion Minimum required version.
+* @param streamDeckVersion Actual application version.
+* @param feature Feature that requires the version.
+*/
+function requiresVersion(minimumVersion, streamDeckVersion, feature) {
+	const required = {
+		major: Math.floor(minimumVersion),
+		minor: Number(minimumVersion.toString().split(".").at(1) ?? 0),
+		patch: 0,
+		build: 0
+	};
+	if (streamDeckVersion.compareTo(required) === -1) throw new Error(`[ERR_NOT_SUPPORTED]: ${feature} requires Stream Deck version ${required.major}.${required.minor} or higher, but current version is ${streamDeckVersion.major}.${streamDeckVersion.minor}; please update Stream Deck and the "Software.MinimumVersion" in the plugin's manifest to "${required.major}.${required.minor}" or higher.`);
+	const softwareMinimumVersion = getSoftwareMinimumVersion();
+	if (softwareMinimumVersion !== null && softwareMinimumVersion.compareTo(required) === -1) throw new Error(`[ERR_NOT_SUPPORTED]: ${feature} requires Stream Deck version ${required.major}.${required.minor} or higher; please update the "Software.MinimumVersion" in the plugin's manifest to "${required.major}.${required.minor}" or higher.`);
+}
+var __useExperimentalMessageIdentifiers = false;
+const settings = {
+	get useExperimentalMessageIdentifiers() {
+		return __useExperimentalMessageIdentifiers;
+	},
+	set useExperimentalMessageIdentifiers(value) {
+		requiresVersion(7.1, connection.version, "Message identifiers");
+		__useExperimentalMessageIdentifiers = value;
+	},
+	getGlobalSettings: () => {
+		return new Promise((resolve) => {
+			connection.once("didReceiveGlobalSettings", (ev) => resolve(ev.payload.settings));
+			connection.send({
+				event: "getGlobalSettings",
+				context: connection.registrationParameters.pluginUUID,
+				id: randomUUID()
+			});
+		});
+	},
+	onDidReceiveGlobalSettings: (listener) => {
+		return connection.disposableOn("didReceiveGlobalSettings", (ev) => {
+			if (settings.useExperimentalMessageIdentifiers && ev.id) return;
+			listener(new DidReceiveGlobalSettingsEvent(ev));
+		});
+	},
+	onDidReceiveSettings: (listener) => {
+		return connection.disposableOn("didReceiveSettings", (ev) => {
+			if (settings.useExperimentalMessageIdentifiers && ev.id) return;
+			const action = actionStore.getActionById(ev.context);
+			if (action) listener(new ActionEvent(action, ev));
+		});
+	},
+	setGlobalSettings: async (settings) => {
+		await connection.send({
+			event: "setGlobalSettings",
+			context: connection.registrationParameters.pluginUUID,
+			payload: settings
+		});
+	}
+};
+/**
+* Controller capable of sending/receiving payloads with the property inspector, and listening for events.
+*/
+var UIController = class {
+	/**
+	* Action associated with the current property inspector.
+	*/
+	#action;
+	/**
+	* To overcome event races, the debounce counter keeps track of appear vs disappear events, ensuring
+	* we only clear the current ui when an equal number of matching disappear events occur.
+	*/
+	#appearanceStackCount = 0;
+	/**
+	* Initializes a new instance of the {@link UIController} class.
+	*/
+	constructor() {
+		this.onDidAppear((ev) => {
+			if (this.#isCurrent(ev.action)) this.#appearanceStackCount++;
+			else {
+				this.#appearanceStackCount = 1;
+				this.#action = ev.action;
+			}
+		});
+		this.onDidDisappear((ev) => {
+			if (this.#isCurrent(ev.action)) {
+				this.#appearanceStackCount--;
+				if (this.#appearanceStackCount <= 0) this.#action = void 0;
+			}
+		});
+	}
+	/**
+	* Gets the action associated with the current property.
+	* @returns The action; otherwise `undefined` when a property inspector is not visible.
+	*/
+	get action() {
+		return this.#action;
+	}
+	/**
+	* Occurs when the property inspector associated with the action becomes visible, i.e. the user
+	* selected an action in the Stream Deck application..
+	* @template T The type of settings associated with the action.
+	* @param listener Function to be invoked when the event occurs.
+	* @returns A disposable that, when disposed, removes the listener.
+	*/
+	onDidAppear(listener) {
+		return connection.disposableOn("propertyInspectorDidAppear", (ev) => {
+			const action = actionStore.getActionById(ev.context);
+			if (action) listener(new ActionWithoutPayloadEvent(action, ev));
+		});
+	}
+	/**
+	* Occurs when the property inspector associated with the action disappears, i.e. the user unselected
+	* the action in the Stream Deck application.
+	* @template T The type of settings associated with the action.
+	* @param listener Function to be invoked when the event occurs.
+	* @returns A disposable that, when disposed, removes the listener.
+	*/
+	onDidDisappear(listener) {
+		return connection.disposableOn("propertyInspectorDidDisappear", (ev) => {
+			const action = actionStore.getActionById(ev.context);
+			if (action) listener(new ActionWithoutPayloadEvent(action, ev));
+		});
+	}
+	/**
+	* Occurs when a message was sent to the plugin _from_ the property inspector.
+	* @template TPayload The type of the payload received from the property inspector.
+	* @template TSettings The type of settings associated with the action.
+	* @param listener Function to be invoked when the event occurs.
+	* @returns A disposable that, when disposed, removes the listener.
+	*/
+	onSendToPlugin(listener) {
+		return connection.disposableOn("sendToPlugin", (ev) => {
+			const action = actionStore.getActionById(ev.context);
+			if (action) listener(new SendToPluginEvent(action, ev));
+		});
+	}
+	/**
+	* Sends the payload to the property inspector; the payload is only sent when the property inspector
+	* is visible for an action provided by this plugin.
+	* @param payload Payload to send.
+	*/
+	async sendToPropertyInspector(payload) {
+		if (this.#action) await connection.send({
+			event: "sendToPropertyInspector",
+			context: this.#action.id,
+			payload
+		});
+	}
+	/**
+	* Determines whether the specified action is the action for the current property inspector.
+	* @param action Action to check against.
+	* @returns `true` when the actions are the same.
+	*/
+	#isCurrent(action) {
+		return this.#action?.id === action.id && this.#action?.manifestId === action.manifestId && this.#action?.device?.id === action.device.id;
+	}
+};
+const ui = new UIController();
+var __items = /* @__PURE__ */ new Map();
+/**
+* Provides a read-only store of Stream Deck devices.
+*/
+var ReadOnlyDeviceStore = class extends Enumerable {
+	/**
+	* Initializes a new instance of the {@link ReadOnlyDeviceStore}.
+	*/
+	constructor() {
+		super(__items);
+	}
+	/**
+	* Gets the Stream Deck {@link Device} associated with the specified {@link deviceId}.
+	* @param deviceId Identifier of the Stream Deck device.
+	* @returns The Stream Deck device information; otherwise `undefined` if a device with the {@link deviceId} does not exist.
+	*/
+	getDeviceById(deviceId) {
+		return __items.get(deviceId);
+	}
+};
+/**
+* Provides a store of Stream Deck devices.
+*/
+var DeviceStore = class extends ReadOnlyDeviceStore {
+	/**
+	* Adds the device to the store.
+	* @param device The device.
+	*/
+	set(device) {
+		__items.set(device.id, device);
+	}
+};
+/**
+* Singleton instance of the device store.
+*/
+const deviceStore = new DeviceStore();
+/**
+* Provides information about an instance of a Stream Deck action.
+*/
+var ActionContext = class {
+	/**
+	* Device the action is associated with.
+	*/
+	#device;
+	/**
+	* Source of the action.
+	*/
+	#source;
+	/**
+	* Initializes a new instance of the {@link ActionContext} class.
+	* @param source Source of the action.
+	*/
+	constructor(source) {
+		this.#source = source;
+		const device = deviceStore.getDeviceById(source.device);
+		if (!device) throw new Error(`Failed to initialize action; device ${source.device} not found`);
+		this.#device = device;
+	}
+	/**
+	* Type of the action.
+	* - `Keypad` is a key.
+	* - `Encoder` is a dial and portion of the touch strip.
+	* @returns Controller type.
+	*/
+	get controllerType() {
+		return this.#source.payload.controller;
+	}
+	/**
+	* Stream Deck device the action is positioned on.
+	* @returns Stream Deck device.
+	*/
+	get device() {
+		return this.#device;
+	}
+	/**
+	* Action instance identifier.
+	* @returns Identifier.
+	*/
+	get id() {
+		return this.#source.context;
+	}
+	/**
+	* Manifest identifier (UUID) for this action type.
+	* @returns Manifest identifier.
+	*/
+	get manifestId() {
+		return this.#source.action;
+	}
+	/**
+	* Converts this instance to a serializable object.
+	* @returns The serializable object.
+	*/
+	toJSON() {
+		return {
+			controllerType: this.controllerType,
+			device: this.device,
+			id: this.id,
+			manifestId: this.manifestId
+		};
+	}
+};
+var REQUEST_TIMEOUT = 15 * 1e3;
+/**
+* Provides a contextualized instance of an {@link Action}, allowing for direct communication with the Stream Deck.
+* @template T The type of settings associated with the action.
+*/
+var Action = class extends ActionContext {
+	/**
+	* Gets the resources (files) associated with this action; these resources are embedded into the
+	* action when it is exported, either individually, or as part of a profile.
+	*
+	* Available from Stream Deck 7.1.
+	* @returns The resources.
+	*/
+	async getResources() {
+		requiresVersion(7.1, connection.version, "getResources");
+		return (await this.#fetch("getResources", "didReceiveResources")).payload.resources;
+	}
+	/**
+	* Gets the settings associated this action instance.
+	* @template U The type of settings associated with the action.D
+	* @returns Promise containing the action instance's settings.
+	*/
+	async getSettings() {
+		return (await this.#fetch("getSettings", "didReceiveSettings")).payload.settings;
+	}
+	/**
+	* Determines whether this instance is a dial.
+	* @returns `true` when this instance is a dial; otherwise `false`.
+	*/
+	isDial() {
+		return this.controllerType === "Encoder";
+	}
+	/**
+	* Determines whether this instance is a key.
+	* @returns `true` when this instance is a key; otherwise `false`.
+	*/
+	isKey() {
+		return this.controllerType === "Keypad";
+	}
+	/**
+	* Sets the resources (files) associated with this action; these resources are embedded into the
+	* action when it is exported, either individually, or as part of a profile.
+	*
+	* Available from Stream Deck 7.1.
+	* @example
+	* action.setResources({
+	*   fileOne: "c:\\hello-world.txt",
+	*   anotherFile: "c:\\icon.png"
+	* });
+	* @param resources The resources as a map of file paths.
+	* @returns `Promise` resolved when the resources are saved to Stream Deck.
+	*/
+	setResources(resources) {
+		requiresVersion(7.1, connection.version, "setResources");
+		return connection.send({
+			event: "setResources",
+			context: this.id,
+			payload: resources
+		});
+	}
+	/**
+	* Sets the {@link settings} associated with this action instance. Use in conjunction with {@link Action.getSettings}.
+	* @param settings Settings to persist.
+	* @returns `Promise` resolved when the {@link settings} are sent to Stream Deck.
+	*/
+	setSettings(settings) {
+		return connection.send({
+			event: "setSettings",
+			context: this.id,
+			payload: settings
+		});
+	}
+	/**
+	* Temporarily shows an alert (i.e. warning), in the form of an exclamation mark in a yellow triangle, on this action instance. Used to provide visual feedback when an action failed.
+	* @returns `Promise` resolved when the request to show an alert has been sent to Stream Deck.
+	*/
+	showAlert() {
+		return connection.send({
+			event: "showAlert",
+			context: this.id
+		});
+	}
+	/**
+	* Fetches information from Stream Deck by sending the command, and awaiting the event.
+	* @param command Name of the event (command) to send.
+	* @param event Name of the event to await.
+	* @returns The payload from the received event.
+	*/
+	async #fetch(command, event) {
+		const { resolve, reject, promise } = withResolvers();
+		const timeoutId = setTimeout(() => {
+			listener.dispose();
+			reject("The request timed out");
+		}, REQUEST_TIMEOUT);
+		const listener = connection.disposableOn(event, (ev) => {
+			if (ev.context == this.id) {
+				clearTimeout(timeoutId);
+				listener.dispose();
+				resolve(ev);
+			}
+		});
+		await connection.send({
+			event: command,
+			context: this.id,
+			id: randomUUID()
+		});
+		return promise;
+	}
+};
+/**
+* Provides a contextualized instance of a dial action.
+* @template T The type of settings associated with the action.
+*/
+var DialAction = class extends Action {
+	/**
+	* Private backing field for {@link DialAction.coordinates}.
+	*/
+	#coordinates;
+	/**
+	* Initializes a new instance of the {@see DialAction} class.
+	* @param source Source of the action.
+	*/
+	constructor(source) {
+		super(source);
+		if (source.payload.controller !== "Encoder") throw new Error("Unable to create DialAction; source event is not a Encoder");
+		this.#coordinates = Object.freeze(source.payload.coordinates);
+	}
+	/**
+	* Coordinates of the dial.
+	* @returns The coordinates.
+	*/
+	get coordinates() {
+		return this.#coordinates;
+	}
+	/**
+	* Sets the feedback for the current layout associated with this action instance, allowing for the visual items to be updated. Layouts are a powerful way to provide dynamic information
+	* to users, and can be assigned in the manifest, or dynamically via {@link Action.setFeedbackLayout}.
+	*
+	* The {@link feedback} payload defines which items within the layout will be updated, and are identified by their property name (defined as the `key` in the layout's definition).
+	* The values can either by a complete new definition, a `string` for layout item types of `text` and `pixmap`, or a `number` for layout item types of `bar` and `gbar`.
+	* @param feedback Object containing information about the layout items to be updated.
+	* @returns `Promise` resolved when the request to set the {@link feedback} has been sent to Stream Deck.
+	*/
+	setFeedback(feedback) {
+		return connection.send({
+			event: "setFeedback",
+			context: this.id,
+			payload: feedback
+		});
+	}
+	/**
+	* Sets the layout associated with this action instance. The layout must be either a built-in layout identifier, or path to a local layout JSON file within the plugin's folder.
+	* Use in conjunction with {@link Action.setFeedback} to update the layout's current items' settings.
+	* @param layout Name of a pre-defined layout, or relative path to a custom one.
+	* @returns `Promise` resolved when the new layout has been sent to Stream Deck.
+	*/
+	setFeedbackLayout(layout) {
+		return connection.send({
+			event: "setFeedbackLayout",
+			context: this.id,
+			payload: { layout }
+		});
+	}
+	/**
+	* Sets the {@link image} to be display for this action instance within Stream Deck app.
+	*
+	* NB: The image can only be set by the plugin when the the user has not specified a custom image.
+	* @param image Image to display; this can be either a path to a local file within the plugin's folder, a base64 encoded `string` with the mime type declared (e.g. PNG, JPEG, etc.),
+	* or an SVG `string`. When `undefined`, the image from the manifest will be used.
+	* @returns `Promise` resolved when the request to set the {@link image} has been sent to Stream Deck.
+	*/
+	setImage(image) {
+		return connection.send({
+			event: "setImage",
+			context: this.id,
+			payload: { image }
+		});
+	}
+	/**
+	* Sets the {@link title} displayed for this action instance.
+	*
+	* NB: The title can only be set by the plugin when the the user has not specified a custom title.
+	* @param title Title to display.
+	* @returns `Promise` resolved when the request to set the {@link title} has been sent to Stream Deck.
+	*/
+	setTitle(title) {
+		return this.setFeedback({ title });
+	}
+	/**
+	* Sets the trigger (interaction) {@link descriptions} associated with this action instance. Descriptions are shown within the Stream Deck application, and informs the user what
+	* will happen when they interact with the action, e.g. rotate, touch, etc. When {@link descriptions} is `undefined`, the descriptions will be reset to the values provided as part
+	* of the manifest.
+	*
+	* NB: Applies to encoders (dials / touchscreens) found on Stream Deck + devices.
+	* @param descriptions Descriptions that detail the action's interaction.
+	* @returns `Promise` resolved when the request to set the {@link descriptions} has been sent to Stream Deck.
+	*/
+	setTriggerDescription(descriptions) {
+		return connection.send({
+			event: "setTriggerDescription",
+			context: this.id,
+			payload: descriptions || {}
+		});
+	}
+	/**
+	* @inheritdoc
+	*/
+	toJSON() {
+		return {
+			...super.toJSON(),
+			coordinates: this.coordinates
+		};
+	}
+};
+/**
+* Provides a contextualized instance of a key action.
+* @template T The type of settings associated with the action.
+*/
+var KeyAction = class extends Action {
+	/**
+	* Private backing field for {@link KeyAction.coordinates}.
+	*/
+	#coordinates;
+	/**
+	* Source of the action.
+	*/
+	#source;
+	/**
+	* Initializes a new instance of the {@see KeyAction} class.
+	* @param source Source of the action.
+	*/
+	constructor(source) {
+		super(source);
+		if (source.payload.controller !== "Keypad") throw new Error("Unable to create KeyAction; source event is not a Keypad");
+		this.#coordinates = !source.payload.isInMultiAction ? Object.freeze(source.payload.coordinates) : void 0;
+		this.#source = source;
+	}
+	/**
+	* Coordinates of the key; otherwise `undefined` when the action is part of a multi-action.
+	* @returns The coordinates.
+	*/
+	get coordinates() {
+		return this.#coordinates;
+	}
+	/**
+	* Determines whether the key is part of a multi-action.
+	* @returns `true` when in a multi-action; otherwise `false`.
+	*/
+	isInMultiAction() {
+		return this.#source.payload.isInMultiAction;
+	}
+	/**
+	* Sets the {@link image} to be display for this action instance.
+	*
+	* NB: The image can only be set by the plugin when the the user has not specified a custom image.
+	* @param image Image to display; this can be either a path to a local file within the plugin's folder, a base64 encoded `string` with the mime type declared (e.g. PNG, JPEG, etc.),
+	* or an SVG `string`. When `undefined`, the image from the manifest will be used.
+	* @param options Additional options that define where and how the image should be rendered.
+	* @returns `Promise` resolved when the request to set the {@link image} has been sent to Stream Deck.
+	*/
+	setImage(image, options) {
+		return connection.send({
+			event: "setImage",
+			context: this.id,
+			payload: {
+				image,
+				...options
+			}
+		});
+	}
+	/**
+	* Sets the current {@link state} of this action instance; only applies to actions that have multiple states defined within the manifest.
+	* @param state State to set; this be either 0, or 1.
+	* @returns `Promise` resolved when the request to set the state of an action instance has been sent to Stream Deck.
+	*/
+	setState(state) {
+		return connection.send({
+			event: "setState",
+			context: this.id,
+			payload: { state }
+		});
+	}
+	/**
+	* Sets the {@link title} displayed for this action instance.
+	*
+	* NB: The title can only be set by the plugin when the the user has not specified a custom title.
+	* @param title Title to display; when `undefined` the title within the manifest will be used.
+	* @param options Additional options that define where and how the title should be rendered.
+	* @returns `Promise` resolved when the request to set the {@link title} has been sent to Stream Deck.
+	*/
+	setTitle(title, options) {
+		return connection.send({
+			event: "setTitle",
+			context: this.id,
+			payload: {
+				title,
+				...options
+			}
+		});
+	}
+	/**
+	* Temporarily shows an "OK" (i.e. success), in the form of a check-mark in a green circle, on this action instance. Used to provide visual feedback when an action successfully
+	* executed.
+	* @returns `Promise` resolved when the request to show an "OK" has been sent to Stream Deck.
+	*/
+	showOk() {
+		return connection.send({
+			event: "showOk",
+			context: this.id
+		});
+	}
+	/**
+	* @inheritdoc
+	*/
+	toJSON() {
+		return {
+			...super.toJSON(),
+			coordinates: this.coordinates,
+			isInMultiAction: this.isInMultiAction()
+		};
+	}
+};
+var manifest = new Lazy(() => getManifest());
+/**
+* Provides functions, and information, for interacting with Stream Deck actions.
+*/
+var ActionService = class extends ReadOnlyActionStore {
+	/**
+	* Initializes a new instance of the {@link ActionService} class.
+	*/
+	constructor() {
+		super();
+		connection.prependListener("willAppear", (ev) => {
+			const action = ev.payload.controller === "Encoder" ? new DialAction(ev) : new KeyAction(ev);
+			actionStore.set(action);
+		});
+		connection.prependListener("willDisappear", (ev) => actionStore.delete(ev.context));
+	}
+	/**
+	* Occurs when the user presses a dial (Stream Deck +).
+	* @template T The type of settings associated with the action.
+	* @param listener Function to be invoked when the event occurs.
+	* @returns A disposable that, when disposed, removes the listener.
+	*/
+	onDialDown(listener) {
+		return connection.disposableOn("dialDown", (ev) => {
+			const action = actionStore.getActionById(ev.context);
+			if (action?.isDial()) listener(new ActionEvent(action, ev));
+		});
+	}
+	/**
+	* Occurs when the user rotates a dial (Stream Deck +).
+	* @template T The type of settings associated with the action.
+	* @param listener Function to be invoked when the event occurs.
+	* @returns A disposable that, when disposed, removes the listener.
+	*/
+	onDialRotate(listener) {
+		return connection.disposableOn("dialRotate", (ev) => {
+			const action = actionStore.getActionById(ev.context);
+			if (action?.isDial()) listener(new ActionEvent(action, ev));
+		});
+	}
+	/**
+	* Occurs when the user releases a pressed dial (Stream Deck +).
+	* @template T The type of settings associated with the action.
+	* @param listener Function to be invoked when the event occurs.
+	* @returns A disposable that, when disposed, removes the listener.
+	*/
+	onDialUp(listener) {
+		return connection.disposableOn("dialUp", (ev) => {
+			const action = actionStore.getActionById(ev.context);
+			if (action?.isDial()) listener(new ActionEvent(action, ev));
+		});
+	}
+	/**
+	* Occurs when the resources were updated within the property inspector.
+	* @param listener Function to be invoked when the event occurs.
+	* @returns A disposable that, when disposed, removes the listener.
+	*/
+	onDidReceiveResources(listener) {
+		return connection.disposableOn("didReceiveResources", (ev) => {
+			if (ev.id !== void 0) return;
+			const action = actionStore.getActionById(ev.context);
+			if (action) listener(new ActionEvent(action, ev));
+		});
+	}
+	/**
+	* Occurs when the user presses a action down.
+	* @template T The type of settings associated with the action.
+	* @param listener Function to be invoked when the event occurs.
+	* @returns A disposable that, when disposed, removes the listener.
+	*/
+	onKeyDown(listener) {
+		return connection.disposableOn("keyDown", (ev) => {
+			const action = actionStore.getActionById(ev.context);
+			if (action?.isKey()) listener(new ActionEvent(action, ev));
+		});
+	}
+	/**
+	* Occurs when the user releases a pressed action.
+	* @template T The type of settings associated with the action.
+	* @param listener Function to be invoked when the event occurs.
+	* @returns A disposable that, when disposed, removes the listener.
+	*/
+	onKeyUp(listener) {
+		return connection.disposableOn("keyUp", (ev) => {
+			const action = actionStore.getActionById(ev.context);
+			if (action?.isKey()) listener(new ActionEvent(action, ev));
+		});
+	}
+	/**
+	* Occurs when the user updates an action's title settings in the Stream Deck application. See also {@link Action.setTitle}.
+	* @template T The type of settings associated with the action.
+	* @param listener Function to be invoked when the event occurs.
+	* @returns A disposable that, when disposed, removes the listener.
+	*/
+	onTitleParametersDidChange(listener) {
+		return connection.disposableOn("titleParametersDidChange", (ev) => {
+			const action = actionStore.getActionById(ev.context);
+			if (action) listener(new ActionEvent(action, ev));
+		});
+	}
+	/**
+	* Occurs when the user taps the touchscreen (Stream Deck +).
+	* @template T The type of settings associated with the action.
+	* @param listener Function to be invoked when the event occurs.
+	* @returns A disposable that, when disposed, removes the listener.
+	*/
+	onTouchTap(listener) {
+		return connection.disposableOn("touchTap", (ev) => {
+			const action = actionStore.getActionById(ev.context);
+			if (action?.isDial()) listener(new ActionEvent(action, ev));
+		});
+	}
+	/**
+	* Occurs when an action appears on the Stream Deck due to the user navigating to another page, profile, folder, etc. This also occurs during startup if the action is on the "front
+	* page". An action refers to _all_ types of actions, e.g. keys, dials,
+	* @template T The type of settings associated with the action.
+	* @param listener Function to be invoked when the event occurs.
+	* @returns A disposable that, when disposed, removes the listener.
+	*/
+	onWillAppear(listener) {
+		return connection.disposableOn("willAppear", (ev) => {
+			const action = actionStore.getActionById(ev.context);
+			if (action) listener(new ActionEvent(action, ev));
+		});
+	}
+	/**
+	* Occurs when an action disappears from the Stream Deck due to the user navigating to another page, profile, folder, etc. An action refers to _all_ types of actions, e.g. keys,
+	* dials, touchscreens, pedals, etc.
+	* @template T The type of settings associated with the action.
+	* @param listener Function to be invoked when the event occurs.
+	* @returns A disposable that, when disposed, removes the listener.
+	*/
+	onWillDisappear(listener) {
+		return connection.disposableOn("willDisappear", (ev) => listener(new ActionEvent(new ActionContext(ev), ev)));
+	}
+	/**
+	* Registers the action with the Stream Deck, routing all events associated with the {@link SingletonAction.manifestId} to the specified {@link action}.
+	* @param action The action to register.
+	* @example
+	* ＠action({ UUID: "com.elgato.test.action" })
+	* class MyCustomAction extends SingletonAction {
+	*     export function onKeyDown(ev: KeyDownEvent) {
+	*         // Do some awesome thing.
+	*     }
+	* }
+	*
+	* streamDeck.actions.registerAction(new MyCustomAction());
+	*/
+	registerAction(action) {
+		if (action.manifestId === void 0) throw new Error("The action's manifestId cannot be undefined.");
+		if (manifest.value !== null && !manifest.value.Actions.some((a) => a.UUID === action.manifestId)) throw new Error(`The action's manifestId was not found within the manifest: ${action.manifestId}`);
+		const { manifestId } = action;
+		const route = (fn, listener) => {
+			const boundedListener = listener?.bind(action);
+			if (boundedListener === void 0) return;
+			fn.bind(action)(async (ev) => {
+				if (ev.action.manifestId == manifestId) await boundedListener(ev);
+			});
+		};
+		route(this.onDialDown, action.onDialDown);
+		route(this.onDialUp, action.onDialUp);
+		route(this.onDialRotate, action.onDialRotate);
+		route(ui.onSendToPlugin, action.onSendToPlugin);
+		route(this.onDidReceiveResources, action.onDidReceiveResources);
+		route(settings.onDidReceiveSettings, action.onDidReceiveSettings);
+		route(this.onKeyDown, action.onKeyDown);
+		route(this.onKeyUp, action.onKeyUp);
+		route(ui.onDidAppear, action.onPropertyInspectorDidAppear);
+		route(ui.onDidDisappear, action.onPropertyInspectorDidDisappear);
+		route(this.onTitleParametersDidChange, action.onTitleParametersDidChange);
+		route(this.onTouchTap, action.onTouchTap);
+		route(this.onWillAppear, action.onWillAppear);
+		route(this.onWillDisappear, action.onWillDisappear);
+	}
+};
+/**
+* Service for interacting with Stream Deck actions.
+*/
+const actionService = new ActionService();
+/**
+* Provides information about a device.
+*/
+var Device = class {
+	/**
+	* Private backing field for {@link Device.isConnected}.
+	*/
+	#isConnected = false;
+	/**
+	* Private backing field for the device's information.
+	*/
+	#info;
+	/**
+	* Unique identifier of the device.
+	*/
+	id;
+	/**
+	* Initializes a new instance of the {@link Device} class.
+	* @param id Device identifier.
+	* @param info Information about the device.
+	* @param isConnected Determines whether the device is connected.
+	*/
+	constructor(id, info, isConnected) {
+		this.id = id;
+		this.#info = info;
+		this.#isConnected = isConnected;
+		connection.prependListener("deviceDidConnect", (ev) => {
+			if (ev.device === this.id) {
+				this.#info = ev.deviceInfo;
+				this.#isConnected = true;
+			}
+		});
+		connection.prependListener("deviceDidChange", (ev) => {
+			if (ev.device === this.id) this.#info = ev.deviceInfo;
+		});
+		connection.prependListener("deviceDidDisconnect", (ev) => {
+			if (ev.device === this.id) this.#isConnected = false;
+		});
+	}
+	/**
+	* Actions currently visible on the device.
+	* @returns Collection of visible actions.
+	*/
+	get actions() {
+		return actionStore.filter((a) => a.device.id === this.id);
+	}
+	/**
+	* Determines whether the device is currently connected.
+	* @returns `true` when the device is connected; otherwise `false`.
+	*/
+	get isConnected() {
+		return this.#isConnected;
+	}
+	/**
+	* Name of the device, as specified by the user in the Stream Deck application.
+	* @returns Name of the device.
+	*/
+	get name() {
+		return this.#info.name;
+	}
+	/**
+	* Number of action slots, excluding dials / touchscreens, available to the device.
+	* @returns Size of the device.
+	*/
+	get size() {
+		return this.#info.size;
+	}
+	/**
+	* Type of the device that was connected, e.g. Stream Deck +, Stream Deck Pedal, etc. See {@link DeviceType}.
+	* @returns Type of the device.
+	*/
+	get type() {
+		return this.#info.type;
+	}
+};
+/**
+* Provides functions, and information, for interacting with Stream Deck actions.
+*/
+var DeviceService = class extends ReadOnlyDeviceStore {
+	/**
+	* Initializes a new instance of the {@link DeviceService}.
+	*/
+	constructor() {
+		super();
+		connection.once("connected", (info) => {
+			info.devices.forEach((dev) => deviceStore.set(new Device(dev.id, dev, false)));
+		});
+		connection.on("deviceDidConnect", ({ device: id, deviceInfo }) => {
+			if (!deviceStore.getDeviceById(id)) deviceStore.set(new Device(id, deviceInfo, true));
+		});
+		connection.on("deviceDidChange", ({ device: id, deviceInfo }) => {
+			if (!deviceStore.getDeviceById(id)) deviceStore.set(new Device(id, deviceInfo, false));
+		});
+	}
+	/**
+	* Occurs when a Stream Deck device changed, for example its name or size.
+	*
+	* Available from Stream Deck 7.0.
+	* @param listener Function to be invoked when the event occurs.
+	* @returns A disposable that, when disposed, removes the listener.
+	*/
+	onDeviceDidChange(listener) {
+		requiresVersion(7, connection.version, "onDeviceDidChange");
+		return connection.disposableOn("deviceDidChange", (ev) => listener(new DeviceEvent(ev, this.getDeviceById(ev.device))));
+	}
+	/**
+	* Occurs when a Stream Deck device is connected. See also {@link DeviceService.onDeviceDidConnect}.
+	* @param listener Function to be invoked when the event occurs.
+	* @returns A disposable that, when disposed, removes the listener.
+	*/
+	onDeviceDidConnect(listener) {
+		return connection.disposableOn("deviceDidConnect", (ev) => listener(new DeviceEvent(ev, this.getDeviceById(ev.device))));
+	}
+	/**
+	* Occurs when a Stream Deck device is disconnected. See also {@link DeviceService.onDeviceDidDisconnect}.
+	* @param listener Function to be invoked when the event occurs.
+	* @returns A disposable that, when disposed, removes the listener.
+	*/
+	onDeviceDidDisconnect(listener) {
+		return connection.disposableOn("deviceDidDisconnect", (ev) => listener(new DeviceEvent(ev, this.getDeviceById(ev.device))));
+	}
+};
+/**
+* Provides functions, and information, for interacting with Stream Deck actions.
+*/
+const deviceService = new DeviceService();
+/**
+* Loads a locale from the file system.
+* @param language Language to load.
+* @returns Contents of the locale.
+*/
+function fileSystemLocaleProvider(language) {
+	const filePath = path.join(process.cwd(), `${language}.json`);
+	if (!fs.existsSync(filePath)) return null;
+	try {
+		const contents = fs.readFileSync(filePath, { flag: "r" })?.toString();
+		return parseLocalizations(contents);
+	} catch (err) {
+		logger.error(`Failed to load translations from ${filePath}`, err);
+		return null;
+	}
+}
+/**
+* Parses the localizations from the specified contents, or throws a `TypeError` when unsuccessful.
+* @param contents Contents that represent the stringified JSON containing the localizations.
+* @returns The localizations; otherwise a `TypeError`.
+*/
+function parseLocalizations(contents) {
+	const json = JSON.parse(contents);
+	if (json !== void 0 && json !== null && typeof json === "object" && "Localization" in json) return json["Localization"];
+	throw new TypeError(`Translations must be a JSON object nested under a property named "Localization"`);
+}
+var profiles_exports = /* @__PURE__ */ __exportAll({ switchToProfile: () => switchToProfile });
+/**
+* Requests the Stream Deck switches the current profile of the specified {@link deviceId} to the {@link profile}; when no {@link profile} is provided the previously active profile
+* is activated.
+*
+* NB: Plugins may only switch to profiles distributed with the plugin, as defined within the manifest, and cannot access user-defined profiles.
+* @param deviceId Unique identifier of the device where the profile should be set.
+* @param profile Optional name of the profile to switch to; when `undefined` the previous profile will be activated. Name must be identical to the one provided in the manifest.
+* @param page Optional page to show when switching to the {@link profile}, indexed from 0. When `undefined`, the page that was previously visible (when switching away from the
+* profile) will be made visible.
+* @returns `Promise` resolved when the request to switch the `profile` has been sent to Stream Deck.
+*/
+function switchToProfile(deviceId, profile, page) {
+	if (page !== void 0) requiresVersion(6.5, connection.version, "Switching to a profile page");
+	return connection.send({
+		event: "switchToProfile",
+		context: connection.registrationParameters.pluginUUID,
+		device: deviceId,
+		payload: {
+			page,
+			profile
+		}
+	});
+}
+var system_exports = /* @__PURE__ */ __exportAll({
+	getSecrets: () => getSecrets,
+	onApplicationDidLaunch: () => onApplicationDidLaunch,
+	onApplicationDidTerminate: () => onApplicationDidTerminate,
+	onDidReceiveDeepLink: () => onDidReceiveDeepLink,
+	onSystemDidWakeUp: () => onSystemDidWakeUp,
+	openUrl: () => openUrl
+});
+/**
+* Occurs when a monitored application is launched. Monitored applications can be defined in the manifest via the {@link Manifest.ApplicationsToMonitor} property.
+* See also {@link onApplicationDidTerminate}.
+* @param listener Function to be invoked when the event occurs.
+* @returns A disposable that, when disposed, removes the listener.
+*/
+function onApplicationDidLaunch(listener) {
+	return connection.disposableOn("applicationDidLaunch", (ev) => listener(new ApplicationEvent(ev)));
+}
+/**
+* Occurs when a monitored application terminates. Monitored applications can be defined in the manifest via the {@link Manifest.ApplicationsToMonitor} property.
+* See also {@link onApplicationDidLaunch}.
+* @param listener Function to be invoked when the event occurs.
+* @returns A disposable that, when disposed, removes the listener.
+*/
+function onApplicationDidTerminate(listener) {
+	return connection.disposableOn("applicationDidTerminate", (ev) => listener(new ApplicationEvent(ev)));
+}
+/**
+* Occurs when a deep-link message is routed to the plugin from Stream Deck. One-way deep-link messages can be sent to plugins from external applications using the URL format
+* `streamdeck://plugins/message/<PLUGIN_UUID>/{MESSAGE}`.
+* @param listener Function to be invoked when the event occurs.
+* @returns A disposable that, when disposed, removes the listener.
+*/
+function onDidReceiveDeepLink(listener) {
+	requiresVersion(6.5, connection.version, "Receiving deep-link messages");
+	return connection.disposableOn("didReceiveDeepLink", (ev) => listener(new DidReceiveDeepLinkEvent(ev)));
+}
+/**
+* Occurs when the computer wakes up.
+* @param listener Function to be invoked when the event occurs.
+* @returns A disposable that, when disposed, removes the listener.
+*/
+function onSystemDidWakeUp(listener) {
+	return connection.disposableOn("systemDidWakeUp", (ev) => listener(new Event(ev)));
+}
+/**
+* Opens the specified `url` in the user's default browser.
+* @param url URL to open.
+* @returns `Promise` resolved when the request to open the `url` has been sent to Stream Deck.
+*/
+function openUrl(url) {
+	return connection.send({
+		event: "openUrl",
+		payload: { url }
+	});
+}
+/**
+* Gets the secrets associated with the plugin.
+* @returns `Promise` resolved with the secrets associated with the plugin.
+*/
+function getSecrets() {
+	requiresVersion(6.9, connection.version, "Secrets");
+	requiresSDKVersion(3, "Secrets");
+	return new Promise((resolve) => {
+		connection.once("didReceiveSecrets", (ev) => resolve(ev.payload.secrets));
+		connection.send({
+			event: "getSecrets",
+			context: connection.registrationParameters.pluginUUID
+		});
+	});
+}
+/**
+* Provides the main bridge between the plugin and the Stream Deck allowing the plugin to send requests and receive events, e.g. when the user presses an action.
+* @template T The type of settings associated with the action.
+*/
+var SingletonAction = class {
+	/**
+	* The universally-unique value that identifies the action within the manifest.
+	*/
+	manifestId;
+	/**
+	* Gets the visible actions with the `manifestId` that match this instance's.
+	* @returns The visible actions.
+	*/
+	get actions() {
+		return actionStore.filter((a) => a.manifestId === this.manifestId);
+	}
+};
+var i18n;
+const streamDeck = {
+	get actions() {
+		return actionService;
+	},
+	get devices() {
+		return deviceService;
+	},
+	get i18n() {
+		return i18n ??= new I18nProvider(this.info.application.language, fileSystemLocaleProvider);
+	},
+	get info() {
+		return connection.registrationParameters.info;
+	},
+	get logger() {
+		return logger;
+	},
+	get profiles() {
+		return profiles_exports;
+	},
+	get settings() {
+		return settings;
+	},
+	get system() {
+		return system_exports;
+	},
+	get ui() {
+		return ui;
+	},
+	connect() {
+		return connection.connect();
+	}
+};
+var require$1 = createRequire(import.meta.url);
+new URL("data:text/javascript;base64,Ly8gcHJldHRpZXItaWdub3JlCi8qIGVzbGludC1kaXNhYmxlICovCi8vIEB0cy1ub2NoZWNrCi8qIGF1dG8tZ2VuZXJhdGVkIGJ5IE5BUEktUlMgKi8KCmltcG9ydCB7IGNyZWF0ZVJlcXVpcmUgfSBmcm9tICdub2RlOm1vZHVsZScKY29uc3QgcmVxdWlyZSA9IGNyZWF0ZVJlcXVpcmUoaW1wb3J0Lm1ldGEudXJsKQpjb25zdCBfX2Rpcm5hbWUgPSBuZXcgVVJMKCcuJywgaW1wb3J0Lm1ldGEudXJsKS5wYXRobmFtZQoKY29uc3QgeyByZWFkRmlsZVN5bmMgfSA9IHJlcXVpcmUoJ25vZGU6ZnMnKQpsZXQgbmF0aXZlQmluZGluZyA9IG51bGwKY29uc3QgbG9hZEVycm9ycyA9IFtdCgpjb25zdCBpc011c2wgPSAoKSA9PiB7CiAgbGV0IG11c2wgPSBmYWxzZQogIGlmIChwcm9jZXNzLnBsYXRmb3JtID09PSAnbGludXgnKSB7CiAgICBtdXNsID0gaXNNdXNsRnJvbUZpbGVzeXN0ZW0oKQogICAgaWYgKG11c2wgPT09IG51bGwpIHsKICAgICAgbXVzbCA9IGlzTXVzbEZyb21SZXBvcnQoKQogICAgfQogICAgaWYgKG11c2wgPT09IG51bGwpIHsKICAgICAgbXVzbCA9IGlzTXVzbEZyb21DaGlsZFByb2Nlc3MoKQogICAgfQogIH0KICByZXR1cm4gbXVzbAp9Cgpjb25zdCBpc0ZpbGVNdXNsID0gKGYpID0+IGYuaW5jbHVkZXMoJ2xpYmMubXVzbC0nKSB8fCBmLmluY2x1ZGVzKCdsZC1tdXNsLScpCgpjb25zdCBpc011c2xGcm9tRmlsZXN5c3RlbSA9ICgpID0+IHsKICB0cnkgewogICAgcmV0dXJuIHJlYWRGaWxlU3luYygnL3Vzci9iaW4vbGRkJywgJ3V0Zi04JykuaW5jbHVkZXMoJ211c2wnKQogIH0gY2F0Y2ggewogICAgcmV0dXJuIG51bGwKICB9Cn0KCmNvbnN0IGlzTXVzbEZyb21SZXBvcnQgPSAoKSA9PiB7CiAgbGV0IHJlcG9ydCA9IG51bGwKICBpZiAodHlwZW9mIHByb2Nlc3MucmVwb3J0Py5nZXRSZXBvcnQgPT09ICdmdW5jdGlvbicpIHsKICAgIHByb2Nlc3MucmVwb3J0LmV4Y2x1ZGVOZXR3b3JrID0gdHJ1ZQogICAgcmVwb3J0ID0gcHJvY2Vzcy5yZXBvcnQuZ2V0UmVwb3J0KCkKICB9CiAgaWYgKCFyZXBvcnQpIHsKICAgIHJldHVybiBudWxsCiAgfQogIGlmIChyZXBvcnQuaGVhZGVyICYmIHJlcG9ydC5oZWFkZXIuZ2xpYmNWZXJzaW9uUnVudGltZSkgewogICAgcmV0dXJuIGZhbHNlCiAgfQogIGlmIChBcnJheS5pc0FycmF5KHJlcG9ydC5zaGFyZWRPYmplY3RzKSkgewogICAgaWYgKHJlcG9ydC5zaGFyZWRPYmplY3RzLnNvbWUoaXNGaWxlTXVzbCkpIHsKICAgICAgcmV0dXJuIHRydWUKICAgIH0KICB9CiAgcmV0dXJuIGZhbHNlCn0KCmNvbnN0IGlzTXVzbEZyb21DaGlsZFByb2Nlc3MgPSAoKSA9PiB7CiAgdHJ5IHsKICAgIHJldHVybiByZXF1aXJlKCdjaGlsZF9wcm9jZXNzJykuZXhlY1N5bmMoJ2xkZCAtLXZlcnNpb24nLCB7IGVuY29kaW5nOiAndXRmOCcgfSkuaW5jbHVkZXMoJ211c2wnKQogIH0gY2F0Y2ggKGUpIHsKICAgIC8vIElmIHdlIHJlYWNoIHRoaXMgY2FzZSwgd2UgZG9uJ3Qga25vdyBpZiB0aGUgc3lzdGVtIGlzIG11c2wgb3Igbm90LCBzbyBpcyBiZXR0ZXIgdG8ganVzdCBmYWxsYmFjayB0byBmYWxzZQogICAgcmV0dXJuIGZhbHNlCiAgfQp9CgpmdW5jdGlvbiByZXF1aXJlTmF0aXZlKCkgewogIGlmIChwcm9jZXNzLmVudi5OQVBJX1JTX05BVElWRV9MSUJSQVJZX1BBVEgpIHsKICAgIHRyeSB7CiAgICAgIHJldHVybiByZXF1aXJlKHByb2Nlc3MuZW52Lk5BUElfUlNfTkFUSVZFX0xJQlJBUllfUEFUSCk7CiAgICB9IGNhdGNoIChlcnIpIHsKICAgICAgbG9hZEVycm9ycy5wdXNoKGVycikKICAgIH0KICB9IGVsc2UgaWYgKHByb2Nlc3MucGxhdGZvcm0gPT09ICdhbmRyb2lkJykgewogICAgaWYgKHByb2Nlc3MuYXJjaCA9PT0gJ2FybTY0JykgewogICAgICB0cnkgewogICAgICAgIHJldHVybiByZXF1aXJlKCcuL2NvcmUuYW5kcm9pZC1hcm02NC5ub2RlJykKICAgICAgfSBjYXRjaCAoZSkgewogICAgICAgIGxvYWRFcnJvcnMucHVzaChlKQogICAgICB9CiAgICAgIHRyeSB7CiAgICAgICAgY29uc3QgYmluZGluZyA9IHJlcXVpcmUoJ0B0YWt1bWktcnMvY29yZS1hbmRyb2lkLWFybTY0JykKICAgICAgICBjb25zdCBiaW5kaW5nUGFja2FnZVZlcnNpb24gPSByZXF1aXJlKCdAdGFrdW1pLXJzL2NvcmUtYW5kcm9pZC1hcm02NC9wYWNrYWdlLmpzb24nKS52ZXJzaW9uCiAgICAgICAgaWYgKGJpbmRpbmdQYWNrYWdlVmVyc2lvbiAhPT0gJzAuNzAuNCcgJiYgcHJvY2Vzcy5lbnYuTkFQSV9SU19FTkZPUkNFX1ZFUlNJT05fQ0hFQ0sgJiYgcHJvY2Vzcy5lbnYuTkFQSV9SU19FTkZPUkNFX1ZFUlNJT05fQ0hFQ0sgIT09ICcwJykgewogICAgICAgICAgdGhyb3cgbmV3IEVycm9yKGBOYXRpdmUgYmluZGluZyBwYWNrYWdlIHZlcnNpb24gbWlzbWF0Y2gsIGV4cGVjdGVkIDAuNzAuNCBidXQgZ290ICR7YmluZGluZ1BhY2thZ2VWZXJzaW9ufS4gWW91IGNhbiByZWluc3RhbGwgZGVwZW5kZW5jaWVzIHRvIGZpeCB0aGlzIGlzc3VlLmApCiAgICAgICAgfQogICAgICAgIHJldHVybiBiaW5kaW5nCiAgICAgIH0gY2F0Y2ggKGUpIHsKICAgICAgICBsb2FkRXJyb3JzLnB1c2goZSkKICAgICAgfQogICAgfSBlbHNlIGlmIChwcm9jZXNzLmFyY2ggPT09ICdhcm0nKSB7CiAgICAgIHRyeSB7CiAgICAgICAgcmV0dXJuIHJlcXVpcmUoJy4vY29yZS5hbmRyb2lkLWFybS1lYWJpLm5vZGUnKQogICAgICB9IGNhdGNoIChlKSB7CiAgICAgICAgbG9hZEVycm9ycy5wdXNoKGUpCiAgICAgIH0KICAgICAgdHJ5IHsKICAgICAgICBjb25zdCBiaW5kaW5nID0gcmVxdWlyZSgnQHRha3VtaS1ycy9jb3JlLWFuZHJvaWQtYXJtLWVhYmknKQogICAgICAgIGNvbnN0IGJpbmRpbmdQYWNrYWdlVmVyc2lvbiA9IHJlcXVpcmUoJ0B0YWt1bWktcnMvY29yZS1hbmRyb2lkLWFybS1lYWJpL3BhY2thZ2UuanNvbicpLnZlcnNpb24KICAgICAgICBpZiAoYmluZGluZ1BhY2thZ2VWZXJzaW9uICE9PSAnMC43MC40JyAmJiBwcm9jZXNzLmVudi5OQVBJX1JTX0VORk9SQ0VfVkVSU0lPTl9DSEVDSyAmJiBwcm9jZXNzLmVudi5OQVBJX1JTX0VORk9SQ0VfVkVSU0lPTl9DSEVDSyAhPT0gJzAnKSB7CiAgICAgICAgICB0aHJvdyBuZXcgRXJyb3IoYE5hdGl2ZSBiaW5kaW5nIHBhY2thZ2UgdmVyc2lvbiBtaXNtYXRjaCwgZXhwZWN0ZWQgMC43MC40IGJ1dCBnb3QgJHtiaW5kaW5nUGFja2FnZVZlcnNpb259LiBZb3UgY2FuIHJlaW5zdGFsbCBkZXBlbmRlbmNpZXMgdG8gZml4IHRoaXMgaXNzdWUuYCkKICAgICAgICB9CiAgICAgICAgcmV0dXJuIGJpbmRpbmcKICAgICAgfSBjYXRjaCAoZSkgewogICAgICAgIGxvYWRFcnJvcnMucHVzaChlKQogICAgICB9CiAgICB9IGVsc2UgewogICAgICBsb2FkRXJyb3JzLnB1c2gobmV3IEVycm9yKGBVbnN1cHBvcnRlZCBhcmNoaXRlY3R1cmUgb24gQW5kcm9pZCAke3Byb2Nlc3MuYXJjaH1gKSkKICAgIH0KICB9IGVsc2UgaWYgKHByb2Nlc3MucGxhdGZvcm0gPT09ICd3aW4zMicpIHsKICAgIGlmIChwcm9jZXNzLmFyY2ggPT09ICd4NjQnKSB7CiAgICAgIGlmIChwcm9jZXNzLmNvbmZpZz8udmFyaWFibGVzPy5zaGxpYl9zdWZmaXggPT09ICdkbGwuYScgfHwgcHJvY2Vzcy5jb25maWc/LnZhcmlhYmxlcz8ubm9kZV90YXJnZXRfdHlwZSA9PT0gJ3NoYXJlZF9saWJyYXJ5JykgewogICAgICAgIHRyeSB7CiAgICAgICAgcmV0dXJuIHJlcXVpcmUoJy4vY29yZS53aW4zMi14NjQtZ251Lm5vZGUnKQogICAgICB9IGNhdGNoIChlKSB7CiAgICAgICAgbG9hZEVycm9ycy5wdXNoKGUpCiAgICAgIH0KICAgICAgdHJ5IHsKICAgICAgICBjb25zdCBiaW5kaW5nID0gcmVxdWlyZSgnQHRha3VtaS1ycy9jb3JlLXdpbjMyLXg2NC1nbnUnKQogICAgICAgIGNvbnN0IGJpbmRpbmdQYWNrYWdlVmVyc2lvbiA9IHJlcXVpcmUoJ0B0YWt1bWktcnMvY29yZS13aW4zMi14NjQtZ251L3BhY2thZ2UuanNvbicpLnZlcnNpb24KICAgICAgICBpZiAoYmluZGluZ1BhY2thZ2VWZXJzaW9uICE9PSAnMC43MC40JyAmJiBwcm9jZXNzLmVudi5OQVBJX1JTX0VORk9SQ0VfVkVSU0lPTl9DSEVDSyAmJiBwcm9jZXNzLmVudi5OQVBJX1JTX0VORk9SQ0VfVkVSU0lPTl9DSEVDSyAhPT0gJzAnKSB7CiAgICAgICAgICB0aHJvdyBuZXcgRXJyb3IoYE5hdGl2ZSBiaW5kaW5nIHBhY2thZ2UgdmVyc2lvbiBtaXNtYXRjaCwgZXhwZWN0ZWQgMC43MC40IGJ1dCBnb3QgJHtiaW5kaW5nUGFja2FnZVZlcnNpb259LiBZb3UgY2FuIHJlaW5zdGFsbCBkZXBlbmRlbmNpZXMgdG8gZml4IHRoaXMgaXNzdWUuYCkKICAgICAgICB9CiAgICAgICAgcmV0dXJuIGJpbmRpbmcKICAgICAgfSBjYXRjaCAoZSkgewogICAgICAgIGxvYWRFcnJvcnMucHVzaChlKQogICAgICB9CiAgICAgIH0gZWxzZSB7CiAgICAgICAgdHJ5IHsKICAgICAgICByZXR1cm4gcmVxdWlyZSgnLi9jb3JlLndpbjMyLXg2NC1tc3ZjLm5vZGUnKQogICAgICB9IGNhdGNoIChlKSB7CiAgICAgICAgbG9hZEVycm9ycy5wdXNoKGUpCiAgICAgIH0KICAgICAgdHJ5IHsKICAgICAgICBjb25zdCBiaW5kaW5nID0gcmVxdWlyZSgnQHRha3VtaS1ycy9jb3JlLXdpbjMyLXg2NC1tc3ZjJykKICAgICAgICBjb25zdCBiaW5kaW5nUGFja2FnZVZlcnNpb24gPSByZXF1aXJlKCdAdGFrdW1pLXJzL2NvcmUtd2luMzIteDY0LW1zdmMvcGFja2FnZS5qc29uJykudmVyc2lvbgogICAgICAgIGlmIChiaW5kaW5nUGFja2FnZVZlcnNpb24gIT09ICcwLjcwLjQnICYmIHByb2Nlc3MuZW52Lk5BUElfUlNfRU5GT1JDRV9WRVJTSU9OX0NIRUNLICYmIHByb2Nlc3MuZW52Lk5BUElfUlNfRU5GT1JDRV9WRVJTSU9OX0NIRUNLICE9PSAnMCcpIHsKICAgICAgICAgIHRocm93IG5ldyBFcnJvcihgTmF0aXZlIGJpbmRpbmcgcGFja2FnZSB2ZXJzaW9uIG1pc21hdGNoLCBleHBlY3RlZCAwLjcwLjQgYnV0IGdvdCAke2JpbmRpbmdQYWNrYWdlVmVyc2lvbn0uIFlvdSBjYW4gcmVpbnN0YWxsIGRlcGVuZGVuY2llcyB0byBmaXggdGhpcyBpc3N1ZS5gKQogICAgICAgIH0KICAgICAgICByZXR1cm4gYmluZGluZwogICAgICB9IGNhdGNoIChlKSB7CiAgICAgICAgbG9hZEVycm9ycy5wdXNoKGUpCiAgICAgIH0KICAgICAgfQogICAgfSBlbHNlIGlmIChwcm9jZXNzLmFyY2ggPT09ICdpYTMyJykgewogICAgICB0cnkgewogICAgICAgIHJldHVybiByZXF1aXJlKCcuL2NvcmUud2luMzItaWEzMi1tc3ZjLm5vZGUnKQogICAgICB9IGNhdGNoIChlKSB7CiAgICAgICAgbG9hZEVycm9ycy5wdXNoKGUpCiAgICAgIH0KICAgICAgdHJ5IHsKICAgICAgICBjb25zdCBiaW5kaW5nID0gcmVxdWlyZSgnQHRha3VtaS1ycy9jb3JlLXdpbjMyLWlhMzItbXN2YycpCiAgICAgICAgY29uc3QgYmluZGluZ1BhY2thZ2VWZXJzaW9uID0gcmVxdWlyZSgnQHRha3VtaS1ycy9jb3JlLXdpbjMyLWlhMzItbXN2Yy9wYWNrYWdlLmpzb24nKS52ZXJzaW9uCiAgICAgICAgaWYgKGJpbmRpbmdQYWNrYWdlVmVyc2lvbiAhPT0gJzAuNzAuNCcgJiYgcHJvY2Vzcy5lbnYuTkFQSV9SU19FTkZPUkNFX1ZFUlNJT05fQ0hFQ0sgJiYgcHJvY2Vzcy5lbnYuTkFQSV9SU19FTkZPUkNFX1ZFUlNJT05fQ0hFQ0sgIT09ICcwJykgewogICAgICAgICAgdGhyb3cgbmV3IEVycm9yKGBOYXRpdmUgYmluZGluZyBwYWNrYWdlIHZlcnNpb24gbWlzbWF0Y2gsIGV4cGVjdGVkIDAuNzAuNCBidXQgZ290ICR7YmluZGluZ1BhY2thZ2VWZXJzaW9ufS4gWW91IGNhbiByZWluc3RhbGwgZGVwZW5kZW5jaWVzIHRvIGZpeCB0aGlzIGlzc3VlLmApCiAgICAgICAgfQogICAgICAgIHJldHVybiBiaW5kaW5nCiAgICAgIH0gY2F0Y2ggKGUpIHsKICAgICAgICBsb2FkRXJyb3JzLnB1c2goZSkKICAgICAgfQogICAgfSBlbHNlIGlmIChwcm9jZXNzLmFyY2ggPT09ICdhcm02NCcpIHsKICAgICAgdHJ5IHsKICAgICAgICByZXR1cm4gcmVxdWlyZSgnLi9jb3JlLndpbjMyLWFybTY0LW1zdmMubm9kZScpCiAgICAgIH0gY2F0Y2ggKGUpIHsKICAgICAgICBsb2FkRXJyb3JzLnB1c2goZSkKICAgICAgfQogICAgICB0cnkgewogICAgICAgIGNvbnN0IGJpbmRpbmcgPSByZXF1aXJlKCdAdGFrdW1pLXJzL2NvcmUtd2luMzItYXJtNjQtbXN2YycpCiAgICAgICAgY29uc3QgYmluZGluZ1BhY2thZ2VWZXJzaW9uID0gcmVxdWlyZSgnQHRha3VtaS1ycy9jb3JlLXdpbjMyLWFybTY0LW1zdmMvcGFja2FnZS5qc29uJykudmVyc2lvbgogICAgICAgIGlmIChiaW5kaW5nUGFja2FnZVZlcnNpb24gIT09ICcwLjcwLjQnICYmIHByb2Nlc3MuZW52Lk5BUElfUlNfRU5GT1JDRV9WRVJTSU9OX0NIRUNLICYmIHByb2Nlc3MuZW52Lk5BUElfUlNfRU5GT1JDRV9WRVJTSU9OX0NIRUNLICE9PSAnMCcpIHsKICAgICAgICAgIHRocm93IG5ldyBFcnJvcihgTmF0aXZlIGJpbmRpbmcgcGFja2FnZSB2ZXJzaW9uIG1pc21hdGNoLCBleHBlY3RlZCAwLjcwLjQgYnV0IGdvdCAke2JpbmRpbmdQYWNrYWdlVmVyc2lvbn0uIFlvdSBjYW4gcmVpbnN0YWxsIGRlcGVuZGVuY2llcyB0byBmaXggdGhpcyBpc3N1ZS5gKQogICAgICAgIH0KICAgICAgICByZXR1cm4gYmluZGluZwogICAgICB9IGNhdGNoIChlKSB7CiAgICAgICAgbG9hZEVycm9ycy5wdXNoKGUpCiAgICAgIH0KICAgIH0gZWxzZSB7CiAgICAgIGxvYWRFcnJvcnMucHVzaChuZXcgRXJyb3IoYFVuc3VwcG9ydGVkIGFyY2hpdGVjdHVyZSBvbiBXaW5kb3dzOiAke3Byb2Nlc3MuYXJjaH1gKSkKICAgIH0KICB9IGVsc2UgaWYgKHByb2Nlc3MucGxhdGZvcm0gPT09ICdkYXJ3aW4nKSB7CiAgICB0cnkgewogICAgICByZXR1cm4gcmVxdWlyZSgnLi9jb3JlLmRhcndpbi11bml2ZXJzYWwubm9kZScpCiAgICB9IGNhdGNoIChlKSB7CiAgICAgIGxvYWRFcnJvcnMucHVzaChlKQogICAgfQogICAgdHJ5IHsKICAgICAgY29uc3QgYmluZGluZyA9IHJlcXVpcmUoJ0B0YWt1bWktcnMvY29yZS1kYXJ3aW4tdW5pdmVyc2FsJykKICAgICAgY29uc3QgYmluZGluZ1BhY2thZ2VWZXJzaW9uID0gcmVxdWlyZSgnQHRha3VtaS1ycy9jb3JlLWRhcndpbi11bml2ZXJzYWwvcGFja2FnZS5qc29uJykudmVyc2lvbgogICAgICBpZiAoYmluZGluZ1BhY2thZ2VWZXJzaW9uICE9PSAnMC43MC40JyAmJiBwcm9jZXNzLmVudi5OQVBJX1JTX0VORk9SQ0VfVkVSU0lPTl9DSEVDSyAmJiBwcm9jZXNzLmVudi5OQVBJX1JTX0VORk9SQ0VfVkVSU0lPTl9DSEVDSyAhPT0gJzAnKSB7CiAgICAgICAgdGhyb3cgbmV3IEVycm9yKGBOYXRpdmUgYmluZGluZyBwYWNrYWdlIHZlcnNpb24gbWlzbWF0Y2gsIGV4cGVjdGVkIDAuNzAuNCBidXQgZ290ICR7YmluZGluZ1BhY2thZ2VWZXJzaW9ufS4gWW91IGNhbiByZWluc3RhbGwgZGVwZW5kZW5jaWVzIHRvIGZpeCB0aGlzIGlzc3VlLmApCiAgICAgIH0KICAgICAgcmV0dXJuIGJpbmRpbmcKICAgIH0gY2F0Y2ggKGUpIHsKICAgICAgbG9hZEVycm9ycy5wdXNoKGUpCiAgICB9CiAgICBpZiAocHJvY2Vzcy5hcmNoID09PSAneDY0JykgewogICAgICB0cnkgewogICAgICAgIHJldHVybiByZXF1aXJlKCcuL2NvcmUuZGFyd2luLXg2NC5ub2RlJykKICAgICAgfSBjYXRjaCAoZSkgewogICAgICAgIGxvYWRFcnJvcnMucHVzaChlKQogICAgICB9CiAgICAgIHRyeSB7CiAgICAgICAgY29uc3QgYmluZGluZyA9IHJlcXVpcmUoJ0B0YWt1bWktcnMvY29yZS1kYXJ3aW4teDY0JykKICAgICAgICBjb25zdCBiaW5kaW5nUGFja2FnZVZlcnNpb24gPSByZXF1aXJlKCdAdGFrdW1pLXJzL2NvcmUtZGFyd2luLXg2NC9wYWNrYWdlLmpzb24nKS52ZXJzaW9uCiAgICAgICAgaWYgKGJpbmRpbmdQYWNrYWdlVmVyc2lvbiAhPT0gJzAuNzAuNCcgJiYgcHJvY2Vzcy5lbnYuTkFQSV9SU19FTkZPUkNFX1ZFUlNJT05fQ0hFQ0sgJiYgcHJvY2Vzcy5lbnYuTkFQSV9SU19FTkZPUkNFX1ZFUlNJT05fQ0hFQ0sgIT09ICcwJykgewogICAgICAgICAgdGhyb3cgbmV3IEVycm9yKGBOYXRpdmUgYmluZGluZyBwYWNrYWdlIHZlcnNpb24gbWlzbWF0Y2gsIGV4cGVjdGVkIDAuNzAuNCBidXQgZ290ICR7YmluZGluZ1BhY2thZ2VWZXJzaW9ufS4gWW91IGNhbiByZWluc3RhbGwgZGVwZW5kZW5jaWVzIHRvIGZpeCB0aGlzIGlzc3VlLmApCiAgICAgICAgfQogICAgICAgIHJldHVybiBiaW5kaW5nCiAgICAgIH0gY2F0Y2ggKGUpIHsKICAgICAgICBsb2FkRXJyb3JzLnB1c2goZSkKICAgICAgfQogICAgfSBlbHNlIGlmIChwcm9jZXNzLmFyY2ggPT09ICdhcm02NCcpIHsKICAgICAgdHJ5IHsKICAgICAgICByZXR1cm4gcmVxdWlyZSgnLi9jb3JlLmRhcndpbi1hcm02NC5ub2RlJykKICAgICAgfSBjYXRjaCAoZSkgewogICAgICAgIGxvYWRFcnJvcnMucHVzaChlKQogICAgICB9CiAgICAgIHRyeSB7CiAgICAgICAgY29uc3QgYmluZGluZyA9IHJlcXVpcmUoJ0B0YWt1bWktcnMvY29yZS1kYXJ3aW4tYXJtNjQnKQogICAgICAgIGNvbnN0IGJpbmRpbmdQYWNrYWdlVmVyc2lvbiA9IHJlcXVpcmUoJ0B0YWt1bWktcnMvY29yZS1kYXJ3aW4tYXJtNjQvcGFja2FnZS5qc29uJykudmVyc2lvbgogICAgICAgIGlmIChiaW5kaW5nUGFja2FnZVZlcnNpb24gIT09ICcwLjcwLjQnICYmIHByb2Nlc3MuZW52Lk5BUElfUlNfRU5GT1JDRV9WRVJTSU9OX0NIRUNLICYmIHByb2Nlc3MuZW52Lk5BUElfUlNfRU5GT1JDRV9WRVJTSU9OX0NIRUNLICE9PSAnMCcpIHsKICAgICAgICAgIHRocm93IG5ldyBFcnJvcihgTmF0aXZlIGJpbmRpbmcgcGFja2FnZSB2ZXJzaW9uIG1pc21hdGNoLCBleHBlY3RlZCAwLjcwLjQgYnV0IGdvdCAke2JpbmRpbmdQYWNrYWdlVmVyc2lvbn0uIFlvdSBjYW4gcmVpbnN0YWxsIGRlcGVuZGVuY2llcyB0byBmaXggdGhpcyBpc3N1ZS5gKQogICAgICAgIH0KICAgICAgICByZXR1cm4gYmluZGluZwogICAgICB9IGNhdGNoIChlKSB7CiAgICAgICAgbG9hZEVycm9ycy5wdXNoKGUpCiAgICAgIH0KICAgIH0gZWxzZSB7CiAgICAgIGxvYWRFcnJvcnMucHVzaChuZXcgRXJyb3IoYFVuc3VwcG9ydGVkIGFyY2hpdGVjdHVyZSBvbiBtYWNPUzogJHtwcm9jZXNzLmFyY2h9YCkpCiAgICB9CiAgfSBlbHNlIGlmIChwcm9jZXNzLnBsYXRmb3JtID09PSAnZnJlZWJzZCcpIHsKICAgIGlmIChwcm9jZXNzLmFyY2ggPT09ICd4NjQnKSB7CiAgICAgIHRyeSB7CiAgICAgICAgcmV0dXJuIHJlcXVpcmUoJy4vY29yZS5mcmVlYnNkLXg2NC5ub2RlJykKICAgICAgfSBjYXRjaCAoZSkgewogICAgICAgIGxvYWRFcnJvcnMucHVzaChlKQogICAgICB9CiAgICAgIHRyeSB7CiAgICAgICAgY29uc3QgYmluZGluZyA9IHJlcXVpcmUoJ0B0YWt1bWktcnMvY29yZS1mcmVlYnNkLXg2NCcpCiAgICAgICAgY29uc3QgYmluZGluZ1BhY2thZ2VWZXJzaW9uID0gcmVxdWlyZSgnQHRha3VtaS1ycy9jb3JlLWZyZWVic2QteDY0L3BhY2thZ2UuanNvbicpLnZlcnNpb24KICAgICAgICBpZiAoYmluZGluZ1BhY2thZ2VWZXJzaW9uICE9PSAnMC43MC40JyAmJiBwcm9jZXNzLmVudi5OQVBJX1JTX0VORk9SQ0VfVkVSU0lPTl9DSEVDSyAmJiBwcm9jZXNzLmVudi5OQVBJX1JTX0VORk9SQ0VfVkVSU0lPTl9DSEVDSyAhPT0gJzAnKSB7CiAgICAgICAgICB0aHJvdyBuZXcgRXJyb3IoYE5hdGl2ZSBiaW5kaW5nIHBhY2thZ2UgdmVyc2lvbiBtaXNtYXRjaCwgZXhwZWN0ZWQgMC43MC40IGJ1dCBnb3QgJHtiaW5kaW5nUGFja2FnZVZlcnNpb259LiBZb3UgY2FuIHJlaW5zdGFsbCBkZXBlbmRlbmNpZXMgdG8gZml4IHRoaXMgaXNzdWUuYCkKICAgICAgICB9CiAgICAgICAgcmV0dXJuIGJpbmRpbmcKICAgICAgfSBjYXRjaCAoZSkgewogICAgICAgIGxvYWRFcnJvcnMucHVzaChlKQogICAgICB9CiAgICB9IGVsc2UgaWYgKHByb2Nlc3MuYXJjaCA9PT0gJ2FybTY0JykgewogICAgICB0cnkgewogICAgICAgIHJldHVybiByZXF1aXJlKCcuL2NvcmUuZnJlZWJzZC1hcm02NC5ub2RlJykKICAgICAgfSBjYXRjaCAoZSkgewogICAgICAgIGxvYWRFcnJvcnMucHVzaChlKQogICAgICB9CiAgICAgIHRyeSB7CiAgICAgICAgY29uc3QgYmluZGluZyA9IHJlcXVpcmUoJ0B0YWt1bWktcnMvY29yZS1mcmVlYnNkLWFybTY0JykKICAgICAgICBjb25zdCBiaW5kaW5nUGFja2FnZVZlcnNpb24gPSByZXF1aXJlKCdAdGFrdW1pLXJzL2NvcmUtZnJlZWJzZC1hcm02NC9wYWNrYWdlLmpzb24nKS52ZXJzaW9uCiAgICAgICAgaWYgKGJpbmRpbmdQYWNrYWdlVmVyc2lvbiAhPT0gJzAuNzAuNCcgJiYgcHJvY2Vzcy5lbnYuTkFQSV9SU19FTkZPUkNFX1ZFUlNJT05fQ0hFQ0sgJiYgcHJvY2Vzcy5lbnYuTkFQSV9SU19FTkZPUkNFX1ZFUlNJT05fQ0hFQ0sgIT09ICcwJykgewogICAgICAgICAgdGhyb3cgbmV3IEVycm9yKGBOYXRpdmUgYmluZGluZyBwYWNrYWdlIHZlcnNpb24gbWlzbWF0Y2gsIGV4cGVjdGVkIDAuNzAuNCBidXQgZ290ICR7YmluZGluZ1BhY2thZ2VWZXJzaW9ufS4gWW91IGNhbiByZWluc3RhbGwgZGVwZW5kZW5jaWVzIHRvIGZpeCB0aGlzIGlzc3VlLmApCiAgICAgICAgfQogICAgICAgIHJldHVybiBiaW5kaW5nCiAgICAgIH0gY2F0Y2ggKGUpIHsKICAgICAgICBsb2FkRXJyb3JzLnB1c2goZSkKICAgICAgfQogICAgfSBlbHNlIHsKICAgICAgbG9hZEVycm9ycy5wdXNoKG5ldyBFcnJvcihgVW5zdXBwb3J0ZWQgYXJjaGl0ZWN0dXJlIG9uIEZyZWVCU0Q6ICR7cHJvY2Vzcy5hcmNofWApKQogICAgfQogIH0gZWxzZSBpZiAocHJvY2Vzcy5wbGF0Zm9ybSA9PT0gJ2xpbnV4JykgewogICAgaWYgKHByb2Nlc3MuYXJjaCA9PT0gJ3g2NCcpIHsKICAgICAgaWYgKGlzTXVzbCgpKSB7CiAgICAgICAgdHJ5IHsKICAgICAgICAgIHJldHVybiByZXF1aXJlKCcuL2NvcmUubGludXgteDY0LW11c2wubm9kZScpCiAgICAgICAgfSBjYXRjaCAoZSkgewogICAgICAgICAgbG9hZEVycm9ycy5wdXNoKGUpCiAgICAgICAgfQogICAgICAgIHRyeSB7CiAgICAgICAgICBjb25zdCBiaW5kaW5nID0gcmVxdWlyZSgnQHRha3VtaS1ycy9jb3JlLWxpbnV4LXg2NC1tdXNsJykKICAgICAgICAgIGNvbnN0IGJpbmRpbmdQYWNrYWdlVmVyc2lvbiA9IHJlcXVpcmUoJ0B0YWt1bWktcnMvY29yZS1saW51eC14NjQtbXVzbC9wYWNrYWdlLmpzb24nKS52ZXJzaW9uCiAgICAgICAgICBpZiAoYmluZGluZ1BhY2thZ2VWZXJzaW9uICE9PSAnMC43MC40JyAmJiBwcm9jZXNzLmVudi5OQVBJX1JTX0VORk9SQ0VfVkVSU0lPTl9DSEVDSyAmJiBwcm9jZXNzLmVudi5OQVBJX1JTX0VORk9SQ0VfVkVSU0lPTl9DSEVDSyAhPT0gJzAnKSB7CiAgICAgICAgICAgIHRocm93IG5ldyBFcnJvcihgTmF0aXZlIGJpbmRpbmcgcGFja2FnZSB2ZXJzaW9uIG1pc21hdGNoLCBleHBlY3RlZCAwLjcwLjQgYnV0IGdvdCAke2JpbmRpbmdQYWNrYWdlVmVyc2lvbn0uIFlvdSBjYW4gcmVpbnN0YWxsIGRlcGVuZGVuY2llcyB0byBmaXggdGhpcyBpc3N1ZS5gKQogICAgICAgICAgfQogICAgICAgICAgcmV0dXJuIGJpbmRpbmcKICAgICAgICB9IGNhdGNoIChlKSB7CiAgICAgICAgICBsb2FkRXJyb3JzLnB1c2goZSkKICAgICAgICB9CiAgICAgIH0gZWxzZSB7CiAgICAgICAgdHJ5IHsKICAgICAgICAgIHJldHVybiByZXF1aXJlKCcuL2NvcmUubGludXgteDY0LWdudS5ub2RlJykKICAgICAgICB9IGNhdGNoIChlKSB7CiAgICAgICAgICBsb2FkRXJyb3JzLnB1c2goZSkKICAgICAgICB9CiAgICAgICAgdHJ5IHsKICAgICAgICAgIGNvbnN0IGJpbmRpbmcgPSByZXF1aXJlKCdAdGFrdW1pLXJzL2NvcmUtbGludXgteDY0LWdudScpCiAgICAgICAgICBjb25zdCBiaW5kaW5nUGFja2FnZVZlcnNpb24gPSByZXF1aXJlKCdAdGFrdW1pLXJzL2NvcmUtbGludXgteDY0LWdudS9wYWNrYWdlLmpzb24nKS52ZXJzaW9uCiAgICAgICAgICBpZiAoYmluZGluZ1BhY2thZ2VWZXJzaW9uICE9PSAnMC43MC40JyAmJiBwcm9jZXNzLmVudi5OQVBJX1JTX0VORk9SQ0VfVkVSU0lPTl9DSEVDSyAmJiBwcm9jZXNzLmVudi5OQVBJX1JTX0VORk9SQ0VfVkVSU0lPTl9DSEVDSyAhPT0gJzAnKSB7CiAgICAgICAgICAgIHRocm93IG5ldyBFcnJvcihgTmF0aXZlIGJpbmRpbmcgcGFja2FnZSB2ZXJzaW9uIG1pc21hdGNoLCBleHBlY3RlZCAwLjcwLjQgYnV0IGdvdCAke2JpbmRpbmdQYWNrYWdlVmVyc2lvbn0uIFlvdSBjYW4gcmVpbnN0YWxsIGRlcGVuZGVuY2llcyB0byBmaXggdGhpcyBpc3N1ZS5gKQogICAgICAgICAgfQogICAgICAgICAgcmV0dXJuIGJpbmRpbmcKICAgICAgICB9IGNhdGNoIChlKSB7CiAgICAgICAgICBsb2FkRXJyb3JzLnB1c2goZSkKICAgICAgICB9CiAgICAgIH0KICAgIH0gZWxzZSBpZiAocHJvY2Vzcy5hcmNoID09PSAnYXJtNjQnKSB7CiAgICAgIGlmIChpc011c2woKSkgewogICAgICAgIHRyeSB7CiAgICAgICAgICByZXR1cm4gcmVxdWlyZSgnLi9jb3JlLmxpbnV4LWFybTY0LW11c2wubm9kZScpCiAgICAgICAgfSBjYXRjaCAoZSkgewogICAgICAgICAgbG9hZEVycm9ycy5wdXNoKGUpCiAgICAgICAgfQogICAgICAgIHRyeSB7CiAgICAgICAgICBjb25zdCBiaW5kaW5nID0gcmVxdWlyZSgnQHRha3VtaS1ycy9jb3JlLWxpbnV4LWFybTY0LW11c2wnKQogICAgICAgICAgY29uc3QgYmluZGluZ1BhY2thZ2VWZXJzaW9uID0gcmVxdWlyZSgnQHRha3VtaS1ycy9jb3JlLWxpbnV4LWFybTY0LW11c2wvcGFja2FnZS5qc29uJykudmVyc2lvbgogICAgICAgICAgaWYgKGJpbmRpbmdQYWNrYWdlVmVyc2lvbiAhPT0gJzAuNzAuNCcgJiYgcHJvY2Vzcy5lbnYuTkFQSV9SU19FTkZPUkNFX1ZFUlNJT05fQ0hFQ0sgJiYgcHJvY2Vzcy5lbnYuTkFQSV9SU19FTkZPUkNFX1ZFUlNJT05fQ0hFQ0sgIT09ICcwJykgewogICAgICAgICAgICB0aHJvdyBuZXcgRXJyb3IoYE5hdGl2ZSBiaW5kaW5nIHBhY2thZ2UgdmVyc2lvbiBtaXNtYXRjaCwgZXhwZWN0ZWQgMC43MC40IGJ1dCBnb3QgJHtiaW5kaW5nUGFja2FnZVZlcnNpb259LiBZb3UgY2FuIHJlaW5zdGFsbCBkZXBlbmRlbmNpZXMgdG8gZml4IHRoaXMgaXNzdWUuYCkKICAgICAgICAgIH0KICAgICAgICAgIHJldHVybiBiaW5kaW5nCiAgICAgICAgfSBjYXRjaCAoZSkgewogICAgICAgICAgbG9hZEVycm9ycy5wdXNoKGUpCiAgICAgICAgfQogICAgICB9IGVsc2UgewogICAgICAgIHRyeSB7CiAgICAgICAgICByZXR1cm4gcmVxdWlyZSgnLi9jb3JlLmxpbnV4LWFybTY0LWdudS5ub2RlJykKICAgICAgICB9IGNhdGNoIChlKSB7CiAgICAgICAgICBsb2FkRXJyb3JzLnB1c2goZSkKICAgICAgICB9CiAgICAgICAgdHJ5IHsKICAgICAgICAgIGNvbnN0IGJpbmRpbmcgPSByZXF1aXJlKCdAdGFrdW1pLXJzL2NvcmUtbGludXgtYXJtNjQtZ251JykKICAgICAgICAgIGNvbnN0IGJpbmRpbmdQYWNrYWdlVmVyc2lvbiA9IHJlcXVpcmUoJ0B0YWt1bWktcnMvY29yZS1saW51eC1hcm02NC1nbnUvcGFja2FnZS5qc29uJykudmVyc2lvbgogICAgICAgICAgaWYgKGJpbmRpbmdQYWNrYWdlVmVyc2lvbiAhPT0gJzAuNzAuNCcgJiYgcHJvY2Vzcy5lbnYuTkFQSV9SU19FTkZPUkNFX1ZFUlNJT05fQ0hFQ0sgJiYgcHJvY2Vzcy5lbnYuTkFQSV9SU19FTkZPUkNFX1ZFUlNJT05fQ0hFQ0sgIT09ICcwJykgewogICAgICAgICAgICB0aHJvdyBuZXcgRXJyb3IoYE5hdGl2ZSBiaW5kaW5nIHBhY2thZ2UgdmVyc2lvbiBtaXNtYXRjaCwgZXhwZWN0ZWQgMC43MC40IGJ1dCBnb3QgJHtiaW5kaW5nUGFja2FnZVZlcnNpb259LiBZb3UgY2FuIHJlaW5zdGFsbCBkZXBlbmRlbmNpZXMgdG8gZml4IHRoaXMgaXNzdWUuYCkKICAgICAgICAgIH0KICAgICAgICAgIHJldHVybiBiaW5kaW5nCiAgICAgICAgfSBjYXRjaCAoZSkgewogICAgICAgICAgbG9hZEVycm9ycy5wdXNoKGUpCiAgICAgICAgfQogICAgICB9CiAgICB9IGVsc2UgaWYgKHByb2Nlc3MuYXJjaCA9PT0gJ2FybScpIHsKICAgICAgaWYgKGlzTXVzbCgpKSB7CiAgICAgICAgdHJ5IHsKICAgICAgICAgIHJldHVybiByZXF1aXJlKCcuL2NvcmUubGludXgtYXJtLW11c2xlYWJpaGYubm9kZScpCiAgICAgICAgfSBjYXRjaCAoZSkgewogICAgICAgICAgbG9hZEVycm9ycy5wdXNoKGUpCiAgICAgICAgfQogICAgICAgIHRyeSB7CiAgICAgICAgICBjb25zdCBiaW5kaW5nID0gcmVxdWlyZSgnQHRha3VtaS1ycy9jb3JlLWxpbnV4LWFybS1tdXNsZWFiaWhmJykKICAgICAgICAgIGNvbnN0IGJpbmRpbmdQYWNrYWdlVmVyc2lvbiA9IHJlcXVpcmUoJ0B0YWt1bWktcnMvY29yZS1saW51eC1hcm0tbXVzbGVhYmloZi9wYWNrYWdlLmpzb24nKS52ZXJzaW9uCiAgICAgICAgICBpZiAoYmluZGluZ1BhY2thZ2VWZXJzaW9uICE9PSAnMC43MC40JyAmJiBwcm9jZXNzLmVudi5OQVBJX1JTX0VORk9SQ0VfVkVSU0lPTl9DSEVDSyAmJiBwcm9jZXNzLmVudi5OQVBJX1JTX0VORk9SQ0VfVkVSU0lPTl9DSEVDSyAhPT0gJzAnKSB7CiAgICAgICAgICAgIHRocm93IG5ldyBFcnJvcihgTmF0aXZlIGJpbmRpbmcgcGFja2FnZSB2ZXJzaW9uIG1pc21hdGNoLCBleHBlY3RlZCAwLjcwLjQgYnV0IGdvdCAke2JpbmRpbmdQYWNrYWdlVmVyc2lvbn0uIFlvdSBjYW4gcmVpbnN0YWxsIGRlcGVuZGVuY2llcyB0byBmaXggdGhpcyBpc3N1ZS5gKQogICAgICAgICAgfQogICAgICAgICAgcmV0dXJuIGJpbmRpbmcKICAgICAgICB9IGNhdGNoIChlKSB7CiAgICAgICAgICBsb2FkRXJyb3JzLnB1c2goZSkKICAgICAgICB9CiAgICAgIH0gZWxzZSB7CiAgICAgICAgdHJ5IHsKICAgICAgICAgIHJldHVybiByZXF1aXJlKCcuL2NvcmUubGludXgtYXJtLWdudWVhYmloZi5ub2RlJykKICAgICAgICB9IGNhdGNoIChlKSB7CiAgICAgICAgICBsb2FkRXJyb3JzLnB1c2goZSkKICAgICAgICB9CiAgICAgICAgdHJ5IHsKICAgICAgICAgIGNvbnN0IGJpbmRpbmcgPSByZXF1aXJlKCdAdGFrdW1pLXJzL2NvcmUtbGludXgtYXJtLWdudWVhYmloZicpCiAgICAgICAgICBjb25zdCBiaW5kaW5nUGFja2FnZVZlcnNpb24gPSByZXF1aXJlKCdAdGFrdW1pLXJzL2NvcmUtbGludXgtYXJtLWdudWVhYmloZi9wYWNrYWdlLmpzb24nKS52ZXJzaW9uCiAgICAgICAgICBpZiAoYmluZGluZ1BhY2thZ2VWZXJzaW9uICE9PSAnMC43MC40JyAmJiBwcm9jZXNzLmVudi5OQVBJX1JTX0VORk9SQ0VfVkVSU0lPTl9DSEVDSyAmJiBwcm9jZXNzLmVudi5OQVBJX1JTX0VORk9SQ0VfVkVSU0lPTl9DSEVDSyAhPT0gJzAnKSB7CiAgICAgICAgICAgIHRocm93IG5ldyBFcnJvcihgTmF0aXZlIGJpbmRpbmcgcGFja2FnZSB2ZXJzaW9uIG1pc21hdGNoLCBleHBlY3RlZCAwLjcwLjQgYnV0IGdvdCAke2JpbmRpbmdQYWNrYWdlVmVyc2lvbn0uIFlvdSBjYW4gcmVpbnN0YWxsIGRlcGVuZGVuY2llcyB0byBmaXggdGhpcyBpc3N1ZS5gKQogICAgICAgICAgfQogICAgICAgICAgcmV0dXJuIGJpbmRpbmcKICAgICAgICB9IGNhdGNoIChlKSB7CiAgICAgICAgICBsb2FkRXJyb3JzLnB1c2goZSkKICAgICAgICB9CiAgICAgIH0KICAgIH0gZWxzZSBpZiAocHJvY2Vzcy5hcmNoID09PSAnbG9vbmc2NCcpIHsKICAgICAgaWYgKGlzTXVzbCgpKSB7CiAgICAgICAgdHJ5IHsKICAgICAgICAgIHJldHVybiByZXF1aXJlKCcuL2NvcmUubGludXgtbG9vbmc2NC1tdXNsLm5vZGUnKQogICAgICAgIH0gY2F0Y2ggKGUpIHsKICAgICAgICAgIGxvYWRFcnJvcnMucHVzaChlKQogICAgICAgIH0KICAgICAgICB0cnkgewogICAgICAgICAgY29uc3QgYmluZGluZyA9IHJlcXVpcmUoJ0B0YWt1bWktcnMvY29yZS1saW51eC1sb29uZzY0LW11c2wnKQogICAgICAgICAgY29uc3QgYmluZGluZ1BhY2thZ2VWZXJzaW9uID0gcmVxdWlyZSgnQHRha3VtaS1ycy9jb3JlLWxpbnV4LWxvb25nNjQtbXVzbC9wYWNrYWdlLmpzb24nKS52ZXJzaW9uCiAgICAgICAgICBpZiAoYmluZGluZ1BhY2thZ2VWZXJzaW9uICE9PSAnMC43MC40JyAmJiBwcm9jZXNzLmVudi5OQVBJX1JTX0VORk9SQ0VfVkVSU0lPTl9DSEVDSyAmJiBwcm9jZXNzLmVudi5OQVBJX1JTX0VORk9SQ0VfVkVSU0lPTl9DSEVDSyAhPT0gJzAnKSB7CiAgICAgICAgICAgIHRocm93IG5ldyBFcnJvcihgTmF0aXZlIGJpbmRpbmcgcGFja2FnZSB2ZXJzaW9uIG1pc21hdGNoLCBleHBlY3RlZCAwLjcwLjQgYnV0IGdvdCAke2JpbmRpbmdQYWNrYWdlVmVyc2lvbn0uIFlvdSBjYW4gcmVpbnN0YWxsIGRlcGVuZGVuY2llcyB0byBmaXggdGhpcyBpc3N1ZS5gKQogICAgICAgICAgfQogICAgICAgICAgcmV0dXJuIGJpbmRpbmcKICAgICAgICB9IGNhdGNoIChlKSB7CiAgICAgICAgICBsb2FkRXJyb3JzLnB1c2goZSkKICAgICAgICB9CiAgICAgIH0gZWxzZSB7CiAgICAgICAgdHJ5IHsKICAgICAgICAgIHJldHVybiByZXF1aXJlKCcuL2NvcmUubGludXgtbG9vbmc2NC1nbnUubm9kZScpCiAgICAgICAgfSBjYXRjaCAoZSkgewogICAgICAgICAgbG9hZEVycm9ycy5wdXNoKGUpCiAgICAgICAgfQogICAgICAgIHRyeSB7CiAgICAgICAgICBjb25zdCBiaW5kaW5nID0gcmVxdWlyZSgnQHRha3VtaS1ycy9jb3JlLWxpbnV4LWxvb25nNjQtZ251JykKICAgICAgICAgIGNvbnN0IGJpbmRpbmdQYWNrYWdlVmVyc2lvbiA9IHJlcXVpcmUoJ0B0YWt1bWktcnMvY29yZS1saW51eC1sb29uZzY0LWdudS9wYWNrYWdlLmpzb24nKS52ZXJzaW9uCiAgICAgICAgICBpZiAoYmluZGluZ1BhY2thZ2VWZXJzaW9uICE9PSAnMC43MC40JyAmJiBwcm9jZXNzLmVudi5OQVBJX1JTX0VORk9SQ0VfVkVSU0lPTl9DSEVDSyAmJiBwcm9jZXNzLmVudi5OQVBJX1JTX0VORk9SQ0VfVkVSU0lPTl9DSEVDSyAhPT0gJzAnKSB7CiAgICAgICAgICAgIHRocm93IG5ldyBFcnJvcihgTmF0aXZlIGJpbmRpbmcgcGFja2FnZSB2ZXJzaW9uIG1pc21hdGNoLCBleHBlY3RlZCAwLjcwLjQgYnV0IGdvdCAke2JpbmRpbmdQYWNrYWdlVmVyc2lvbn0uIFlvdSBjYW4gcmVpbnN0YWxsIGRlcGVuZGVuY2llcyB0byBmaXggdGhpcyBpc3N1ZS5gKQogICAgICAgICAgfQogICAgICAgICAgcmV0dXJuIGJpbmRpbmcKICAgICAgICB9IGNhdGNoIChlKSB7CiAgICAgICAgICBsb2FkRXJyb3JzLnB1c2goZSkKICAgICAgICB9CiAgICAgIH0KICAgIH0gZWxzZSBpZiAocHJvY2Vzcy5hcmNoID09PSAncmlzY3Y2NCcpIHsKICAgICAgaWYgKGlzTXVzbCgpKSB7CiAgICAgICAgdHJ5IHsKICAgICAgICAgIHJldHVybiByZXF1aXJlKCcuL2NvcmUubGludXgtcmlzY3Y2NC1tdXNsLm5vZGUnKQogICAgICAgIH0gY2F0Y2ggKGUpIHsKICAgICAgICAgIGxvYWRFcnJvcnMucHVzaChlKQogICAgICAgIH0KICAgICAgICB0cnkgewogICAgICAgICAgY29uc3QgYmluZGluZyA9IHJlcXVpcmUoJ0B0YWt1bWktcnMvY29yZS1saW51eC1yaXNjdjY0LW11c2wnKQogICAgICAgICAgY29uc3QgYmluZGluZ1BhY2thZ2VWZXJzaW9uID0gcmVxdWlyZSgnQHRha3VtaS1ycy9jb3JlLWxpbnV4LXJpc2N2NjQtbXVzbC9wYWNrYWdlLmpzb24nKS52ZXJzaW9uCiAgICAgICAgICBpZiAoYmluZGluZ1BhY2thZ2VWZXJzaW9uICE9PSAnMC43MC40JyAmJiBwcm9jZXNzLmVudi5OQVBJX1JTX0VORk9SQ0VfVkVSU0lPTl9DSEVDSyAmJiBwcm9jZXNzLmVudi5OQVBJX1JTX0VORk9SQ0VfVkVSU0lPTl9DSEVDSyAhPT0gJzAnKSB7CiAgICAgICAgICAgIHRocm93IG5ldyBFcnJvcihgTmF0aXZlIGJpbmRpbmcgcGFja2FnZSB2ZXJzaW9uIG1pc21hdGNoLCBleHBlY3RlZCAwLjcwLjQgYnV0IGdvdCAke2JpbmRpbmdQYWNrYWdlVmVyc2lvbn0uIFlvdSBjYW4gcmVpbnN0YWxsIGRlcGVuZGVuY2llcyB0byBmaXggdGhpcyBpc3N1ZS5gKQogICAgICAgICAgfQogICAgICAgICAgcmV0dXJuIGJpbmRpbmcKICAgICAgICB9IGNhdGNoIChlKSB7CiAgICAgICAgICBsb2FkRXJyb3JzLnB1c2goZSkKICAgICAgICB9CiAgICAgIH0gZWxzZSB7CiAgICAgICAgdHJ5IHsKICAgICAgICAgIHJldHVybiByZXF1aXJlKCcuL2NvcmUubGludXgtcmlzY3Y2NC1nbnUubm9kZScpCiAgICAgICAgfSBjYXRjaCAoZSkgewogICAgICAgICAgbG9hZEVycm9ycy5wdXNoKGUpCiAgICAgICAgfQogICAgICAgIHRyeSB7CiAgICAgICAgICBjb25zdCBiaW5kaW5nID0gcmVxdWlyZSgnQHRha3VtaS1ycy9jb3JlLWxpbnV4LXJpc2N2NjQtZ251JykKICAgICAgICAgIGNvbnN0IGJpbmRpbmdQYWNrYWdlVmVyc2lvbiA9IHJlcXVpcmUoJ0B0YWt1bWktcnMvY29yZS1saW51eC1yaXNjdjY0LWdudS9wYWNrYWdlLmpzb24nKS52ZXJzaW9uCiAgICAgICAgICBpZiAoYmluZGluZ1BhY2thZ2VWZXJzaW9uICE9PSAnMC43MC40JyAmJiBwcm9jZXNzLmVudi5OQVBJX1JTX0VORk9SQ0VfVkVSU0lPTl9DSEVDSyAmJiBwcm9jZXNzLmVudi5OQVBJX1JTX0VORk9SQ0VfVkVSU0lPTl9DSEVDSyAhPT0gJzAnKSB7CiAgICAgICAgICAgIHRocm93IG5ldyBFcnJvcihgTmF0aXZlIGJpbmRpbmcgcGFja2FnZSB2ZXJzaW9uIG1pc21hdGNoLCBleHBlY3RlZCAwLjcwLjQgYnV0IGdvdCAke2JpbmRpbmdQYWNrYWdlVmVyc2lvbn0uIFlvdSBjYW4gcmVpbnN0YWxsIGRlcGVuZGVuY2llcyB0byBmaXggdGhpcyBpc3N1ZS5gKQogICAgICAgICAgfQogICAgICAgICAgcmV0dXJuIGJpbmRpbmcKICAgICAgICB9IGNhdGNoIChlKSB7CiAgICAgICAgICBsb2FkRXJyb3JzLnB1c2goZSkKICAgICAgICB9CiAgICAgIH0KICAgIH0gZWxzZSBpZiAocHJvY2Vzcy5hcmNoID09PSAncHBjNjQnKSB7CiAgICAgIHRyeSB7CiAgICAgICAgcmV0dXJuIHJlcXVpcmUoJy4vY29yZS5saW51eC1wcGM2NC1nbnUubm9kZScpCiAgICAgIH0gY2F0Y2ggKGUpIHsKICAgICAgICBsb2FkRXJyb3JzLnB1c2goZSkKICAgICAgfQogICAgICB0cnkgewogICAgICAgIGNvbnN0IGJpbmRpbmcgPSByZXF1aXJlKCdAdGFrdW1pLXJzL2NvcmUtbGludXgtcHBjNjQtZ251JykKICAgICAgICBjb25zdCBiaW5kaW5nUGFja2FnZVZlcnNpb24gPSByZXF1aXJlKCdAdGFrdW1pLXJzL2NvcmUtbGludXgtcHBjNjQtZ251L3BhY2thZ2UuanNvbicpLnZlcnNpb24KICAgICAgICBpZiAoYmluZGluZ1BhY2thZ2VWZXJzaW9uICE9PSAnMC43MC40JyAmJiBwcm9jZXNzLmVudi5OQVBJX1JTX0VORk9SQ0VfVkVSU0lPTl9DSEVDSyAmJiBwcm9jZXNzLmVudi5OQVBJX1JTX0VORk9SQ0VfVkVSU0lPTl9DSEVDSyAhPT0gJzAnKSB7CiAgICAgICAgICB0aHJvdyBuZXcgRXJyb3IoYE5hdGl2ZSBiaW5kaW5nIHBhY2thZ2UgdmVyc2lvbiBtaXNtYXRjaCwgZXhwZWN0ZWQgMC43MC40IGJ1dCBnb3QgJHtiaW5kaW5nUGFja2FnZVZlcnNpb259LiBZb3UgY2FuIHJlaW5zdGFsbCBkZXBlbmRlbmNpZXMgdG8gZml4IHRoaXMgaXNzdWUuYCkKICAgICAgICB9CiAgICAgICAgcmV0dXJuIGJpbmRpbmcKICAgICAgfSBjYXRjaCAoZSkgewogICAgICAgIGxvYWRFcnJvcnMucHVzaChlKQogICAgICB9CiAgICB9IGVsc2UgaWYgKHByb2Nlc3MuYXJjaCA9PT0gJ3MzOTB4JykgewogICAgICB0cnkgewogICAgICAgIHJldHVybiByZXF1aXJlKCcuL2NvcmUubGludXgtczM5MHgtZ251Lm5vZGUnKQogICAgICB9IGNhdGNoIChlKSB7CiAgICAgICAgbG9hZEVycm9ycy5wdXNoKGUpCiAgICAgIH0KICAgICAgdHJ5IHsKICAgICAgICBjb25zdCBiaW5kaW5nID0gcmVxdWlyZSgnQHRha3VtaS1ycy9jb3JlLWxpbnV4LXMzOTB4LWdudScpCiAgICAgICAgY29uc3QgYmluZGluZ1BhY2thZ2VWZXJzaW9uID0gcmVxdWlyZSgnQHRha3VtaS1ycy9jb3JlLWxpbnV4LXMzOTB4LWdudS9wYWNrYWdlLmpzb24nKS52ZXJzaW9uCiAgICAgICAgaWYgKGJpbmRpbmdQYWNrYWdlVmVyc2lvbiAhPT0gJzAuNzAuNCcgJiYgcHJvY2Vzcy5lbnYuTkFQSV9SU19FTkZPUkNFX1ZFUlNJT05fQ0hFQ0sgJiYgcHJvY2Vzcy5lbnYuTkFQSV9SU19FTkZPUkNFX1ZFUlNJT05fQ0hFQ0sgIT09ICcwJykgewogICAgICAgICAgdGhyb3cgbmV3IEVycm9yKGBOYXRpdmUgYmluZGluZyBwYWNrYWdlIHZlcnNpb24gbWlzbWF0Y2gsIGV4cGVjdGVkIDAuNzAuNCBidXQgZ290ICR7YmluZGluZ1BhY2thZ2VWZXJzaW9ufS4gWW91IGNhbiByZWluc3RhbGwgZGVwZW5kZW5jaWVzIHRvIGZpeCB0aGlzIGlzc3VlLmApCiAgICAgICAgfQogICAgICAgIHJldHVybiBiaW5kaW5nCiAgICAgIH0gY2F0Y2ggKGUpIHsKICAgICAgICBsb2FkRXJyb3JzLnB1c2goZSkKICAgICAgfQogICAgfSBlbHNlIHsKICAgICAgbG9hZEVycm9ycy5wdXNoKG5ldyBFcnJvcihgVW5zdXBwb3J0ZWQgYXJjaGl0ZWN0dXJlIG9uIExpbnV4OiAke3Byb2Nlc3MuYXJjaH1gKSkKICAgIH0KICB9IGVsc2UgaWYgKHByb2Nlc3MucGxhdGZvcm0gPT09ICdvcGVuaGFybW9ueScpIHsKICAgIGlmIChwcm9jZXNzLmFyY2ggPT09ICdhcm02NCcpIHsKICAgICAgdHJ5IHsKICAgICAgICByZXR1cm4gcmVxdWlyZSgnLi9jb3JlLm9wZW5oYXJtb255LWFybTY0Lm5vZGUnKQogICAgICB9IGNhdGNoIChlKSB7CiAgICAgICAgbG9hZEVycm9ycy5wdXNoKGUpCiAgICAgIH0KICAgICAgdHJ5IHsKICAgICAgICBjb25zdCBiaW5kaW5nID0gcmVxdWlyZSgnQHRha3VtaS1ycy9jb3JlLW9wZW5oYXJtb255LWFybTY0JykKICAgICAgICBjb25zdCBiaW5kaW5nUGFja2FnZVZlcnNpb24gPSByZXF1aXJlKCdAdGFrdW1pLXJzL2NvcmUtb3Blbmhhcm1vbnktYXJtNjQvcGFja2FnZS5qc29uJykudmVyc2lvbgogICAgICAgIGlmIChiaW5kaW5nUGFja2FnZVZlcnNpb24gIT09ICcwLjcwLjQnICYmIHByb2Nlc3MuZW52Lk5BUElfUlNfRU5GT1JDRV9WRVJTSU9OX0NIRUNLICYmIHByb2Nlc3MuZW52Lk5BUElfUlNfRU5GT1JDRV9WRVJTSU9OX0NIRUNLICE9PSAnMCcpIHsKICAgICAgICAgIHRocm93IG5ldyBFcnJvcihgTmF0aXZlIGJpbmRpbmcgcGFja2FnZSB2ZXJzaW9uIG1pc21hdGNoLCBleHBlY3RlZCAwLjcwLjQgYnV0IGdvdCAke2JpbmRpbmdQYWNrYWdlVmVyc2lvbn0uIFlvdSBjYW4gcmVpbnN0YWxsIGRlcGVuZGVuY2llcyB0byBmaXggdGhpcyBpc3N1ZS5gKQogICAgICAgIH0KICAgICAgICByZXR1cm4gYmluZGluZwogICAgICB9IGNhdGNoIChlKSB7CiAgICAgICAgbG9hZEVycm9ycy5wdXNoKGUpCiAgICAgIH0KICAgIH0gZWxzZSBpZiAocHJvY2Vzcy5hcmNoID09PSAneDY0JykgewogICAgICB0cnkgewogICAgICAgIHJldHVybiByZXF1aXJlKCcuL2NvcmUub3Blbmhhcm1vbnkteDY0Lm5vZGUnKQogICAgICB9IGNhdGNoIChlKSB7CiAgICAgICAgbG9hZEVycm9ycy5wdXNoKGUpCiAgICAgIH0KICAgICAgdHJ5IHsKICAgICAgICBjb25zdCBiaW5kaW5nID0gcmVxdWlyZSgnQHRha3VtaS1ycy9jb3JlLW9wZW5oYXJtb255LXg2NCcpCiAgICAgICAgY29uc3QgYmluZGluZ1BhY2thZ2VWZXJzaW9uID0gcmVxdWlyZSgnQHRha3VtaS1ycy9jb3JlLW9wZW5oYXJtb255LXg2NC9wYWNrYWdlLmpzb24nKS52ZXJzaW9uCiAgICAgICAgaWYgKGJpbmRpbmdQYWNrYWdlVmVyc2lvbiAhPT0gJzAuNzAuNCcgJiYgcHJvY2Vzcy5lbnYuTkFQSV9SU19FTkZPUkNFX1ZFUlNJT05fQ0hFQ0sgJiYgcHJvY2Vzcy5lbnYuTkFQSV9SU19FTkZPUkNFX1ZFUlNJT05fQ0hFQ0sgIT09ICcwJykgewogICAgICAgICAgdGhyb3cgbmV3IEVycm9yKGBOYXRpdmUgYmluZGluZyBwYWNrYWdlIHZlcnNpb24gbWlzbWF0Y2gsIGV4cGVjdGVkIDAuNzAuNCBidXQgZ290ICR7YmluZGluZ1BhY2thZ2VWZXJzaW9ufS4gWW91IGNhbiByZWluc3RhbGwgZGVwZW5kZW5jaWVzIHRvIGZpeCB0aGlzIGlzc3VlLmApCiAgICAgICAgfQogICAgICAgIHJldHVybiBiaW5kaW5nCiAgICAgIH0gY2F0Y2ggKGUpIHsKICAgICAgICBsb2FkRXJyb3JzLnB1c2goZSkKICAgICAgfQogICAgfSBlbHNlIGlmIChwcm9jZXNzLmFyY2ggPT09ICdhcm0nKSB7CiAgICAgIHRyeSB7CiAgICAgICAgcmV0dXJuIHJlcXVpcmUoJy4vY29yZS5vcGVuaGFybW9ueS1hcm0ubm9kZScpCiAgICAgIH0gY2F0Y2ggKGUpIHsKICAgICAgICBsb2FkRXJyb3JzLnB1c2goZSkKICAgICAgfQogICAgICB0cnkgewogICAgICAgIGNvbnN0IGJpbmRpbmcgPSByZXF1aXJlKCdAdGFrdW1pLXJzL2NvcmUtb3Blbmhhcm1vbnktYXJtJykKICAgICAgICBjb25zdCBiaW5kaW5nUGFja2FnZVZlcnNpb24gPSByZXF1aXJlKCdAdGFrdW1pLXJzL2NvcmUtb3Blbmhhcm1vbnktYXJtL3BhY2thZ2UuanNvbicpLnZlcnNpb24KICAgICAgICBpZiAoYmluZGluZ1BhY2thZ2VWZXJzaW9uICE9PSAnMC43MC40JyAmJiBwcm9jZXNzLmVudi5OQVBJX1JTX0VORk9SQ0VfVkVSU0lPTl9DSEVDSyAmJiBwcm9jZXNzLmVudi5OQVBJX1JTX0VORk9SQ0VfVkVSU0lPTl9DSEVDSyAhPT0gJzAnKSB7CiAgICAgICAgICB0aHJvdyBuZXcgRXJyb3IoYE5hdGl2ZSBiaW5kaW5nIHBhY2thZ2UgdmVyc2lvbiBtaXNtYXRjaCwgZXhwZWN0ZWQgMC43MC40IGJ1dCBnb3QgJHtiaW5kaW5nUGFja2FnZVZlcnNpb259LiBZb3UgY2FuIHJlaW5zdGFsbCBkZXBlbmRlbmNpZXMgdG8gZml4IHRoaXMgaXNzdWUuYCkKICAgICAgICB9CiAgICAgICAgcmV0dXJuIGJpbmRpbmcKICAgICAgfSBjYXRjaCAoZSkgewogICAgICAgIGxvYWRFcnJvcnMucHVzaChlKQogICAgICB9CiAgICB9IGVsc2UgewogICAgICBsb2FkRXJyb3JzLnB1c2gobmV3IEVycm9yKGBVbnN1cHBvcnRlZCBhcmNoaXRlY3R1cmUgb24gT3Blbkhhcm1vbnk6ICR7cHJvY2Vzcy5hcmNofWApKQogICAgfQogIH0gZWxzZSB7CiAgICBsb2FkRXJyb3JzLnB1c2gobmV3IEVycm9yKGBVbnN1cHBvcnRlZCBPUzogJHtwcm9jZXNzLnBsYXRmb3JtfSwgYXJjaGl0ZWN0dXJlOiAke3Byb2Nlc3MuYXJjaH1gKSkKICB9Cn0KCm5hdGl2ZUJpbmRpbmcgPSByZXF1aXJlTmF0aXZlKCkKCmlmICghbmF0aXZlQmluZGluZyB8fCBwcm9jZXNzLmVudi5OQVBJX1JTX0ZPUkNFX1dBU0kpIHsKICBsZXQgd2FzaUJpbmRpbmcgPSBudWxsCiAgbGV0IHdhc2lCaW5kaW5nRXJyb3IgPSBudWxsCiAgdHJ5IHsKICAgIHdhc2lCaW5kaW5nID0gcmVxdWlyZSgnLi9jb3JlLndhc2kuY2pzJykKICAgIG5hdGl2ZUJpbmRpbmcgPSB3YXNpQmluZGluZwogIH0gY2F0Y2ggKGVycikgewogICAgaWYgKHByb2Nlc3MuZW52Lk5BUElfUlNfRk9SQ0VfV0FTSSkgewogICAgICB3YXNpQmluZGluZ0Vycm9yID0gZXJyCiAgICB9CiAgfQogIGlmICghbmF0aXZlQmluZGluZyB8fCBwcm9jZXNzLmVudi5OQVBJX1JTX0ZPUkNFX1dBU0kpIHsKICAgIHRyeSB7CiAgICAgIHdhc2lCaW5kaW5nID0gcmVxdWlyZSgnQHRha3VtaS1ycy9jb3JlLXdhc20zMi13YXNpJykKICAgICAgbmF0aXZlQmluZGluZyA9IHdhc2lCaW5kaW5nCiAgICB9IGNhdGNoIChlcnIpIHsKICAgICAgaWYgKHByb2Nlc3MuZW52Lk5BUElfUlNfRk9SQ0VfV0FTSSkgewogICAgICAgIGlmICghd2FzaUJpbmRpbmdFcnJvcikgewogICAgICAgICAgd2FzaUJpbmRpbmdFcnJvciA9IGVycgogICAgICAgIH0gZWxzZSB7CiAgICAgICAgICB3YXNpQmluZGluZ0Vycm9yLmNhdXNlID0gZXJyCiAgICAgICAgfQogICAgICAgIGxvYWRFcnJvcnMucHVzaChlcnIpCiAgICAgIH0KICAgIH0KICB9CiAgaWYgKHByb2Nlc3MuZW52Lk5BUElfUlNfRk9SQ0VfV0FTSSA9PT0gJ2Vycm9yJyAmJiAhd2FzaUJpbmRpbmcpIHsKICAgIGNvbnN0IGVycm9yID0gbmV3IEVycm9yKCdXQVNJIGJpbmRpbmcgbm90IGZvdW5kIGFuZCBOQVBJX1JTX0ZPUkNFX1dBU0kgaXMgc2V0IHRvIGVycm9yJykKICAgIGVycm9yLmNhdXNlID0gd2FzaUJpbmRpbmdFcnJvcgogICAgdGhyb3cgZXJyb3IKICB9Cn0KCmlmICghbmF0aXZlQmluZGluZykgewogIGlmIChsb2FkRXJyb3JzLmxlbmd0aCA+IDApIHsKICAgIHRocm93IG5ldyBFcnJvcigKICAgICAgYENhbm5vdCBmaW5kIG5hdGl2ZSBiaW5kaW5nLiBgICsKICAgICAgICBgbnBtIGhhcyBhIGJ1ZyByZWxhdGVkIHRvIG9wdGlvbmFsIGRlcGVuZGVuY2llcyAoaHR0cHM6Ly9naXRodWIuY29tL25wbS9jbGkvaXNzdWVzLzQ4MjgpLiBgICsKICAgICAgICAnUGxlYXNlIHRyeSBgbnBtIGlgIGFnYWluIGFmdGVyIHJlbW92aW5nIGJvdGggcGFja2FnZS1sb2NrLmpzb24gYW5kIG5vZGVfbW9kdWxlcyBkaXJlY3RvcnkuJywKICAgICAgewogICAgICAgIGNhdXNlOiBsb2FkRXJyb3JzLnJlZHVjZSgoZXJyLCBjdXIpID0+IHsKICAgICAgICAgIGN1ci5jYXVzZSA9IGVycgogICAgICAgICAgcmV0dXJuIGN1cgogICAgICAgIH0pLAogICAgICB9LAogICAgKQogIH0KICB0aHJvdyBuZXcgRXJyb3IoYEZhaWxlZCB0byBsb2FkIG5hdGl2ZSBiaW5kaW5nYCkKfQoKY29uc3QgeyBSZW5kZXJlciwgQW5pbWF0aW9uT3V0cHV0Rm9ybWF0LCBleHRyYWN0UmVzb3VyY2VVcmxzLCBPdXRwdXRGb3JtYXQgfSA9IG5hdGl2ZUJpbmRpbmcKZXhwb3J0IHsgUmVuZGVyZXIgfQpleHBvcnQgeyBBbmltYXRpb25PdXRwdXRGb3JtYXQgfQpleHBvcnQgeyBleHRyYWN0UmVzb3VyY2VVcmxzIH0KZXhwb3J0IHsgT3V0cHV0Rm9ybWF0IH0K", "" + import.meta.url).pathname;
+var { readFileSync: readFileSync$1 } = require$1("node:fs");
+var nativeBinding = null;
+var loadErrors = [];
+var isMusl = () => {
+	let musl = false;
+	if (process.platform === "linux") {
+		musl = isMuslFromFilesystem();
+		if (musl === null) musl = isMuslFromReport();
+		if (musl === null) musl = isMuslFromChildProcess();
+	}
+	return musl;
+};
+var isFileMusl = (f) => f.includes("libc.musl-") || f.includes("ld-musl-");
+var isMuslFromFilesystem = () => {
+	try {
+		return readFileSync$1("/usr/bin/ldd", "utf-8").includes("musl");
+	} catch {
+		return null;
+	}
+};
+var isMuslFromReport = () => {
+	let report = null;
+	if (typeof process.report?.getReport === "function") {
+		process.report.excludeNetwork = true;
+		report = process.report.getReport();
+	}
+	if (!report) return null;
+	if (report.header && report.header.glibcVersionRuntime) return false;
+	if (Array.isArray(report.sharedObjects)) {
+		if (report.sharedObjects.some(isFileMusl)) return true;
+	}
+	return false;
+};
+var isMuslFromChildProcess = () => {
+	try {
+		return require$1("child_process").execSync("ldd --version", { encoding: "utf8" }).includes("musl");
+	} catch (e) {
+		return false;
+	}
+};
+function requireNative() {
+	if (process.env.NAPI_RS_NATIVE_LIBRARY_PATH) try {
+		return require$1(process.env.NAPI_RS_NATIVE_LIBRARY_PATH);
+	} catch (err) {
+		loadErrors.push(err);
+	}
+	else if (process.platform === "android") if (process.arch === "arm64") {
+		try {
+			return require$1("./core.android-arm64.node");
+		} catch (e) {
+			loadErrors.push(e);
+		}
+		try {
+			const binding = require$1("@takumi-rs/core-android-arm64");
+			const bindingPackageVersion = require$1("@takumi-rs/core-android-arm64/package.json").version;
+			if (bindingPackageVersion !== "0.70.4" && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== "0") throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`);
+			return binding;
+		} catch (e) {
+			loadErrors.push(e);
+		}
+	} else if (process.arch === "arm") {
+		try {
+			return require$1("./core.android-arm-eabi.node");
+		} catch (e) {
+			loadErrors.push(e);
+		}
+		try {
+			const binding = require$1("@takumi-rs/core-android-arm-eabi");
+			const bindingPackageVersion = require$1("@takumi-rs/core-android-arm-eabi/package.json").version;
+			if (bindingPackageVersion !== "0.70.4" && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== "0") throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`);
+			return binding;
+		} catch (e) {
+			loadErrors.push(e);
+		}
+	} else loadErrors.push(/* @__PURE__ */ new Error(`Unsupported architecture on Android ${process.arch}`));
+	else if (process.platform === "win32") if (process.arch === "x64") if (process.config?.variables?.shlib_suffix === "dll.a" || process.config?.variables?.node_target_type === "shared_library") {
+		try {
+			return require$1("./core.win32-x64-gnu.node");
+		} catch (e) {
+			loadErrors.push(e);
+		}
+		try {
+			const binding = require$1("@takumi-rs/core-win32-x64-gnu");
+			const bindingPackageVersion = require$1("@takumi-rs/core-win32-x64-gnu/package.json").version;
+			if (bindingPackageVersion !== "0.70.4" && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== "0") throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`);
+			return binding;
+		} catch (e) {
+			loadErrors.push(e);
+		}
+	} else {
+		try {
+			return require$1("./core.win32-x64-msvc.node");
+		} catch (e) {
+			loadErrors.push(e);
+		}
+		try {
+			const binding = require$1("@takumi-rs/core-win32-x64-msvc");
+			const bindingPackageVersion = require$1("@takumi-rs/core-win32-x64-msvc/package.json").version;
+			if (bindingPackageVersion !== "0.70.4" && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== "0") throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`);
+			return binding;
+		} catch (e) {
+			loadErrors.push(e);
+		}
+	}
+	else if (process.arch === "ia32") {
+		try {
+			return require$1("./core.win32-ia32-msvc.node");
+		} catch (e) {
+			loadErrors.push(e);
+		}
+		try {
+			const binding = require$1("@takumi-rs/core-win32-ia32-msvc");
+			const bindingPackageVersion = require$1("@takumi-rs/core-win32-ia32-msvc/package.json").version;
+			if (bindingPackageVersion !== "0.70.4" && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== "0") throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`);
+			return binding;
+		} catch (e) {
+			loadErrors.push(e);
+		}
+	} else if (process.arch === "arm64") {
+		try {
+			return require$1("./core.win32-arm64-msvc.node");
+		} catch (e) {
+			loadErrors.push(e);
+		}
+		try {
+			const binding = require$1("@takumi-rs/core-win32-arm64-msvc");
+			const bindingPackageVersion = require$1("@takumi-rs/core-win32-arm64-msvc/package.json").version;
+			if (bindingPackageVersion !== "0.70.4" && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== "0") throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`);
+			return binding;
+		} catch (e) {
+			loadErrors.push(e);
+		}
+	} else loadErrors.push(/* @__PURE__ */ new Error(`Unsupported architecture on Windows: ${process.arch}`));
+	else if (process.platform === "darwin") {
+		try {
+			return require$1("./core.darwin-universal.node");
+		} catch (e) {
+			loadErrors.push(e);
+		}
+		try {
+			const binding = require$1("@takumi-rs/core-darwin-universal");
+			const bindingPackageVersion = require$1("@takumi-rs/core-darwin-universal/package.json").version;
+			if (bindingPackageVersion !== "0.70.4" && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== "0") throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`);
+			return binding;
+		} catch (e) {
+			loadErrors.push(e);
+		}
+		if (process.arch === "x64") {
+			try {
+				return require$1("./core.darwin-x64.node");
+			} catch (e) {
+				loadErrors.push(e);
+			}
+			try {
+				const binding = require$1("@takumi-rs/core-darwin-x64");
+				const bindingPackageVersion = require$1("@takumi-rs/core-darwin-x64/package.json").version;
+				if (bindingPackageVersion !== "0.70.4" && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== "0") throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`);
+				return binding;
+			} catch (e) {
+				loadErrors.push(e);
+			}
+		} else if (process.arch === "arm64") {
+			try {
+				return require$1("./core.darwin-arm64.node");
+			} catch (e) {
+				loadErrors.push(e);
+			}
+			try {
+				const binding = require$1("@takumi-rs/core-darwin-arm64");
+				const bindingPackageVersion = require$1("@takumi-rs/core-darwin-arm64/package.json").version;
+				if (bindingPackageVersion !== "0.70.4" && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== "0") throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`);
+				return binding;
+			} catch (e) {
+				loadErrors.push(e);
+			}
+		} else loadErrors.push(/* @__PURE__ */ new Error(`Unsupported architecture on macOS: ${process.arch}`));
+	} else if (process.platform === "freebsd") if (process.arch === "x64") {
+		try {
+			return require$1("./core.freebsd-x64.node");
+		} catch (e) {
+			loadErrors.push(e);
+		}
+		try {
+			const binding = require$1("@takumi-rs/core-freebsd-x64");
+			const bindingPackageVersion = require$1("@takumi-rs/core-freebsd-x64/package.json").version;
+			if (bindingPackageVersion !== "0.70.4" && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== "0") throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`);
+			return binding;
+		} catch (e) {
+			loadErrors.push(e);
+		}
+	} else if (process.arch === "arm64") {
+		try {
+			return require$1("./core.freebsd-arm64.node");
+		} catch (e) {
+			loadErrors.push(e);
+		}
+		try {
+			const binding = require$1("@takumi-rs/core-freebsd-arm64");
+			const bindingPackageVersion = require$1("@takumi-rs/core-freebsd-arm64/package.json").version;
+			if (bindingPackageVersion !== "0.70.4" && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== "0") throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`);
+			return binding;
+		} catch (e) {
+			loadErrors.push(e);
+		}
+	} else loadErrors.push(/* @__PURE__ */ new Error(`Unsupported architecture on FreeBSD: ${process.arch}`));
+	else if (process.platform === "linux") if (process.arch === "x64") if (isMusl()) {
+		try {
+			return require$1("./core.linux-x64-musl.node");
+		} catch (e) {
+			loadErrors.push(e);
+		}
+		try {
+			const binding = require$1("@takumi-rs/core-linux-x64-musl");
+			const bindingPackageVersion = require$1("@takumi-rs/core-linux-x64-musl/package.json").version;
+			if (bindingPackageVersion !== "0.70.4" && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== "0") throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`);
+			return binding;
+		} catch (e) {
+			loadErrors.push(e);
+		}
+	} else {
+		try {
+			return require$1("./core.linux-x64-gnu.node");
+		} catch (e) {
+			loadErrors.push(e);
+		}
+		try {
+			const binding = require$1("@takumi-rs/core-linux-x64-gnu");
+			const bindingPackageVersion = require$1("@takumi-rs/core-linux-x64-gnu/package.json").version;
+			if (bindingPackageVersion !== "0.70.4" && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== "0") throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`);
+			return binding;
+		} catch (e) {
+			loadErrors.push(e);
+		}
+	}
+	else if (process.arch === "arm64") if (isMusl()) {
+		try {
+			return require$1("./core.linux-arm64-musl.node");
+		} catch (e) {
+			loadErrors.push(e);
+		}
+		try {
+			const binding = require$1("@takumi-rs/core-linux-arm64-musl");
+			const bindingPackageVersion = require$1("@takumi-rs/core-linux-arm64-musl/package.json").version;
+			if (bindingPackageVersion !== "0.70.4" && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== "0") throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`);
+			return binding;
+		} catch (e) {
+			loadErrors.push(e);
+		}
+	} else {
+		try {
+			return require$1("./core.linux-arm64-gnu.node");
+		} catch (e) {
+			loadErrors.push(e);
+		}
+		try {
+			const binding = require$1("@takumi-rs/core-linux-arm64-gnu");
+			const bindingPackageVersion = require$1("@takumi-rs/core-linux-arm64-gnu/package.json").version;
+			if (bindingPackageVersion !== "0.70.4" && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== "0") throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`);
+			return binding;
+		} catch (e) {
+			loadErrors.push(e);
+		}
+	}
+	else if (process.arch === "arm") if (isMusl()) {
+		try {
+			return require$1("./core.linux-arm-musleabihf.node");
+		} catch (e) {
+			loadErrors.push(e);
+		}
+		try {
+			const binding = require$1("@takumi-rs/core-linux-arm-musleabihf");
+			const bindingPackageVersion = require$1("@takumi-rs/core-linux-arm-musleabihf/package.json").version;
+			if (bindingPackageVersion !== "0.70.4" && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== "0") throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`);
+			return binding;
+		} catch (e) {
+			loadErrors.push(e);
+		}
+	} else {
+		try {
+			return require$1("./core.linux-arm-gnueabihf.node");
+		} catch (e) {
+			loadErrors.push(e);
+		}
+		try {
+			const binding = require$1("@takumi-rs/core-linux-arm-gnueabihf");
+			const bindingPackageVersion = require$1("@takumi-rs/core-linux-arm-gnueabihf/package.json").version;
+			if (bindingPackageVersion !== "0.70.4" && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== "0") throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`);
+			return binding;
+		} catch (e) {
+			loadErrors.push(e);
+		}
+	}
+	else if (process.arch === "loong64") if (isMusl()) {
+		try {
+			return require$1("./core.linux-loong64-musl.node");
+		} catch (e) {
+			loadErrors.push(e);
+		}
+		try {
+			const binding = require$1("@takumi-rs/core-linux-loong64-musl");
+			const bindingPackageVersion = require$1("@takumi-rs/core-linux-loong64-musl/package.json").version;
+			if (bindingPackageVersion !== "0.70.4" && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== "0") throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`);
+			return binding;
+		} catch (e) {
+			loadErrors.push(e);
+		}
+	} else {
+		try {
+			return require$1("./core.linux-loong64-gnu.node");
+		} catch (e) {
+			loadErrors.push(e);
+		}
+		try {
+			const binding = require$1("@takumi-rs/core-linux-loong64-gnu");
+			const bindingPackageVersion = require$1("@takumi-rs/core-linux-loong64-gnu/package.json").version;
+			if (bindingPackageVersion !== "0.70.4" && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== "0") throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`);
+			return binding;
+		} catch (e) {
+			loadErrors.push(e);
+		}
+	}
+	else if (process.arch === "riscv64") if (isMusl()) {
+		try {
+			return require$1("./core.linux-riscv64-musl.node");
+		} catch (e) {
+			loadErrors.push(e);
+		}
+		try {
+			const binding = require$1("@takumi-rs/core-linux-riscv64-musl");
+			const bindingPackageVersion = require$1("@takumi-rs/core-linux-riscv64-musl/package.json").version;
+			if (bindingPackageVersion !== "0.70.4" && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== "0") throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`);
+			return binding;
+		} catch (e) {
+			loadErrors.push(e);
+		}
+	} else {
+		try {
+			return require$1("./core.linux-riscv64-gnu.node");
+		} catch (e) {
+			loadErrors.push(e);
+		}
+		try {
+			const binding = require$1("@takumi-rs/core-linux-riscv64-gnu");
+			const bindingPackageVersion = require$1("@takumi-rs/core-linux-riscv64-gnu/package.json").version;
+			if (bindingPackageVersion !== "0.70.4" && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== "0") throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`);
+			return binding;
+		} catch (e) {
+			loadErrors.push(e);
+		}
+	}
+	else if (process.arch === "ppc64") {
+		try {
+			return require$1("./core.linux-ppc64-gnu.node");
+		} catch (e) {
+			loadErrors.push(e);
+		}
+		try {
+			const binding = require$1("@takumi-rs/core-linux-ppc64-gnu");
+			const bindingPackageVersion = require$1("@takumi-rs/core-linux-ppc64-gnu/package.json").version;
+			if (bindingPackageVersion !== "0.70.4" && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== "0") throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`);
+			return binding;
+		} catch (e) {
+			loadErrors.push(e);
+		}
+	} else if (process.arch === "s390x") {
+		try {
+			return require$1("./core.linux-s390x-gnu.node");
+		} catch (e) {
+			loadErrors.push(e);
+		}
+		try {
+			const binding = require$1("@takumi-rs/core-linux-s390x-gnu");
+			const bindingPackageVersion = require$1("@takumi-rs/core-linux-s390x-gnu/package.json").version;
+			if (bindingPackageVersion !== "0.70.4" && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== "0") throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`);
+			return binding;
+		} catch (e) {
+			loadErrors.push(e);
+		}
+	} else loadErrors.push(/* @__PURE__ */ new Error(`Unsupported architecture on Linux: ${process.arch}`));
+	else if (process.platform === "openharmony") if (process.arch === "arm64") {
+		try {
+			return require$1("./core.openharmony-arm64.node");
+		} catch (e) {
+			loadErrors.push(e);
+		}
+		try {
+			const binding = require$1("@takumi-rs/core-openharmony-arm64");
+			const bindingPackageVersion = require$1("@takumi-rs/core-openharmony-arm64/package.json").version;
+			if (bindingPackageVersion !== "0.70.4" && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== "0") throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`);
+			return binding;
+		} catch (e) {
+			loadErrors.push(e);
+		}
+	} else if (process.arch === "x64") {
+		try {
+			return require$1("./core.openharmony-x64.node");
+		} catch (e) {
+			loadErrors.push(e);
+		}
+		try {
+			const binding = require$1("@takumi-rs/core-openharmony-x64");
+			const bindingPackageVersion = require$1("@takumi-rs/core-openharmony-x64/package.json").version;
+			if (bindingPackageVersion !== "0.70.4" && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== "0") throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`);
+			return binding;
+		} catch (e) {
+			loadErrors.push(e);
+		}
+	} else if (process.arch === "arm") {
+		try {
+			return require$1("./core.openharmony-arm.node");
+		} catch (e) {
+			loadErrors.push(e);
+		}
+		try {
+			const binding = require$1("@takumi-rs/core-openharmony-arm");
+			const bindingPackageVersion = require$1("@takumi-rs/core-openharmony-arm/package.json").version;
+			if (bindingPackageVersion !== "0.70.4" && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== "0") throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`);
+			return binding;
+		} catch (e) {
+			loadErrors.push(e);
+		}
+	} else loadErrors.push(/* @__PURE__ */ new Error(`Unsupported architecture on OpenHarmony: ${process.arch}`));
+	else loadErrors.push(/* @__PURE__ */ new Error(`Unsupported OS: ${process.platform}, architecture: ${process.arch}`));
+}
+nativeBinding = requireNative();
+if (!nativeBinding || process.env.NAPI_RS_FORCE_WASI) {
+	let wasiBinding = null;
+	let wasiBindingError = null;
+	try {
+		wasiBinding = require$1("./core.wasi.cjs");
+		nativeBinding = wasiBinding;
+	} catch (err) {
+		if (process.env.NAPI_RS_FORCE_WASI) wasiBindingError = err;
+	}
+	if (!nativeBinding || process.env.NAPI_RS_FORCE_WASI) try {
+		wasiBinding = require$1("@takumi-rs/core-wasm32-wasi");
+		nativeBinding = wasiBinding;
+	} catch (err) {
+		if (process.env.NAPI_RS_FORCE_WASI) {
+			if (!wasiBindingError) wasiBindingError = err;
+			else wasiBindingError.cause = err;
+			loadErrors.push(err);
+		}
+	}
+	if (process.env.NAPI_RS_FORCE_WASI === "error" && !wasiBinding) {
+		const error = /* @__PURE__ */ new Error("WASI binding not found and NAPI_RS_FORCE_WASI is set to error");
+		error.cause = wasiBindingError;
+		throw error;
+	}
+}
+if (!nativeBinding) {
+	if (loadErrors.length > 0) throw new Error("Cannot find native binding. npm has a bug related to optional dependencies (https://github.com/npm/cli/issues/4828). Please try `npm i` again after removing both package-lock.json and node_modules directory.", { cause: loadErrors.reduce((err, cur) => {
+		cur.cause = err;
+		return cur;
+	}) });
+	throw new Error(`Failed to load native binding`);
+}
+var { Renderer, AnimationOutputFormat, extractResourceUrls, OutputFormat } = nativeBinding;
 function createPlugin(config) {
 	const registry = new RootRegistry({
 		renderer: new Renderer({ fonts: config.fonts.map((f) => ({
@@ -25191,6 +25197,14 @@ function Image({ className, src, width, height, fit, borderRadius, style }) {
 		}
 	});
 }
+/**
+* Concatenates Tailwind class strings, filtering out falsy values.
+*
+* @example
+* ```tsx
+* <div className={tw("flex items-center", pressed && "bg-green-500")} />
+* ```
+*/
 function tw(...args) {
 	return args.filter(Boolean).join(" ");
 }

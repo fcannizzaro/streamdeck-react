@@ -1,6 +1,6 @@
 import { dirname } from "node:path";
 import type { LogLevel, Plugin, NormalizedOutputOptions, PluginContext, RollupLog } from "rollup";
-import { copyNativeBindings, isDevelopmentMode } from "./native-addon-shared.ts";
+import { copyNativeBindings, isDevelopmentMode } from "./native-addon-shared";
 
 export type {
   NativeAddonPlatform,
@@ -8,9 +8,9 @@ export type {
   NativeAddonLibc,
   NativeAddonTarget,
   NativeAddonOptions,
-} from "./native-addon-shared.ts";
+} from "./native-addon-shared";
 
-import type { NativeAddonOptions } from "./native-addon-shared.ts";
+import type { NativeAddonOptions } from "./native-addon-shared";
 
 /**
  * Rollup plugin that copies the `@takumi-rs/core` platform-specific native

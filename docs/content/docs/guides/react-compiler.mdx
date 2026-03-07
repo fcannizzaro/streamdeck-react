@@ -30,13 +30,15 @@ The CLI will ask **"Use React Compiler?"** during setup. You can also pass it as
 npm create streamdeck-react@latest --react-compiler true
 ```
 
-When enabled, the generated Rollup config uses `@rollup/plugin-babel` with `babel-plugin-react-compiler` instead of `rollup-plugin-esbuild`.
+When enabled, the generated config uses `babel-plugin-react-compiler` -- via `@rollup/plugin-babel` for Rollup or `@rolldown/plugin-babel` for Vite 8.
 
 ## Manual Setup
 
-If you have an existing project using esbuild, replace it with Babel:
+### Rollup
 
-### 1. Swap Dependencies
+If you have an existing Rollup project using esbuild, replace it with Babel:
+
+#### 1. Swap Dependencies
 
 Remove esbuild:
 
@@ -58,7 +60,7 @@ npm install -D @rollup/plugin-babel @babel/core @babel/preset-typescript @babel/
 bun add -d @rollup/plugin-babel @babel/core @babel/preset-typescript @babel/preset-react babel-plugin-react-compiler
 ```
 
-### 2. Update Rollup Config
+#### 2. Update Rollup Config
 
 Replace the esbuild import and plugin:
 
@@ -110,6 +112,77 @@ Key differences from the esbuild config:
 - `exclude: '**/node_modules/**'` prevents Babel from processing dependencies
 - `babel-plugin-react-compiler` must be listed in `plugins` (runs first)
 - `@babel/preset-typescript` and `@babel/preset-react` handle TypeScript and JSX
+
+### Vite 8 (Rolldown)
+
+If you have an existing Vite 8 project, add the Babel plugin:
+
+#### 1. Install Dependencies
+
+```bash tab="npm"
+npm install -D @rolldown/plugin-babel @babel/core babel-plugin-react-compiler
+```
+
+```bash tab="bun"
+bun add -d @rolldown/plugin-babel @babel/core babel-plugin-react-compiler
+```
+
+#### 2. Update Vite Config
+
+Add the `babel` plugin with `reactCompilerPreset()`:
+
+```ts
+// vite.config.ts
+import { builtinModules } from 'node:module';
+import { resolve } from 'node:path';
+import { defineConfig, esmExternalRequirePlugin } from 'vite';
+import react, { reactCompilerPreset } from '@vitejs/plugin-react';
+import babel from '@rolldown/plugin-babel';
+import { streamDeckReact } from '@fcannizzaro/streamdeck-react/vite';
+
+const PLUGIN_DIR = 'com.example.my-plugin.sdPlugin';
+const builtins = builtinModules.flatMap((m) => [m, `node:${m}`]);
+
+export default defineConfig({
+  resolve: {
+    conditions: ['node'],
+  },
+  plugins: [
+    esmExternalRequirePlugin({ external: builtins }),
+    react(),
+    // @ts-expect-error — @rolldown/plugin-babel types incorrectly mark inherited babel fields as required
+    await babel({
+      presets: [reactCompilerPreset()],
+    }),
+    streamDeckReact({
+      uuid: 'com.example.my-plugin',
+      targets: [{ platform: 'darwin', arch: 'arm64' }],
+    }),
+  ],
+  build: {
+    target: 'node20',
+    outDir: resolve(PLUGIN_DIR, 'bin'),
+    emptyOutDir: false,
+    sourcemap: true,
+    minify: false,
+    lib: {
+      entry: resolve('src/plugin.ts'),
+      formats: ['es'],
+      fileName: () => 'plugin.mjs',
+    },
+    rolldownOptions: {
+      output: {
+        codeSplitting: false,
+      },
+    },
+  },
+});
+```
+
+Key differences from the non-compiler Vite config:
+
+- Import `reactCompilerPreset` from `@vitejs/plugin-react`
+- Add `@rolldown/plugin-babel` with `reactCompilerPreset()` after `react()`
 
 ## Verifying It Works
 

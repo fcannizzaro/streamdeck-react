@@ -1,10 +1,13 @@
-# Rollup Bundling
+# Bundling
 
-`@fcannizzaro/streamdeck-react` provides the `nativeAddon()` Rollup helper from `@fcannizzaro/streamdeck-react/rollup`.
+`@fcannizzaro/streamdeck-react` supports two bundlers:
 
-If the user is starting from scratch, prefer `npm create streamdeck-react@latest` and let the scaffolder generate this config.
+- **Rollup** (stable) via `@fcannizzaro/streamdeck-react/rollup` -- provides `nativeAddon()`
+- **Vite 8 with Rolldown** (beta) via `@fcannizzaro/streamdeck-react/vite` -- provides `streamDeckReact()`
 
-## Full Rollup Config Template
+If the user is starting from scratch, prefer `npm create streamdeck-react@latest` and let the scaffolder generate the config.
+
+## Rollup Config Templates
 
 ### Default (esbuild)
 
@@ -195,3 +198,133 @@ With the Elgato CLI installed, combine with auto-restart:
 ```bash
 bunx --bun rollup -c -w --watch.onEnd="streamdeck restart com.example.my-plugin"
 ```
+
+---
+
+## Vite 8 Config Templates
+
+### Default (Oxc transforms)
+
+```ts
+// vite.config.ts
+import { builtinModules } from 'node:module';
+import { resolve } from 'node:path';
+import { defineConfig, esmExternalRequirePlugin } from 'vite';
+import react from '@vitejs/plugin-react';
+import { streamDeckReact } from '@fcannizzaro/streamdeck-react/vite';
+
+const PLUGIN_DIR = 'com.example.my-plugin.sdPlugin';
+const builtins = builtinModules.flatMap((m) => [m, `node:${m}`]);
+
+export default defineConfig({
+  resolve: {
+    conditions: ['node'],
+  },
+  plugins: [
+    esmExternalRequirePlugin({ external: builtins }),
+    react(),
+    streamDeckReact({
+      uuid: 'com.example.my-plugin',
+      targets: [{ platform: 'darwin', arch: 'arm64' }],
+    }),
+  ],
+  build: {
+    target: 'node20',
+    outDir: resolve(PLUGIN_DIR, 'bin'),
+    emptyOutDir: false,
+    sourcemap: true,
+    minify: false,
+    lib: {
+      entry: resolve('src/plugin.ts'),
+      formats: ['es'],
+      fileName: () => 'plugin.mjs',
+    },
+    rolldownOptions: {
+      output: {
+        codeSplitting: false,
+      },
+    },
+  },
+});
+```
+
+### With React Compiler
+
+```ts
+// vite.config.ts
+import { builtinModules } from 'node:module';
+import { resolve } from 'node:path';
+import { defineConfig, esmExternalRequirePlugin } from 'vite';
+import react, { reactCompilerPreset } from '@vitejs/plugin-react';
+import babel from '@rolldown/plugin-babel';
+import { streamDeckReact } from '@fcannizzaro/streamdeck-react/vite';
+
+const PLUGIN_DIR = 'com.example.my-plugin.sdPlugin';
+const builtins = builtinModules.flatMap((m) => [m, `node:${m}`]);
+
+export default defineConfig({
+  resolve: {
+    conditions: ['node'],
+  },
+  plugins: [
+    esmExternalRequirePlugin({ external: builtins }),
+    react(),
+    // @ts-expect-error — @rolldown/plugin-babel types incorrectly mark inherited babel fields as required
+    await babel({
+      presets: [reactCompilerPreset()],
+    }),
+    streamDeckReact({
+      uuid: 'com.example.my-plugin',
+      targets: [{ platform: 'darwin', arch: 'arm64' }],
+    }),
+  ],
+  build: {
+    target: 'node20',
+    outDir: resolve(PLUGIN_DIR, 'bin'),
+    emptyOutDir: false,
+    sourcemap: true,
+    minify: false,
+    lib: {
+      entry: resolve('src/plugin.ts'),
+      formats: ['es'],
+      fileName: () => 'plugin.mjs',
+    },
+    rolldownOptions: {
+      output: {
+        codeSplitting: false,
+      },
+    },
+  },
+});
+```
+
+## Required Vite 8 Build Dependencies
+
+**Default**:
+
+```bash
+npm install -D vite@8.0.0-beta.16 @vitejs/plugin-react@6.0.0-beta.0
+```
+
+**With React Compiler**:
+
+```bash
+npm install -D vite@8.0.0-beta.16 @vitejs/plugin-react@6.0.0-beta.0 @rolldown/plugin-babel @babel/core babel-plugin-react-compiler
+```
+
+## Vite-Specific Notes
+
+- **`resolve.conditions: ['node']`** -- required so packages like `ws` resolve to their Node.js implementation instead of browser stubs.
+- **`esmExternalRequirePlugin({ external: builtins })`** -- converts CJS `require()` calls for Node.js builtins to ESM `import` statements. Without this, bundled CJS code (e.g. `ws`) will crash at runtime because `require` is unavailable in ESM.
+- **`build.rolldownOptions`** -- replaces the deprecated `build.rollupOptions` in Vite 8.
+- **`codeSplitting: false`** -- replaces the deprecated `inlineDynamicImports: true` from Rollup.
+- **`streamDeckReact()`** -- combines native addon copying and optional plugin restart into a single plugin. Pass `uuid` to auto-restart after each build.
+- **Manifest `Nodejs.Version`** should be `"24"` for all plugins.
+
+## Vite Watch Mode (Development)
+
+```bash
+npx vite build --watch
+```
+
+The `streamDeckReact({ uuid })` plugin automatically restarts the Stream Deck plugin after each build.

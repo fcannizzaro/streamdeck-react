@@ -1,7 +1,7 @@
 import { useContext, useEffect } from "react";
-import { EventBusContext } from "@/context/providers.ts";
-import type { WillAppearPayload } from "@/types.ts";
-import { useCallbackRef } from "./internal/useCallbackRef.ts";
+import { EventBusContext } from "@/context/providers";
+import type { WillAppearPayload } from "@/types";
+import { useCallbackRef } from "./internal/useCallbackRef";
 
 // ── useWillAppear ───────────────────────────────────────────────────
 // Fires once when the action instance appears and the root is mounted.

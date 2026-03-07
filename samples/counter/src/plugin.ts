@@ -1,9 +1,9 @@
 import { readFile } from "node:fs/promises";
 import { createPlugin } from "@fcannizzaro/streamdeck-react";
-import { counterAction } from "./actions/counter.tsx";
-import { timerAction } from "./actions/timer.tsx";
-import { volumeAction } from "./actions/volume.tsx";
-import { toggleAction } from "./actions/toggle.tsx";
+import { counterAction } from "./actions/counter";
+import { timerAction } from "./actions/timer";
+import { volumeAction } from "./actions/volume";
+import { toggleAction } from "./actions/toggle";
 
 const plugin = createPlugin({
   fonts: [

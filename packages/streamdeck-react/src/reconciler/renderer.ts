@@ -1,5 +1,5 @@
 import Reconciler from "react-reconciler";
-import { hostConfig } from "./host-config.ts";
+import { hostConfig } from "./host-config";
 
 // ── Create the Reconciler Instance ──────────────────────────────────
 

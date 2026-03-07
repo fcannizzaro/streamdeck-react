@@ -8,8 +8,8 @@ import {
   usePrevious,
   useTick,
   useTimeout,
-} from "@/hooks/utility.ts";
-import { createDomRoot, sleep } from "@/test-utils/react.tsx";
+} from "@/hooks/utility";
+import { createDomRoot, sleep } from "@/test-utils/react";
 
 type HookHarnessApi<TResult> = {
   current: TResult;

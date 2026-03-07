@@ -1,8 +1,8 @@
 import { exec } from "node:child_process";
 import { resolve } from "node:path";
 import type { Plugin, ResolvedConfig } from "vite";
-import { copyNativeBindings } from "./native-addon-shared.ts";
-import type { NativeAddonTarget, NativeAddonOptions } from "./native-addon-shared.ts";
+import { copyNativeBindings } from "./native-addon-shared";
+import type { NativeAddonTarget, NativeAddonOptions } from "./native-addon-shared";
 
 export type {
   NativeAddonPlatform,
@@ -10,7 +10,7 @@ export type {
   NativeAddonLibc,
   NativeAddonTarget,
   NativeAddonOptions,
-} from "./native-addon-shared.ts";
+} from "./native-addon-shared";
 
 export interface StreamDeckReactOptions extends NativeAddonOptions {
   /**

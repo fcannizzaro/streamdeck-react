@@ -12,6 +12,7 @@ The library automatically detects the device type and sets render dimensions. Us
 | Stream Deck Mini | 80 x 80 |
 | Stream Deck + | 144 x 144 |
 | Stream Deck Neo | 72 x 72 |
+| Stream Deck + XL | 144 x 144 |
 
 ## Encoder Display Sizes (Stream Deck+)
 
@@ -33,6 +34,14 @@ The Stream Deck+ touch strip is 800 x 100 across the full device. Touch events a
 | Stream Deck Mini | 3 | 2 |
 | Stream Deck + | 4 | 2 |
 | Stream Deck Neo | 4 | 2 |
+| Stream Deck + | 9 | 4 |
+
+## Touch Sizes
+
+| Device | Columns | Rows |
+|--------|---------|------|
+| Stream Deck + | 4 | 1 |
+| Stream Deck + XL | 6 | 1 |
 
 ## Design Guidelines
 

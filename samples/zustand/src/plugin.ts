@@ -1,8 +1,8 @@
 import { readFile } from "node:fs/promises";
 import { createPlugin } from "@fcannizzaro/streamdeck-react";
-import { displayAction } from "./actions/display.tsx";
-import { incrementAction } from "./actions/increment.tsx";
-import { resetAction } from "./actions/reset.tsx";
+import { displayAction } from "./actions/display";
+import { incrementAction } from "./actions/increment";
+import { resetAction } from "./actions/reset";
 
 const plugin = createPlugin({
   fonts: [

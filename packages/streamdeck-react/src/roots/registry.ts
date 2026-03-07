@@ -7,7 +7,7 @@ import type {
   DeviceType,
 } from "@elgato/streamdeck";
 import type { JsonObject } from "@elgato/utils"
-import { ReactRoot } from "./root.ts";
+import { ReactRoot } from "./root";
 import type {
   ActionDefinition,
   ActionInfo,
@@ -16,8 +16,8 @@ import type {
   EventMap,
   StreamDeckAccess,
   WrapperComponent,
-} from "@/types.ts";
-import type { RenderConfig } from "@/render/pipeline.ts";
+} from "@/types";
+import type { RenderConfig } from "@/render/pipeline";
 
 // ── Device key size lookup ──────────────────────────────────────────
 
@@ -33,7 +33,9 @@ const KEY_SIZES: Record<number, { width: number; height: number }> = {
   8: { width: 72, height: 72 }, // SCUFController
   9: { width: 72, height: 72 }, // StreamDeckNeo
   10: { width: 144, height: 144 }, // StreamDeckStudio
-  11: { width: 72, height: 72 }, // VirtualStreamDeck
+  11: { width: 144, height: 144 }, // VirtualStreamDeck
+  12: { width: 144, height: 144 }, // Galleon100SD
+  13: { width: 144, height: 144 }, // StreamDeckPlusXL
 };
 
 const DIAL_SIZE = { width: 200, height: 100 };
@@ -41,7 +43,6 @@ const TOUCH_SIZE = { width: 200, height: 100 };
 
 function getCanvasInfo(
   deviceType: DeviceType,
-  controller: "Encoder" | "Keypad",
   surfaceType: "key" | "dial" | "touch",
 ): CanvasInfo {
   if (surfaceType === "dial") {
@@ -126,7 +127,7 @@ export class RootRegistry {
       isInMultiAction: ev.payload.isInMultiAction,
     };
 
-    const canvas = getCanvasInfo(device.type, controller, surfaceType);
+    const canvas = getCanvasInfo(device.type, surfaceType);
 
     const root = new ReactRoot(
       component,

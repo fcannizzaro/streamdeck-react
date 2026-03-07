@@ -1,11 +1,11 @@
 import { createContext } from "react";
-import type { EventBus } from "./event-bus.ts";
+import type { EventBus } from "./event-bus";
 import type {
   ActionInfo,
   CanvasInfo,
   DeviceInfo,
   StreamDeckAccess,
-} from "@/types.ts";
+} from "@/types";
 import type { JsonObject } from "@elgato/utils"
 
 // ── Settings Context ────────────────────────────────────────────────

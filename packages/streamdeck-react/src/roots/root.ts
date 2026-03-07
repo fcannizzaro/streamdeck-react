@@ -3,10 +3,10 @@ import {
   type ComponentType,
   type ReactElement,
 } from "react";
-import { reconciler } from "@/reconciler/renderer.ts";
-import { createVContainer, type VContainer } from "@/reconciler/vnode.ts";
-import { renderToDataUri, type RenderConfig } from "@/render/pipeline.ts";
-import { EventBus } from "@/context/event-bus.ts";
+import { reconciler } from "@/reconciler/renderer";
+import { createVContainer, type VContainer } from "@/reconciler/vnode";
+import { renderToDataUri, type RenderConfig } from "@/render/pipeline";
+import { EventBus } from "@/context/event-bus";
 import {
   SettingsContext,
   GlobalSettingsContext,
@@ -17,7 +17,7 @@ import {
   StreamDeckContext,
   type SettingsContextValue,
   type GlobalSettingsContextValue,
-} from "@/context/providers.ts";
+} from "@/context/providers";
 import type {
   ActionInfo,
   CanvasInfo,
@@ -25,7 +25,7 @@ import type {
   EncoderLayout,
   StreamDeckAccess,
   WrapperComponent,
-} from "@/types.ts";
+} from "@/types";
 import type { JsonObject } from "@elgato/utils"
 import type { Action, DialAction, KeyAction } from "@elgato/streamdeck";
 

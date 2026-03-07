@@ -4,7 +4,7 @@ import type { ReactElement } from "react";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 
-export { sleep } from "./sleep.ts";
+export { sleep } from "./sleep";
 
 export type DomRootApi = {
   render: (element: ReactElement) => Promise<void>;

@@ -46,7 +46,9 @@ The CLI asks for your plugin UUID, author, supported platforms, native addon tar
 
 ## Add a Bundler
 
-The sample plugins use Rollup together with the helpers exported from `@fcannizzaro/streamdeck-react/rollup`:
+You can use either **Rollup** (stable) or **Vite 8 with Rolldown** (beta).
+
+### Rollup (stable)
 
 ```bash tab="npm"
 npm install -D rollup @rollup/plugin-node-resolve @rollup/plugin-commonjs @rollup/plugin-json rollup-plugin-esbuild
@@ -66,13 +68,31 @@ npm install -D rollup @rollup/plugin-node-resolve @rollup/plugin-commonjs @rollu
 bun add -d rollup @rollup/plugin-node-resolve @rollup/plugin-commonjs @rollup/plugin-json @rollup/plugin-babel @babel/core @babel/preset-typescript @babel/preset-react babel-plugin-react-compiler
 ```
 
-`resolveLibraryPaths()` is no longer required. A standard Rollup config plus `nativeAddon({ targets })` is enough.
+### Vite 8 with Rolldown (beta)
+
+```bash tab="npm"
+npm install -D vite@8.0.0-beta.16 @vitejs/plugin-react@6.0.0-beta.0
+```
+
+```bash tab="bun"
+bun add -d vite@8.0.0-beta.16 @vitejs/plugin-react@6.0.0-beta.0
+```
+
+If you want to use [React Compiler](/guides/react-compiler) with Vite, also add:
+
+```bash tab="npm"
+npm install -D @rolldown/plugin-babel @babel/core babel-plugin-react-compiler
+```
+
+```bash tab="bun"
+bun add -d @rolldown/plugin-babel @babel/core babel-plugin-react-compiler
+```
 
 ## Install Native Target Packages
 
 For manual setup, install the `@takumi-rs/core-*` packages that match the targets you pass to `nativeAddon({ targets })`.
 
-| Rollup target | Package |
+| Target | Package |
 | --- | --- |
 | `darwin-arm64` | `@takumi-rs/core-darwin-arm64` |
 | `darwin-x64` | `@takumi-rs/core-darwin-x64` |

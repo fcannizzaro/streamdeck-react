@@ -3,7 +3,7 @@ title: Quick Start
 description: Build your first Stream Deck plugin with @fcannizzaro/streamdeck-react.
 ---
 
-This guide creates a minimal counter action, bundles it with Rollup, and connects it to the Stream Deck runtime.
+This guide creates a minimal counter action, bundles it, and connects it to the Stream Deck runtime. You can use either **Rollup** or **Vite 8** as the bundler.
 
 If you want the scaffold generated for you, start with [`create-streamdeck-react`](/guides/create-cli). The steps below show the manual setup.
 
@@ -15,22 +15,17 @@ Your action UUID in `manifest.json` must match the UUID you register in `defineA
 
 ## 2. Install Dependencies
 
-```bash tab="npm"
+```bash tab="Rollup"
 npm install @fcannizzaro/streamdeck-react react @takumi-rs/core-darwin-arm64
 npm install -D rollup @rollup/plugin-node-resolve @rollup/plugin-commonjs @rollup/plugin-json rollup-plugin-esbuild
 ```
 
-```bash tab="pnpm"
-pnpm add @fcannizzaro/streamdeck-react react @takumi-rs/core-darwin-arm64
-pnpm add -D rollup @rollup/plugin-node-resolve @rollup/plugin-commonjs @rollup/plugin-json rollup-plugin-esbuild
+```bash tab="Vite 8"
+npm install @fcannizzaro/streamdeck-react react @takumi-rs/core-darwin-arm64
+npm install -D vite@8.0.0-beta.16 @vitejs/plugin-react@6.0.0-beta.0
 ```
 
-```bash tab="bun"
-bun add @fcannizzaro/streamdeck-react react @takumi-rs/core-darwin-arm64
-bun add -d rollup @rollup/plugin-node-resolve @rollup/plugin-commonjs @rollup/plugin-json rollup-plugin-esbuild
-```
-
-This example targets macOS Apple Silicon. Swap the `@takumi-rs/core-*` package and Rollup targets to match the platforms you want to ship.
+This example targets macOS Apple Silicon. Swap the `@takumi-rs/core-*` package and targets to match the platforms you want to ship.
 
 ## 3. Create an Action Component
 
@@ -98,9 +93,9 @@ const plugin = createPlugin({
 await plugin.connect();
 ```
 
-## 5. Add a Rollup Config
+## 5. Add a Bundler Config
 
-```js
+```js tab="Rollup"
 // rollup.config.mjs
 import { builtinModules } from 'node:module';
 import resolve from '@rollup/plugin-node-resolve';
@@ -133,12 +128,59 @@ export default {
 };
 ```
 
+```ts tab="Vite 8"
+// vite.config.ts
+import { builtinModules } from 'node:module';
+import { resolve } from 'node:path';
+import { defineConfig, esmExternalRequirePlugin } from 'vite';
+import react from '@vitejs/plugin-react';
+import { streamDeckReact } from '@fcannizzaro/streamdeck-react/vite';
+
+const PLUGIN_DIR = 'com.example.react-counter.sdPlugin';
+const builtins = builtinModules.flatMap((m) => [m, `node:${m}`]);
+
+export default defineConfig({
+  resolve: {
+    conditions: ['node'],
+  },
+  plugins: [
+    esmExternalRequirePlugin({ external: builtins }),
+    react(),
+    streamDeckReact({
+      uuid: 'com.example.react-counter',
+      targets: [{ platform: 'darwin', arch: 'arm64' }],
+    }),
+  ],
+  build: {
+    target: 'node20',
+    outDir: resolve(PLUGIN_DIR, 'bin'),
+    emptyOutDir: false,
+    sourcemap: true,
+    minify: false,
+    lib: {
+      entry: resolve('src/plugin.ts'),
+      formats: ['es'],
+      fileName: () => 'plugin.mjs',
+    },
+    rolldownOptions: {
+      output: {
+        codeSplitting: false,
+      },
+    },
+  },
+});
+```
+
 For production builds, pass explicit `targets`. In watch mode, `nativeAddon()` can still infer the current host platform when it is supported.
 
 ## 6. Build
 
-```bash
+```bash tab="Rollup"
 npx rollup -c
+```
+
+```bash tab="Vite 8"
+npx vite build
 ```
 
 Install the generated `.sdPlugin` in the Stream Deck app, place the action on a key, and press it to see the counter update.

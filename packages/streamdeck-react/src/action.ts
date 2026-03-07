@@ -1,4 +1,4 @@
-import type { ActionConfig, ActionDefinition } from "./types.ts";
+import type { ActionConfig, ActionDefinition } from "./types";
 import type { JsonObject } from "@elgato/utils"
 
 // ── defineAction ────────────────────────────────────────────────────

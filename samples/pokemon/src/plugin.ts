@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { createPlugin } from "@fcannizzaro/streamdeck-react";
-import { pokemonAction } from "./actions/pokemon.tsx";
-import { QueryWrapper } from "./wrapper.tsx";
+import { pokemonAction } from "./actions/pokemon";
+import { QueryWrapper } from "./wrapper";
 
 const plugin = createPlugin({
   fonts: [

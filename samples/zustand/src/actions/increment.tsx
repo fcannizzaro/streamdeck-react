@@ -1,5 +1,5 @@
 import { defineAction, useKeyDown, tw } from "@fcannizzaro/streamdeck-react";
-import { useCounterStore } from "../store.ts";
+import { useCounterStore } from "../store";
 
 function IncrementKey() {
   const count = useCounterStore((state) => state.count);

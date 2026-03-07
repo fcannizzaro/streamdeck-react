@@ -1,8 +1,8 @@
 import type { Renderer, OutputFormat } from "@takumi-rs/core";
 import { fromJsx } from "@takumi-rs/helpers/jsx";
 import { createElement } from "react";
-import { vnodeToElement, type VContainer } from "@/reconciler/vnode.ts";
-import { fnv1a } from "./cache.ts";
+import { vnodeToElement, type VContainer } from "@/reconciler/vnode";
+import { fnv1a } from "./cache";
 
 // ── Render Configuration ────────────────────────────────────────────
 
