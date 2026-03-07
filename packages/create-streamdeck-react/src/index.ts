@@ -2,7 +2,7 @@
 
 import { execSync } from "node:child_process";
 import { copyFileSync, existsSync, mkdirSync, readdirSync, writeFileSync } from "node:fs";
-import { basename, dirname, resolve } from "node:path";
+import { basename, dirname, relative, resolve } from "node:path";
 import * as p from "@clack/prompts";
 import {
   EXAMPLE_OPTIONS,
@@ -542,12 +542,12 @@ function printSuccess(
   installed: boolean,
   linked: boolean,
 ): void {
-  const relativeTarget = targetDirectory;
+  const relativeTarget = relative(process.cwd(), targetDirectory) || ".";
   const runPrefix =
     options.packageManager === "pnpm"
       ? "pnpm"
       : options.packageManager === "bun"
-        ? "bun run"
+        ? "bun"
         : "npm run";
 
   const steps: string[] = [];
@@ -562,7 +562,7 @@ function printSuccess(
     steps.push(buildLinkCommand(options.packageManager, pluginDir));
   }
 
-  steps.push(`${runPrefix} build`);
+  steps.push(`${runPrefix} dev`);
 
   if (skipPrompt) {
     console.log("");
