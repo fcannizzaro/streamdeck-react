@@ -12,10 +12,6 @@ description: Install @fcannizzaro/streamdeck-react, React, and the tooling neede
 
 ## Install the Library
 
-```bash tab="npm"
-npm install @fcannizzaro/streamdeck-react react
-```
-
 ```bash tab="bun"
 bun add @fcannizzaro/streamdeck-react react
 ```
@@ -24,22 +20,26 @@ bun add @fcannizzaro/streamdeck-react react
 pnpm add @fcannizzaro/streamdeck-react react
 ```
 
+```bash tab="npm"
+npm install @fcannizzaro/streamdeck-react react
+```
+
 `@fcannizzaro/streamdeck-react` ships the Stream Deck SDK integration and Takumi renderer bindings as package dependencies, so a basic plugin does not need extra runtime packages just to render keys.
 
 ## Start with the Create CLI
 
 If you want a ready-to-run plugin scaffold, use `create-streamdeck-react`:
 
-```bash tab="npm"
-npm create streamdeck-react@latest
+```bash tab="bun"
+bun create streamdeck-react
 ```
 
 ```bash tab="pnpm"
 pnpm create streamdeck-react
 ```
 
-```bash tab="bun"
-bun create streamdeck-react
+```bash tab="npm"
+npm create streamdeck-react@latest
 ```
 
 The CLI asks for your plugin UUID, author, supported platforms, native addon targets, and starter example, then generates a complete `.sdPlugin` project.
@@ -50,42 +50,58 @@ You can use either **Rollup** (stable) or **Vite 8 with Rolldown** (beta).
 
 ### Rollup (stable)
 
-```bash tab="npm"
-npm install -D rollup @rollup/plugin-node-resolve @rollup/plugin-commonjs @rollup/plugin-json rollup-plugin-esbuild
-```
-
 ```bash tab="bun"
 bun add -d rollup @rollup/plugin-node-resolve @rollup/plugin-commonjs @rollup/plugin-json rollup-plugin-esbuild
 ```
 
-If you want to use [React Compiler](/guides/react-compiler), replace `rollup-plugin-esbuild` with Babel:
+```bash tab="pnpm"
+pnpm add -D rollup @rollup/plugin-node-resolve @rollup/plugin-commonjs @rollup/plugin-json rollup-plugin-esbuild
+```
 
 ```bash tab="npm"
-npm install -D rollup @rollup/plugin-node-resolve @rollup/plugin-commonjs @rollup/plugin-json @rollup/plugin-babel @babel/core @babel/preset-typescript @babel/preset-react babel-plugin-react-compiler
+npm install -D rollup @rollup/plugin-node-resolve @rollup/plugin-commonjs @rollup/plugin-json rollup-plugin-esbuild
 ```
+
+If you want to use [React Compiler](/guides/react-compiler), replace `rollup-plugin-esbuild` with Babel:
 
 ```bash tab="bun"
 bun add -d rollup @rollup/plugin-node-resolve @rollup/plugin-commonjs @rollup/plugin-json @rollup/plugin-babel @babel/core @babel/preset-typescript @babel/preset-react babel-plugin-react-compiler
 ```
 
-### Vite 8 with Rolldown (beta)
+```bash tab="pnpm"
+pnpm add -D rollup @rollup/plugin-node-resolve @rollup/plugin-commonjs @rollup/plugin-json @rollup/plugin-babel @babel/core @babel/preset-typescript @babel/preset-react babel-plugin-react-compiler
+```
 
 ```bash tab="npm"
-npm install -D vite@8.0.0-beta.16 @vitejs/plugin-react@6.0.0-beta.0
+npm install -D rollup @rollup/plugin-node-resolve @rollup/plugin-commonjs @rollup/plugin-json @rollup/plugin-babel @babel/core @babel/preset-typescript @babel/preset-react babel-plugin-react-compiler
 ```
+
+### Vite 8 with Rolldown (beta)
 
 ```bash tab="bun"
 bun add -d vite@8.0.0-beta.16 @vitejs/plugin-react@6.0.0-beta.0
 ```
 
-If you want to use [React Compiler](/guides/react-compiler) with Vite, also add:
+```bash tab="pnpm"
+pnpm add -D vite@8.0.0-beta.16 @vitejs/plugin-react@6.0.0-beta.0
+```
 
 ```bash tab="npm"
-npm install -D @rolldown/plugin-babel @babel/core babel-plugin-react-compiler
+npm install -D vite@8.0.0-beta.16 @vitejs/plugin-react@6.0.0-beta.0
 ```
+
+If you want to use [React Compiler](/guides/react-compiler) with Vite, also add:
 
 ```bash tab="bun"
 bun add -d @rolldown/plugin-babel @babel/core babel-plugin-react-compiler
+```
+
+```bash tab="pnpm"
+pnpm add -D @rolldown/plugin-babel @babel/core babel-plugin-react-compiler
+```
+
+```bash tab="npm"
+npm install -D @rolldown/plugin-babel @babel/core babel-plugin-react-compiler
 ```
 
 ## Install Native Target Packages
@@ -101,12 +117,16 @@ For manual setup, install the `@takumi-rs/core-*` packages that match the target
 
 Example:
 
-```bash tab="npm"
-npm install @takumi-rs/core-darwin-arm64
-```
-
 ```bash tab="bun"
 bun add @takumi-rs/core-darwin-arm64
+```
+
+```bash tab="pnpm"
+pnpm add @takumi-rs/core-darwin-arm64
+```
+
+```bash tab="npm"
+npm install @takumi-rs/core-darwin-arm64
 ```
 
 ## What Gets Installed

@@ -1,0 +1,162 @@
+---
+title: Gesture Hooks
+description: Higher-level interaction hooks -- single tap, long press, and double tap detection built on top of key events.
+---
+
+Gesture hooks provide higher-level interaction patterns on top of the raw `keyDown` / `keyUp` events. They handle timing and state tracking internally so your components stay declarative.
+
+## useTap
+
+Fires on a single `keyUp`. When `useDoubleTap` is also active for the same action, `useTap` is automatically delayed until the double-tap window expires -- and cancelled if a double-tap fires. When used alone, it fires immediately.
+
+```ts
+function useTap(
+  callback: (payload: KeyUpPayload) => void,
+  options?: TapOptions,
+): void;
+```
+
+```ts
+interface TapOptions {
+  /** Timeout override for the gated delay (inherits from useDoubleTap when omitted). */
+  timeout?: number;
+}
+```
+
+```tsx
+function ToggleKey() {
+  const [on, setOn] = useState(false);
+
+  useTap(() => {
+    setOn((v) => !v);
+  });
+
+  return (
+    <div style={{
+      width: '100%', height: '100%',
+      alignItems: 'center', justifyContent: 'center',
+      background: on ? '#4CAF50' : '#333',
+    }}>
+      <span style={{ color: 'white', fontSize: 18 }}>
+        {on ? 'ON' : 'OFF'}
+      </span>
+    </div>
+  );
+}
+```
+
+## useLongPress
+
+Fires when a key is held down for at least `timeout` milliseconds. If the key is released before the timeout, the callback is not invoked.
+
+```ts
+function useLongPress(
+  callback: (payload: KeyDownPayload) => void,
+  options?: LongPressOptions,
+): void;
+```
+
+```ts
+interface LongPressOptions {
+  /** Milliseconds the key must be held before firing. @default 500 */
+  timeout?: number;
+}
+```
+
+```tsx
+function ResetKey() {
+  const [status, setStatus] = useState('idle');
+
+  useLongPress(() => {
+    setStatus('reset');
+    setTimeout(() => setStatus('idle'), 1000);
+  }, { timeout: 800 });
+
+  return (
+    <div style={{
+      width: '100%', height: '100%',
+      alignItems: 'center', justifyContent: 'center',
+      background: status === 'reset' ? '#e53935' : '#1a1a1a',
+    }}>
+      <span style={{ color: 'white', fontSize: 16 }}>
+        {status === 'reset' ? 'RESET' : 'HOLD'}
+      </span>
+    </div>
+  );
+}
+```
+
+### Default Timeout
+
+The default long-press threshold is **500 ms**. Pass `{ timeout }` to override it.
+
+## useDoubleTap
+
+Fires when two `keyUp` events occur within `timeout` milliseconds of each other. A triple tap triggers on the second tap; the third tap starts a new pair.
+
+```ts
+function useDoubleTap(
+  callback: (payload: KeyUpPayload) => void,
+  options?: DoubleTapOptions,
+): void;
+```
+
+```ts
+interface DoubleTapOptions {
+  /** Max milliseconds between two key-up events. @default 300 */
+  timeout?: number;
+}
+```
+
+```tsx
+function BookmarkKey() {
+  const [saved, setSaved] = useState(false);
+
+  useDoubleTap(() => {
+    setSaved((s) => !s);
+  });
+
+  return (
+    <div style={{
+      width: '100%', height: '100%',
+      alignItems: 'center', justifyContent: 'center',
+      background: saved ? '#FFC107' : '#333',
+    }}>
+      <span style={{ color: saved ? '#000' : '#fff', fontSize: 18 }}>
+        {saved ? 'SAVED' : '2xTAP'}
+      </span>
+    </div>
+  );
+}
+```
+
+### Default Timeout
+
+The default double-tap window is **300 ms**. Pass `{ timeout }` to override it.
+
+## Combining useTap and useDoubleTap
+
+When both hooks are used in the same component, they coordinate automatically. `useTap` delays its callback by the double-tap timeout so a second tap can cancel it. No extra configuration is needed.
+
+```tsx
+function ModeKey() {
+  const [label, setLabel] = useState('READY');
+
+  useTap(() => setLabel('SINGLE'));
+  useDoubleTap(() => setLabel('DOUBLE'));
+
+  return (
+    <div style={{
+      width: '100%', height: '100%',
+      alignItems: 'center', justifyContent: 'center',
+      background: '#1a1a1a',
+    }}>
+      <span style={{ color: 'white', fontSize: 16 }}>{label}</span>
+    </div>
+  );
+}
+```
+
+## Implementation Pattern
+
+All gesture hooks subscribe to the root's EventBus via `useEffect` and use a stable callback ref to avoid stale closures. `useLongPress` starts a timer on `keyDown` and clears it on `keyUp`. `useDoubleTap` tracks the timestamp of the last `keyUp` and fires when two occur within the window. Coordination between `useTap` and `useDoubleTap` is handled by an internal per-action gate -- when `useDoubleTap` is mounted it registers a gate timeout, and `useTap` checks for this gate to decide whether to fire immediately or delay.

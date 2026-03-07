@@ -1,20 +1,39 @@
 import { useState } from "react";
-import { defineAction, useKeyDown, useKeyUp, tw } from "@fcannizzaro/streamdeck-react";
+import { defineAction, useKeyDown, useKeyUp, useTap, useLongPress, useDoubleTap, useSettings, tw } from "@fcannizzaro/streamdeck-react";
+
+type CounterSettings = { count: number };
 
 // ── Counter Key ─────────────────────────────────────────────────────
-// Increments on press, shows the count.
+// Single tap increments, double tap decrements, long press resets.
+// The count is persisted in the action settings.
 
 function CounterKey() {
-  const [count, setCount] = useState(0);
+  const [settings, setSettings] = useSettings<CounterSettings>();
+  const count = settings.count ?? 0;
   const [pressed, setPressed] = useState(false);
 
+  const updateCount = (next: number) => {
+    setSettings({ count: next });
+  };
+
   useKeyDown(() => {
-    setCount((c) => c + 1);
     setPressed(true);
   });
 
   useKeyUp(() => {
     setPressed(false);
+  });
+
+  useTap(() => {
+    updateCount(count + 1);
+  });
+
+  useDoubleTap(() => {
+    updateCount(Math.max(0, count - 1));
+  });
+
+  useLongPress(() => {
+    updateCount(0);
   });
 
   return (
@@ -32,7 +51,8 @@ function CounterKey() {
   );
 }
 
-export const counterAction = defineAction({
+export const counterAction = defineAction<CounterSettings>({
   uuid: "com.example.react-counter.counter",
   key: CounterKey,
+  defaultSettings: { count: 0 },
 });

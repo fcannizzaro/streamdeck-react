@@ -42,22 +42,30 @@ If you have an existing Rollup project using esbuild, replace it with Babel:
 
 Remove esbuild:
 
-```bash tab="npm"
-npm uninstall rollup-plugin-esbuild
-```
-
 ```bash tab="bun"
 bun remove rollup-plugin-esbuild
 ```
 
-Install Babel + React Compiler:
+```bash tab="pnpm"
+pnpm remove rollup-plugin-esbuild
+```
 
 ```bash tab="npm"
-npm install -D @rollup/plugin-babel @babel/core @babel/preset-typescript @babel/preset-react babel-plugin-react-compiler
+npm uninstall rollup-plugin-esbuild
 ```
+
+Install Babel + React Compiler:
 
 ```bash tab="bun"
 bun add -d @rollup/plugin-babel @babel/core @babel/preset-typescript @babel/preset-react babel-plugin-react-compiler
+```
+
+```bash tab="pnpm"
+pnpm add -D @rollup/plugin-babel @babel/core @babel/preset-typescript @babel/preset-react babel-plugin-react-compiler
+```
+
+```bash tab="npm"
+npm install -D @rollup/plugin-babel @babel/core @babel/preset-typescript @babel/preset-react babel-plugin-react-compiler
 ```
 
 #### 2. Update Rollup Config
@@ -119,12 +127,16 @@ If you have an existing Vite 8 project, add the Babel plugin:
 
 #### 1. Install Dependencies
 
-```bash tab="npm"
-npm install -D @rolldown/plugin-babel @babel/core babel-plugin-react-compiler
-```
-
 ```bash tab="bun"
 bun add -d @rolldown/plugin-babel @babel/core babel-plugin-react-compiler
+```
+
+```bash tab="pnpm"
+pnpm add -D @rolldown/plugin-babel @babel/core babel-plugin-react-compiler
+```
+
+```bash tab="npm"
+npm install -D @rolldown/plugin-babel @babel/core babel-plugin-react-compiler
 ```
 
 #### 2. Update Vite Config

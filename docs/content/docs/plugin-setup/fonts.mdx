@@ -39,6 +39,50 @@ interface FontConfig {
 }
 ```
 
+### Using @fontsource
+
+You can install fonts from [fontsource](https://fontsource.org/) instead of bundling `.ttf` files manually. Each package ships individual weight files you can import directly:
+
+```bash tab="bun"
+bun add @fontsource/inter
+```
+
+```bash tab="pnpm"
+pnpm add @fontsource/inter
+```
+
+```bash tab="npm"
+npm install @fontsource/inter
+```
+
+Then resolve the font file from the package:
+
+```ts
+import { readFile } from 'node:fs/promises';
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
+
+const fonts = [
+  {
+    name: 'Inter',
+    data: await readFile(require.resolve('@fontsource/inter/files/inter-latin-400-normal.woff')),
+    weight: 400 as const,
+    style: 'normal' as const,
+  },
+  {
+    name: 'Inter',
+    data: await readFile(require.resolve('@fontsource/inter/files/inter-latin-700-normal.woff')),
+    weight: 700 as const,
+    style: 'normal' as const,
+  },
+];
+```
+
+<Callout type="warn">
+Use `.woff` or `.ttf` files from `@fontsource` packages. WOFF2 (`.woff2`) is **not supported** by the renderer.
+</Callout>
+
 ## Using Fonts in Components
 
 The renderer resolves fonts by matching `fontFamily`, `fontWeight`, and `fontStyle`:

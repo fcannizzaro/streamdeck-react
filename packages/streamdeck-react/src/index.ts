@@ -13,6 +13,9 @@ export {
   useDialHint,
 } from "@/hooks/events";
 
+// ── Hooks — Gestures ────────────────────────────────────────────────
+export { useTap, useLongPress, useDoubleTap } from "@/hooks/gestures";
+
 // ── Hooks — Settings ────────────────────────────────────────────────
 export { useSettings, useGlobalSettings } from "@/hooks/settings";
 
@@ -93,6 +96,8 @@ export type {
   TouchBarDialRotatePayload,
   TouchBarDialPressPayload,
 } from "@/types";
+
+export type { TapOptions, LongPressOptions, DoubleTapOptions } from "@/hooks/gestures";
 
 // ── Component Props Types ───────────────────────────────────────────
 export type { BoxProps } from "@/components/Box";
