@@ -101,7 +101,7 @@ function PokemonKey() {
       <div
         className={tw(
           "flex h-full w-full flex-col items-center justify-center",
-          "bg-gradient-to-br from-[#1a1a2e] to-[#16213e]",
+          "bg-linear-to-br from-[#1a1a2e] to-[#16213e]",
         )}
       >
         <span className="text-[14px] font-bold text-white/80">
@@ -116,7 +116,7 @@ function PokemonKey() {
       <div
         className={tw(
           "flex h-full w-full flex-col items-center justify-center gap-1",
-          "bg-gradient-to-br from-[#4a0000] to-[#1a0000]",
+          "bg-linear-to-br from-[#4a0000] to-[#1a0000]",
         )}
       >
         <span className="text-[12px] font-bold text-[#ff6b6b]">Error</span>
@@ -129,7 +129,7 @@ function PokemonKey() {
     <div
       className={tw(
         "relative h-full w-full overflow-hidden",
-        "bg-gradient-to-br from-[#0f3460] to-[#533483]",
+        "bg-linear-to-br from-[#0f3460] to-[#533483]",
       )}
     >
       <div className={tw("absolute inset-0 flex items-center justify-center")}>

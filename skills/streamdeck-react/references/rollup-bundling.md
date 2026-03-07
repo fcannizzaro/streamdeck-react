@@ -6,6 +6,8 @@ If the user is starting from scratch, prefer `npm create streamdeck-react@latest
 
 ## Full Rollup Config Template
 
+### Default (esbuild)
+
 ```js
 // rollup.config.mjs
 import { builtinModules } from 'node:module';
@@ -39,10 +41,64 @@ export default {
 };
 ```
 
+### With React Compiler
+
+When the user opts into React Compiler during scaffolding (`--react-compiler true`), esbuild is replaced by Babel with `babel-plugin-react-compiler`. The compiler automatically memoizes components at build time, preventing unnecessary re-renders and the expensive rasterization pipeline they trigger.
+
+```js
+// rollup.config.mjs
+import { builtinModules } from 'node:module';
+import { babel } from '@rollup/plugin-babel';
+import resolve from '@rollup/plugin-node-resolve';
+import commonjs from '@rollup/plugin-commonjs';
+import json from '@rollup/plugin-json';
+import { nativeAddon } from '@fcannizzaro/streamdeck-react/rollup';
+
+const PLUGIN_DIR = 'com.example.my-plugin.sdPlugin';
+const builtins = new Set(builtinModules.flatMap((m) => [m, `node:${m}`]));
+
+export default {
+  input: 'src/plugin.ts',
+  output: {
+    file: `${PLUGIN_DIR}/bin/plugin.mjs`,
+    format: 'es',
+    sourcemap: true,
+    inlineDynamicImports: true,
+  },
+  external: (id) => builtins.has(id),
+  plugins: [
+    resolve({ preferBuiltins: true }),
+    commonjs(),
+    json(),
+    babel({
+      babelHelpers: 'bundled',
+      extensions: ['.js', '.jsx', '.ts', '.tsx'],
+      exclude: '**/node_modules/**',
+      plugins: ['babel-plugin-react-compiler'],
+      presets: [
+        '@babel/preset-typescript',
+        ['@babel/preset-react', { runtime: 'automatic' }],
+      ],
+    }),
+    nativeAddon({
+      targets: [{ platform: 'darwin', arch: 'arm64' }],
+    }),
+  ],
+};
+```
+
 ## Required Build Dependencies
+
+**Default (esbuild)**:
 
 ```bash
 npm install -D rollup @rollup/plugin-node-resolve @rollup/plugin-commonjs @rollup/plugin-json rollup-plugin-esbuild
+```
+
+**With React Compiler** (replaces esbuild):
+
+```bash
+npm install -D rollup @rollup/plugin-node-resolve @rollup/plugin-commonjs @rollup/plugin-json @rollup/plugin-babel @babel/core @babel/preset-typescript @babel/preset-react babel-plugin-react-compiler
 ```
 
 ## Required Runtime Dependencies
@@ -103,10 +159,20 @@ bin/
 
 The order of Rollup plugins matters:
 
+**Default (esbuild)**:
+
 1. `resolve({ preferBuiltins: true })` -- Node module resolution
 2. `commonjs()` -- CJS to ESM conversion
 3. `json()` -- JSON imports
 4. `esbuild({ target: 'node20', jsx: 'automatic' })` -- TypeScript/JSX compilation
+5. `nativeAddon({ targets })` -- copies native binaries (conventionally last)
+
+**With React Compiler (Babel)**:
+
+1. `resolve({ preferBuiltins: true })` -- Node module resolution
+2. `commonjs()` -- CJS to ESM conversion
+3. `json()` -- JSON imports
+4. `babel({ ... })` -- React Compiler + TypeScript/JSX compilation (must exclude `node_modules`)
 5. `nativeAddon({ targets })` -- copies native binaries (conventionally last)
 
 ## Key Configuration Notes

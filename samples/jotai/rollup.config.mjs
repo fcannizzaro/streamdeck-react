@@ -1,8 +1,8 @@
 import { builtinModules } from "node:module";
+import { babel } from "@rollup/plugin-babel";
 import resolve from "@rollup/plugin-node-resolve";
 import commonjs from "@rollup/plugin-commonjs";
 import json from "@rollup/plugin-json";
-import esbuild from "rollup-plugin-esbuild";
 import { nativeAddon } from "@fcannizzaro/streamdeck-react/rollup";
 
 const PLUGIN_DIR = "com.example.react-jotai.sdPlugin";
@@ -24,9 +24,15 @@ export default {
     }),
     commonjs(),
     json(),
-    esbuild({
-      target: "node20",
-      jsx: "automatic",
+    babel({
+      babelHelpers: "bundled",
+      extensions: [".js", ".jsx", ".ts", ".tsx"],
+      exclude: "**/node_modules/**",
+      plugins: ["babel-plugin-react-compiler"],
+      presets: [
+        "@babel/preset-typescript",
+        ["@babel/preset-react", { runtime: "automatic" }],
+      ],
     }),
     nativeAddon(),
   ],

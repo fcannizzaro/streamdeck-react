@@ -12,14 +12,15 @@ const baseOptions: ScaffoldOptions = {
   example: "counter",
   platforms: ["mac", "windows"],
   nativeTargets: ["darwin-arm64", "win32-x64"],
+  reactCompiler: false,
 };
 
 test("project package.json includes selected native target dependencies", () => {
   const files = buildProjectFiles(baseOptions);
   const packageJson = JSON.parse(files["package.json"] ?? "{}");
 
-  expect(packageJson.dependencies["@takumi-rs/core-darwin-arm64"]).toBe("^0.69.5");
-  expect(packageJson.dependencies["@takumi-rs/core-win32-x64-msvc"]).toBe("^0.69.5");
+  expect(packageJson.dependencies["@takumi-rs/core-darwin-arm64"]).toBe("^0.70.4");
+  expect(packageJson.dependencies["@takumi-rs/core-win32-x64-msvc"]).toBe("^0.70.4");
 });
 
 test("manifest matches example actions and supported platforms", () => {

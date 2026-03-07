@@ -9,19 +9,23 @@
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
-    "@takumi-rs/core-darwin-arm64": "^0.69.5",
+    "@takumi-rs/core-darwin-arm64": "^0.70.4",
     "@tanstack/react-query": "^5.72.2",
     "react": "^19.2.4",
     "@fcannizzaro/streamdeck-react": "workspace:*",
     "ws": "^8.19.0"
   },
   "devDependencies": {
+    "@babel/core": "^7.28.0",
+    "@babel/preset-react": "^7.28.0",
+    "@babel/preset-typescript": "^7.28.0",
     "@elgato/cli": "^1.7.1",
-    "@rollup/plugin-commonjs": "^29.0.0",
+    "@rollup/plugin-babel": "^6.0.4",
+    "@rollup/plugin-commonjs": "^29.0.2",
     "@rollup/plugin-json": "^6.1.0",
     "@rollup/plugin-node-resolve": "^16.0.3",
     "@types/react": "^19.2.14",
-    "rollup": "^4.59.0",
-    "rollup-plugin-esbuild": "^6.2.1"
+    "babel-plugin-react-compiler": "latest",
+    "rollup": "^4.59.0"
   }
 }

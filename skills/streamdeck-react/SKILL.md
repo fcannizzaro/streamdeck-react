@@ -44,7 +44,15 @@ For greenfield projects, prefer the scaffolder first:
 npm create streamdeck-react@latest
 ```
 
-It asks for the plugin UUID, author, platforms, native addon targets, and starter example, then generates a working project.
+It asks for the plugin UUID, author, platforms, native addon targets, starter example, and whether to use React Compiler, then generates a working project.
+
+To use React Compiler via CLI flag:
+
+```bash
+npm create streamdeck-react@latest --react-compiler true
+```
+
+React Compiler automatically memoizes components at build time, preventing unnecessary re-renders. This is especially beneficial in this environment because every re-render triggers an expensive rasterization pipeline (VNode tree -> Takumi layout -> Rust PNG render -> hardware).
 
 If the user wants to build it manually, use this structure:
 
@@ -76,8 +84,11 @@ npm install @fcannizzaro/streamdeck-react react
 # Runtime support used by the Stream Deck SDK
 npm install ws
 
-# Build tooling
+# Build tooling (default -- esbuild)
 npm install -D rollup @rollup/plugin-node-resolve @rollup/plugin-commonjs @rollup/plugin-json rollup-plugin-esbuild
+
+# Build tooling (with React Compiler -- replaces esbuild)
+# npm install -D rollup @rollup/plugin-node-resolve @rollup/plugin-commonjs @rollup/plugin-json @rollup/plugin-babel @babel/core @babel/preset-typescript @babel/preset-react babel-plugin-react-compiler
 
 # Types (if using TypeScript)
 npm install -D @types/react
@@ -193,6 +204,8 @@ await plugin.connect();
 
 ### Step 3: Configure Rollup
 
+**Default setup (esbuild)**:
+
 ```js
 // rollup.config.mjs
 import { builtinModules } from 'node:module';
@@ -219,6 +232,50 @@ export default {
     commonjs(),
     json(),
     esbuild({ target: 'node20', jsx: 'automatic' }),
+    nativeAddon({
+      targets: [{ platform: 'darwin', arch: 'arm64' }],
+    }),
+  ],
+};
+```
+
+**With React Compiler** (replaces esbuild with Babel):
+
+```js
+// rollup.config.mjs
+import { builtinModules } from 'node:module';
+import { babel } from '@rollup/plugin-babel';
+import resolve from '@rollup/plugin-node-resolve';
+import commonjs from '@rollup/plugin-commonjs';
+import json from '@rollup/plugin-json';
+import { nativeAddon } from '@fcannizzaro/streamdeck-react/rollup';
+
+const PLUGIN_DIR = 'com.example.my-plugin.sdPlugin';
+const builtins = new Set(builtinModules.flatMap((m) => [m, `node:${m}`]));
+
+export default {
+  input: 'src/plugin.ts',
+  output: {
+    file: `${PLUGIN_DIR}/bin/plugin.mjs`,
+    format: 'es',
+    sourcemap: true,
+    inlineDynamicImports: true,
+  },
+  external: (id) => builtins.has(id),
+  plugins: [
+    resolve({ preferBuiltins: true }),
+    commonjs(),
+    json(),
+    babel({
+      babelHelpers: 'bundled',
+      extensions: ['.js', '.jsx', '.ts', '.tsx'],
+      exclude: '**/node_modules/**',
+      plugins: ['babel-plugin-react-compiler'],
+      presets: [
+        '@babel/preset-typescript',
+        ['@babel/preset-react', { runtime: 'automatic' }],
+      ],
+    }),
     nativeAddon({
       targets: [{ platform: 'darwin', arch: 'arm64' }],
     }),
@@ -388,6 +445,7 @@ When scaffolding or modifying a @fcannizzaro/streamdeck-react plugin, verify:
 - [ ] Encoder actions have `"Controllers": ["Encoder"]` and an `"Encoder"` block in manifest
 - [ ] `plugin.connect()` is called after `createPlugin()`
 - [ ] Build completes without errors: `npx rollup -c`
+- [ ] If React Compiler is enabled: output bundle contains `react.memo_cache_sentinel` (proof compiler is active)
 
 ## Detailed References
 

@@ -1,27 +1,7 @@
 import { createRequire } from "node:module";
 import { copyFileSync, existsSync } from "node:fs";
-import { dirname, extname, join, resolve } from "node:path";
-import type { Plugin, NormalizedOutputOptions, PluginContext } from "rollup";
-
-const PACKAGE_ROOT = dirname(import.meta.dirname);
-const SOURCE_ROOT = existsSync(resolve(PACKAGE_ROOT, "src"))
-  ? resolve(PACKAGE_ROOT, "src")
-  : resolve(PACKAGE_ROOT, "dist");
-
-function resolveEntryPath(source: string): string {
-  const target = source.slice(2);
-
-  if (SOURCE_ROOT.endsWith("/src")) {
-    return resolve(SOURCE_ROOT, target);
-  }
-
-  const extension = extname(target);
-  const normalizedTarget = extension === ".ts" || extension === ".tsx"
-    ? `${target.slice(0, -extension.length)}.js`
-    : target;
-
-  return resolve(SOURCE_ROOT, normalizedTarget);
-}
+import { dirname, join } from "node:path";
+import type { LogLevel, Plugin, NormalizedOutputOptions, PluginContext, RollupLog } from "rollup";
 
 export type NativeAddonPlatform = "darwin" | "linux" | "win32";
 export type NativeAddonArch = "arm64" | "x64";
@@ -133,6 +113,9 @@ function expandTargets(targets: NativeAddonTarget[]): ResolvedTarget[] {
 export function nativeAddon(options: NativeAddonOptions = {}): Plugin {
   return {
     name: "fcannizzaro-streamdeck-react-native-addon",
+    onLog(_level: LogLevel, log: RollupLog) {
+      if (log.code === "MODULE_LEVEL_DIRECTIVE") return false;
+    },
     writeBundle(this: PluginContext, outputOptions: NormalizedOutputOptions) {
       const isDevelopment = isDevelopmentMode(this.meta.watchMode);
 

@@ -14,6 +14,7 @@ export interface ScaffoldOptions {
   example: StarterExample;
   platforms: StreamDeckPlatform[];
   nativeTargets: NativeTargetId[];
+  reactCompiler: boolean;
 }
 
 interface ExampleOption {
@@ -51,7 +52,7 @@ interface ExamplePreset {
 }
 
 const STREAMDECK_REACT_VERSION = "latest";
-const TAKUMI_VERSION = "^0.69.5";
+const TAKUMI_VERSION = "^0.70.4";
 
 const BASE_DEPENDENCIES = {
   "@fcannizzaro/streamdeck-react": STREAMDECK_REACT_VERSION,
@@ -67,8 +68,19 @@ const BASE_DEV_DEPENDENCIES = {
   "@types/node": "^25.3.3",
   "@types/react": "^19.2.14",
   rollup: "^4.59.0",
-  "rollup-plugin-esbuild": "^6.2.1",
   typescript: "^5.9.3",
+} satisfies Record<string, string>;
+
+const ESBUILD_DEV_DEPENDENCIES = {
+  "rollup-plugin-esbuild": "^6.2.1",
+} satisfies Record<string, string>;
+
+const COMPILER_DEV_DEPENDENCIES = {
+  "@babel/core": "^7.28.0",
+  "@babel/preset-react": "^7.28.0",
+  "@babel/preset-typescript": "^7.28.0",
+  "@rollup/plugin-babel": "^6.0.4",
+  "babel-plugin-react-compiler": "latest",
 } satisfies Record<string, string>;
 
 const TARGET_PACKAGE_MAP: Record<NativeTargetId, string> = {
@@ -397,7 +409,7 @@ export function buildProjectFiles(options: ScaffoldOptions): Record<string, stri
   };
 }
 
-export function buildRollupConfig(options: Pick<ScaffoldOptions, "pluginUuid" | "nativeTargets">): string {
+export function buildRollupConfig(options: Pick<ScaffoldOptions, "pluginUuid" | "nativeTargets" | "reactCompiler">): string {
   const renderedTargets = options.nativeTargets
     .map((target) => {
       const [platform, arch] = target.split("-");
@@ -405,12 +417,33 @@ export function buildRollupConfig(options: Pick<ScaffoldOptions, "pluginUuid" | 
     })
     .join("\n");
 
+  const transformImport = options.reactCompiler
+    ? 'import { babel } from "@rollup/plugin-babel";'
+    : 'import esbuild from "rollup-plugin-esbuild";';
+
+  const transformPlugin = options.reactCompiler
+    ? [
+        "    babel({",
+        '      babelHelpers: "bundled",',
+        '      extensions: [".js", ".jsx", ".ts", ".tsx"],',
+        '      exclude: "**/node_modules/**",',
+        '      plugins: ["babel-plugin-react-compiler"],',
+        "      presets: [",
+        '        "@babel/preset-typescript",',
+        '        ["@babel/preset-react", { runtime: "automatic" }],',
+        "      ],",
+        "    }),",
+      ]
+    : [
+        '    esbuild({ target: "node20", jsx: "automatic" }),',
+      ];
+
   return [
     'import { builtinModules } from "node:module";',
+    transformImport,
     'import resolve from "@rollup/plugin-node-resolve";',
     'import commonjs from "@rollup/plugin-commonjs";',
     'import json from "@rollup/plugin-json";',
-    'import esbuild from "rollup-plugin-esbuild";',
     'import { nativeAddon } from "@fcannizzaro/streamdeck-react/rollup";',
     "",
     `const PLUGIN_DIR = "${options.pluginUuid}.sdPlugin";`,
@@ -429,7 +462,7 @@ export function buildRollupConfig(options: Pick<ScaffoldOptions, "pluginUuid" | 
     "    resolve({ preferBuiltins: true }),",
     "    commonjs(),",
     "    json(),",
-    '    esbuild({ target: "node20", jsx: "automatic" }),',
+    ...transformPlugin,
     "    nativeAddon({",
     "      targets: [",
     renderedTargets,
@@ -442,12 +475,16 @@ export function buildRollupConfig(options: Pick<ScaffoldOptions, "pluginUuid" | 
 }
 
 function buildPackageJson(
-  options: Pick<ScaffoldOptions, "packageName" | "description" | "nativeTargets">,
+  options: Pick<ScaffoldOptions, "packageName" | "description" | "nativeTargets" | "reactCompiler">,
   exampleDependencies: Record<string, string>,
 ): string {
   const nativeDependencies = Object.fromEntries(
     options.nativeTargets.map((target) => [TARGET_PACKAGE_MAP[target], TAKUMI_VERSION]),
   );
+
+  const extraDevDeps = options.reactCompiler
+    ? COMPILER_DEV_DEPENDENCIES
+    : ESBUILD_DEV_DEPENDENCIES;
 
   const packageJson = {
     name: options.packageName,
@@ -464,7 +501,10 @@ function buildPackageJson(
       ...exampleDependencies,
       ...nativeDependencies,
     }),
-    devDependencies: sortObject(BASE_DEV_DEPENDENCIES),
+    devDependencies: sortObject({
+      ...BASE_DEV_DEPENDENCIES,
+      ...extraDevDeps,
+    }),
     description: options.description,
   };
 

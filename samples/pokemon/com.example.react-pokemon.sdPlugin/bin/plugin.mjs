@@ -3044,8 +3044,8 @@ function requireNative() {
       try {
         const binding = require$1('@takumi-rs/core-android-arm64');
         const bindingPackageVersion = require$1('@takumi-rs/core-android-arm64/package.json').version;
-        if (bindingPackageVersion !== '0.69.5' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-          throw new Error(`Native binding package version mismatch, expected 0.69.5 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+        if (bindingPackageVersion !== '0.70.4' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
+          throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
         return binding
       } catch (e) {
@@ -3060,8 +3060,8 @@ function requireNative() {
       try {
         const binding = require$1('@takumi-rs/core-android-arm-eabi');
         const bindingPackageVersion = require$1('@takumi-rs/core-android-arm-eabi/package.json').version;
-        if (bindingPackageVersion !== '0.69.5' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-          throw new Error(`Native binding package version mismatch, expected 0.69.5 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+        if (bindingPackageVersion !== '0.70.4' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
+          throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
         return binding
       } catch (e) {
@@ -3081,8 +3081,8 @@ function requireNative() {
       try {
         const binding = require$1('@takumi-rs/core-win32-x64-gnu');
         const bindingPackageVersion = require$1('@takumi-rs/core-win32-x64-gnu/package.json').version;
-        if (bindingPackageVersion !== '0.69.5' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-          throw new Error(`Native binding package version mismatch, expected 0.69.5 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+        if (bindingPackageVersion !== '0.70.4' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
+          throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
         return binding
       } catch (e) {
@@ -3097,8 +3097,8 @@ function requireNative() {
       try {
         const binding = require$1('@takumi-rs/core-win32-x64-msvc');
         const bindingPackageVersion = require$1('@takumi-rs/core-win32-x64-msvc/package.json').version;
-        if (bindingPackageVersion !== '0.69.5' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-          throw new Error(`Native binding package version mismatch, expected 0.69.5 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+        if (bindingPackageVersion !== '0.70.4' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
+          throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
         return binding
       } catch (e) {
@@ -3114,8 +3114,8 @@ function requireNative() {
       try {
         const binding = require$1('@takumi-rs/core-win32-ia32-msvc');
         const bindingPackageVersion = require$1('@takumi-rs/core-win32-ia32-msvc/package.json').version;
-        if (bindingPackageVersion !== '0.69.5' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-          throw new Error(`Native binding package version mismatch, expected 0.69.5 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+        if (bindingPackageVersion !== '0.70.4' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
+          throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
         return binding
       } catch (e) {
@@ -3130,8 +3130,8 @@ function requireNative() {
       try {
         const binding = require$1('@takumi-rs/core-win32-arm64-msvc');
         const bindingPackageVersion = require$1('@takumi-rs/core-win32-arm64-msvc/package.json').version;
-        if (bindingPackageVersion !== '0.69.5' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-          throw new Error(`Native binding package version mismatch, expected 0.69.5 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+        if (bindingPackageVersion !== '0.70.4' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
+          throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
         return binding
       } catch (e) {
@@ -3149,8 +3149,8 @@ function requireNative() {
     try {
       const binding = require$1('@takumi-rs/core-darwin-universal');
       const bindingPackageVersion = require$1('@takumi-rs/core-darwin-universal/package.json').version;
-      if (bindingPackageVersion !== '0.69.5' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-        throw new Error(`Native binding package version mismatch, expected 0.69.5 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+      if (bindingPackageVersion !== '0.70.4' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
+        throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
       }
       return binding
     } catch (e) {
@@ -3165,8 +3165,8 @@ function requireNative() {
       try {
         const binding = require$1('@takumi-rs/core-darwin-x64');
         const bindingPackageVersion = require$1('@takumi-rs/core-darwin-x64/package.json').version;
-        if (bindingPackageVersion !== '0.69.5' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-          throw new Error(`Native binding package version mismatch, expected 0.69.5 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+        if (bindingPackageVersion !== '0.70.4' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
+          throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
         return binding
       } catch (e) {
@@ -3181,8 +3181,8 @@ function requireNative() {
       try {
         const binding = require$1('@takumi-rs/core-darwin-arm64');
         const bindingPackageVersion = require$1('@takumi-rs/core-darwin-arm64/package.json').version;
-        if (bindingPackageVersion !== '0.69.5' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-          throw new Error(`Native binding package version mismatch, expected 0.69.5 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+        if (bindingPackageVersion !== '0.70.4' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
+          throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
         return binding
       } catch (e) {
@@ -3201,8 +3201,8 @@ function requireNative() {
       try {
         const binding = require$1('@takumi-rs/core-freebsd-x64');
         const bindingPackageVersion = require$1('@takumi-rs/core-freebsd-x64/package.json').version;
-        if (bindingPackageVersion !== '0.69.5' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-          throw new Error(`Native binding package version mismatch, expected 0.69.5 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+        if (bindingPackageVersion !== '0.70.4' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
+          throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
         return binding
       } catch (e) {
@@ -3217,8 +3217,8 @@ function requireNative() {
       try {
         const binding = require$1('@takumi-rs/core-freebsd-arm64');
         const bindingPackageVersion = require$1('@takumi-rs/core-freebsd-arm64/package.json').version;
-        if (bindingPackageVersion !== '0.69.5' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-          throw new Error(`Native binding package version mismatch, expected 0.69.5 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+        if (bindingPackageVersion !== '0.70.4' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
+          throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
         return binding
       } catch (e) {
@@ -3238,8 +3238,8 @@ function requireNative() {
         try {
           const binding = require$1('@takumi-rs/core-linux-x64-musl');
           const bindingPackageVersion = require$1('@takumi-rs/core-linux-x64-musl/package.json').version;
-          if (bindingPackageVersion !== '0.69.5' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-            throw new Error(`Native binding package version mismatch, expected 0.69.5 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+          if (bindingPackageVersion !== '0.70.4' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
+            throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
           }
           return binding
         } catch (e) {
@@ -3254,8 +3254,8 @@ function requireNative() {
         try {
           const binding = require$1('@takumi-rs/core-linux-x64-gnu');
           const bindingPackageVersion = require$1('@takumi-rs/core-linux-x64-gnu/package.json').version;
-          if (bindingPackageVersion !== '0.69.5' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-            throw new Error(`Native binding package version mismatch, expected 0.69.5 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+          if (bindingPackageVersion !== '0.70.4' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
+            throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
           }
           return binding
         } catch (e) {
@@ -3272,8 +3272,8 @@ function requireNative() {
         try {
           const binding = require$1('@takumi-rs/core-linux-arm64-musl');
           const bindingPackageVersion = require$1('@takumi-rs/core-linux-arm64-musl/package.json').version;
-          if (bindingPackageVersion !== '0.69.5' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-            throw new Error(`Native binding package version mismatch, expected 0.69.5 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+          if (bindingPackageVersion !== '0.70.4' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
+            throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
           }
           return binding
         } catch (e) {
@@ -3288,8 +3288,8 @@ function requireNative() {
         try {
           const binding = require$1('@takumi-rs/core-linux-arm64-gnu');
           const bindingPackageVersion = require$1('@takumi-rs/core-linux-arm64-gnu/package.json').version;
-          if (bindingPackageVersion !== '0.69.5' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-            throw new Error(`Native binding package version mismatch, expected 0.69.5 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+          if (bindingPackageVersion !== '0.70.4' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
+            throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
           }
           return binding
         } catch (e) {
@@ -3306,8 +3306,8 @@ function requireNative() {
         try {
           const binding = require$1('@takumi-rs/core-linux-arm-musleabihf');
           const bindingPackageVersion = require$1('@takumi-rs/core-linux-arm-musleabihf/package.json').version;
-          if (bindingPackageVersion !== '0.69.5' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-            throw new Error(`Native binding package version mismatch, expected 0.69.5 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+          if (bindingPackageVersion !== '0.70.4' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
+            throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
           }
           return binding
         } catch (e) {
@@ -3322,8 +3322,8 @@ function requireNative() {
         try {
           const binding = require$1('@takumi-rs/core-linux-arm-gnueabihf');
           const bindingPackageVersion = require$1('@takumi-rs/core-linux-arm-gnueabihf/package.json').version;
-          if (bindingPackageVersion !== '0.69.5' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-            throw new Error(`Native binding package version mismatch, expected 0.69.5 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+          if (bindingPackageVersion !== '0.70.4' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
+            throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
           }
           return binding
         } catch (e) {
@@ -3340,8 +3340,8 @@ function requireNative() {
         try {
           const binding = require$1('@takumi-rs/core-linux-loong64-musl');
           const bindingPackageVersion = require$1('@takumi-rs/core-linux-loong64-musl/package.json').version;
-          if (bindingPackageVersion !== '0.69.5' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-            throw new Error(`Native binding package version mismatch, expected 0.69.5 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+          if (bindingPackageVersion !== '0.70.4' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
+            throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
           }
           return binding
         } catch (e) {
@@ -3356,8 +3356,8 @@ function requireNative() {
         try {
           const binding = require$1('@takumi-rs/core-linux-loong64-gnu');
           const bindingPackageVersion = require$1('@takumi-rs/core-linux-loong64-gnu/package.json').version;
-          if (bindingPackageVersion !== '0.69.5' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-            throw new Error(`Native binding package version mismatch, expected 0.69.5 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+          if (bindingPackageVersion !== '0.70.4' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
+            throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
           }
           return binding
         } catch (e) {
@@ -3374,8 +3374,8 @@ function requireNative() {
         try {
           const binding = require$1('@takumi-rs/core-linux-riscv64-musl');
           const bindingPackageVersion = require$1('@takumi-rs/core-linux-riscv64-musl/package.json').version;
-          if (bindingPackageVersion !== '0.69.5' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-            throw new Error(`Native binding package version mismatch, expected 0.69.5 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+          if (bindingPackageVersion !== '0.70.4' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
+            throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
           }
           return binding
         } catch (e) {
@@ -3390,8 +3390,8 @@ function requireNative() {
         try {
           const binding = require$1('@takumi-rs/core-linux-riscv64-gnu');
           const bindingPackageVersion = require$1('@takumi-rs/core-linux-riscv64-gnu/package.json').version;
-          if (bindingPackageVersion !== '0.69.5' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-            throw new Error(`Native binding package version mismatch, expected 0.69.5 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+          if (bindingPackageVersion !== '0.70.4' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
+            throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
           }
           return binding
         } catch (e) {
@@ -3407,8 +3407,8 @@ function requireNative() {
       try {
         const binding = require$1('@takumi-rs/core-linux-ppc64-gnu');
         const bindingPackageVersion = require$1('@takumi-rs/core-linux-ppc64-gnu/package.json').version;
-        if (bindingPackageVersion !== '0.69.5' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-          throw new Error(`Native binding package version mismatch, expected 0.69.5 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+        if (bindingPackageVersion !== '0.70.4' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
+          throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
         return binding
       } catch (e) {
@@ -3423,8 +3423,8 @@ function requireNative() {
       try {
         const binding = require$1('@takumi-rs/core-linux-s390x-gnu');
         const bindingPackageVersion = require$1('@takumi-rs/core-linux-s390x-gnu/package.json').version;
-        if (bindingPackageVersion !== '0.69.5' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-          throw new Error(`Native binding package version mismatch, expected 0.69.5 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+        if (bindingPackageVersion !== '0.70.4' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
+          throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
         return binding
       } catch (e) {
@@ -3443,8 +3443,8 @@ function requireNative() {
       try {
         const binding = require$1('@takumi-rs/core-openharmony-arm64');
         const bindingPackageVersion = require$1('@takumi-rs/core-openharmony-arm64/package.json').version;
-        if (bindingPackageVersion !== '0.69.5' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-          throw new Error(`Native binding package version mismatch, expected 0.69.5 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+        if (bindingPackageVersion !== '0.70.4' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
+          throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
         return binding
       } catch (e) {
@@ -3459,8 +3459,8 @@ function requireNative() {
       try {
         const binding = require$1('@takumi-rs/core-openharmony-x64');
         const bindingPackageVersion = require$1('@takumi-rs/core-openharmony-x64/package.json').version;
-        if (bindingPackageVersion !== '0.69.5' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-          throw new Error(`Native binding package version mismatch, expected 0.69.5 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+        if (bindingPackageVersion !== '0.70.4' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
+          throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
         return binding
       } catch (e) {
@@ -3475,8 +3475,8 @@ function requireNative() {
       try {
         const binding = require$1('@takumi-rs/core-openharmony-arm');
         const bindingPackageVersion = require$1('@takumi-rs/core-openharmony-arm/package.json').version;
-        if (bindingPackageVersion !== '0.69.5' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
-          throw new Error(`Native binding package version mismatch, expected 0.69.5 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+        if (bindingPackageVersion !== '0.70.4' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
+          throw new Error(`Native binding package version mismatch, expected 0.70.4 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
         return binding
       } catch (e) {
@@ -37562,10 +37562,19 @@ function requireConstants () {
 var constantsExports = requireConstants();
 
 function createVNode(type, props) {
-  return { type, props, children: [] };
+  return {
+    type,
+    props,
+    children: []
+  };
 }
 function createTextVNode(text) {
-  return { type: "#text", props: {}, children: [], text };
+  return {
+    type: "#text",
+    props: {},
+    children: [],
+    text
+  };
 }
 function createVContainer(renderCallback) {
   return {
@@ -37580,13 +37589,17 @@ function vnodeToElement(node) {
   if (node.type === "#text") {
     return node.text ?? "";
   }
-  const { children: _children, className, ...restProps } = node.props;
+  const {
+    children: _children,
+    className,
+    ...restProps
+  } = node.props;
   if (typeof className === "string" && className.length > 0) {
     const existingTw = typeof restProps.tw === "string" ? restProps.tw + " " : "";
     restProps.tw = existingTw + className;
   }
   const childElements = node.children.map(vnodeToElement);
-  return reactExports.createElement(node.type, restProps, ...childElements);
+  return /*#__PURE__*/reactExports.createElement(node.type, restProps, ...childElements);
 }
 
 const NO_CONTEXT = {};
@@ -37601,36 +37614,26 @@ const hostConfig = {
   now: Date.now,
   getCurrentEventPriority: () => constantsExports.DefaultEventPriority,
   getInstanceFromNode: () => null,
-  prepareScopeUpdate: () => {
-  },
+  prepareScopeUpdate: () => {},
   getInstanceFromScope: () => null,
-  detachDeletedInstance: () => {
-  },
-  beforeActiveInstanceBlur: () => {
-  },
-  afterActiveInstanceBlur: () => {
-  },
-  setCurrentUpdatePriority: () => {
-  },
+  detachDeletedInstance: () => {},
+  beforeActiveInstanceBlur: () => {},
+  afterActiveInstanceBlur: () => {},
+  setCurrentUpdatePriority: () => {},
   getCurrentUpdatePriority: () => constantsExports.DefaultEventPriority,
   resolveUpdatePriority: () => constantsExports.DefaultEventPriority,
   shouldAttemptEagerTransition: () => false,
-  requestPostPaintCallback: () => {
-  },
+  requestPostPaintCallback: () => {},
   maySuspendCommit: () => false,
   preloadInstance: () => true,
-  startSuspendingCommit: () => {
-  },
-  suspendInstance: () => {
-  },
+  startSuspendingCommit: () => {},
+  suspendInstance: () => {},
   waitForCommitToBeReady: () => null,
   NotPendingTransition: null,
-  resetFormInstance: () => {
-  },
-  trackSchedulerEvent: () => {
-  },
+  resetFormInstance: () => {},
+  trackSchedulerEvent: () => {},
   // ── Transition Support ────────────────────────────────────────
-  HostTransitionContext: reactExports.createContext(null),
+  HostTransitionContext: /*#__PURE__*/reactExports.createContext(null),
   resolveEventType: () => null,
   resolveEventTimeStamp: () => -1.1,
   // ── Context ───────────────────────────────────────────────────
@@ -37638,7 +37641,10 @@ const hostConfig = {
   getChildHostContext: () => NO_CONTEXT,
   // ── Instance Creation ─────────────────────────────────────────
   createInstance(type, props) {
-    const { children: _, ...cleanProps } = props;
+    const {
+      children: _,
+      ...cleanProps
+    } = props;
     return createVNode(type, cleanProps);
   },
   createTextInstance(text) {
@@ -37722,20 +37728,19 @@ const hostConfig = {
     }
   },
   commitUpdate(instance, _type, _oldProps, newProps) {
-    const { children: _, ...cleanProps } = newProps;
+    const {
+      children: _,
+      ...cleanProps
+    } = newProps;
     instance.props = cleanProps;
   },
   commitTextUpdate(textInstance, _oldText, newText) {
     textInstance.text = newText;
   },
-  hideInstance() {
-  },
-  unhideInstance() {
-  },
-  hideTextInstance() {
-  },
-  unhideTextInstance() {
-  },
+  hideInstance() {},
+  unhideInstance() {},
+  hideTextInstance() {},
+  unhideTextInstance() {},
   clearContainer(container) {
     container.children = [];
   },
@@ -37743,8 +37748,7 @@ const hostConfig = {
   scheduleTimeout: setTimeout,
   cancelTimeout: clearTimeout,
   scheduleMicrotask: queueMicrotask,
-  preparePortalMount: () => {
-  }
+  preparePortalMount: () => {}
 };
 
 const reconciler = Reconciler(hostConfig);
@@ -37782,18 +37786,17 @@ async function renderToDataUri(container, width, height, config) {
     return null;
   }
   const rootChildren = container.children.map(vnodeToElement);
-  const rootElement = reactExports.createElement(
-    "div",
-    {
-      style: {
-        display: "flex",
-        width: "100%",
-        height: "100%"
-      }
-    },
-    ...rootChildren
-  );
-  const { node, stylesheets } = await fe(rootElement);
+  const rootElement = /*#__PURE__*/reactExports.createElement("div", {
+    style: {
+      display: "flex",
+      width: "100%",
+      height: "100%"
+    }
+  }, ...rootChildren);
+  const {
+    node,
+    stylesheets
+  } = await fe(rootElement);
   const buffer = await config.renderer.render(node, {
     width,
     height,
@@ -37811,11 +37814,11 @@ async function renderToDataUri(container, width, height, config) {
 }
 
 class EventBus {
-  listeners = /* @__PURE__ */ new Map();
-  sticky = /* @__PURE__ */ new Map();
+  listeners = /* @__PURE__ */new Map();
+  sticky = /* @__PURE__ */new Map();
   on(event, listener) {
     if (!this.listeners.has(event)) {
-      this.listeners.set(event, /* @__PURE__ */ new Set());
+      this.listeners.set(event, /* @__PURE__ */new Set());
     }
     this.listeners.get(event).add(listener);
     if (this.sticky.has(event)) {
@@ -37845,31 +37848,26 @@ class EventBus {
     try {
       listener(payload);
     } catch (err) {
-      console.error(
-        `[@fcannizzaro/streamdeck-react] Error in event handler for "${event}":`,
-        err
-      );
+      console.error(`[@fcannizzaro/streamdeck-react] Error in event handler for "${event}":`, err);
     }
   }
 }
 
-const SettingsContext = reactExports.createContext(null);
-const GlobalSettingsContext = reactExports.createContext(null);
-const ActionContext = reactExports.createContext(null);
-const DeviceContext = reactExports.createContext(null);
-const CanvasContext = reactExports.createContext(null);
-const EventBusContext = reactExports.createContext(null);
-const StreamDeckContext = reactExports.createContext(null);
+const SettingsContext = /*#__PURE__*/reactExports.createContext(null);
+const GlobalSettingsContext = /*#__PURE__*/reactExports.createContext(null);
+const ActionContext = /*#__PURE__*/reactExports.createContext(null);
+const DeviceContext = /*#__PURE__*/reactExports.createContext(null);
+const CanvasContext = /*#__PURE__*/reactExports.createContext(null);
+const EventBusContext = /*#__PURE__*/reactExports.createContext(null);
+const StreamDeckContext = /*#__PURE__*/reactExports.createContext(null);
 
 const DEFAULT_DIAL_LAYOUT = {
   id: "com.example.plugin.react-layout",
-  items: [
-    {
-      key: "canvas",
-      type: "pixmap",
-      rect: [0, 0, 200, 100]
-    }
-  ]
+  items: [{
+    key: "canvas",
+    type: "pixmap",
+    rect: [0, 0, 200, 100]
+  }]
 };
 class ReactRoot {
   constructor(component, actionInfo, deviceInfo, canvas, initialSettings, initialGlobalSettings, sdkAction, sdkInstance, renderConfig, renderDebounceMs, onSettingsChange, onGlobalSettingsChange, pluginWrapper, actionWrapper, dialLayout) {
@@ -37879,55 +37877,74 @@ class ReactRoot {
     this.pluginWrapper = pluginWrapper;
     this.actionWrapper = actionWrapper;
     this.canvas = canvas;
-    this.settings = { ...initialSettings };
-    this.globalSettings = { ...initialGlobalSettings };
+    this.settings = {
+      ...initialSettings
+    };
+    this.globalSettings = {
+      ...initialGlobalSettings
+    };
     this.sdkAction = sdkAction;
     this.sdkInstance = sdkInstance;
     this.renderConfig = renderConfig;
     this.renderDebounceMs = renderDebounceMs;
     this.resolvedDialLayout = resolveDialLayout(dialLayout);
-    this.setSettingsFn = (partial) => {
-      this.settings = { ...this.settings, ...partial };
-      this.settingsValue = { settings: this.settings, setSettings: this.setSettingsFn };
+    this.setSettingsFn = partial => {
+      this.settings = {
+        ...this.settings,
+        ...partial
+      };
+      this.settingsValue = {
+        settings: this.settings,
+        setSettings: this.setSettingsFn
+      };
       onSettingsChange(this.settings);
       this.scheduleRerender();
     };
-    this.setGlobalSettingsFn = (partial) => {
-      this.globalSettings = { ...this.globalSettings, ...partial };
-      this.globalSettingsValue = { settings: this.globalSettings, setSettings: this.setGlobalSettingsFn };
+    this.setGlobalSettingsFn = partial => {
+      this.globalSettings = {
+        ...this.globalSettings,
+        ...partial
+      };
+      this.globalSettingsValue = {
+        settings: this.globalSettings,
+        setSettings: this.setGlobalSettingsFn
+      };
       onGlobalSettingsChange(this.globalSettings);
       this.scheduleRerender();
     };
-    this.streamDeckValue = { action: this.sdkAction, sdk: this.sdkInstance };
-    this.settingsValue = { settings: this.settings, setSettings: this.setSettingsFn };
-    this.globalSettingsValue = { settings: this.globalSettings, setSettings: this.setGlobalSettingsFn };
+    this.streamDeckValue = {
+      action: this.sdkAction,
+      sdk: this.sdkInstance
+    };
+    this.settingsValue = {
+      settings: this.settings,
+      setSettings: this.setSettingsFn
+    };
+    this.globalSettingsValue = {
+      settings: this.globalSettings,
+      setSettings: this.setGlobalSettingsFn
+    };
     this.container = createVContainer(() => {
       this.flush();
     });
-    this.fiberRoot = reconciler.createContainer(
-      this.container,
-      0,
-      // LegacyRoot tag
-      null,
-      // hydrationCallbacks
-      false,
-      // isStrictMode
-      null,
-      // concurrentUpdatesByDefaultOverride
-      "",
-      // identifierPrefix
-      (err) => {
-        console.error("[@fcannizzaro/streamdeck-react] Uncaught error:", err);
-      },
-      (err) => {
-        console.error("[@fcannizzaro/streamdeck-react] Caught error:", err);
-      },
-      (err) => {
-        console.error("[@fcannizzaro/streamdeck-react] Recoverable error:", err);
-      },
-      () => {
-      }
-      // onDefaultTransitionIndicator
+    this.fiberRoot = reconciler.createContainer(this.container, 0,
+    // LegacyRoot tag
+    null,
+    // hydrationCallbacks
+    false,
+    // isStrictMode
+    null,
+    // concurrentUpdatesByDefaultOverride
+    "",
+    // identifierPrefix
+    err => {
+      console.error("[@fcannizzaro/streamdeck-react] Uncaught error:", err);
+    }, err => {
+      console.error("[@fcannizzaro/streamdeck-react] Caught error:", err);
+    }, err => {
+      console.error("[@fcannizzaro/streamdeck-react] Recoverable error:", err);
+    }, () => {}
+    // onDefaultTransitionIndicator
     );
     if (canvas.type === "dial" || canvas.type === "touch") {
       if ("setFeedbackLayout" in this.sdkAction) {
@@ -37957,46 +37974,31 @@ class ReactRoot {
   // ── Render the component tree into the fiber root ─────────────
   render() {
     const element = this.buildTree();
-    reconciler.updateContainer(element, this.fiberRoot, null, () => {
-    });
+    reconciler.updateContainer(element, this.fiberRoot, null, () => {});
   }
   buildTree() {
-    let child = reactExports.createElement(this.component);
+    let child = /*#__PURE__*/reactExports.createElement(this.component);
     if (this.actionWrapper) {
-      child = reactExports.createElement(this.actionWrapper, null, child);
+      child = /*#__PURE__*/reactExports.createElement(this.actionWrapper, null, child);
     }
     if (this.pluginWrapper) {
-      child = reactExports.createElement(this.pluginWrapper, null, child);
+      child = /*#__PURE__*/reactExports.createElement(this.pluginWrapper, null, child);
     }
-    return reactExports.createElement(
-      ActionContext.Provider,
-      { value: this.actionInfo },
-      reactExports.createElement(
-        DeviceContext.Provider,
-        { value: this.deviceInfo },
-        reactExports.createElement(
-          CanvasContext.Provider,
-          { value: this.canvas },
-          reactExports.createElement(
-            EventBusContext.Provider,
-            { value: this.eventBus },
-            reactExports.createElement(
-              StreamDeckContext.Provider,
-              { value: this.streamDeckValue },
-              reactExports.createElement(
-                GlobalSettingsContext.Provider,
-                { value: this.globalSettingsValue },
-                reactExports.createElement(
-                  SettingsContext.Provider,
-                  { value: this.settingsValue },
-                  child
-                )
-              )
-            )
-          )
-        )
-      )
-    );
+    return /*#__PURE__*/reactExports.createElement(ActionContext.Provider, {
+      value: this.actionInfo
+    }, /*#__PURE__*/reactExports.createElement(DeviceContext.Provider, {
+      value: this.deviceInfo
+    }, /*#__PURE__*/reactExports.createElement(CanvasContext.Provider, {
+      value: this.canvas
+    }, /*#__PURE__*/reactExports.createElement(EventBusContext.Provider, {
+      value: this.eventBus
+    }, /*#__PURE__*/reactExports.createElement(StreamDeckContext.Provider, {
+      value: this.streamDeckValue
+    }, /*#__PURE__*/reactExports.createElement(GlobalSettingsContext.Provider, {
+      value: this.globalSettingsValue
+    }, /*#__PURE__*/reactExports.createElement(SettingsContext.Provider, {
+      value: this.settingsValue
+    }, child)))))));
   }
   // ── Schedule a re-render (for settings changes from outside) ──
   scheduleRerender() {
@@ -38021,12 +38023,7 @@ class ReactRoot {
   async doFlush() {
     if (this.disposed) return;
     try {
-      const dataUri = await renderToDataUri(
-        this.container,
-        this.canvas.width,
-        this.canvas.height,
-        this.renderConfig
-      );
+      const dataUri = await renderToDataUri(this.container, this.canvas.width, this.canvas.height, this.renderConfig);
       if (dataUri === null || this.disposed) return;
       if (this.canvas.type === "key") {
         if ("setImage" in this.sdkAction) {
@@ -38052,14 +38049,24 @@ class ReactRoot {
   }
   // ── External updates from SDK events ──────────────────────────
   updateSettings(settings) {
-    this.settings = { ...settings };
-    this.settingsValue = { settings: this.settings, setSettings: this.setSettingsFn };
+    this.settings = {
+      ...settings
+    };
+    this.settingsValue = {
+      settings: this.settings,
+      setSettings: this.setSettingsFn
+    };
     this.eventBus.emit("settingsChanged", settings);
     this.scheduleRerender();
   }
   updateGlobalSettings(settings) {
-    this.globalSettings = { ...settings };
-    this.globalSettingsValue = { settings: this.globalSettings, setSettings: this.setGlobalSettingsFn };
+    this.globalSettings = {
+      ...settings
+    };
+    this.globalSettingsValue = {
+      settings: this.globalSettings,
+      setSettings: this.setGlobalSettingsFn
+    };
     this.scheduleRerender();
   }
   // ── Unmount & Cleanup ─────────────────────────────────────────
@@ -38069,8 +38076,7 @@ class ReactRoot {
       clearTimeout(this.container.renderTimer);
     }
     this.eventBus.emit("willDisappear", void 0);
-    reconciler.updateContainer(null, this.fiberRoot, null, () => {
-    });
+    reconciler.updateContainer(null, this.fiberRoot, null, () => {});
     this.eventBus.removeAllListeners();
   }
 }
@@ -38078,50 +38084,106 @@ function resolveDialLayout(layout) {
   if (layout) return layout;
   return {
     ...DEFAULT_DIAL_LAYOUT,
-    items: DEFAULT_DIAL_LAYOUT.items.map((item) => ({ ...item }))
+    items: DEFAULT_DIAL_LAYOUT.items.map(item => ({
+      ...item
+    }))
   };
 }
 
 const KEY_SIZES = {
-  0: { width: 72, height: 72 },
+  0: {
+    width: 72,
+    height: 72
+  },
   // StreamDeck
-  1: { width: 80, height: 80 },
+  1: {
+    width: 80,
+    height: 80
+  },
   // StreamDeckMini
-  2: { width: 96, height: 96 },
+  2: {
+    width: 96,
+    height: 96
+  },
   // StreamDeckXL
-  3: { width: 72, height: 72 },
+  3: {
+    width: 72,
+    height: 72
+  },
   // StreamDeckMobile
-  4: { width: 72, height: 72 },
+  4: {
+    width: 72,
+    height: 72
+  },
   // CorsairGKeys
-  5: { width: 72, height: 72 },
+  5: {
+    width: 72,
+    height: 72
+  },
   // StreamDeckPedal (no display, but default)
-  6: { width: 72, height: 72 },
+  6: {
+    width: 72,
+    height: 72
+  },
   // CorsairVoyager
-  7: { width: 144, height: 144 },
+  7: {
+    width: 144,
+    height: 144
+  },
   // StreamDeckPlus
-  8: { width: 72, height: 72 },
+  8: {
+    width: 72,
+    height: 72
+  },
   // SCUFController
-  9: { width: 72, height: 72 },
+  9: {
+    width: 72,
+    height: 72
+  },
   // StreamDeckNeo
-  10: { width: 144, height: 144 },
+  10: {
+    width: 144,
+    height: 144
+  },
   // StreamDeckStudio
-  11: { width: 72, height: 72 }
+  11: {
+    width: 72,
+    height: 72
+  }
   // VirtualStreamDeck
 };
-const DIAL_SIZE = { width: 200, height: 100 };
-const TOUCH_SIZE = { width: 200, height: 100 };
+const DIAL_SIZE = {
+  width: 200,
+  height: 100
+};
+const TOUCH_SIZE = {
+  width: 200,
+  height: 100
+};
 function getCanvasInfo(deviceType, controller, surfaceType) {
   if (surfaceType === "dial") {
-    return { ...DIAL_SIZE, type: "dial" };
+    return {
+      ...DIAL_SIZE,
+      type: "dial"
+    };
   }
   if (surfaceType === "touch") {
-    return { ...TOUCH_SIZE, type: "touch" };
+    return {
+      ...TOUCH_SIZE,
+      type: "touch"
+    };
   }
-  const size = KEY_SIZES[deviceType] ?? { width: 72, height: 72 };
-  return { ...size, type: "key" };
+  const size = KEY_SIZES[deviceType] ?? {
+    width: 72,
+    height: 72
+  };
+  return {
+    ...size,
+    type: "key"
+  };
 }
 class RootRegistry {
-  roots = /* @__PURE__ */ new Map();
+  roots = /* @__PURE__ */new Map();
   renderConfig;
   renderDebounceMs;
   sdkInstance;
@@ -38166,27 +38228,13 @@ class RootRegistry {
       isInMultiAction: ev.payload.isInMultiAction
     };
     const canvas = getCanvasInfo(device.type, controller, surfaceType);
-    const root = new ReactRoot(
-      component,
-      actionInfo,
-      deviceInfo,
-      canvas,
-      ev.payload.settings,
-      this.globalSettings,
-      ev.action,
-      this.sdkInstance,
-      this.renderConfig,
-      this.renderDebounceMs,
-      // onSettingsChange
-      async (settings) => {
-        await ev.action.setSettings(settings);
-      },
-      // onGlobalSettingsChange
-      this.onGlobalSettingsChange,
-      this.wrapper,
-      definition.wrapper,
-      definition.dialLayout
-    );
+    const root = new ReactRoot(component, actionInfo, deviceInfo, canvas, ev.payload.settings, this.globalSettings, ev.action, this.sdkInstance, this.renderConfig, this.renderDebounceMs,
+    // onSettingsChange
+    async settings => {
+      await ev.action.setSettings(settings);
+    },
+    // onGlobalSettingsChange
+    this.onGlobalSettingsChange, this.wrapper, definition.wrapper, definition.dialLayout);
     root.eventBus.emitSticky("willAppear", {
       settings: ev.payload.settings,
       controller,
@@ -38227,7 +38275,7 @@ class RootRegistry {
 
 function createPlugin(config) {
   const renderer = new Renderer({
-    fonts: config.fonts.map((f) => ({
+    fonts: config.fonts.map(f => ({
       name: f.name,
       data: f.data,
       weight: f.weight,
@@ -38240,32 +38288,19 @@ function createPlugin(config) {
     caching: config.caching ?? true
   };
   const renderDebounceMs = config.renderDebounceMs ?? 16;
-  const registry = new RootRegistry(
-    renderConfig,
-    renderDebounceMs,
-    streamDeck,
-    async (settings) => {
-      await streamDeck.settings.setGlobalSettings(settings);
-    },
-    config.wrapper
-  );
-  streamDeck.settings.getGlobalSettings().then((gs) => {
+  const registry = new RootRegistry(renderConfig, renderDebounceMs, streamDeck, async settings => {
+    await streamDeck.settings.setGlobalSettings(settings);
+  }, config.wrapper);
+  streamDeck.settings.getGlobalSettings().then(gs => {
     registry.setGlobalSettings(gs);
-  }).catch((err) => {
-    console.error(
-      "[@fcannizzaro/streamdeck-react] Failed to load global settings:",
-      err
-    );
+  }).catch(err => {
+    console.error("[@fcannizzaro/streamdeck-react] Failed to load global settings:", err);
   });
-  streamDeck.settings.onDidReceiveGlobalSettings((ev) => {
+  streamDeck.settings.onDidReceiveGlobalSettings(ev => {
     registry.setGlobalSettings(ev.settings);
   });
   for (const definition of config.actions) {
-    const singletonAction = createSingletonAction(
-      definition,
-      registry,
-      config.onActionError
-    );
+    const singletonAction = createSingletonAction(definition, registry, config.onActionError);
     streamDeck.actions.registerAction(singletonAction);
   }
   return {
@@ -38377,22 +38412,14 @@ function createSingletonAction(definition, registry, onError) {
     }
     onPropertyInspectorDidAppear(ev) {
       try {
-        registry.dispatch(
-          ev.action.id,
-          "propertyInspectorDidAppear",
-          void 0
-        );
+        registry.dispatch(ev.action.id, "propertyInspectorDidAppear", void 0);
       } catch (err) {
         this.handleError(ev.action.id, err);
       }
     }
     onPropertyInspectorDidDisappear(ev) {
       try {
-        registry.dispatch(
-          ev.action.id,
-          "propertyInspectorDidDisappear",
-          void 0
-        );
+        registry.dispatch(ev.action.id, "propertyInspectorDidDisappear", void 0);
       } catch (err) {
         this.handleError(ev.action.id, err);
       }
@@ -38409,10 +38436,7 @@ function createSingletonAction(definition, registry, onError) {
     }
     handleError(actionId, err) {
       const error = err instanceof Error ? err : new Error(String(err));
-      console.error(
-        `[@fcannizzaro/streamdeck-react] Error in action ${definition.uuid} (${actionId}):`,
-        error
-      );
+      console.error(`[@fcannizzaro/streamdeck-react] Error in action ${definition.uuid} (${actionId}):`, error);
       onError?.(definition.uuid, actionId, error);
     }
   }();
@@ -38431,24 +38455,131 @@ function defineAction(config) {
   };
 }
 
+var compilerRuntime = {exports: {}};
+
+var reactCompilerRuntime_production = {};
+
+/**
+ * @license React
+ * react-compiler-runtime.production.js
+ *
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
+var hasRequiredReactCompilerRuntime_production;
+
+function requireReactCompilerRuntime_production () {
+	if (hasRequiredReactCompilerRuntime_production) return reactCompilerRuntime_production;
+	hasRequiredReactCompilerRuntime_production = 1;
+	var ReactSharedInternals =
+	  requireReact().__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE;
+	reactCompilerRuntime_production.c = function (size) {
+	  return ReactSharedInternals.H.useMemoCache(size);
+	};
+	return reactCompilerRuntime_production;
+}
+
+var reactCompilerRuntime_development = {};
+
+/**
+ * @license React
+ * react-compiler-runtime.development.js
+ *
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
+var hasRequiredReactCompilerRuntime_development;
+
+function requireReactCompilerRuntime_development () {
+	if (hasRequiredReactCompilerRuntime_development) return reactCompilerRuntime_development;
+	hasRequiredReactCompilerRuntime_development = 1;
+	"production" !== process.env.NODE_ENV &&
+	  (function () {
+	    var ReactSharedInternals =
+	      requireReact().__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE;
+	    reactCompilerRuntime_development.c = function (size) {
+	      var dispatcher = ReactSharedInternals.H;
+	      null === dispatcher &&
+	        console.error(
+	          "Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:\n1. You might have mismatching versions of React and the renderer (such as React DOM)\n2. You might be breaking the Rules of Hooks\n3. You might have more than one copy of React in the same app\nSee https://react.dev/link/invalid-hook-call for tips about how to debug and fix this problem."
+	        );
+	      return dispatcher.useMemoCache(size);
+	    };
+	  })();
+	return reactCompilerRuntime_development;
+}
+
+/**
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
+var hasRequiredCompilerRuntime;
+
+function requireCompilerRuntime () {
+	if (hasRequiredCompilerRuntime) return compilerRuntime.exports;
+	hasRequiredCompilerRuntime = 1;
+
+	if (process.env.NODE_ENV === 'production') {
+	  compilerRuntime.exports = requireReactCompilerRuntime_production();
+	} else {
+	  compilerRuntime.exports = requireReactCompilerRuntime_development();
+	}
+	return compilerRuntime.exports;
+}
+
+var compilerRuntimeExports = requireCompilerRuntime();
+
 function useCallbackRef(callback) {
+  const $ = compilerRuntimeExports.c(2);
   const callbackRef = reactExports.useRef(callback);
-  reactExports.useEffect(() => {
-    callbackRef.current = callback;
-  });
+  let t0;
+  if ($[0] !== callback) {
+    t0 = () => {
+      callbackRef.current = callback;
+    };
+    $[0] = callback;
+    $[1] = t0;
+  } else {
+    t0 = $[1];
+  }
+  reactExports.useEffect(t0);
   return callbackRef;
 }
 
 function useEvent(event, callback) {
+  const $ = compilerRuntimeExports.c(5);
   const bus = reactExports.useContext(EventBusContext);
   const callbackRef = useCallbackRef(callback);
-  reactExports.useEffect(() => {
-    const handler = (payload) => {
-      callbackRef.current(payload);
+  let t0;
+  let t1;
+  if ($[0] !== bus || $[1] !== callbackRef || $[2] !== event) {
+    t0 = () => {
+      const handler = payload => {
+        callbackRef.current(payload);
+      };
+      bus.on(event, handler);
+      return () => bus.off(event, handler);
     };
-    bus.on(event, handler);
-    return () => bus.off(event, handler);
-  }, [bus, callbackRef, event]);
+    t1 = [bus, callbackRef, event];
+    $[0] = bus;
+    $[1] = callbackRef;
+    $[2] = event;
+    $[3] = t0;
+    $[4] = t1;
+  } else {
+    t0 = $[3];
+    t1 = $[4];
+  }
+  reactExports.useEffect(t0, t1);
 }
 function useKeyDown(callback) {
   useEvent("keyDown", callback);
@@ -38463,14 +38594,18 @@ function Image({
   borderRadius,
   style
 }) {
-  return reactExports.createElement("img", {
+  return /*#__PURE__*/reactExports.createElement("img", {
     className,
     src,
     width,
     height,
     style: {
-      ...fit !== void 0 && { objectFit: fit },
-      ...borderRadius !== void 0 && { borderRadius },
+      ...(fit !== void 0 && {
+        objectFit: fit
+      }),
+      ...(borderRadius !== void 0 && {
+        borderRadius
+      }),
       ...style
     }
   });
@@ -38479,428 +38614,6 @@ function Image({
 function tw(...args) {
   return args.filter(Boolean).join(" ");
 }
-
-var jsxRuntime = {exports: {}};
-
-var reactJsxRuntime_production = {};
-
-/**
- * @license React
- * react-jsx-runtime.production.js
- *
- * Copyright (c) Meta Platforms, Inc. and affiliates.
- *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- */
-
-var hasRequiredReactJsxRuntime_production;
-
-function requireReactJsxRuntime_production () {
-	if (hasRequiredReactJsxRuntime_production) return reactJsxRuntime_production;
-	hasRequiredReactJsxRuntime_production = 1;
-	var REACT_ELEMENT_TYPE = Symbol.for("react.transitional.element"),
-	  REACT_FRAGMENT_TYPE = Symbol.for("react.fragment");
-	function jsxProd(type, config, maybeKey) {
-	  var key = null;
-	  void 0 !== maybeKey && (key = "" + maybeKey);
-	  void 0 !== config.key && (key = "" + config.key);
-	  if ("key" in config) {
-	    maybeKey = {};
-	    for (var propName in config)
-	      "key" !== propName && (maybeKey[propName] = config[propName]);
-	  } else maybeKey = config;
-	  config = maybeKey.ref;
-	  return {
-	    $$typeof: REACT_ELEMENT_TYPE,
-	    type: type,
-	    key: key,
-	    ref: void 0 !== config ? config : null,
-	    props: maybeKey
-	  };
-	}
-	reactJsxRuntime_production.Fragment = REACT_FRAGMENT_TYPE;
-	reactJsxRuntime_production.jsx = jsxProd;
-	reactJsxRuntime_production.jsxs = jsxProd;
-	return reactJsxRuntime_production;
-}
-
-var reactJsxRuntime_development = {};
-
-/**
- * @license React
- * react-jsx-runtime.development.js
- *
- * Copyright (c) Meta Platforms, Inc. and affiliates.
- *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- */
-
-var hasRequiredReactJsxRuntime_development;
-
-function requireReactJsxRuntime_development () {
-	if (hasRequiredReactJsxRuntime_development) return reactJsxRuntime_development;
-	hasRequiredReactJsxRuntime_development = 1;
-	"production" !== process.env.NODE_ENV &&
-	  (function () {
-	    function getComponentNameFromType(type) {
-	      if (null == type) return null;
-	      if ("function" === typeof type)
-	        return type.$$typeof === REACT_CLIENT_REFERENCE
-	          ? null
-	          : type.displayName || type.name || null;
-	      if ("string" === typeof type) return type;
-	      switch (type) {
-	        case REACT_FRAGMENT_TYPE:
-	          return "Fragment";
-	        case REACT_PROFILER_TYPE:
-	          return "Profiler";
-	        case REACT_STRICT_MODE_TYPE:
-	          return "StrictMode";
-	        case REACT_SUSPENSE_TYPE:
-	          return "Suspense";
-	        case REACT_SUSPENSE_LIST_TYPE:
-	          return "SuspenseList";
-	        case REACT_ACTIVITY_TYPE:
-	          return "Activity";
-	      }
-	      if ("object" === typeof type)
-	        switch (
-	          ("number" === typeof type.tag &&
-	            console.error(
-	              "Received an unexpected object in getComponentNameFromType(). This is likely a bug in React. Please file an issue."
-	            ),
-	          type.$$typeof)
-	        ) {
-	          case REACT_PORTAL_TYPE:
-	            return "Portal";
-	          case REACT_CONTEXT_TYPE:
-	            return type.displayName || "Context";
-	          case REACT_CONSUMER_TYPE:
-	            return (type._context.displayName || "Context") + ".Consumer";
-	          case REACT_FORWARD_REF_TYPE:
-	            var innerType = type.render;
-	            type = type.displayName;
-	            type ||
-	              ((type = innerType.displayName || innerType.name || ""),
-	              (type = "" !== type ? "ForwardRef(" + type + ")" : "ForwardRef"));
-	            return type;
-	          case REACT_MEMO_TYPE:
-	            return (
-	              (innerType = type.displayName || null),
-	              null !== innerType
-	                ? innerType
-	                : getComponentNameFromType(type.type) || "Memo"
-	            );
-	          case REACT_LAZY_TYPE:
-	            innerType = type._payload;
-	            type = type._init;
-	            try {
-	              return getComponentNameFromType(type(innerType));
-	            } catch (x) {}
-	        }
-	      return null;
-	    }
-	    function testStringCoercion(value) {
-	      return "" + value;
-	    }
-	    function checkKeyStringCoercion(value) {
-	      try {
-	        testStringCoercion(value);
-	        var JSCompiler_inline_result = !1;
-	      } catch (e) {
-	        JSCompiler_inline_result = true;
-	      }
-	      if (JSCompiler_inline_result) {
-	        JSCompiler_inline_result = console;
-	        var JSCompiler_temp_const = JSCompiler_inline_result.error;
-	        var JSCompiler_inline_result$jscomp$0 =
-	          ("function" === typeof Symbol &&
-	            Symbol.toStringTag &&
-	            value[Symbol.toStringTag]) ||
-	          value.constructor.name ||
-	          "Object";
-	        JSCompiler_temp_const.call(
-	          JSCompiler_inline_result,
-	          "The provided key is an unsupported type %s. This value must be coerced to a string before using it here.",
-	          JSCompiler_inline_result$jscomp$0
-	        );
-	        return testStringCoercion(value);
-	      }
-	    }
-	    function getTaskName(type) {
-	      if (type === REACT_FRAGMENT_TYPE) return "<>";
-	      if (
-	        "object" === typeof type &&
-	        null !== type &&
-	        type.$$typeof === REACT_LAZY_TYPE
-	      )
-	        return "<...>";
-	      try {
-	        var name = getComponentNameFromType(type);
-	        return name ? "<" + name + ">" : "<...>";
-	      } catch (x) {
-	        return "<...>";
-	      }
-	    }
-	    function getOwner() {
-	      var dispatcher = ReactSharedInternals.A;
-	      return null === dispatcher ? null : dispatcher.getOwner();
-	    }
-	    function UnknownOwner() {
-	      return Error("react-stack-top-frame");
-	    }
-	    function hasValidKey(config) {
-	      if (hasOwnProperty.call(config, "key")) {
-	        var getter = Object.getOwnPropertyDescriptor(config, "key").get;
-	        if (getter && getter.isReactWarning) return false;
-	      }
-	      return void 0 !== config.key;
-	    }
-	    function defineKeyPropWarningGetter(props, displayName) {
-	      function warnAboutAccessingKey() {
-	        specialPropKeyWarningShown ||
-	          ((specialPropKeyWarningShown = true),
-	          console.error(
-	            "%s: `key` is not a prop. Trying to access it will result in `undefined` being returned. If you need to access the same value within the child component, you should pass it as a different prop. (https://react.dev/link/special-props)",
-	            displayName
-	          ));
-	      }
-	      warnAboutAccessingKey.isReactWarning = true;
-	      Object.defineProperty(props, "key", {
-	        get: warnAboutAccessingKey,
-	        configurable: true
-	      });
-	    }
-	    function elementRefGetterWithDeprecationWarning() {
-	      var componentName = getComponentNameFromType(this.type);
-	      didWarnAboutElementRef[componentName] ||
-	        ((didWarnAboutElementRef[componentName] = true),
-	        console.error(
-	          "Accessing element.ref was removed in React 19. ref is now a regular prop. It will be removed from the JSX Element type in a future release."
-	        ));
-	      componentName = this.props.ref;
-	      return void 0 !== componentName ? componentName : null;
-	    }
-	    function ReactElement(type, key, props, owner, debugStack, debugTask) {
-	      var refProp = props.ref;
-	      type = {
-	        $$typeof: REACT_ELEMENT_TYPE,
-	        type: type,
-	        key: key,
-	        props: props,
-	        _owner: owner
-	      };
-	      null !== (void 0 !== refProp ? refProp : null)
-	        ? Object.defineProperty(type, "ref", {
-	            enumerable: false,
-	            get: elementRefGetterWithDeprecationWarning
-	          })
-	        : Object.defineProperty(type, "ref", { enumerable: false, value: null });
-	      type._store = {};
-	      Object.defineProperty(type._store, "validated", {
-	        configurable: false,
-	        enumerable: false,
-	        writable: true,
-	        value: 0
-	      });
-	      Object.defineProperty(type, "_debugInfo", {
-	        configurable: false,
-	        enumerable: false,
-	        writable: true,
-	        value: null
-	      });
-	      Object.defineProperty(type, "_debugStack", {
-	        configurable: false,
-	        enumerable: false,
-	        writable: true,
-	        value: debugStack
-	      });
-	      Object.defineProperty(type, "_debugTask", {
-	        configurable: false,
-	        enumerable: false,
-	        writable: true,
-	        value: debugTask
-	      });
-	      Object.freeze && (Object.freeze(type.props), Object.freeze(type));
-	      return type;
-	    }
-	    function jsxDEVImpl(
-	      type,
-	      config,
-	      maybeKey,
-	      isStaticChildren,
-	      debugStack,
-	      debugTask
-	    ) {
-	      var children = config.children;
-	      if (void 0 !== children)
-	        if (isStaticChildren)
-	          if (isArrayImpl(children)) {
-	            for (
-	              isStaticChildren = 0;
-	              isStaticChildren < children.length;
-	              isStaticChildren++
-	            )
-	              validateChildKeys(children[isStaticChildren]);
-	            Object.freeze && Object.freeze(children);
-	          } else
-	            console.error(
-	              "React.jsx: Static children should always be an array. You are likely explicitly calling React.jsxs or React.jsxDEV. Use the Babel transform instead."
-	            );
-	        else validateChildKeys(children);
-	      if (hasOwnProperty.call(config, "key")) {
-	        children = getComponentNameFromType(type);
-	        var keys = Object.keys(config).filter(function (k) {
-	          return "key" !== k;
-	        });
-	        isStaticChildren =
-	          0 < keys.length
-	            ? "{key: someKey, " + keys.join(": ..., ") + ": ...}"
-	            : "{key: someKey}";
-	        didWarnAboutKeySpread[children + isStaticChildren] ||
-	          ((keys =
-	            0 < keys.length ? "{" + keys.join(": ..., ") + ": ...}" : "{}"),
-	          console.error(
-	            'A props object containing a "key" prop is being spread into JSX:\n  let props = %s;\n  <%s {...props} />\nReact keys must be passed directly to JSX without using spread:\n  let props = %s;\n  <%s key={someKey} {...props} />',
-	            isStaticChildren,
-	            children,
-	            keys,
-	            children
-	          ),
-	          (didWarnAboutKeySpread[children + isStaticChildren] = true));
-	      }
-	      children = null;
-	      void 0 !== maybeKey &&
-	        (checkKeyStringCoercion(maybeKey), (children = "" + maybeKey));
-	      hasValidKey(config) &&
-	        (checkKeyStringCoercion(config.key), (children = "" + config.key));
-	      if ("key" in config) {
-	        maybeKey = {};
-	        for (var propName in config)
-	          "key" !== propName && (maybeKey[propName] = config[propName]);
-	      } else maybeKey = config;
-	      children &&
-	        defineKeyPropWarningGetter(
-	          maybeKey,
-	          "function" === typeof type
-	            ? type.displayName || type.name || "Unknown"
-	            : type
-	        );
-	      return ReactElement(
-	        type,
-	        children,
-	        maybeKey,
-	        getOwner(),
-	        debugStack,
-	        debugTask
-	      );
-	    }
-	    function validateChildKeys(node) {
-	      isValidElement(node)
-	        ? node._store && (node._store.validated = 1)
-	        : "object" === typeof node &&
-	          null !== node &&
-	          node.$$typeof === REACT_LAZY_TYPE &&
-	          ("fulfilled" === node._payload.status
-	            ? isValidElement(node._payload.value) &&
-	              node._payload.value._store &&
-	              (node._payload.value._store.validated = 1)
-	            : node._store && (node._store.validated = 1));
-	    }
-	    function isValidElement(object) {
-	      return (
-	        "object" === typeof object &&
-	        null !== object &&
-	        object.$$typeof === REACT_ELEMENT_TYPE
-	      );
-	    }
-	    var React = requireReact(),
-	      REACT_ELEMENT_TYPE = Symbol.for("react.transitional.element"),
-	      REACT_PORTAL_TYPE = Symbol.for("react.portal"),
-	      REACT_FRAGMENT_TYPE = Symbol.for("react.fragment"),
-	      REACT_STRICT_MODE_TYPE = Symbol.for("react.strict_mode"),
-	      REACT_PROFILER_TYPE = Symbol.for("react.profiler"),
-	      REACT_CONSUMER_TYPE = Symbol.for("react.consumer"),
-	      REACT_CONTEXT_TYPE = Symbol.for("react.context"),
-	      REACT_FORWARD_REF_TYPE = Symbol.for("react.forward_ref"),
-	      REACT_SUSPENSE_TYPE = Symbol.for("react.suspense"),
-	      REACT_SUSPENSE_LIST_TYPE = Symbol.for("react.suspense_list"),
-	      REACT_MEMO_TYPE = Symbol.for("react.memo"),
-	      REACT_LAZY_TYPE = Symbol.for("react.lazy"),
-	      REACT_ACTIVITY_TYPE = Symbol.for("react.activity"),
-	      REACT_CLIENT_REFERENCE = Symbol.for("react.client.reference"),
-	      ReactSharedInternals =
-	        React.__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE,
-	      hasOwnProperty = Object.prototype.hasOwnProperty,
-	      isArrayImpl = Array.isArray,
-	      createTask = console.createTask
-	        ? console.createTask
-	        : function () {
-	            return null;
-	          };
-	    React = {
-	      react_stack_bottom_frame: function (callStackForError) {
-	        return callStackForError();
-	      }
-	    };
-	    var specialPropKeyWarningShown;
-	    var didWarnAboutElementRef = {};
-	    var unknownOwnerDebugStack = React.react_stack_bottom_frame.bind(
-	      React,
-	      UnknownOwner
-	    )();
-	    var unknownOwnerDebugTask = createTask(getTaskName(UnknownOwner));
-	    var didWarnAboutKeySpread = {};
-	    reactJsxRuntime_development.Fragment = REACT_FRAGMENT_TYPE;
-	    reactJsxRuntime_development.jsx = function (type, config, maybeKey) {
-	      var trackActualOwner =
-	        1e4 > ReactSharedInternals.recentlyCreatedOwnerStacks++;
-	      return jsxDEVImpl(
-	        type,
-	        config,
-	        maybeKey,
-	        false,
-	        trackActualOwner
-	          ? Error("react-stack-top-frame")
-	          : unknownOwnerDebugStack,
-	        trackActualOwner ? createTask(getTaskName(type)) : unknownOwnerDebugTask
-	      );
-	    };
-	    reactJsxRuntime_development.jsxs = function (type, config, maybeKey) {
-	      var trackActualOwner =
-	        1e4 > ReactSharedInternals.recentlyCreatedOwnerStacks++;
-	      return jsxDEVImpl(
-	        type,
-	        config,
-	        maybeKey,
-	        true,
-	        trackActualOwner
-	          ? Error("react-stack-top-frame")
-	          : unknownOwnerDebugStack,
-	        trackActualOwner ? createTask(getTaskName(type)) : unknownOwnerDebugTask
-	      );
-	    };
-	  })();
-	return reactJsxRuntime_development;
-}
-
-var hasRequiredJsxRuntime;
-
-function requireJsxRuntime () {
-	if (hasRequiredJsxRuntime) return jsxRuntime.exports;
-	hasRequiredJsxRuntime = 1;
-
-	if (process.env.NODE_ENV === 'production') {
-	  jsxRuntime.exports = requireReactJsxRuntime_production();
-	} else {
-	  jsxRuntime.exports = requireReactJsxRuntime_development();
-	}
-	return jsxRuntime.exports;
-}
-
-var jsxRuntimeExports = requireJsxRuntime();
 
 // src/subscribable.ts
 var Subscribable = class {
@@ -41354,6 +41067,428 @@ var QueryClient = class {
   }
 };
 
+var jsxRuntime = {exports: {}};
+
+var reactJsxRuntime_production = {};
+
+/**
+ * @license React
+ * react-jsx-runtime.production.js
+ *
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
+var hasRequiredReactJsxRuntime_production;
+
+function requireReactJsxRuntime_production () {
+	if (hasRequiredReactJsxRuntime_production) return reactJsxRuntime_production;
+	hasRequiredReactJsxRuntime_production = 1;
+	var REACT_ELEMENT_TYPE = Symbol.for("react.transitional.element"),
+	  REACT_FRAGMENT_TYPE = Symbol.for("react.fragment");
+	function jsxProd(type, config, maybeKey) {
+	  var key = null;
+	  void 0 !== maybeKey && (key = "" + maybeKey);
+	  void 0 !== config.key && (key = "" + config.key);
+	  if ("key" in config) {
+	    maybeKey = {};
+	    for (var propName in config)
+	      "key" !== propName && (maybeKey[propName] = config[propName]);
+	  } else maybeKey = config;
+	  config = maybeKey.ref;
+	  return {
+	    $$typeof: REACT_ELEMENT_TYPE,
+	    type: type,
+	    key: key,
+	    ref: void 0 !== config ? config : null,
+	    props: maybeKey
+	  };
+	}
+	reactJsxRuntime_production.Fragment = REACT_FRAGMENT_TYPE;
+	reactJsxRuntime_production.jsx = jsxProd;
+	reactJsxRuntime_production.jsxs = jsxProd;
+	return reactJsxRuntime_production;
+}
+
+var reactJsxRuntime_development = {};
+
+/**
+ * @license React
+ * react-jsx-runtime.development.js
+ *
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
+var hasRequiredReactJsxRuntime_development;
+
+function requireReactJsxRuntime_development () {
+	if (hasRequiredReactJsxRuntime_development) return reactJsxRuntime_development;
+	hasRequiredReactJsxRuntime_development = 1;
+	"production" !== process.env.NODE_ENV &&
+	  (function () {
+	    function getComponentNameFromType(type) {
+	      if (null == type) return null;
+	      if ("function" === typeof type)
+	        return type.$$typeof === REACT_CLIENT_REFERENCE
+	          ? null
+	          : type.displayName || type.name || null;
+	      if ("string" === typeof type) return type;
+	      switch (type) {
+	        case REACT_FRAGMENT_TYPE:
+	          return "Fragment";
+	        case REACT_PROFILER_TYPE:
+	          return "Profiler";
+	        case REACT_STRICT_MODE_TYPE:
+	          return "StrictMode";
+	        case REACT_SUSPENSE_TYPE:
+	          return "Suspense";
+	        case REACT_SUSPENSE_LIST_TYPE:
+	          return "SuspenseList";
+	        case REACT_ACTIVITY_TYPE:
+	          return "Activity";
+	      }
+	      if ("object" === typeof type)
+	        switch (
+	          ("number" === typeof type.tag &&
+	            console.error(
+	              "Received an unexpected object in getComponentNameFromType(). This is likely a bug in React. Please file an issue."
+	            ),
+	          type.$$typeof)
+	        ) {
+	          case REACT_PORTAL_TYPE:
+	            return "Portal";
+	          case REACT_CONTEXT_TYPE:
+	            return type.displayName || "Context";
+	          case REACT_CONSUMER_TYPE:
+	            return (type._context.displayName || "Context") + ".Consumer";
+	          case REACT_FORWARD_REF_TYPE:
+	            var innerType = type.render;
+	            type = type.displayName;
+	            type ||
+	              ((type = innerType.displayName || innerType.name || ""),
+	              (type = "" !== type ? "ForwardRef(" + type + ")" : "ForwardRef"));
+	            return type;
+	          case REACT_MEMO_TYPE:
+	            return (
+	              (innerType = type.displayName || null),
+	              null !== innerType
+	                ? innerType
+	                : getComponentNameFromType(type.type) || "Memo"
+	            );
+	          case REACT_LAZY_TYPE:
+	            innerType = type._payload;
+	            type = type._init;
+	            try {
+	              return getComponentNameFromType(type(innerType));
+	            } catch (x) {}
+	        }
+	      return null;
+	    }
+	    function testStringCoercion(value) {
+	      return "" + value;
+	    }
+	    function checkKeyStringCoercion(value) {
+	      try {
+	        testStringCoercion(value);
+	        var JSCompiler_inline_result = !1;
+	      } catch (e) {
+	        JSCompiler_inline_result = true;
+	      }
+	      if (JSCompiler_inline_result) {
+	        JSCompiler_inline_result = console;
+	        var JSCompiler_temp_const = JSCompiler_inline_result.error;
+	        var JSCompiler_inline_result$jscomp$0 =
+	          ("function" === typeof Symbol &&
+	            Symbol.toStringTag &&
+	            value[Symbol.toStringTag]) ||
+	          value.constructor.name ||
+	          "Object";
+	        JSCompiler_temp_const.call(
+	          JSCompiler_inline_result,
+	          "The provided key is an unsupported type %s. This value must be coerced to a string before using it here.",
+	          JSCompiler_inline_result$jscomp$0
+	        );
+	        return testStringCoercion(value);
+	      }
+	    }
+	    function getTaskName(type) {
+	      if (type === REACT_FRAGMENT_TYPE) return "<>";
+	      if (
+	        "object" === typeof type &&
+	        null !== type &&
+	        type.$$typeof === REACT_LAZY_TYPE
+	      )
+	        return "<...>";
+	      try {
+	        var name = getComponentNameFromType(type);
+	        return name ? "<" + name + ">" : "<...>";
+	      } catch (x) {
+	        return "<...>";
+	      }
+	    }
+	    function getOwner() {
+	      var dispatcher = ReactSharedInternals.A;
+	      return null === dispatcher ? null : dispatcher.getOwner();
+	    }
+	    function UnknownOwner() {
+	      return Error("react-stack-top-frame");
+	    }
+	    function hasValidKey(config) {
+	      if (hasOwnProperty.call(config, "key")) {
+	        var getter = Object.getOwnPropertyDescriptor(config, "key").get;
+	        if (getter && getter.isReactWarning) return false;
+	      }
+	      return void 0 !== config.key;
+	    }
+	    function defineKeyPropWarningGetter(props, displayName) {
+	      function warnAboutAccessingKey() {
+	        specialPropKeyWarningShown ||
+	          ((specialPropKeyWarningShown = true),
+	          console.error(
+	            "%s: `key` is not a prop. Trying to access it will result in `undefined` being returned. If you need to access the same value within the child component, you should pass it as a different prop. (https://react.dev/link/special-props)",
+	            displayName
+	          ));
+	      }
+	      warnAboutAccessingKey.isReactWarning = true;
+	      Object.defineProperty(props, "key", {
+	        get: warnAboutAccessingKey,
+	        configurable: true
+	      });
+	    }
+	    function elementRefGetterWithDeprecationWarning() {
+	      var componentName = getComponentNameFromType(this.type);
+	      didWarnAboutElementRef[componentName] ||
+	        ((didWarnAboutElementRef[componentName] = true),
+	        console.error(
+	          "Accessing element.ref was removed in React 19. ref is now a regular prop. It will be removed from the JSX Element type in a future release."
+	        ));
+	      componentName = this.props.ref;
+	      return void 0 !== componentName ? componentName : null;
+	    }
+	    function ReactElement(type, key, props, owner, debugStack, debugTask) {
+	      var refProp = props.ref;
+	      type = {
+	        $$typeof: REACT_ELEMENT_TYPE,
+	        type: type,
+	        key: key,
+	        props: props,
+	        _owner: owner
+	      };
+	      null !== (void 0 !== refProp ? refProp : null)
+	        ? Object.defineProperty(type, "ref", {
+	            enumerable: false,
+	            get: elementRefGetterWithDeprecationWarning
+	          })
+	        : Object.defineProperty(type, "ref", { enumerable: false, value: null });
+	      type._store = {};
+	      Object.defineProperty(type._store, "validated", {
+	        configurable: false,
+	        enumerable: false,
+	        writable: true,
+	        value: 0
+	      });
+	      Object.defineProperty(type, "_debugInfo", {
+	        configurable: false,
+	        enumerable: false,
+	        writable: true,
+	        value: null
+	      });
+	      Object.defineProperty(type, "_debugStack", {
+	        configurable: false,
+	        enumerable: false,
+	        writable: true,
+	        value: debugStack
+	      });
+	      Object.defineProperty(type, "_debugTask", {
+	        configurable: false,
+	        enumerable: false,
+	        writable: true,
+	        value: debugTask
+	      });
+	      Object.freeze && (Object.freeze(type.props), Object.freeze(type));
+	      return type;
+	    }
+	    function jsxDEVImpl(
+	      type,
+	      config,
+	      maybeKey,
+	      isStaticChildren,
+	      debugStack,
+	      debugTask
+	    ) {
+	      var children = config.children;
+	      if (void 0 !== children)
+	        if (isStaticChildren)
+	          if (isArrayImpl(children)) {
+	            for (
+	              isStaticChildren = 0;
+	              isStaticChildren < children.length;
+	              isStaticChildren++
+	            )
+	              validateChildKeys(children[isStaticChildren]);
+	            Object.freeze && Object.freeze(children);
+	          } else
+	            console.error(
+	              "React.jsx: Static children should always be an array. You are likely explicitly calling React.jsxs or React.jsxDEV. Use the Babel transform instead."
+	            );
+	        else validateChildKeys(children);
+	      if (hasOwnProperty.call(config, "key")) {
+	        children = getComponentNameFromType(type);
+	        var keys = Object.keys(config).filter(function (k) {
+	          return "key" !== k;
+	        });
+	        isStaticChildren =
+	          0 < keys.length
+	            ? "{key: someKey, " + keys.join(": ..., ") + ": ...}"
+	            : "{key: someKey}";
+	        didWarnAboutKeySpread[children + isStaticChildren] ||
+	          ((keys =
+	            0 < keys.length ? "{" + keys.join(": ..., ") + ": ...}" : "{}"),
+	          console.error(
+	            'A props object containing a "key" prop is being spread into JSX:\n  let props = %s;\n  <%s {...props} />\nReact keys must be passed directly to JSX without using spread:\n  let props = %s;\n  <%s key={someKey} {...props} />',
+	            isStaticChildren,
+	            children,
+	            keys,
+	            children
+	          ),
+	          (didWarnAboutKeySpread[children + isStaticChildren] = true));
+	      }
+	      children = null;
+	      void 0 !== maybeKey &&
+	        (checkKeyStringCoercion(maybeKey), (children = "" + maybeKey));
+	      hasValidKey(config) &&
+	        (checkKeyStringCoercion(config.key), (children = "" + config.key));
+	      if ("key" in config) {
+	        maybeKey = {};
+	        for (var propName in config)
+	          "key" !== propName && (maybeKey[propName] = config[propName]);
+	      } else maybeKey = config;
+	      children &&
+	        defineKeyPropWarningGetter(
+	          maybeKey,
+	          "function" === typeof type
+	            ? type.displayName || type.name || "Unknown"
+	            : type
+	        );
+	      return ReactElement(
+	        type,
+	        children,
+	        maybeKey,
+	        getOwner(),
+	        debugStack,
+	        debugTask
+	      );
+	    }
+	    function validateChildKeys(node) {
+	      isValidElement(node)
+	        ? node._store && (node._store.validated = 1)
+	        : "object" === typeof node &&
+	          null !== node &&
+	          node.$$typeof === REACT_LAZY_TYPE &&
+	          ("fulfilled" === node._payload.status
+	            ? isValidElement(node._payload.value) &&
+	              node._payload.value._store &&
+	              (node._payload.value._store.validated = 1)
+	            : node._store && (node._store.validated = 1));
+	    }
+	    function isValidElement(object) {
+	      return (
+	        "object" === typeof object &&
+	        null !== object &&
+	        object.$$typeof === REACT_ELEMENT_TYPE
+	      );
+	    }
+	    var React = requireReact(),
+	      REACT_ELEMENT_TYPE = Symbol.for("react.transitional.element"),
+	      REACT_PORTAL_TYPE = Symbol.for("react.portal"),
+	      REACT_FRAGMENT_TYPE = Symbol.for("react.fragment"),
+	      REACT_STRICT_MODE_TYPE = Symbol.for("react.strict_mode"),
+	      REACT_PROFILER_TYPE = Symbol.for("react.profiler"),
+	      REACT_CONSUMER_TYPE = Symbol.for("react.consumer"),
+	      REACT_CONTEXT_TYPE = Symbol.for("react.context"),
+	      REACT_FORWARD_REF_TYPE = Symbol.for("react.forward_ref"),
+	      REACT_SUSPENSE_TYPE = Symbol.for("react.suspense"),
+	      REACT_SUSPENSE_LIST_TYPE = Symbol.for("react.suspense_list"),
+	      REACT_MEMO_TYPE = Symbol.for("react.memo"),
+	      REACT_LAZY_TYPE = Symbol.for("react.lazy"),
+	      REACT_ACTIVITY_TYPE = Symbol.for("react.activity"),
+	      REACT_CLIENT_REFERENCE = Symbol.for("react.client.reference"),
+	      ReactSharedInternals =
+	        React.__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE,
+	      hasOwnProperty = Object.prototype.hasOwnProperty,
+	      isArrayImpl = Array.isArray,
+	      createTask = console.createTask
+	        ? console.createTask
+	        : function () {
+	            return null;
+	          };
+	    React = {
+	      react_stack_bottom_frame: function (callStackForError) {
+	        return callStackForError();
+	      }
+	    };
+	    var specialPropKeyWarningShown;
+	    var didWarnAboutElementRef = {};
+	    var unknownOwnerDebugStack = React.react_stack_bottom_frame.bind(
+	      React,
+	      UnknownOwner
+	    )();
+	    var unknownOwnerDebugTask = createTask(getTaskName(UnknownOwner));
+	    var didWarnAboutKeySpread = {};
+	    reactJsxRuntime_development.Fragment = REACT_FRAGMENT_TYPE;
+	    reactJsxRuntime_development.jsx = function (type, config, maybeKey) {
+	      var trackActualOwner =
+	        1e4 > ReactSharedInternals.recentlyCreatedOwnerStacks++;
+	      return jsxDEVImpl(
+	        type,
+	        config,
+	        maybeKey,
+	        false,
+	        trackActualOwner
+	          ? Error("react-stack-top-frame")
+	          : unknownOwnerDebugStack,
+	        trackActualOwner ? createTask(getTaskName(type)) : unknownOwnerDebugTask
+	      );
+	    };
+	    reactJsxRuntime_development.jsxs = function (type, config, maybeKey) {
+	      var trackActualOwner =
+	        1e4 > ReactSharedInternals.recentlyCreatedOwnerStacks++;
+	      return jsxDEVImpl(
+	        type,
+	        config,
+	        maybeKey,
+	        true,
+	        trackActualOwner
+	          ? Error("react-stack-top-frame")
+	          : unknownOwnerDebugStack,
+	        trackActualOwner ? createTask(getTaskName(type)) : unknownOwnerDebugTask
+	      );
+	    };
+	  })();
+	return reactJsxRuntime_development;
+}
+
+var hasRequiredJsxRuntime;
+
+function requireJsxRuntime () {
+	if (hasRequiredJsxRuntime) return jsxRuntime.exports;
+	hasRequiredJsxRuntime = 1;
+
+	if (process.env.NODE_ENV === 'production') {
+	  jsxRuntime.exports = requireReactJsxRuntime_production();
+	} else {
+	  jsxRuntime.exports = requireReactJsxRuntime_development();
+	}
+	return jsxRuntime.exports;
+}
+
+var jsxRuntimeExports = requireJsxRuntime();
+
 var QueryClientContext = reactExports.createContext(
   void 0
 );
@@ -41543,7 +41678,11 @@ async function bufferToDataUri(response, mime) {
   const base64 = Buffer.from(arrayBuffer).toString("base64");
   return `data:${mime};base64,${base64}`;
 }
+
+// ── Query Function ──────────────────────────────────────────────────
+
 async function fetchPokemon(id, signal) {
+  // 1. Fetch Pokemon data
   const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`, {
     signal
   });
@@ -41552,81 +41691,203 @@ async function fetchPokemon(id, signal) {
   }
   const json = await res.json();
   const name = json.name;
+
+  // 2. Pick sprite URL (front_default with official-artwork fallback)
   const spriteUrl = json.sprites.front_default ?? json.sprites.other?.["official-artwork"]?.front_default ?? null;
   if (!spriteUrl) {
     throw new Error(`No sprite available for Pokemon ${id}`);
   }
-  const spriteRes = await fetch(spriteUrl, { signal });
+
+  // 3. Fetch the sprite image and convert to data URI
+  const spriteRes = await fetch(spriteUrl, {
+    signal
+  });
   if (!spriteRes.ok) {
     throw new Error(`Sprite fetch returned ${spriteRes.status}`);
   }
   const spriteDataUri = await bufferToDataUri(spriteRes, "image/png");
-  return { id, name, spriteDataUri };
+  return {
+    id,
+    name,
+    spriteDataUri
+  };
 }
+
+// ── Component ───────────────────────────────────────────────────────
+
 function PokemonKey() {
-  const [pokemonId, setPokemonId] = reactExports.useState(() => randomPokemonId());
-  useKeyDown(() => {
-    setPokemonId(randomPokemonId());
-  });
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ["pokemon", pokemonId],
-    queryFn: ({ signal }) => fetchPokemon(pokemonId, signal)
-  });
-  if (isLoading) {
-    return /* @__PURE__ */ jsxRuntimeExports.jsx(
-      "div",
-      {
-        className: tw(
-          "flex h-full w-full flex-col items-center justify-center",
-          "bg-gradient-to-br from-[#1a1a2e] to-[#16213e]"
-        ),
-        children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[14px] font-bold text-white/80", children: "Loading..." })
+  const $ = compilerRuntimeExports.c(23);
+  const [pokemonId, setPokemonId] = reactExports.useState(_temp);
+  let t0;
+  if ($[0] === Symbol.for("react.memo_cache_sentinel")) {
+    t0 = () => {
+      setPokemonId(randomPokemonId());
+    };
+    $[0] = t0;
+  } else {
+    t0 = $[0];
+  }
+  useKeyDown(t0);
+  let t1;
+  if ($[1] !== pokemonId) {
+    t1 = {
+      queryKey: ["pokemon", pokemonId],
+      queryFn: t2 => {
+        const {
+          signal
+        } = t2;
+        return fetchPokemon(pokemonId, signal);
       }
-    );
+    };
+    $[1] = pokemonId;
+    $[2] = t1;
+  } else {
+    t1 = $[2];
+  }
+  const {
+    data,
+    isLoading,
+    isError
+  } = useQuery(t1);
+  if (isLoading) {
+    let t2;
+    if ($[3] === Symbol.for("react.memo_cache_sentinel")) {
+      t2 = /*#__PURE__*/jsxRuntimeExports.jsx("div", {
+        className: tw("flex h-full w-full flex-col items-center justify-center", "bg-linear-to-br from-[#1a1a2e] to-[#16213e]"),
+        children: /*#__PURE__*/jsxRuntimeExports.jsx("span", {
+          className: "text-[14px] font-bold text-white/80",
+          children: "Loading..."
+        })
+      });
+      $[3] = t2;
+    } else {
+      t2 = $[3];
+    }
+    return t2;
   }
   if (isError || !data) {
-    return /* @__PURE__ */ jsxRuntimeExports.jsxs(
-      "div",
-      {
-        className: tw(
-          "flex h-full w-full flex-col items-center justify-center gap-1",
-          "bg-gradient-to-br from-[#4a0000] to-[#1a0000]"
-        ),
-        children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[12px] font-bold text-[#ff6b6b]", children: "Error" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[10px] text-white/50", children: padId(pokemonId) })
-        ]
-      }
-    );
-  }
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
-    "div",
-    {
-      className: tw(
-        "relative h-full w-full overflow-hidden",
-        "bg-gradient-to-br from-[#0f3460] to-[#533483]"
-      ),
-      children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: tw("absolute inset-0 flex items-center justify-center"), children: /* @__PURE__ */ jsxRuntimeExports.jsx(Image, { src: data.spriteDataUri, width: 144, height: 144, fit: "contain" }) }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(
-          "div",
-          {
-            className: tw(
-              "relative z-10 flex h-full w-full items-end justify-center px-2 pb-2"
-            ),
-            children: /* @__PURE__ */ jsxRuntimeExports.jsx(
-              "span",
-              {
-                className: "text-[16px] font-bold text-white",
-                style: { textShadow: "0 3px 8px rgba(0, 0, 0, 0.9)" },
-                children: capitalize(data.name)
-              }
-            )
-          }
-        )
-      ]
+    let t2;
+    let t3;
+    if ($[4] === Symbol.for("react.memo_cache_sentinel")) {
+      t2 = tw("flex h-full w-full flex-col items-center justify-center gap-1", "bg-linear-to-br from-[#4a0000] to-[#1a0000]");
+      t3 = /*#__PURE__*/jsxRuntimeExports.jsx("span", {
+        className: "text-[12px] font-bold text-[#ff6b6b]",
+        children: "Error"
+      });
+      $[4] = t2;
+      $[5] = t3;
+    } else {
+      t2 = $[4];
+      t3 = $[5];
     }
-  );
+    let t4;
+    if ($[6] !== pokemonId) {
+      t4 = padId(pokemonId);
+      $[6] = pokemonId;
+      $[7] = t4;
+    } else {
+      t4 = $[7];
+    }
+    let t5;
+    if ($[8] !== t4) {
+      t5 = /*#__PURE__*/jsxRuntimeExports.jsxs("div", {
+        className: t2,
+        children: [t3, /*#__PURE__*/jsxRuntimeExports.jsx("span", {
+          className: "text-[10px] text-white/50",
+          children: t4
+        })]
+      });
+      $[8] = t4;
+      $[9] = t5;
+    } else {
+      t5 = $[9];
+    }
+    return t5;
+  }
+  let t2;
+  let t3;
+  if ($[10] === Symbol.for("react.memo_cache_sentinel")) {
+    t2 = tw("relative h-full w-full overflow-hidden", "bg-linear-to-br from-[#0f3460] to-[#533483]");
+    t3 = tw("absolute inset-0 flex items-center justify-center");
+    $[10] = t2;
+    $[11] = t3;
+  } else {
+    t2 = $[10];
+    t3 = $[11];
+  }
+  let t4;
+  if ($[12] !== data.spriteDataUri) {
+    t4 = /*#__PURE__*/jsxRuntimeExports.jsx("div", {
+      className: t3,
+      children: /*#__PURE__*/jsxRuntimeExports.jsx(Image, {
+        src: data.spriteDataUri,
+        width: 144,
+        height: 144,
+        fit: "contain"
+      })
+    });
+    $[12] = data.spriteDataUri;
+    $[13] = t4;
+  } else {
+    t4 = $[13];
+  }
+  let t5;
+  if ($[14] === Symbol.for("react.memo_cache_sentinel")) {
+    t5 = tw("relative z-10 flex h-full w-full items-end justify-center px-2 pb-2");
+    $[14] = t5;
+  } else {
+    t5 = $[14];
+  }
+  let t6;
+  if ($[15] === Symbol.for("react.memo_cache_sentinel")) {
+    t6 = {
+      textShadow: "0 3px 8px rgba(0, 0, 0, 0.9)"
+    };
+    $[15] = t6;
+  } else {
+    t6 = $[15];
+  }
+  let t7;
+  if ($[16] !== data.name) {
+    t7 = capitalize(data.name);
+    $[16] = data.name;
+    $[17] = t7;
+  } else {
+    t7 = $[17];
+  }
+  let t8;
+  if ($[18] !== t7) {
+    t8 = /*#__PURE__*/jsxRuntimeExports.jsx("div", {
+      className: t5,
+      children: /*#__PURE__*/jsxRuntimeExports.jsx("span", {
+        className: "text-[16px] font-bold text-white",
+        style: t6,
+        children: t7
+      })
+    });
+    $[18] = t7;
+    $[19] = t8;
+  } else {
+    t8 = $[19];
+  }
+  let t9;
+  if ($[20] !== t4 || $[21] !== t8) {
+    t9 = /*#__PURE__*/jsxRuntimeExports.jsxs("div", {
+      className: t2,
+      children: [t4, t8]
+    });
+    $[20] = t4;
+    $[21] = t8;
+    $[22] = t9;
+  } else {
+    t9 = $[22];
+  }
+  return t9;
+}
+
+// ── Action Definition ───────────────────────────────────────────────
+function _temp() {
+  return randomPokemonId();
 }
 const pokemonAction = defineAction({
   uuid: "com.example.react-pokemon.pokemon",
@@ -41641,21 +41902,32 @@ const queryClient = new QueryClient({
     }
   }
 });
-function QueryWrapper({ children }) {
-  return /* @__PURE__ */ jsxRuntimeExports.jsx(QueryClientProvider, { client: queryClient, children });
+function QueryWrapper(t0) {
+  const $ = compilerRuntimeExports.c(2);
+  const {
+    children
+  } = t0;
+  let t1;
+  if ($[0] !== children) {
+    t1 = /*#__PURE__*/jsxRuntimeExports.jsx(QueryClientProvider, {
+      client: queryClient,
+      children: children
+    });
+    $[0] = children;
+    $[1] = t1;
+  } else {
+    t1 = $[1];
+  }
+  return t1;
 }
 
 const plugin = createPlugin({
-  fonts: [
-    {
-      name: "Inter",
-      data: await readFile(
-        new URL("../fonts/Inter-Regular.ttf", import.meta.url)
-      ),
-      weight: 400,
-      style: "normal"
-    }
-  ],
+  fonts: [{
+    name: "Inter",
+    data: await readFile(new URL("../fonts/Inter-Regular.ttf", import.meta.url)),
+    weight: 400,
+    style: "normal"
+  }],
   actions: [pokemonAction],
   wrapper: QueryWrapper
 });

@@ -16,12 +16,16 @@
     "zustand": "^5.0.8"
   },
   "devDependencies": {
+    "@babel/core": "^7.28.0",
+    "@babel/preset-react": "^7.28.0",
+    "@babel/preset-typescript": "^7.28.0",
     "@elgato/cli": "^1.7.1",
+    "@rollup/plugin-babel": "^6.0.4",
     "@rollup/plugin-commonjs": "^29.0.0",
     "@rollup/plugin-json": "^6.1.0",
     "@rollup/plugin-node-resolve": "^16.0.3",
     "@types/react": "^19.2.14",
-    "rollup": "^4.59.0",
-    "rollup-plugin-esbuild": "^6.2.1"
+    "babel-plugin-react-compiler": "latest",
+    "rollup": "^4.59.0"
   }
 }

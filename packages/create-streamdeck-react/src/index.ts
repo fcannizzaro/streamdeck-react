@@ -39,6 +39,7 @@ type ParsedArgs = {
   packageManager?: PackageManager;
   platforms?: StreamDeckPlatform[];
   nativeTargets?: NativeTargetId[];
+  reactCompiler?: boolean;
 };
 
 function assertNotCancelled<T>(value: T | symbol): asserts value is T {
@@ -73,6 +74,7 @@ async function main(): Promise<void> {
   const example = await collectExample(args, skipPrompt);
   const platforms = await collectPlatforms(args, skipPrompt);
   const nativeTargets = await collectNativeTargets(args, platforms, skipPrompt);
+  const reactCompiler = await collectReactCompiler(args, skipPrompt);
 
   validatePlatformTargets(platforms, nativeTargets);
 
@@ -87,6 +89,7 @@ async function main(): Promise<void> {
     example,
     platforms,
     nativeTargets,
+    reactCompiler,
   };
 
   createProject(targetDirectory, options);
@@ -208,6 +211,9 @@ function parseArgs(argv: string[]): ParsedArgs {
         break;
       case "--targets":
         parsed.nativeTargets = normalizeTargets(splitCsv(nextValue));
+        break;
+      case "--react-compiler":
+        parsed.reactCompiler = nextValue === "true" || nextValue === "yes";
         break;
       default:
         throw new Error(`Unknown argument: ${flag}`);
@@ -489,6 +495,27 @@ async function collectNativeTargets(
   return answer;
 }
 
+async function collectReactCompiler(
+  args: ParsedArgs,
+  skipPrompt: boolean,
+): Promise<boolean> {
+  if (args.reactCompiler !== undefined) {
+    return args.reactCompiler;
+  }
+
+  if (skipPrompt) {
+    return false;
+  }
+
+  const answer = await p.confirm({
+    message: "Use React Compiler?",
+    initialValue: false,
+  });
+
+  assertNotCancelled(answer);
+  return answer;
+}
+
 function createProject(targetDirectory: string, options: ScaffoldOptions): void {
   ensureDirectoryIsSafe(targetDirectory);
 
@@ -618,6 +645,7 @@ Options:
   --package-manager <pm>     npm | pnpm | bun
   --platforms <list>         Comma-separated: mac,windows
   --targets <list>           Comma-separated native targets
+  --react-compiler <bool>    Enable React Compiler (true | false)
 `);
 }
 
