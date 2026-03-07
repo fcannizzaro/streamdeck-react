@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { execSync } from "node:child_process";
-import { copyFileSync, existsSync, mkdirSync, readdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, writeFileSync } from "node:fs";
 import { basename, dirname, relative, resolve } from "node:path";
 import * as p from "@clack/prompts";
 import {
@@ -564,15 +564,6 @@ function createProject(targetDirectory: string, options: ScaffoldOptions): void 
     mkdirSync(dirname(filePath), { recursive: true });
     writeFileSync(filePath, content, "utf8");
   }
-
-  const fontSource = new URL("../assets/Inter-Regular.ttf", import.meta.url);
-  const fontDestination = resolve(
-    targetDirectory,
-    "fonts/Inter-Regular.ttf",
-  );
-
-  mkdirSync(dirname(fontDestination), { recursive: true });
-  copyFileSync(fontSource, fontDestination);
 
 }
 

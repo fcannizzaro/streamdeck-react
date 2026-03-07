@@ -9,10 +9,11 @@
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
+    "@fcannizzaro/streamdeck-react": "workspace:*",
+    "@fontsource-variable/inter": "^5.2.8",
     "@takumi-rs/core-darwin-arm64": "^0.70.4",
     "@tanstack/react-query": "^5.72.2",
     "react": "^19.2.4",
-    "@fcannizzaro/streamdeck-react": "workspace:*",
     "ws": "^8.19.0"
   },
   "devDependencies": {

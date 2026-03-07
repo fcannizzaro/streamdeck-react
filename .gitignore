@@ -37,11 +37,15 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 .turbo
 
 # Stream Deck plugin
-*.sdPlugin/bin/
+**/*.sdPlugin/bin
 *.sdPlugin/logs/
+**/bin/plugin.mjs
+**/plugin.mjs.map
 
 # Native modules
 *.node
 
+
 # AI Agent
 .opencode
+

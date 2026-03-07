@@ -58,6 +58,7 @@ const TAKUMI_VERSION = "^0.70.4";
 
 const BASE_DEPENDENCIES = {
   "@fcannizzaro/streamdeck-react": STREAMDECK_REACT_VERSION,
+  "@fontsource-variable/inter": "^5.2.5",
   react: "^19.2.4",
   ws: "^8.19.0",
 } satisfies Record<string, string>;
@@ -428,6 +429,7 @@ export function buildProjectFiles(options: ScaffoldOptions): Record<string, stri
     ".gitignore": createGitignore(),
     "package.json": buildPackageJson(options, preset.dependencies),
     "tsconfig.json": createProjectTsconfig(),
+    "src/env.d.ts": createFontTypeDeclarations(),
     ...configFile,
     "README.md": createProjectReadme(options),
     [`${pluginDir}/manifest.json`]: buildManifest(options, preset.actions),
@@ -730,6 +732,10 @@ function createProjectTsconfig(): string {
   }, null, 2)}\n`;
 }
 
+function createFontTypeDeclarations(): string {
+  return '/// <reference types="@fcannizzaro/streamdeck-react/font" />\n';
+}
+
 function createProjectReadme(options: ScaffoldOptions): string {
   const installCommand = `${options.packageManager} install`;
   const runPrefix = getRunPrefix(options.packageManager);
@@ -805,16 +811,16 @@ function createPluginEntrypoint(actionExports: string[], wrapperName?: string): 
   const wrapperConfig = wrapperName ? `,\n  wrapper: ${wrapperName}` : "";
 
   return [
-    'import { readFile } from "node:fs/promises";',
     'import { createPlugin } from "@fcannizzaro/streamdeck-react";',
     imports,
     wrapperImport.trimEnd(),
+    'import InterRegular from "@fontsource-variable/inter/files/inter-latin-wght-normal.woff2";',
     "",
     "const plugin = createPlugin({",
     "  fonts: [",
     "    {",
     '      name: "Inter",',
-    '      data: await readFile(new URL("../fonts/Inter-Regular.ttf", import.meta.url)),',
+    "      data: InterRegular,",
     '      weight: 400,',
     '      style: "normal",',
     "    },",

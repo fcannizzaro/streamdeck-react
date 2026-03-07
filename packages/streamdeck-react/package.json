@@ -1,6 +1,6 @@
 {
   "name": "@fcannizzaro/streamdeck-react",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Build Stream Deck plugins with React — render components directly to keys, dials, and touch screens",
   "type": "module",
   "module": "./dist/index.js",
@@ -23,10 +23,14 @@
     "./vite": {
       "types": "./dist/vite.d.ts",
       "import": "./dist/vite.js"
+    },
+    "./font": {
+      "types": "./font.d.ts"
     }
   },
   "files": [
     "dist",
+    "font.d.ts",
     "LICENSE",
     "README.md"
   ],

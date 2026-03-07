@@ -1,3 +1,8 @@
 {
-  "file_scan_exclusions": ["**/bin", "node_modules"],
+  "file_scan_exclusions": [
+    "**/bin",
+    "plugin.mjs",
+    "plugin.mjs.map",
+    "node_modules",
+  ],
 }

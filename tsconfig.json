@@ -7,16 +7,6 @@
     "jsx": "react-jsx",
     "allowJs": true,
     "baseUrl": ".",
-    // "paths": {
-    //   "@/*": ["packages/streamdeck-react/src/*"],
-    //   "@fcannizzaro/streamdeck-react": [
-    //     "packages/streamdeck-react/src/index.ts",
-    //   ],
-    //   "@fcannizzaro/streamdeck-react/rollup": [
-    //     "packages/streamdeck-react/src/rollup.ts",
-    //   ],
-    // },
-
     "moduleResolution": "bundler",
     "verbatimModuleSyntax": true,
     "noEmit": true,

@@ -2,6 +2,7 @@ import { exec } from "node:child_process";
 import { resolve } from "node:path";
 import type { Plugin, ResolvedConfig } from "vite";
 import { copyNativeBindings } from "./native-addon-shared";
+import { resolveFontId, loadFont } from "./font-inline";
 import type { NativeAddonTarget, NativeAddonOptions } from "./native-addon-shared";
 
 export type {
@@ -26,6 +27,9 @@ export interface StreamDeckReactOptions extends NativeAddonOptions {
 /**
  * Vite plugin for Stream Deck React projects.
  *
+ * - Inlines font files (`.ttf`, `.otf`, `.woff`, `.woff2`) imported by the
+ *   project into the bundle as `Buffer` instances so no runtime filesystem
+ *   access is needed.
  * - Copies platform-specific `@takumi-rs/core` native bindings (`.node` files)
  *   into the bundle output directory.
  * - Optionally restarts the Stream Deck plugin after each build when
@@ -37,9 +41,18 @@ export function streamDeckReact(options: StreamDeckReactOptions = {}): Plugin {
   return {
     name: "fcannizzaro-streamdeck-react",
     apply: "build",
+    enforce: "pre",
 
     configResolved(config) {
       resolvedConfig = config;
+    },
+
+    resolveId(source, importer) {
+      return resolveFontId(source, importer);
+    },
+
+    load(id) {
+      return loadFont(id);
     },
 
     writeBundle() {

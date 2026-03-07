@@ -9,9 +9,10 @@
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
+    "@fcannizzaro/streamdeck-react": "workspace:*",
+    "@fontsource-variable/inter": "^5.2.8",
     "@takumi-rs/core-darwin-arm64": "^0.69.5",
     "react": "^19.2.4",
-    "@fcannizzaro/streamdeck-react": "workspace:*",
     "ws": "^8.19.0",
     "zustand": "^5.0.8"
   },
