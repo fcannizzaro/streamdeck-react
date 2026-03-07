@@ -30,7 +30,7 @@ jobs:
         run: bun run build
 
       - name: Test
-        run: bu run test
+        run: bun run test
 
       - name: Copy README
         run: cp README.md packages/streamdeck-react/README.md
