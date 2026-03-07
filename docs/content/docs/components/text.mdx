@@ -1,0 +1,50 @@
+---
+title: Text
+description: A convenience component for rendering text with shorthand style props.
+---
+
+`Text` renders a `span` with shorthand props for common text styling.
+
+## Import
+
+```tsx
+import { Text } from '@fcannizzaro/streamdeck-react';
+```
+
+## Props
+
+```ts
+interface TextProps {
+  className?: string;
+  size?: number;
+  color?: string;
+  weight?: number;
+  align?: 'left' | 'center' | 'right';
+  font?: string;
+  lineHeight?: number;
+  style?: CSSProperties;
+  children?: ReactNode;
+}
+```
+
+| Prop | CSS Property |
+|------|-------------|
+| `size` | `fontSize` |
+| `color` | `color` |
+| `weight` | `fontWeight` |
+| `align` | `textAlign` |
+| `font` | `fontFamily` |
+| `lineHeight` | `lineHeight` |
+
+## Example
+
+```tsx
+<Text size={24} color="white" weight={700} align="center" font="Inter">
+  Hello
+</Text>
+```
+
+## Notes
+
+- Font must be loaded in the plugin config for text to render. See [Font Management](/plugin-setup/fonts).
+- If a requested `fontWeight` isn't loaded, the nearest available weight is used.

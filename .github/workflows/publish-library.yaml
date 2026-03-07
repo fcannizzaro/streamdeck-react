@@ -1,0 +1,52 @@
+name: Publish Library package
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24.x"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build
+        run: bun run build
+
+      - name: Test
+        run: bu run test
+
+      - name: Copy README
+        run: cp README.md packages/streamdeck-react/README.md
+
+      - name: Copy LICENSE
+        run: cp LICENSE packages/streamdeck-react/LICENSE
+
+      - name: Publish
+        run: npm publish --provenance --access public
+        working-directory: packages/streamdeck-react
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create GitHub Release
+        run: |
+          version=$(node -p "require('./packages/streamdeck-react/package.json').version")
+          gh release create "v${version}" --title "v${version}" --generate-notes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

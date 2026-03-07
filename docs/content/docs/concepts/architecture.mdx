@@ -1,0 +1,104 @@
+---
+title: Architecture
+description: How @fcannizzaro/streamdeck-react turns JSX into rendered output for Stream Deck actions.
+---
+
+## High-Level Pipeline
+
+```
+React Tree ──> Reconciler ──> Virtual Tree ──> Takumi ──> setImage / setFeedback
+(JSX+Hooks)   (host config)  (VNodes)         (JSX→image)
+```
+
+1. **React Tree** -- your components, hooks, state, context. Standard React.
+2. **Reconciler** -- a custom `react-reconciler` instance in mutation mode. Manages the fiber tree, calls hooks, schedules effects, diffs updates.
+3. **Virtual Tree** -- on each commit the reconciler's host nodes form a plain JS tree of `{ type, props, children }` objects.
+4. **Takumi renderer** -- receives the virtual tree as React elements, your fonts, and target dimensions. Produces the final image buffer.
+5. **Stream Deck** -- the image is encoded as a data URI and pushed via `action.setImage()` for keys, or via `action.setFeedback()` for encoder displays.
+
+## One React Root Per Action Instance
+
+Each visible action instance on the hardware gets its own isolated React root. This means:
+
+- Each instance has its own state, settings, and lifecycle.
+- The same action placed on multiple keys shows different data per key.
+- No cross-instance state leakage.
+
+```
+Stream Deck Canvas:
+┌─────┬─────┬─────┐
+│ K1  │ K2  │ K3  │   Each Kn/Dn is a separate React root
+├─────┼─────┼─────┤   with its own fiber tree, hooks state,
+│ K4  │ K5  │ K6  │   and render cycle.
+└─────┴─────┴─────┘
+  D1     D2    D3      Dials also get their own roots.
+```
+
+## Lifecycle
+
+```
+onWillAppear(ev)
+  ├── Create React root for ev.action context
+  ├── Render <ActionComponent /> into root
+  ├── Provide context (action, device, settings, event emitters)
+  └── First render → setImage()
+
+[events: keyDown, keyUp, dialRotate, ...]
+  ├── Dispatch into the corresponding root's event emitter
+  ├── Hooks (useKeyDown, etc.) fire callbacks
+  ├── State updates trigger re-render
+  └── Render pass → setImage() (debounced)
+
+onDidReceiveSettings(ev)
+  ├── Update settings in context
+  └── Components using useSettings() re-render
+
+onWillDisappear(ev)
+  ├── Unmount React root (effects cleanup, refs cleared)
+  └── Delete root from registry
+```
+
+## Event Flow
+
+Events from the SDK cannot directly call React hooks. Each root has an **EventBus** -- a typed event emitter stored in a ref-stable context:
+
+1. The `SingletonAction` handler receives an SDK event.
+2. It looks up the root by the action's context ID.
+3. It calls `root.eventBus.emit('keyDown', ev.payload)`.
+4. Inside the tree, `useKeyDown(callback)` has subscribed via `useEffect`. The callback fires.
+5. If the callback calls `setState`, React schedules a re-render.
+6. On commit, the reconciler triggers `resetAfterCommit`, which schedules a render pass.
+
+## Context Provider Tree
+
+Every action root is automatically wrapped with providers:
+
+```tsx
+<SettingsProvider>
+  <GlobalSettingsProvider>
+    <ActionProvider>
+      <DeviceProvider>
+        <CanvasProvider>
+          <EventBusProvider>
+            <StreamDeckProvider>
+              <RootWrapper width={canvasWidth} height={canvasHeight}>
+                <UserComponent />
+              </RootWrapper>
+            </StreamDeckProvider>
+          </EventBusProvider>
+        </CanvasProvider>
+      </DeviceProvider>
+    </ActionProvider>
+  </GlobalSettingsProvider>
+</SettingsProvider>
+```
+
+| Context | Updated by |
+|---------|------------|
+| `SettingsContext` | `onDidReceiveSettings`, user `setSettings()` calls |
+| `GlobalSettingsContext` | `onDidReceiveGlobalSettings`, user `setSettings()` calls |
+| `ActionContext` | Set once on mount (immutable) |
+| `DeviceContext` | Set once on mount (immutable) |
+| `CanvasContext` | Set once on mount (immutable) |
+| `EventBusContext` | Stable reference, never changes |
+| `StreamDeckContext` | Stable reference, never changes |

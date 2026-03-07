@@ -1,0 +1,49 @@
+name: Publish Create CLI
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24.x"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build
+        run: bun run build
+
+      - name: Test
+        run: bun run test
+
+      - name: Copy LICENSE
+        run: cp LICENSE packages/create-streamdeck-react/LICENSE
+
+      - name: Publish
+        run: npm publish --provenance --access public
+        working-directory: packages/create-streamdeck-react
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+ 
+      - name: Create GitHub Release
+        run: |
+          version=$(node -p "require('./packages/create-streamdeck-react/package.json').version")
+          gh release create "create-v${version}" --title "create-v${version}" --generate-notes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

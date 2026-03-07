@@ -1,0 +1,87 @@
+{
+  "$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
+  "Actions": [
+    {
+      "Icon": "imgs/actions/counter",
+      "Name": "Counter",
+      "States": [
+        {
+          "Image": "imgs/actions/counter"
+        }
+      ],
+      "UUID": "com.example.react-counter.counter",
+      "Controllers": ["Keypad"],
+      "Tooltip": "A simple counter that increments on each key press."
+    },
+    {
+      "Icon": "imgs/actions/timer",
+      "Name": "Timer",
+      "States": [
+        {
+          "Image": "imgs/actions/timer"
+        }
+      ],
+      "UUID": "com.example.react-counter.timer",
+      "Controllers": ["Keypad"],
+      "Tooltip": "A stopwatch timer toggled by key press."
+    },
+    {
+      "Icon": "imgs/actions/toggle",
+      "Name": "Toggle",
+      "States": [
+        {
+          "Image": "imgs/actions/toggle"
+        }
+      ],
+      "UUID": "com.example.react-counter.toggle",
+      "Controllers": ["Keypad"],
+      "Tooltip": "Cycles through Off, Auto, and On modes."
+    },
+    {
+      "Icon": "imgs/actions/volume",
+      "Name": "Volume",
+      "States": [
+        {
+          "Image": "imgs/actions/volume"
+        }
+      ],
+      "UUID": "com.example.react-counter.volume",
+      "Controllers": ["Encoder"],
+      "Encoder": {
+        "layout": "$A0",
+        "TriggerDescription": {
+          "Rotate": "Adjust volume",
+          "Push": "Mute / Unmute"
+        }
+      },
+      "Tooltip": "Adjust volume with the dial, press to mute."
+    }
+  ],
+  "Author": "Francesco Saverio Cannizzaro",
+  "Category": "React Counter Sample",
+  "CategoryIcon": "imgs/plugin-icon",
+  "CodePath": "bin/plugin.mjs",
+  "Description": "Sample plugin demonstrating @fcannizzaro/streamdeck-react with counter, timer, toggle, and volume actions.",
+  "Icon": "imgs/plugin-icon",
+  "Name": "React Counter Sample",
+  "Nodejs": {
+    "Version": "20",
+    "Debug": "--inspect=127.0.0.1:8090"
+  },
+  "OS": [
+    {
+      "Platform": "mac",
+      "MinimumVersion": "13"
+    },
+    {
+      "Platform": "windows",
+      "MinimumVersion": "10"
+    }
+  ],
+  "UUID": "com.example.react-counter",
+  "Version": "0.0.0.1",
+  "SDKVersion": 2,
+  "Software": {
+    "MinimumVersion": "6.9"
+  }
+}

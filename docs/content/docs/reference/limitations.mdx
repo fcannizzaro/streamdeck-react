@@ -1,0 +1,58 @@
+---
+title: Limitations & Trade-offs
+description: Known limitations of the current renderer and @fcannizzaro/streamdeck-react architecture.
+---
+
+## Styling Constraints
+
+Rendered UI is not a browser DOM. Keep layouts simple and explicit.
+
+- Use inline styles or `className`/`tw()` utility strings.
+- Prefer fixed sizes, percentages, and straightforward flex layouts.
+- Load every font you plan to render explicitly.
+- Use `.ttf`, `.otf`, or `.woff` fonts, not `.woff2`.
+
+## Performance
+
+- Fast repeated updates still trigger real image renders.
+- Dial rotation can emit many events in a short burst, so high-frequency UIs should stay visually simple.
+- `renderDebounceMs` exists to coalesce heavy update bursts.
+
+## No Animated GIF/Video
+
+Stream Deck hardware does not support animated images. Each `setImage` call is a static frame. Animation is achieved through rapid `setImage` calls (see `useTick`), limited by render throughput.
+
+## One React Root Per Visible Instance
+
+This is a deliberate trade-off for isolation:
+
+- **Cost**: memory scales linearly with visible action count; no shared React state between roots.
+- **Benefit**: complete isolation, no cross-instance bugs, clean lifecycle.
+
+Use external state managers (Zustand, Jotai) or the wrapper API to share state. See [Sharing State](/guides/shared-state).
+
+## Font Bundle Size
+
+Fonts are loaded into the plugin runtime. Each font weight/style is a separate file, so shipping many variants increases bundle size and startup cost.
+
+## No Dedicated Touch Surface Renderer
+
+Touch input is available through `useTouchTap()`, but docs should treat the current API as input-first rather than a separate rendered touch surface API.
+
+## No Interactivity Within Render
+
+The rendered image is static -- there are no clickable regions within a key image. All interaction comes through hardware events (key press, dial rotate, touch tap). This is a Stream Deck hardware limitation.
+
+## Supported JSX Elements
+
+Use simple HTML/SVG primitives and the built-in components where possible:
+
+| Element | Purpose |
+|---------|---------|
+| `div` | Container / layout (default `display: flex`) |
+| `span` | Inline text container |
+| `p` | Paragraph text |
+| `img` | Images (requires `width` and `height`) |
+| `svg` | Inline SVG for icons and gauges |
+
+All elements use props/styles interpreted by the renderer rather than by a browser layout engine.

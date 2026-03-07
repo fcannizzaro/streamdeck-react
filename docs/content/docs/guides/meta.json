@@ -1,0 +1,13 @@
+{
+  "title": "Guides",
+  "pages": [
+    "create-cli",
+    "dials-and-encoders",
+    "touch-display",
+    "settings-sync",
+    "shared-state",
+    "tailwind",
+    "error-handling",
+    "agent-skill"
+  ]
+}

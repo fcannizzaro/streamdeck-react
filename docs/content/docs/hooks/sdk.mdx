@@ -1,0 +1,127 @@
+---
+title: SDK Hooks
+description: Hooks for Stream Deck SDK features -- URLs, profiles, Property Inspector communication, alerts, and titles.
+---
+
+## useOpenUrl
+
+Opens a URL in the user's default browser.
+
+```ts
+function useOpenUrl(): (url: string) => Promise<void>;
+```
+
+```tsx
+function LinkKey() {
+  const openUrl = useOpenUrl();
+
+  useKeyDown(() => {
+    openUrl('https://github.com/myproject');
+  });
+
+  // ...
+}
+```
+
+## useSwitchProfile
+
+Switches to a different Stream Deck profile.
+
+```ts
+function useSwitchProfile(): (profile: string, deviceId?: string) => Promise<void>;
+```
+
+```tsx
+function ProfileKey() {
+  const switchProfile = useSwitchProfile();
+
+  useKeyDown(async () => {
+    await switchProfile('Gaming');
+  });
+
+  // ...
+}
+```
+
+If `deviceId` is omitted, the current device is used.
+
+## useSendToPI
+
+Sends a message to the Property Inspector.
+
+```ts
+function useSendToPI(): (payload: JsonValue) => Promise<void>;
+```
+
+```tsx
+function MyKey() {
+  const sendToPI = useSendToPI();
+
+  useKeyDown(() => {
+    sendToPI({ currentState: 'active' });
+  });
+
+  // ...
+}
+```
+
+## usePropertyInspector
+
+Receives messages sent from the Property Inspector via `sendToPlugin`.
+
+```ts
+function usePropertyInspector<T extends JsonValue = JsonValue>(
+  callback: (payload: T) => void,
+): void;
+```
+
+```tsx
+function MyKey() {
+  usePropertyInspector<{ action: string }>((msg) => {
+    if (msg.action === 'refresh') {
+      // Handle PI message
+    }
+  });
+
+  // ...
+}
+```
+
+## useShowAlert
+
+Triggers the Stream Deck's built-in alert overlay animation on the key.
+
+```ts
+function useShowAlert(): () => Promise<void>;
+```
+
+## useShowOk
+
+Triggers the Stream Deck's built-in "OK" checkmark overlay animation. Only available on key actions.
+
+```ts
+function useShowOk(): () => Promise<void>;
+```
+
+```tsx
+function SaveKey() {
+  const showOk = useShowOk();
+
+  useKeyDown(async () => {
+    await saveData();
+    await showOk();
+  });
+
+  // ...
+}
+```
+
+## useTitle
+
+Sets the native Stream Deck title overlay (separate from the rendered image).
+
+```ts
+function useTitle(): (title: string) => Promise<void>;
+```
+
+Most users embed text directly in their JSX renders, but `useTitle` is available for the built-in title overlay that the Stream Deck displays on top of the key image. Only available on key actions.

@@ -1,0 +1,53 @@
+{
+  "name": "create-streamdeck-react",
+  "version": "0.1.1",
+  "description": "Scaffold a Stream Deck plugin powered by @fcannizzaro/streamdeck-react",
+  "type": "module",
+  "bin": {
+    "create-streamdeck-react": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "assets",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "check-types": "tsc --noEmit -p tsconfig.json",
+    "test": "bun test src"
+  },
+  "keywords": [
+    "streamdeck",
+    "stream-deck",
+    "react",
+    "create",
+    "scaffold",
+    "cli"
+  ],
+  "license": "MIT",
+  "author": {
+    "name": "Francesco Saverio Cannizzaro",
+    "url": "https://github.com/fcannizzaro"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fcannizzaro/streamdeck-react.git",
+    "directory": "packages/create-streamdeck-react"
+  },
+  "homepage": "https://streamdeckreact.fcannizzaro.com/guides/create-cli",
+  "bugs": {
+    "url": "https://github.com/fcannizzaro/streamdeck-react/issues"
+  },
+  "funding": {
+    "type": "patreon",
+    "url": "https://patreon.com/fcannizzaro"
+  },
+  "dependencies": {
+    "@clack/prompts": "^1.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.3.3",
+    "typescript": "^5.9.3"
+  }
+}

@@ -1,0 +1,46 @@
+---
+title: ProgressBar
+description: A horizontal progress bar component.
+---
+
+`ProgressBar` renders a filled bar indicating progress. Common in Stream Deck UIs for volume, brightness, timers, etc.
+
+## Import
+
+```tsx
+import { ProgressBar } from '@fcannizzaro/streamdeck-react';
+```
+
+## Props
+
+```ts
+interface ProgressBarProps {
+  className?: string;
+  value: number;
+  max?: number;
+  height?: number;
+  color?: string;
+  background?: string;
+  borderRadius?: number;
+  style?: CSSProperties;
+}
+```
+
+| Prop | Default | Description |
+|------|---------|-------------|
+| `value` | -- | Current value |
+| `max` | `100` | Maximum value |
+| `height` | `8` | Bar height in pixels |
+| `color` | `'#4CAF50'` | Fill color |
+| `background` | `'#333'` | Track background color |
+| `borderRadius` | `4` | Border radius in pixels |
+
+## Example
+
+```tsx
+<ProgressBar value={75} max={100} height={8} color="#4CAF50" background="#333" borderRadius={4} />
+```
+
+## Full-Width
+
+The bar takes `width: '100%'` by default, filling its parent container. Wrap it in a `Box` or `div` to control width.

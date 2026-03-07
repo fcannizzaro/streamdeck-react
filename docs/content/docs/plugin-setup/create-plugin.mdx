@@ -1,0 +1,96 @@
+---
+title: createPlugin
+description: Configure and initialize the @fcannizzaro/streamdeck-react plugin.
+---
+
+`createPlugin` is the entry point for your plugin. It configures fonts, registers actions, and returns a plugin instance with a `connect()` method.
+
+## Basic Usage
+
+```ts
+import { createPlugin } from '@fcannizzaro/streamdeck-react';
+import { readFile } from 'node:fs/promises';
+import { counterAction } from './actions/counter';
+
+const plugin = createPlugin({
+  fonts: [
+    {
+      name: 'Inter',
+      data: await readFile(new URL('./fonts/Inter-Regular.ttf', import.meta.url)),
+      weight: 400,
+      style: 'normal' as const,
+    },
+  ],
+  actions: [counterAction],
+});
+
+await plugin.connect();
+```
+
+## Configuration
+
+```ts
+interface PluginConfig {
+  fonts: FontConfig[];
+  actions: ActionDefinition[];
+  wrapper?: WrapperComponent;
+  renderDebounceMs?: number;
+  imageFormat?: 'png' | 'webp';
+  caching?: boolean;
+  onActionError?: (uuid: string, actionId: string, error: Error) => void;
+}
+```
+
+### `fonts` (required)
+
+Array of font configurations used by the Takumi renderer. At least one font is required. See [Font Management](/plugin-setup/fonts).
+
+### `actions` (required)
+
+Array of action definitions created with [`defineAction`](/plugin-setup/define-action).
+
+### `wrapper`
+
+An optional React component that wraps **all** action roots. Use this to inject global providers (state management, themes, etc.):
+
+```tsx
+const plugin = createPlugin({
+  fonts: [...],
+  actions: [...],
+  wrapper: ({ children }) => <MyGlobalProvider>{children}</MyGlobalProvider>,
+});
+```
+
+### `renderDebounceMs`
+
+Debounce interval for renders in milliseconds. Default: `16` (~60fps ceiling). Increase this for high-frequency events like dial rotation if you want to reduce render load.
+
+### `imageFormat`
+
+Output image format. Default: `'png'`. Set to `'webp'` if you prefer WebP output.
+
+### `caching`
+
+Enable output hash caching to skip duplicate `setImage()` calls. Default: `true`.
+
+### `onActionError`
+
+Called when a component error is caught by the root error boundary:
+
+```ts
+const plugin = createPlugin({
+  // ...
+  onActionError: (uuid, actionId, error) => {
+    myErrorTracker.report(error);
+  },
+});
+```
+
+## connect()
+
+`connect()` must be the last call in your entry file. It:
+
+1. Instantiates a `SingletonAction` for each defined action.
+2. Registers each with `streamDeck.actions.registerAction()`.
+3. Calls `streamDeck.connect()`.
+4. Initializes the renderer with the provided fonts.

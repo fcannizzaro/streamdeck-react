@@ -1,0 +1,21 @@
+{
+  "title": "Documentation",
+  "pages": [
+    "index",
+    "installation",
+    "quick-start",
+    "how-to-use",
+    "---Concepts---",
+    "...concepts",
+    "---Plugin Setup---",
+    "...plugin-setup",
+    "---Hooks---",
+    "...hooks",
+    "---Components---",
+    "...components",
+    "---Guides---",
+    "...guides",
+    "---Reference---",
+    "...reference"
+  ]
+}

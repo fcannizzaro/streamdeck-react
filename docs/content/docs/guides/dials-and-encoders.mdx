@@ -1,0 +1,107 @@
+---
+title: Dial & Encoder Support
+description: Build encoder-aware actions with dial rendering, rotation handlers, and trigger hints.
+---
+
+Stream Deck+ encoder actions combine three capabilities:
+
+1. **Dial rendering** on the encoder display.
+2. **Rotation and press events** through the event hooks.
+3. **Touch taps** through `useTouchTap()`.
+
+## Dial Rendering
+
+The `dial` component defined in `defineAction` renders to the encoder display. The library pushes the image with `action.setFeedback()`.
+
+```tsx
+function VolumeDial() {
+  const [volume, setVolume] = useState(50);
+  const [muted, setMuted] = useState(false);
+
+  useDialRotate(({ ticks }) => {
+    if (!muted) {
+      setVolume((v) => Math.max(0, Math.min(100, v + ticks * 2)));
+    }
+  });
+
+  useDialDown(() => {
+    setMuted((m) => !m);
+  });
+
+  useDialHint({
+    rotate: 'Adjust volume',
+    press: muted ? 'Unmute' : 'Mute',
+  });
+
+  return (
+    <div style={{
+      width: '100%', height: '100%',
+      flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center',
+      background: muted ? '#4a0000' : '#1a1a1a',
+      gap: 4,
+    }}>
+      <span style={{ color: '#888', fontSize: 12 }}>Volume</span>
+      <span style={{
+        color: muted ? '#ff4444' : 'white',
+        fontSize: 24, fontWeight: 700,
+      }}>
+        {muted ? 'MUTE' : `${volume}%`}
+      </span>
+      {!muted && (
+        <ProgressBar value={volume} height={4} color="#4CAF50" background="#333" borderRadius={2} />
+      )}
+    </div>
+  );
+}
+
+export const volumeAction = defineAction<VolumeSettings>({
+  uuid: 'com.example.plugin.volume',
+  dial: VolumeDial,
+  defaultSettings: { volume: 50, muted: false },
+});
+```
+
+## Trigger Descriptions
+
+Stream Deck+ shows contextual hints for what each dial action does. Use `useDialHint` to set these:
+
+```tsx
+useDialHint({
+  rotate: 'Adjust volume',
+  press: 'Toggle mute',
+  touch: 'Open settings',
+  longTouch: 'Reset to default',
+});
+```
+
+The hints update automatically when the values change. Under the hood this calls `action.setTriggerDescription()`.
+
+## Touch Interaction
+
+Use `useTouchTap()` when your encoder action needs touch input from the Stream Deck+ touch area:
+
+```tsx
+function VolumeDial() {
+  useTouchTap(({ tapPos, hold }) => {
+    console.log('touch', tapPos, hold);
+  });
+
+  return <div style={{ width: '100%', height: '100%' }} />;
+}
+```
+
+## Key + Dial Actions
+
+An action can support both key and encoder placement. Define separate components:
+
+```tsx
+export const volumeAction = defineAction<VolumeSettings>({
+  uuid: 'com.example.plugin.volume',
+  key: VolumeKey,        // Rendered when placed on a key
+  dial: VolumeDial,      // Rendered when placed on an encoder
+  defaultSettings: { volume: 50, muted: false },
+});
+```
+
+If `dial` is not provided, the `key` component is used as a fallback for encoder placement.

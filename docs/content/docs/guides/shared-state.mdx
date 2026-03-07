@@ -1,0 +1,115 @@
+---
+title: Sharing State Across Actions
+description: How to share state between isolated React roots using wrappers and external state managers.
+---
+
+Each action instance renders inside its own isolated React root. Local React state stays local to that action. To share state across actions, you need state that lives outside the component tree.
+
+## Wrapper API
+
+`@fcannizzaro/streamdeck-react` supports wrapper components on both `createPlugin` and `defineAction`. These inject providers around action roots.
+
+### Plugin-Level Wrapper
+
+Wraps all action roots:
+
+```tsx
+import { createPlugin } from '@fcannizzaro/streamdeck-react';
+
+const plugin = createPlugin({
+  fonts: [...],
+  actions: [...],
+  wrapper: ({ children }) => <MyProvider>{children}</MyProvider>,
+});
+```
+
+### Action-Level Wrapper
+
+Wraps a single action's root (nested inside the plugin wrapper):
+
+```tsx
+import { defineAction } from '@fcannizzaro/streamdeck-react';
+
+const action = defineAction({
+  uuid: 'com.example.action',
+  key: MyKey,
+  wrapper: ({ children }) => <MyActionProvider>{children}</MyActionProvider>,
+});
+```
+
+## Zustand
+
+Zustand stores live in module scope, so each isolated React root subscribes to the same store directly. No wrapper needed.
+
+```ts
+// store.ts
+import { create } from 'zustand';
+
+export const useCountStore = create<{ count: number; increment: () => void }>((set) => ({
+  count: 0,
+  increment: () => set((s) => ({ count: s.count + 1 })),
+}));
+```
+
+```tsx
+// actions/increment.tsx
+function IncrementKey() {
+  const increment = useCountStore((s) => s.increment);
+
+  useKeyDown(() => {
+    increment();
+  });
+
+  // ...
+}
+```
+
+```tsx
+// actions/display.tsx
+function DisplayKey() {
+  const count = useCountStore((s) => s.count);
+
+  return (
+    <div style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center', background: '#000' }}>
+      <span style={{ color: 'white', fontSize: 32 }}>{count}</span>
+    </div>
+  );
+}
+```
+
+See `samples/zustand/` for a full working example.
+
+## Jotai
+
+Jotai atoms can be shared across roots when all roots use the same store. Provide a shared store through the plugin wrapper:
+
+```ts
+// store.ts
+import { createStore } from 'jotai';
+export const store = createStore();
+```
+
+```tsx
+// wrapper.tsx
+import { Provider } from 'jotai';
+import { store } from './store';
+
+export function JotaiWrapper({ children }: { children: React.ReactNode }) {
+  return <Provider store={store}>{children}</Provider>;
+}
+```
+
+```tsx
+// plugin.ts
+const plugin = createPlugin({
+  fonts: [...],
+  actions: [...],
+  wrapper: JotaiWrapper,
+});
+```
+
+See `samples/jotai/` for a full working example.
+
+## Built-in Settings Hooks
+
+For simpler cases, use `useSettings()` for per-action persistence and `useGlobalSettings()` for plugin-wide persistence backed by the SDK. See [Settings Hooks](/hooks/settings).

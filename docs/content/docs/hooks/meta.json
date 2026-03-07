@@ -1,0 +1,4 @@
+{
+  "title": "Hooks",
+  "pages": ["events", "settings", "context", "lifecycle", "sdk", "utility"]
+}

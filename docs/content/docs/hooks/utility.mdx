@@ -1,0 +1,113 @@
+---
+title: Utility Hooks
+description: Timer, animation, and helper hooks for common Stream Deck patterns.
+---
+
+## useInterval
+
+Safe interval hook that auto-cleans on unmount. Pass `null` to pause.
+
+```ts
+function useInterval(callback: () => void, delayMs: number | null): IntervalControls;
+```
+
+```ts
+interface IntervalControls {
+  reset: () => void;
+}
+```
+
+```tsx
+function ClockKey() {
+  const [time, setTime] = useState(new Date());
+
+  useInterval(() => {
+    setTime(new Date());
+  }, 1000);
+
+  return (
+    <div style={{
+      width: '100%', height: '100%',
+      alignItems: 'center', justifyContent: 'center',
+      background: '#000',
+    }}>
+      <span style={{ color: 'white', fontSize: 22 }}>
+        {time.toLocaleTimeString()}
+      </span>
+    </div>
+  );
+}
+```
+
+Call `reset()` on the returned controls to restart the interval from zero.
+
+## useTimeout
+
+Safe timeout hook that auto-cleans on unmount. Pass `null` to cancel.
+
+```ts
+function useTimeout(callback: () => void, delayMs: number | null): TimeoutControls;
+```
+
+```ts
+interface TimeoutControls {
+  cancel: () => void;
+  reset: () => void;
+}
+```
+
+## usePrevious
+
+Returns the previous value of a variable from the last render.
+
+```ts
+function usePrevious<T>(value: T): T | undefined;
+```
+
+```tsx
+function MyKey() {
+  const [count, setCount] = useState(0);
+  const prev = usePrevious(count);
+
+  // prev is undefined on first render, then trails count by one render
+}
+```
+
+## useTick
+
+Calls the callback repeatedly with delta time using timer-driven ticks. Pass a number to set target FPS, `true` for 60fps, or `false` to pause.
+
+```ts
+function useTick(
+  callback: (deltaMs: number) => void,
+  fpsOrActive?: number | boolean,
+): void;
+```
+
+Default FPS is 60. The callback receives the elapsed milliseconds since the last tick.
+
+```tsx
+function AnimatedKey() {
+  const [rotation, setRotation] = useState(0);
+
+  useTick((delta) => {
+    setRotation((r) => (r + delta * 0.1) % 360);
+  });
+
+  // ...
+}
+```
+
+### Note on Animation Performance
+
+The actual frame rate is capped by the render debounce (default 16ms = ~60fps theoretical max). In practice, rendering time limits real throughput to roughly 10-30fps depending on component complexity.
+
+## useAnimationFrame
+
+> **Deprecated**: Use `useTick` instead.
+
+Legacy wrapper that calls `useTick` under the hood with 60fps when active.
+
+```ts
+function useAnimationFrame(callback: (deltaMs: number) => void, active?: boolean): void;
+```

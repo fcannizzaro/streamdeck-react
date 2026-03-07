@@ -1,0 +1,27 @@
+{
+  "name": "sample-pokemon",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "bunx --bun rollup -c -w --watch.onEnd=\"streamdeck restart com.example.react-pokemon\"",
+    "build": "rollup -c",
+    "check-types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@takumi-rs/core-darwin-arm64": "^0.69.5",
+    "@tanstack/react-query": "^5.72.2",
+    "react": "^19.2.4",
+    "@fcannizzaro/streamdeck-react": "workspace:*",
+    "ws": "^8.19.0"
+  },
+  "devDependencies": {
+    "@elgato/cli": "^1.7.1",
+    "@rollup/plugin-commonjs": "^29.0.0",
+    "@rollup/plugin-json": "^6.1.0",
+    "@rollup/plugin-node-resolve": "^16.0.3",
+    "@types/react": "^19.2.14",
+    "rollup": "^4.59.0",
+    "rollup-plugin-esbuild": "^6.2.1"
+  }
+}

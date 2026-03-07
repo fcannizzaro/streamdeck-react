@@ -1,0 +1,40 @@
+---
+title: Touch Input
+description: Handle Stream Deck+ touch taps from React components.
+---
+
+The Stream Deck+ exposes touch events through the Stream Deck SDK. `@fcannizzaro/streamdeck-react` surfaces those taps through `useTouchTap()` so encoder actions can respond to the touch area without wiring SDK listeners manually.
+
+## Basic Usage
+
+```tsx
+function VolumeDial() {
+  useTouchTap(({ tapPos, hold }) => {
+    console.log('touch position', tapPos, 'hold', hold);
+  });
+
+  return (
+    <div style={{ width: '100%', height: '100%', background: '#1a1a1a' }} />
+  );
+}
+```
+
+## Payload
+
+```ts
+interface TouchTapPayload {
+  tapPos: [x: number, y: number];
+  hold: boolean;
+  settings: JsonObject;
+}
+```
+
+## Practical Pattern
+
+Touch taps pair naturally with encoder actions:
+
+- `useDialRotate()` adjusts a value.
+- `useDialDown()` toggles or confirms.
+- `useTouchTap()` jumps to presets, opens a mode, or resets state.
+
+See [Dial & Encoder Support](/guides/dials-and-encoders) for a full encoder workflow.

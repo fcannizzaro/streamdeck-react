@@ -1,0 +1,59 @@
+---
+title: Font Management
+description: How to load and configure fonts for rendered Stream Deck UI.
+---
+
+## Why Fonts Are Required
+
+The renderer cannot access system fonts from the Stream Deck runtime. It needs font file data (`ArrayBuffer` or `Buffer`) in `.ttf`, `.otf`, or `.woff` format. **WOFF2 is not supported.**
+
+## Loading Fonts
+
+```ts
+import { readFile } from 'node:fs/promises';
+
+const fonts = [
+  {
+    name: 'Inter',
+    data: await readFile('./fonts/Inter-Regular.ttf'),
+    weight: 400 as const,
+    style: 'normal' as const,
+  },
+  {
+    name: 'Inter',
+    data: await readFile('./fonts/Inter-Bold.ttf'),
+    weight: 700 as const,
+    style: 'normal' as const,
+  },
+];
+```
+
+### FontConfig Interface
+
+```ts
+interface FontConfig {
+  name: string;
+  data: ArrayBuffer | Buffer;
+  weight: 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900;
+  style: 'normal' | 'italic';
+}
+```
+
+## Using Fonts in Components
+
+The renderer resolves fonts by matching `fontFamily`, `fontWeight`, and `fontStyle`:
+
+```tsx
+<span style={{ fontFamily: 'Inter', fontWeight: 700 }}>Bold text</span>
+<span style={{ fontFamily: 'Inter', fontWeight: 400 }}>Regular text</span>
+```
+
+If a requested weight isn't loaded, the nearest available weight is used.
+
+## Font Bundle Size
+
+Each font weight/style is a separate file:
+- Latin-only subset: ~50-300KB
+- CJK character sets: ~1-5MB
+
+Plugins shipping multiple fonts will have a larger bundle. Consider subsetting fonts to reduce size.

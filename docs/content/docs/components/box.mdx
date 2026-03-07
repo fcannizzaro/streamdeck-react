@@ -1,0 +1,53 @@
+---
+title: Box
+description: A convenience container component with shorthand layout props.
+---
+
+`Box` renders a `div` with `display: flex` and convenience props for common layout patterns.
+
+## Import
+
+```tsx
+import { Box } from '@fcannizzaro/streamdeck-react';
+```
+
+## Props
+
+```ts
+interface BoxProps {
+  className?: string;
+  center?: boolean;
+  padding?: number;
+  background?: string;
+  borderRadius?: number;
+  gap?: number;
+  direction?: 'row' | 'column';
+  style?: CSSProperties;
+  children?: ReactNode;
+}
+```
+
+| Prop | Description |
+|------|-------------|
+| `center` | Sets `alignItems` and `justifyContent` to `'center'` |
+| `padding` | Padding in pixels |
+| `background` | Background color (`backgroundColor`) |
+| `borderRadius` | Border radius in pixels |
+| `gap` | Gap between children in pixels |
+| `direction` | Flex direction. Default: `'column'` |
+| `className` | Tailwind class string |
+| `style` | Additional inline styles (merged last, can override shorthands) |
+
+## Example
+
+```tsx
+<Box center padding={8} background="#1a1a1a" borderRadius={12} gap={4}>
+  <Text size={12} color="#888">LABEL</Text>
+  <Text size={24} color="white" weight={700}>42</Text>
+</Box>
+```
+
+## Notes
+
+- `Box` is purely optional. You can always use raw `<div>` elements with inline styles.
+- Default `flexDirection` is `'column'`.

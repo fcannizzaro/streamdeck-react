@@ -1,0 +1,118 @@
+---
+title: Context Hooks
+description: Access device info, action metadata, canvas dimensions, and the raw SDK from React components.
+---
+
+## useDevice
+
+Returns information about the Stream Deck device this action instance is running on.
+
+```ts
+function useDevice(): DeviceInfo;
+```
+
+```ts
+interface DeviceInfo {
+  id: string;
+  type: DeviceType; // e.g. 0 (StreamDeck), 2 (StreamDeckXL), 7 (StreamDeckPlus), etc.
+  size: { columns: number; rows: number };
+  name: string;
+}
+```
+
+The value is set once on mount and does not change.
+
+## useAction
+
+Returns metadata about the current action instance.
+
+```ts
+function useAction(): ActionInfo;
+```
+
+```ts
+interface ActionInfo {
+  id: string;            // Unique context ID for this placed instance
+  uuid: string;          // Action UUID (e.g. 'com.example.plugin.counter')
+  controller: 'Keypad' | 'Encoder';
+  coordinates?: { row: number; column: number };
+  isInMultiAction: boolean;
+}
+```
+
+Use `isInMultiAction` to adapt rendering for multi-action contexts:
+
+```tsx
+function SmartKey() {
+  const { isInMultiAction } = useAction();
+
+  if (isInMultiAction) {
+    return <SimpleIcon />;
+  }
+  return <FullDashboard />;
+}
+```
+
+## useCanvas
+
+Returns the rendering dimensions for the current key, dial, or touch surface.
+
+```ts
+function useCanvas(): CanvasInfo;
+```
+
+```ts
+interface CanvasInfo {
+  width: number;   // Pixel width of the render target
+  height: number;  // Pixel height of the render target
+  type: 'key' | 'dial' | 'touch';
+}
+```
+
+The root wrapper `div` is automatically sized to these dimensions. Your component renders within it:
+
+```tsx
+function MyKey() {
+  const { width, height } = useCanvas();
+
+  return (
+    <div style={{ width, height, background: '#000' }}>
+      {/* ... */}
+    </div>
+  );
+}
+```
+
+See [Device Sizes](/reference/device-sizes) for the full dimension table.
+
+## useStreamDeck
+
+Escape hatch -- provides direct access to the underlying `@elgato/streamdeck` SDK action instance and the global `streamDeck` object.
+
+```ts
+function useStreamDeck(): StreamDeckAccess;
+```
+
+```ts
+interface StreamDeckAccess {
+  action: Action | DialAction | KeyAction;
+  sdk: typeof streamDeck;
+}
+```
+
+Use this for features not yet wrapped by the library:
+
+```tsx
+function AdvancedKey() {
+  const { action, sdk } = useStreamDeck();
+
+  useKeyDown(async () => {
+    await action.showOk();
+    await sdk.system.openUrl('https://example.com');
+  });
+
+  return <div style={{ width: '100%', height: '100%', background: '#000' }} />;
+}
+```
+
+Use sparingly -- prefer the dedicated hooks when available.

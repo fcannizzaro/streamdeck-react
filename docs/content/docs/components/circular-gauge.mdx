@@ -1,0 +1,55 @@
+---
+title: CircularGauge
+description: A ring/arc gauge component rendered via SVG.
+---
+
+`CircularGauge` renders a circular progress indicator using SVG stroke-dasharray animation.
+
+## Import
+
+```tsx
+import { CircularGauge } from '@fcannizzaro/streamdeck-react';
+```
+
+## Props
+
+```ts
+interface CircularGaugeProps {
+  className?: string;
+  value: number;
+  max?: number;
+  size?: number;
+  strokeWidth?: number;
+  color?: string;
+  background?: string;
+  style?: CSSProperties;
+}
+```
+
+| Prop | Default | Description |
+|------|---------|-------------|
+| `value` | -- | Current value |
+| `max` | `100` | Maximum value |
+| `size` | `80` | Diameter in pixels |
+| `strokeWidth` | `6` | Ring thickness in pixels |
+| `color` | `'#2196F3'` | Foreground arc color |
+| `background` | `'#333'` | Background ring color |
+
+## Example
+
+```tsx
+<CircularGauge
+  value={75}
+  max={100}
+  size={80}
+  strokeWidth={6}
+  color="#2196F3"
+  background="#333"
+/>
+```
+
+## How It Works
+
+The gauge renders two SVG `circle` elements:
+1. A background circle (full ring in the `background` color).
+2. A foreground circle with `strokeDasharray` and `strokeDashoffset` to show partial fill, rotated -90 degrees so the arc starts from the top.

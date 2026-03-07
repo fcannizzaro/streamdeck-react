@@ -1,0 +1,92 @@
+---
+title: Settings & Property Inspector
+description: Bi-directional settings sync and Property Inspector communication.
+---
+
+## Settings Sync Architecture
+
+```
+┌──────────────┐       setSettings()        ┌──────────────────┐
+│  React Tree  │ ────────────────────────>   │  Stream Deck SDK │
+│  (useState)  │                             │  (persisted)     │
+│              │ <────────────────────────   │                  │
+└──────────────┘   onDidReceiveSettings      └──────────────────┘
+                                                      ↕
+                                             ┌──────────────────┐
+                                             │ Property Inspector│
+                                             │ (HTML/JS UI)     │
+                                             └──────────────────┘
+```
+
+1. **React to SDK**: calling `setSettings({ count: 5 })` updates the React state (triggers re-render) and calls `action.setSettings()` to persist.
+2. **SDK to React**: when the Property Inspector changes settings, `onDidReceiveSettings` fires and the React state updates.
+3. **Conflict resolution**: the SDK is the source of truth (last-write-wins).
+
+## Per-Action Settings
+
+```tsx
+type MySettings = { color: string; brightness: number };
+
+function MyKey() {
+  const [settings, setSettings] = useSettings<MySettings>();
+
+  useKeyDown(() => {
+    setSettings({ brightness: Math.min(100, settings.brightness + 10) });
+  });
+
+  // settings.color, settings.brightness are reactive
+}
+```
+
+`setSettings` uses shallow merge (`{ ...current, ...partial }`), matching the SDK behavior.
+
+## Global Settings
+
+```tsx
+type GlobalConfig = { apiKey: string; theme: 'light' | 'dark' };
+
+function MyKey() {
+  const [global, setGlobal] = useGlobalSettings<GlobalConfig>();
+  // Shared across all action instances
+}
+```
+
+## Property Inspector Communication
+
+Beyond settings, you can send arbitrary messages between the plugin and the Property Inspector:
+
+### Sending to PI
+
+```tsx
+function MyKey() {
+  const sendToPI = useSendToPI();
+
+  useKeyDown(() => {
+    sendToPI({ currentState: 'active', timestamp: Date.now() });
+  });
+}
+```
+
+### Receiving from PI
+
+```tsx
+function MyKey() {
+  usePropertyInspector<{ action: string }>((msg) => {
+    if (msg.action === 'refresh') {
+      // Handle PI message
+    }
+  });
+}
+```
+
+## Default Settings
+
+Set default values in `defineAction` so new instances start with sensible state:
+
+```tsx
+export const myAction = defineAction<MySettings>({
+  uuid: 'com.example.plugin.my-action',
+  key: MyKey,
+  defaultSettings: { color: '#000', brightness: 50 },
+});
+```

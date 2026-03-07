@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <rect width="128" height="128" rx="24" fill="#533483" />
+  <circle cx="64" cy="58" r="26" fill="none" stroke="#ffffff" stroke-width="5" />
+  <line x1="38" y1="58" x2="90" y2="58" stroke="#ffffff" stroke-width="5" />
+  <circle cx="64" cy="58" r="8" fill="#ffffff" />
+  <circle cx="64" cy="58" r="4" fill="#533483" />
+  <text x="64" y="108" text-anchor="middle" font-size="14" font-family="Arial" font-weight="700" fill="#ffffff">CATCH</text>
+</svg>

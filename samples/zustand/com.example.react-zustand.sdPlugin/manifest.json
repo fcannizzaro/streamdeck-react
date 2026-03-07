@@ -1,0 +1,68 @@
+{
+  "$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
+  "Actions": [
+    {
+      "Icon": "imgs/actions/display",
+      "Name": "Shared Display",
+      "States": [
+        {
+          "Image": "imgs/actions/display"
+        }
+      ],
+      "UUID": "com.example.react-zustand.display",
+      "Controllers": ["Keypad"],
+      "Tooltip": "Shows the current Zustand count shared across actions."
+    },
+    {
+      "Icon": "imgs/actions/increment",
+      "Name": "Increment",
+      "States": [
+        {
+          "Image": "imgs/actions/increment"
+        }
+      ],
+      "UUID": "com.example.react-zustand.increment",
+      "Controllers": ["Keypad"],
+      "Tooltip": "Increments the shared Zustand store."
+    },
+    {
+      "Icon": "imgs/actions/reset",
+      "Name": "Reset",
+      "States": [
+        {
+          "Image": "imgs/actions/reset"
+        }
+      ],
+      "UUID": "com.example.react-zustand.reset",
+      "Controllers": ["Keypad"],
+      "Tooltip": "Resets the shared Zustand store."
+    }
+  ],
+  "Author": "Francesco Saverio Cannizzaro",
+  "Category": "React Zustand Sample",
+  "CategoryIcon": "imgs/plugin-icon",
+  "CodePath": "bin/plugin.mjs",
+  "Description": "Sample plugin demonstrating shared cross-action state with Zustand.",
+  "Icon": "imgs/plugin-icon",
+  "Name": "React Zustand Sample",
+  "Nodejs": {
+    "Version": "20",
+    "Debug": "--inspect=127.0.0.1:8091"
+  },
+  "OS": [
+    {
+      "Platform": "mac",
+      "MinimumVersion": "13"
+    },
+    {
+      "Platform": "windows",
+      "MinimumVersion": "10"
+    }
+  ],
+  "UUID": "com.example.react-zustand",
+  "Version": "0.0.0.1",
+  "SDKVersion": 2,
+  "Software": {
+    "MinimumVersion": "6.9"
+  }
+}

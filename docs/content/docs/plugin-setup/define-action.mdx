@@ -1,0 +1,148 @@
+---
+title: defineAction
+description: Define a Stream Deck action with React components for keys, dials, and touch displays.
+---
+
+`defineAction` maps a Stream Deck action UUID to React components that render on the hardware.
+
+## Basic Usage
+
+```tsx
+import { defineAction, useKeyDown } from '@fcannizzaro/streamdeck-react';
+import { useState } from 'react';
+
+function CounterKey() {
+  const [count, setCount] = useState(0);
+  useKeyDown(() => setCount((c) => c + 1));
+
+  return (
+    <div style={{
+      width: '100%', height: '100%',
+      alignItems: 'center', justifyContent: 'center',
+      background: '#000',
+    }}>
+      <span style={{ color: 'white', fontSize: 32 }}>{count}</span>
+    </div>
+  );
+}
+
+export const counterAction = defineAction({
+  uuid: 'com.example.plugin.counter',
+  key: CounterKey,
+});
+```
+
+## Configuration
+
+```ts
+interface ActionConfig<S extends JsonObject = JsonObject> {
+  uuid: string;
+  key?: ComponentType;
+  dial?: ComponentType;
+  touch?: ComponentType;
+  dialLayout?: EncoderLayout;
+  wrapper?: WrapperComponent;
+  defaultSettings?: Partial<S>;
+}
+```
+
+### `uuid` (required)
+
+The action UUID. Must match the UUID declared in your `manifest.json`.
+
+### `key`
+
+Component rendered when the action is placed on a key (Keypad controller).
+
+### `dial`
+
+Component rendered when the action is placed on an encoder slot (Stream Deck+). If not provided and the action is placed on an encoder, the `key` component is used as a fallback.
+
+### `dialLayout`
+
+Customize the Stream Deck+ feedback layout sent to `setFeedbackLayout()`. By default, encoder actions use a full-width canvas layout:
+
+```ts
+{
+  id: 'com.example.plugin.react-layout',
+  items: [
+    {
+      key: 'canvas',
+      type: 'pixmap',
+      rect: [0, 0, 200, 100],
+    },
+  ],
+}
+```
+
+If you provide a custom object layout, it should include a `pixmap` item keyed as `canvas` so the renderer can target it.
+
+```tsx
+export const volumeAction = defineAction({
+  uuid: 'com.example.plugin.volume',
+  dial: VolumeDial,
+  dialLayout: '$A1',
+});
+```
+
+### `touch`
+
+Reserved in the current action shape. For touch interactions on Stream Deck+, use [`useTouchTap`](/hooks/events) from the mounted action root instead.
+
+For encoder rendering, you can still pair a key surface with a dedicated dial component:
+
+```tsx
+export const volumeAction = defineAction<VolumeSettings>({
+  uuid: 'com.example.plugin.volume',
+  key: VolumeKey,        // Rendered on a key
+  dial: VolumeDial,      // Rendered on the dial display
+  defaultSettings: { volume: 50, muted: false },
+});
+```
+
+### `wrapper`
+
+An optional component that wraps this action's root. Use this for action-scoped providers:
+
+```tsx
+export const myAction = defineAction({
+  uuid: 'com.example.plugin.my-action',
+  key: MyKey,
+  wrapper: ({ children }) => (
+    <MyActionProvider>{children}</MyActionProvider>
+  ),
+});
+```
+
+This wrapper is nested inside the global plugin wrapper (if any).
+
+### `defaultSettings`
+
+Default settings for new instances. These are shallow-merged with the settings stored in the Stream Deck.
+
+## Typed Settings
+
+Pass a type parameter to `defineAction` for typed settings:
+
+```tsx
+type VolumeSettings = {
+  volume: number;
+  muted: boolean;
+};
+
+export const volumeAction = defineAction<VolumeSettings>({
+  uuid: 'com.example.plugin.volume',
+  dial: VolumeDial,
+  defaultSettings: { volume: 50, muted: false },
+});
+```
+
+Your components then use `useSettings<VolumeSettings>()` to get typed access.
+
+## How It Maps to SingletonAction
+
+Internally, each `defineAction` call produces an `ActionDefinition` object. When `createPlugin` processes it, a `SingletonAction` subclass is generated that:
+
+- Creates a React root on `onWillAppear`
+- Destroys it on `onWillDisappear`
+- Dispatches SDK events (`onKeyDown`, `onDialRotate`, etc.) into the root's event bus

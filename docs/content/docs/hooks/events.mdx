@@ -1,0 +1,177 @@
+---
+title: Event Hooks
+description: React hooks for Stream Deck hardware events -- key presses, dial rotation, touch taps, and dial hints.
+---
+
+Event hooks subscribe to Stream Deck hardware events and fire callbacks inside the React tree.
+
+## useKeyDown
+
+Fires when a key is pressed down.
+
+```ts
+function useKeyDown(callback: (payload: KeyDownPayload) => void): void;
+```
+
+```ts
+interface KeyDownPayload {
+  settings: JsonObject;
+  isInMultiAction: boolean;
+  state?: number;
+  userDesiredState?: number;
+}
+```
+
+```tsx
+function CounterKey() {
+  const [count, setCount] = useState(0);
+
+  useKeyDown(() => {
+    setCount((c) => c + 1);
+  });
+
+  return (
+    <div style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center', background: '#000' }}>
+      <span style={{ color: 'white', fontSize: 32 }}>{count}</span>
+    </div>
+  );
+}
+```
+
+## useKeyUp
+
+Fires when a key is released.
+
+```ts
+function useKeyUp(callback: (payload: KeyUpPayload) => void): void;
+```
+
+```ts
+interface KeyUpPayload {
+  settings: JsonObject;
+  isInMultiAction: boolean;
+  state?: number;
+  userDesiredState?: number;
+}
+```
+
+```tsx
+function HoldKey() {
+  const [pressed, setPressed] = useState(false);
+
+  useKeyDown(() => setPressed(true));
+  useKeyUp(() => setPressed(false));
+
+  return (
+    <div style={{
+      width: '100%', height: '100%',
+      alignItems: 'center', justifyContent: 'center',
+      background: pressed ? '#4CAF50' : '#333',
+    }}>
+      <span style={{ color: 'white', fontSize: 18 }}>
+        {pressed ? 'HELD' : 'PRESS'}
+      </span>
+    </div>
+  );
+}
+```
+
+## useDialRotate
+
+Fires when a dial/encoder is rotated.
+
+```ts
+function useDialRotate(callback: (payload: DialRotatePayload) => void): void;
+```
+
+```ts
+interface DialRotatePayload {
+  ticks: number;     // Positive = clockwise, negative = counter-clockwise
+  pressed: boolean;  // Whether the dial is pressed while rotating
+  settings: JsonObject;
+}
+```
+
+```tsx
+function VolumeDial() {
+  const [volume, setVolume] = useState(50);
+
+  useDialRotate(({ ticks }) => {
+    setVolume((v) => Math.max(0, Math.min(100, v + ticks)));
+  });
+
+  return (
+    <div style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center', background: '#1a1a1a' }}>
+      <span style={{ color: 'white', fontSize: 28 }}>{volume}%</span>
+    </div>
+  );
+}
+```
+
+## useDialDown / useDialUp
+
+Fire when a dial is pressed / released.
+
+```ts
+function useDialDown(callback: (payload: DialPressPayload) => void): void;
+function useDialUp(callback: (payload: DialPressPayload) => void): void;
+```
+
+```ts
+interface DialPressPayload {
+  settings: JsonObject;
+  controller: 'Encoder';
+}
+```
+
+## useTouchTap
+
+Fires when the touch strip area is tapped.
+
+```ts
+function useTouchTap(callback: (payload: TouchTapPayload) => void): void;
+```
+
+```ts
+interface TouchTapPayload {
+  tapPos: [x: number, y: number];  // Coordinates of the tap
+  hold: boolean;                    // Whether it was a long press
+  settings: JsonObject;
+}
+```
+
+## useDialHint
+
+Sets the trigger descriptions shown on Stream Deck+ for what the dial actions do. Updates automatically when hints change.
+
+```ts
+function useDialHint(hints: DialHints): void;
+```
+
+```ts
+interface DialHints {
+  rotate?: string;
+  press?: string;
+  touch?: string;
+  longTouch?: string;
+}
+```
+
+```tsx
+function VolumeDial() {
+  const [muted, setMuted] = useState(false);
+
+  useDialHint({
+    rotate: 'Adjust volume',
+    press: muted ? 'Unmute' : 'Mute',
+  });
+
+  // ...
+}
+```
+
+Under the hood, `useDialHint` calls `action.setTriggerDescription()` whenever the hint values change.
+
+## Implementation Pattern
+
+All event hooks follow the same internal pattern: they subscribe to the root's EventBus via `useEffect` and use a stable callback ref to avoid stale closures without causing re-subscriptions.

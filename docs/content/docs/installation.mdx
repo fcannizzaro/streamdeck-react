@@ -1,0 +1,116 @@
+---
+title: Installation
+description: Install @fcannizzaro/streamdeck-react, React, and the tooling needed to bundle a Stream Deck plugin.
+---
+
+## Requirements
+
+- Node.js 20+
+- React 18 or 19
+- TypeScript 5+ if your plugin is written in TypeScript
+- A standard Stream Deck plugin project with a `manifest.json`
+
+## Install the Library
+
+```bash tab="npm"
+npm install @fcannizzaro/streamdeck-react react
+```
+
+```bash tab="bun"
+bun add @fcannizzaro/streamdeck-react react
+```
+
+```bash tab="pnpm"
+pnpm add @fcannizzaro/streamdeck-react react
+```
+
+`@fcannizzaro/streamdeck-react` ships the Stream Deck SDK integration and Takumi renderer bindings as package dependencies, so a basic plugin does not need extra runtime packages just to render keys.
+
+## Start with the Create CLI
+
+If you want a ready-to-run plugin scaffold, use `create-streamdeck-react`:
+
+```bash tab="npm"
+npm create streamdeck-react@latest
+```
+
+```bash tab="pnpm"
+pnpm create streamdeck-react
+```
+
+```bash tab="bun"
+bun create streamdeck-react
+```
+
+The CLI asks for your plugin UUID, author, supported platforms, native addon targets, and starter example, then generates a complete `.sdPlugin` project.
+
+## Add a Bundler
+
+The sample plugins use Rollup together with the helpers exported from `@fcannizzaro/streamdeck-react/rollup`:
+
+```bash tab="npm"
+npm install -D rollup @rollup/plugin-node-resolve @rollup/plugin-commonjs @rollup/plugin-json rollup-plugin-esbuild
+```
+
+```bash tab="bun"
+bun add -d rollup @rollup/plugin-node-resolve @rollup/plugin-commonjs @rollup/plugin-json rollup-plugin-esbuild
+```
+
+`resolveLibraryPaths()` is no longer required. A standard Rollup config plus `nativeAddon({ targets })` is enough.
+
+## Install Native Target Packages
+
+For manual setup, install the `@takumi-rs/core-*` packages that match the targets you pass to `nativeAddon({ targets })`.
+
+| Rollup target | Package |
+| --- | --- |
+| `darwin-arm64` | `@takumi-rs/core-darwin-arm64` |
+| `darwin-x64` | `@takumi-rs/core-darwin-x64` |
+| `win32-arm64` | `@takumi-rs/core-win32-arm64-msvc` |
+| `win32-x64` | `@takumi-rs/core-win32-x64-msvc` |
+
+Example:
+
+```bash tab="npm"
+npm install @takumi-rs/core-darwin-arm64
+```
+
+```bash tab="bun"
+bun add @takumi-rs/core-darwin-arm64
+```
+
+## What Gets Installed
+
+- `react-reconciler` powers the custom React renderer.
+- `@elgato/streamdeck` handles the Stream Deck SDK connection.
+- `@takumi-rs/core` and `@takumi-rs/helpers` render your JSX tree to hardware-ready images.
+
+## Fonts
+
+You must provide at least one font file to `createPlugin()`.
+
+- Supported formats: `.ttf`, `.otf`, `.woff`
+- Not supported: `.woff2`
+- Source: local file loaded as `Buffer` or `ArrayBuffer`
+
+```ts
+import { readFile } from 'node:fs/promises';
+
+const font = {
+  name: 'Inter',
+  data: await readFile(new URL('../fonts/Inter-Regular.ttf', import.meta.url)),
+  weight: 400,
+  style: 'normal' as const,
+};
+```
+
+See [Font Management](/plugin-setup/fonts) for the full shape and loading strategy.
+
+## Next Steps
+
+<Cards>
+  <Card title="Create CLI" href="/guides/create-cli" />
+  <Card title="Quick Start" href="/quick-start" />
+  <Card title="How to Use" href="/how-to-use" />
+  <Card title="Font Management" href="/plugin-setup/fonts" />
+</Cards>

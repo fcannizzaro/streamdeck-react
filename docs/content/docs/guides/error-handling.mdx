@@ -1,0 +1,65 @@
+---
+title: Error Handling
+description: How @fcannizzaro/streamdeck-react handles component errors, render failures, and recovery.
+---
+
+## Component Errors
+
+When a component throws during render, the library catches it at the root level and:
+
+1. Logs the error via `console.error('[@fcannizzaro/streamdeck-react] Component error: ...')`.
+2. Renders a fallback error image (red background with "Error" text).
+3. Does **not** crash the plugin -- other action instances continue working.
+
+## User Error Boundaries
+
+Use the built-in `ErrorBoundary` component for granular error handling within your components:
+
+```tsx
+import { ErrorBoundary } from '@fcannizzaro/streamdeck-react';
+
+function SafeKey() {
+  return (
+    <ErrorBoundary
+      fallback={<ErrorFallback />}
+      onError={(error, info) => {
+        console.error('Caught:', error);
+      }}
+    >
+      <RiskyComponent />
+    </ErrorBoundary>
+  );
+}
+```
+
+## Root Error Boundary
+
+Every action root is automatically wrapped in an error boundary. If a component throws:
+
+1. The key/dial shows a red error indicator.
+2. The error is logged.
+3. All other action instances continue working.
+
+### Custom Error Callback
+
+Use `onActionError` in `createPlugin` for custom error reporting:
+
+```ts
+const plugin = createPlugin({
+  // ...
+  onActionError: (uuid, actionId, error) => {
+    myErrorTracker.report(error);
+  },
+});
+```
+
+## Render Errors
+
+If rendering fails because of invalid JSX structure, unsupported styling, or image generation issues, the error is caught the same way -- logged and replaced with a fallback image. The plugin continues running.
+
+## Best Practices
+
+1. Wrap risky code (network calls, external data parsing) in error boundaries.
+2. Use `onActionError` for centralized error reporting.
+3. Keep component trees simple to minimize renderer edge cases.
+4. Test components with various data states, including empty/null values.

@@ -1,0 +1,72 @@
+---
+title: Rendering Pipeline
+description: How the virtual tree becomes an image on Stream Deck hardware.
+---
+
+## VNode Tree
+
+After the React reconciler commits, the host nodes form a virtual tree:
+
+```ts
+interface VNode {
+  type: string;           // 'div', 'span', 'img', 'svg', etc.
+  props: Record<string, unknown>;
+  children: VNode[];
+  text?: string;          // For text instances
+}
+```
+
+## React Elements to Takumi Nodes
+
+The VNode tree is serialized back into React elements:
+
+```ts
+function vnodeToElement(node: VNode): React.ReactElement | string {
+  if (node.type === '#text') return node.text ?? '';
+
+  const children = node.children.map(vnodeToElement);
+  return React.createElement(node.type, node.props, ...children);
+}
+```
+
+Those React elements are then converted into Takumi nodes by `@takumi-rs/helpers/jsx`.
+
+## Render Configuration
+
+```ts
+interface RenderConfig {
+  width: number;         // From device/controller detection
+  height: number;
+  fonts: FontConfig[];   // From plugin config
+  format: 'png' | 'webp';
+}
+```
+
+Dimensions are determined automatically from the device type and controller. See [Device Sizes](/reference/device-sizes) for the full table.
+
+## Image Buffer to Data URI
+
+```ts
+function bufferToDataUri(buffer: Buffer | Uint8Array, format: string): string {
+  return `data:image/${format};base64,${Buffer.from(buffer).toString('base64')}`;
+}
+```
+
+## Output Caching
+
+After rendering, the library hashes the image buffer with FNV-1a. If the hash matches the last pushed image, the `setImage()` call is skipped entirely.
+
+```ts
+const hash = fnv1a(buffer);
+if (hash === container.lastSvgHash) return; // skip
+container.lastSvgHash = hash;
+```
+
+## Render Batching
+
+Multiple state updates within a single event handler are batched by React's automatic batching. The library adds an additional layer:
+
+1. **Microtask scheduling** -- after `resetAfterCommit`, a microtask is queued rather than rendering immediately. Multiple commits in the same tick produce only one render pass.
+2. **Configurable debounce** -- for high-frequency events (dial rotation can fire 60+ events/second), an optional `renderDebounceMs` (default: 16ms, ~60fps ceiling) coalesces renders.
+
+The renderer writes PNG by default and can be configured to output WebP with `imageFormat: 'webp'`.

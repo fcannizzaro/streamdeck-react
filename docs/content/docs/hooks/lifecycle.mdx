@@ -1,0 +1,61 @@
+---
+title: Lifecycle Hooks
+description: React hooks for Stream Deck action lifecycle events.
+---
+
+## useWillAppear
+
+Fires once when the action instance appears and the React root is mounted. Use this for initialization logic.
+
+```ts
+function useWillAppear(callback: (payload: WillAppearPayload) => void): void;
+```
+
+```ts
+interface WillAppearPayload {
+  settings: JsonObject;
+  controller: 'Keypad' | 'Encoder';
+  isInMultiAction: boolean;
+}
+```
+
+```tsx
+function DashboardKey() {
+  const [data, setData] = useState(null);
+
+  useWillAppear(() => {
+    // Fetch initial data when the key appears
+    fetchData().then(setData);
+  });
+
+  // ...
+}
+```
+
+## useWillDisappear
+
+Fires when the action is about to disappear (the React root is being unmounted).
+
+```ts
+function useWillDisappear(callback: () => void): void;
+```
+
+```tsx
+function StreamingKey() {
+  const connectionRef = useRef(null);
+
+  useWillAppear(() => {
+    connectionRef.current = openConnection();
+  });
+
+  useWillDisappear(() => {
+    connectionRef.current?.close();
+  });
+
+  // ...
+}
+```
+
+### Note on Cleanup
+
+Because `onWillDisappear` unmounts the entire React root, `useEffect` cleanup functions already handle teardown. `useWillDisappear` is a convenience for explicit opt-in to the Stream Deck lifecycle event, but standard `useEffect` cleanup patterns work the same way.

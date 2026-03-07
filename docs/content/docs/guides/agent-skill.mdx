@@ -1,0 +1,132 @@
+---
+title: Agent Skill
+description: Install and use the @fcannizzaro/streamdeck-react agent skill for AI-assisted plugin development.
+---
+
+## What Is an Agent Skill?
+
+An agent skill is a reusable package of context that teaches AI coding agents how to work with a specific framework or library. Instead of re-explaining your project setup every time, you install a skill once and the agent loads it when relevant.
+
+Skills follow the open [Agent Skills standard](https://agentskills.io/specification) and can be managed with the [`skills` CLI](https://skills.sh/docs/cli).
+
+## What the Skill Provides
+
+The `streamdeck-react` skill teaches agents:
+
+- **Project setup** -- folder structure, dependencies, `package.json`, `tsconfig.json`
+- **Core workflow** -- `defineAction()` → `createPlugin()` → `plugin.connect()`
+- **Full API surface** -- every exported hook, component, type, and utility
+- **Rollup bundling** -- config template, `nativeAddon({ targets })`, production target selection
+- **Runtime prerequisites** -- `ws`, fonts, and platform-specific Takumi bindings
+- **manifest.json alignment** -- UUID matching, encoder blocks, CodePath
+- **State management** -- when to use `useState`, `useSettings`, `useGlobalSettings`, Zustand, or Jotai
+- **Device sizes** -- key/encoder/touch dimensions per hardware model
+- **Gotchas** -- font requirements, WOFF2 limitation, render debouncing, and more
+
+The skill uses **progressive disclosure**: the main `SKILL.md` gives the agent enough to scaffold a working plugin, and `references/` files provide deep API detail loaded only when needed.
+
+## Installing the Skill
+
+### From GitHub
+
+```bash
+# Install all skills from this repo
+npx skills add fcannizzaro/streamdeck-react
+
+# Install only the streamdeck-react skill
+npx skills add fcannizzaro/streamdeck-react --skill streamdeck-react
+
+# Install globally (available across all projects)
+npx skills add -g fcannizzaro/streamdeck-react
+```
+
+Because this repo is the skill package, publishing the repo is enough for sharing. There is no separate registry publish step for skills.sh-style skills.
+
+### From a Local Clone
+
+```bash
+npx skills add ./skills
+```
+
+### Verify Installation
+
+```bash
+npx skills list
+```
+
+You should see `streamdeck-react` with its description in the output.
+
+## Skill Structure
+
+```
+skills/
+  streamdeck-react/
+    SKILL.md                      # Main instructions (loaded on activation)
+    references/
+      api-surface.md              # Full public API table
+      plugin-setup.md             # createPlugin / defineAction details
+      hooks.md                    # All hooks with signatures
+      components.md               # Component props tables
+      rollup-bundling.md          # Rollup config and native addon
+      device-sizes.md             # Hardware dimensions
+      limitations.md              # Constraints and trade-offs
+```
+
+### SKILL.md
+
+The entry point. Contains YAML frontmatter (`name` and `description`) followed by Markdown instructions covering setup, core workflow, quick-reference tables, and gotchas. Kept concise enough to avoid context bloat on activation.
+
+### references/
+
+Detailed documents loaded on-demand when the agent needs deeper information about a specific topic. Each file is self-contained and covers one area of the API.
+
+## How Agents Use It
+
+1. The agent sees the skill's `name` and `description` and decides whether it's relevant to the current task.
+2. If relevant, the agent loads `SKILL.md` for the full instructions.
+3. When working on a specific topic (e.g., hooks or Rollup config), the agent follows links to `references/` for detailed signatures and examples.
+
+## For Contributors
+
+### Spec Requirements
+
+Skills must follow these rules:
+
+- `SKILL.md` must have YAML frontmatter with `name` and `description`
+- `name` must match the parent directory name
+- `name` uses lowercase letters, numbers, and hyphens only
+- `description` should say what the skill does AND when to use it
+
+### Testing Locally
+
+```bash
+# Verify the skill is detected
+npx skills add ./skills --list
+
+# Install locally and test
+npx skills add ./skills --skill streamdeck-react
+```
+
+### Keeping the Skill Updated
+
+When the `@fcannizzaro/streamdeck-react` API changes:
+
+1. Update `SKILL.md` if the change affects setup, workflow, or gotchas.
+2. Update the relevant `references/` file for detailed API changes.
+3. Cross-check against `packages/streamdeck-react/src/index.ts` to ensure all exports are documented.
+
+## Publish and Share
+
+The repository itself is the skill package. To share it:
+
+1. Commit the `skills/streamdeck-react/` directory.
+2. Push the repository to GitHub.
+3. Tell users to install it with `npx skills add <owner/repo>` or `npx skills add <owner/repo> --skill streamdeck-react`.
+
+This follows the Vercel/skills.sh model where installability comes from a git repo containing one or more valid skill folders.
+
+<Cards>
+  <Card title="Installation" href="/installation" />
+  <Card title="Quick Start" href="/quick-start" />
+  <Card title="Architecture" href="/concepts/architecture" />
+</Cards>

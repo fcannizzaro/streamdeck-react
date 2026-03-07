@@ -1,0 +1,63 @@
+---
+title: ErrorBoundary
+description: Catch and handle component errors within the Stream Deck rendering tree.
+---
+
+`ErrorBoundary` is a standard React error boundary that catches errors in its child tree and renders a fallback.
+
+## Import
+
+```tsx
+import { ErrorBoundary } from '@fcannizzaro/streamdeck-react';
+```
+
+## Props
+
+```ts
+interface ErrorBoundaryProps {
+  fallback?: ReactNode;
+  onError?: (error: Error, errorInfo: ErrorInfo) => void;
+  children: ReactNode;
+}
+```
+
+| Prop | Description |
+|------|-------------|
+| `fallback` | React node to render when an error is caught. Default: red background with "Error" text. |
+| `onError` | Callback fired when an error is caught, receives the error and React error info. |
+
+## Example
+
+```tsx
+function SafeKey() {
+  return (
+    <ErrorBoundary fallback={<ErrorFallback />}>
+      <RiskyComponent />
+    </ErrorBoundary>
+  );
+}
+
+function ErrorFallback() {
+  return (
+    <div style={{
+      width: '100%', height: '100%',
+      background: '#b71c1c',
+      alignItems: 'center', justifyContent: 'center',
+    }}>
+      <span style={{ color: 'white', fontSize: 14 }}>Error</span>
+    </div>
+  );
+}
+```
+
+## Default Fallback
+
+If no `fallback` prop is provided, the boundary renders a red `#b71c1c` background with white "Error" text centered.
+
+## Root Error Boundary
+
+Every action root is automatically wrapped in an error boundary by the library. If a component throws, the key shows a red error indicator and the error is logged via `console.error`. The plugin continues running -- other action instances are unaffected.
+
+You can customize root-level error handling via the `onActionError` callback in [`createPlugin`](/plugin-setup/create-plugin).
+
+See also [Error Handling](/guides/error-handling) for the full error handling guide.

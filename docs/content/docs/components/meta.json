@@ -1,0 +1,12 @@
+{
+  "title": "Components",
+  "pages": [
+    "box",
+    "text",
+    "image",
+    "icon",
+    "progress-bar",
+    "circular-gauge",
+    "error-boundary"
+  ]
+}

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <rect width="128" height="128" rx="24" fill="#1c2541" />
+  <circle cx="64" cy="64" r="34" fill="#3a506b" />
+  <text x="64" y="54" text-anchor="middle" font-size="14" font-family="Arial" fill="#9fb3c8">ATOM</text>
+  <text x="64" y="84" text-anchor="middle" font-size="30" font-family="Arial" font-weight="700" fill="#ffffff">7</text>
+</svg>

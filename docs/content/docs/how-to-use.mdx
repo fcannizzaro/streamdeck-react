@@ -1,0 +1,95 @@
+---
+title: How to Use
+description: The day-to-day workflow for building Stream Deck plugins with @fcannizzaro/streamdeck-react.
+---
+
+`@fcannizzaro/streamdeck-react` is easiest to use when you think of it as a small runtime with four jobs: render components, map them to actions, connect to the SDK, and keep state in sync.
+
+## 1. Build UI as React Components
+
+Each action surface is just a React component.
+
+- Use normal React state and effects.
+- Render raw JSX, or use built-ins like `Box`, `Text`, `Image`, and `ProgressBar`.
+- Style with inline `style`, `className`, or `tw()`.
+
+```tsx
+function StatusKey() {
+  return (
+    <div className="flex h-full w-full items-center justify-center bg-[#111827]">
+      <span className="text-[18px] font-bold text-white">Ready</span>
+    </div>
+  );
+}
+```
+
+## 2. Map Components to Manifest Actions
+
+Use `defineAction()` to connect a manifest UUID to one or more surfaces.
+
+```tsx
+export const statusAction = defineAction({
+  uuid: 'com.example.plugin.status',
+  key: StatusKey,
+});
+```
+
+For encoder actions, provide a `dial` component. If `dial` is omitted, the `key` component is used as a fallback when the action is placed on an encoder.
+
+## 3. Register Everything with createPlugin()
+
+Your plugin entry file loads fonts, passes in the action list, and connects once.
+
+```ts
+const plugin = createPlugin({
+  fonts: [font],
+  actions: [statusAction],
+});
+
+await plugin.connect();
+```
+
+This file is the root of your plugin runtime.
+
+## 4. Respond to Hardware with Hooks
+
+Use the exported hooks instead of wiring SDK listeners manually.
+
+- **Events**: `useKeyDown`, `useKeyUp`, `useDialRotate`, `useDialDown`, `useDialUp`, `useTouchTap`, `useDialHint`
+- **Settings**: `useSettings`, `useGlobalSettings`
+- **Lifecycle**: `useWillAppear`, `useWillDisappear`
+- **Context**: `useDevice`, `useAction`, `useCanvas`, `useStreamDeck`
+- **SDK helpers**: `useOpenUrl`, `useSwitchProfile`, `useSendToPI`, `usePropertyInspector`, `useShowAlert`, `useShowOk`, `useTitle`
+
+## 5. Pick a State Strategy
+
+You have three common options:
+
+- **Local component state** for simple one-off action UIs.
+- **Built-in settings hooks** when state should persist across reloads.
+- **External shared state** with wrappers when multiple action roots should see the same store.
+
+The samples show all three approaches:
+
+- `samples/counter/` for local state and settings
+- `samples/zustand/` for shared module-scope state
+- `samples/jotai/` and `samples/pokemon/` for wrapper-based providers
+
+## 6. Bundle for the Stream Deck Runtime
+
+The sample projects use Rollup plus the helpers exported from `@fcannizzaro/streamdeck-react/rollup`:
+
+- `nativeAddon({ targets: [...] })` copies the Takumi native binaries you want to ship into your output directory.
+- `resolveLibraryPaths()` is no longer needed in app projects.
+- In watch mode, `nativeAddon()` can infer the current supported host target. For production builds, prefer explicit `targets`.
+
+This is the easiest way to match the working sample setup.
+
+## 7. Learn the API by Section
+
+<Cards>
+  <Card title="Plugin Setup" href="/plugin-setup/create-plugin" />
+  <Card title="Hooks" href="/hooks/events" />
+  <Card title="Components" href="/components/box" />
+  <Card title="Guides" href="/guides/shared-state" />
+</Cards>

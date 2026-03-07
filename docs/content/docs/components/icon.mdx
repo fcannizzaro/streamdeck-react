@@ -1,0 +1,53 @@
+---
+title: Icon
+description: Render inline SVG path icons without image files.
+---
+
+`Icon` renders an `svg` element with a single `path` -- useful for simple icons from icon libraries.
+
+## Import
+
+```tsx
+import { Icon } from '@fcannizzaro/streamdeck-react';
+```
+
+## Props
+
+```ts
+interface IconProps {
+  className?: string;
+  path: string;
+  size?: number;
+  color?: string;
+  viewBox?: string;
+  style?: CSSProperties;
+}
+```
+
+| Prop | Default | Description |
+|------|---------|-------------|
+| `path` | -- | SVG path `d` attribute data |
+| `size` | `24` | Width and height in pixels |
+| `color` | `'white'` | Fill color for the path |
+| `viewBox` | `'0 0 24 24'` | SVG viewBox attribute |
+
+## Example
+
+```tsx
+<Icon
+  path="M12 2L2 22h20L12 2z"
+  size={32}
+  color="white"
+  viewBox="0 0 24 24"
+/>
+```
+
+## Using with Icon Libraries
+
+Most icon libraries provide SVG path data. For example, with Material Design Icons:
+
+```tsx
+const mdiPlay = 'M8,5.14V19.14L19,12.14L8,5.14Z';
+
+<Icon path={mdiPlay} size={48} color="#4CAF50" />
+```

@@ -1,0 +1,44 @@
+{
+  "$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
+  "Actions": [
+    {
+      "Icon": "imgs/actions/pokemon",
+      "Name": "Random Pokemon",
+      "States": [
+        {
+          "Image": "imgs/actions/pokemon"
+        }
+      ],
+      "UUID": "com.example.react-pokemon.pokemon",
+      "Controllers": ["Keypad"],
+      "Tooltip": "Fetches and displays a random Pokemon sprite on each key press."
+    }
+  ],
+  "Author": "Francesco Saverio Cannizzaro",
+  "Category": "React Pokemon Sample",
+  "CategoryIcon": "imgs/plugin-icon",
+  "CodePath": "bin/plugin.mjs",
+  "Description": "Sample plugin demonstrating @fcannizzaro/streamdeck-react with TanStack React Query and the PokeAPI.",
+  "Icon": "imgs/plugin-icon",
+  "Name": "React Pokemon Sample",
+  "Nodejs": {
+    "Version": "20",
+    "Debug": "--inspect=127.0.0.1:8093"
+  },
+  "OS": [
+    {
+      "Platform": "mac",
+      "MinimumVersion": "13"
+    },
+    {
+      "Platform": "windows",
+      "MinimumVersion": "10"
+    }
+  ],
+  "UUID": "com.example.react-pokemon",
+  "Version": "0.0.0.1",
+  "SDKVersion": 2,
+  "Software": {
+    "MinimumVersion": "6.9"
+  }
+}

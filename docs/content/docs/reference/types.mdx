@@ -1,0 +1,218 @@
+---
+title: TypeScript Types
+description: Complete list of exported types from @fcannizzaro/streamdeck-react.
+---
+
+All types are exported from the main `@fcannizzaro/streamdeck-react` package.
+
+## Plugin & Action Configuration
+
+```ts
+interface PluginConfig {
+  fonts: FontConfig[];
+  actions: ActionDefinition[];
+  wrapper?: WrapperComponent;
+  renderDebounceMs?: number;
+  imageFormat?: 'png' | 'webp';
+  caching?: boolean;
+  onActionError?: (uuid: string, actionId: string, error: Error) => void;
+}
+
+interface FontConfig {
+  name: string;
+  data: ArrayBuffer | Buffer;
+  weight: 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900;
+  style: 'normal' | 'italic';
+}
+
+interface ActionConfig<S extends JsonObject = JsonObject> {
+  uuid: string;
+  key?: ComponentType;
+  dial?: ComponentType;
+  touch?: ComponentType;
+  dialLayout?: EncoderLayout;
+  wrapper?: WrapperComponent;
+  defaultSettings?: Partial<S>;
+}
+
+interface ActionDefinition<S extends JsonObject = JsonObject> {
+  uuid: string;
+  key?: ComponentType;
+  dial?: ComponentType;
+  touch?: ComponentType;
+  dialLayout?: EncoderLayout;
+  wrapper?: WrapperComponent;
+  defaultSettings: Partial<S>;
+}
+
+type EncoderLayout = string | TouchStripLayout;
+
+interface TouchStripLayout {
+  $schema?: string;
+  id: string;
+  items: TouchStripLayoutItem[];
+}
+
+type WrapperComponent = ComponentType<{ children?: ReactNode }>;
+```
+
+## Context Types
+
+```ts
+interface DeviceInfo {
+  id: string;
+  type: DeviceType;
+  size: { columns: number; rows: number };
+  name: string;
+}
+
+interface ActionInfo {
+  id: string;
+  uuid: string;
+  controller: 'Keypad' | 'Encoder';
+  coordinates?: { row: number; column: number };
+  isInMultiAction: boolean;
+}
+
+interface CanvasInfo {
+  width: number;
+  height: number;
+  type: 'key' | 'dial' | 'touch';
+}
+
+interface StreamDeckAccess {
+  action: Action | DialAction | KeyAction;
+  sdk: typeof streamDeck;
+}
+```
+
+## Event Payloads
+
+```ts
+interface KeyDownPayload {
+  settings: JsonObject;
+  isInMultiAction: boolean;
+  state?: number;
+  userDesiredState?: number;
+}
+
+interface KeyUpPayload {
+  settings: JsonObject;
+  isInMultiAction: boolean;
+  state?: number;
+  userDesiredState?: number;
+}
+
+interface DialRotatePayload {
+  ticks: number;
+  pressed: boolean;
+  settings: JsonObject;
+}
+
+interface DialPressPayload {
+  settings: JsonObject;
+  controller: 'Encoder';
+}
+
+interface TouchTapPayload {
+  tapPos: [x: number, y: number];
+  hold: boolean;
+  settings: JsonObject;
+}
+
+interface WillAppearPayload {
+  settings: JsonObject;
+  controller: 'Keypad' | 'Encoder';
+  isInMultiAction: boolean;
+}
+
+interface DialHints {
+  rotate?: string;
+  press?: string;
+  touch?: string;
+  longTouch?: string;
+}
+```
+
+## Component Props
+
+```ts
+interface BoxProps {
+  className?: string;
+  center?: boolean;
+  padding?: number;
+  background?: string;
+  borderRadius?: number;
+  gap?: number;
+  direction?: 'row' | 'column';
+  style?: CSSProperties;
+  children?: ReactNode;
+}
+
+interface TextProps {
+  className?: string;
+  size?: number;
+  color?: string;
+  weight?: number;
+  align?: 'left' | 'center' | 'right';
+  font?: string;
+  lineHeight?: number;
+  style?: CSSProperties;
+  children?: ReactNode;
+}
+
+interface ImageProps {
+  className?: string;
+  src: string;
+  width: number;
+  height: number;
+  fit?: 'contain' | 'cover';
+  borderRadius?: number;
+  style?: CSSProperties;
+}
+
+interface IconProps {
+  className?: string;
+  path: string;
+  size?: number;
+  color?: string;
+  viewBox?: string;
+  style?: CSSProperties;
+}
+
+interface ProgressBarProps {
+  className?: string;
+  value: number;
+  max?: number;
+  height?: number;
+  color?: string;
+  background?: string;
+  borderRadius?: number;
+  style?: CSSProperties;
+}
+
+interface CircularGaugeProps {
+  className?: string;
+  value: number;
+  max?: number;
+  size?: number;
+  strokeWidth?: number;
+  color?: string;
+  background?: string;
+  style?: CSSProperties;
+}
+
+interface ErrorBoundaryProps {
+  fallback?: ReactNode;
+  onError?: (error: Error, errorInfo: ErrorInfo) => void;
+  children: ReactNode;
+}
+```
+
+## Utility Types
+
+```ts
+type JsonPrimitive = boolean | number | string | null | undefined;
+type JsonValue = JsonObject | JsonPrimitive | JsonValue[];
+type JsonObject = { [key: string]: JsonValue };
+```

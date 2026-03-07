@@ -1,0 +1,92 @@
+---
+title: Introduction
+description: React primitives, hooks, and a custom renderer for Stream Deck key, dial, and touch surfaces.
+---
+
+`@fcannizzaro/streamdeck-react` lets you build Stream Deck plugins with React instead of imperative SDK callbacks and manual image generation. You write JSX, state, and hooks; the library turns that tree into images and pushes them to Stream Deck hardware.
+
+## Why
+
+The `@elgato/streamdeck` SDK is powerful but low-level. You track state manually, wire hardware events by hand, and generate images yourself. Even a simple counter key quickly becomes a mix of event handlers, state bookkeeping, and rendering code.
+
+`@fcannizzaro/streamdeck-react` gives Stream Deck development the same model you already use in React apps:
+
+- **Declarative rendering** -- describe your key as JSX, not imperative draw calls.
+- **Full React hooks** -- `useState`, `useEffect`, `useRef`, `useContext`, custom hooks -- all work as expected.
+- **Hardware-aware hooks** -- `useKeyDown`, `useDialRotate`, `useTouchTap`, settings hooks, lifecycle hooks, and SDK hooks compose with the rest of React.
+- **Built-in primitives** -- `Box`, `Text`, `Image`, `Icon`, `ProgressBar`, `CircularGauge`, and `ErrorBoundary` help you build compact device UIs fast.
+- **Plugin-first workflow** -- define actions with `defineAction()`, register them with `createPlugin()`, and connect once.
+- **Flexible styling** -- use inline styles, `className`, and the `tw()` helper for Tailwind-like utility strings.
+
+## Quick Example
+
+```tsx
+import { readFile } from 'node:fs/promises';
+import { createPlugin, defineAction, useKeyDown, tw } from '@fcannizzaro/streamdeck-react';
+import { useState } from 'react';
+
+function CounterKey() {
+  const [count, setCount] = useState(0);
+
+  useKeyDown(() => {
+    setCount((c) => c + 1);
+  });
+
+  return (
+    <div
+      className={tw(
+        'flex h-full w-full flex-col items-center justify-center gap-1',
+        'bg-linear-to-br from-[#0f172a] to-[#1d4ed8]',
+      )}
+    >
+      <span className="text-[12px] font-semibold uppercase tracking-[0.2em] text-white/70">
+        Count
+      </span>
+      <span className="text-[34px] font-black text-white">{count}</span>
+    </div>
+  );
+}
+
+const counterAction = defineAction({
+  uuid: 'com.example.react-counter.counter',
+  key: CounterKey,
+});
+
+const plugin = createPlugin({
+  fonts: [
+    {
+      name: 'Inter',
+      data: await readFile(new URL('../fonts/Inter-Regular.ttf', import.meta.url)),
+      weight: 400,
+      style: 'normal',
+    },
+  ],
+  actions: [counterAction],
+});
+
+await plugin.connect();
+```
+
+## Core Workflow
+
+1. Create a React component for a key or encoder surface.
+2. Register it with `defineAction()` using the UUID from your `manifest.json`.
+3. Pass your actions and font files to `createPlugin()`.
+4. Call `await plugin.connect()` in your plugin entry file.
+
+## What You Can Build
+
+- **Keys** -- counters, toggles, timers, status indicators, dashboards.
+- **Encoders** -- volume controls, scrubbers, compact meters, quick actions.
+- **Touch interactions** -- handle Stream Deck+ touch taps with `useTouchTap()`.
+- **Persistent state** -- save per-action or global settings with the built-in settings hooks.
+- **Shared state** -- connect Zustand, Jotai, React Query, or your own providers with wrappers.
+
+## Start Here
+
+<Cards>
+  <Card title="Installation" href="/installation" />
+  <Card title="Quick Start" href="/quick-start" />
+  <Card title="How to Use" href="/how-to-use" />
+  <Card title="API Overview" href="/plugin-setup/create-plugin" />
+</Cards>

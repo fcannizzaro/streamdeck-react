@@ -1,0 +1,51 @@
+---
+title: tw() Utility
+description: Tailwind class concatenation helper for conditional styling.
+---
+
+The `tw` utility is a lightweight class string concatenation function, similar to `clsx` or `cn`. It filters out falsy values and joins the rest with spaces.
+
+## Import
+
+```tsx
+import { tw } from '@fcannizzaro/streamdeck-react';
+```
+
+## Signature
+
+```ts
+function tw(...args: Array<string | false | null | undefined | 0>): string;
+```
+
+## Usage
+
+```tsx
+function MyKey() {
+  const [pressed, setPressed] = useState(false);
+
+  useKeyDown(() => setPressed(true));
+  useKeyUp(() => setPressed(false));
+
+  return (
+    <div className={tw(
+      'flex items-center justify-center w-full h-full',
+      pressed && 'bg-green-500',
+      !pressed && 'bg-gray-800',
+    )}>
+      <span className="text-white text-lg">
+        {pressed ? 'ON' : 'OFF'}
+      </span>
+    </div>
+  );
+}
+```
+
+## How Tailwind Works in @fcannizzaro/streamdeck-react
+
+The `className` prop is remapped to Takumi's `tw` prop during rendering. That means standard Tailwind utility classes work in your components without a CSS build step.
+
+The `tw()` function itself only concatenates strings -- it does not resolve classes to styles. That resolution happens inside the renderer.
+
+## Compared to Inline Styles
+
+Both approaches work. Tailwind classes via `className` can be more concise for common patterns, while inline `style` gives you exact control. Mix and match as needed.

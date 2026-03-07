@@ -1,0 +1,50 @@
+---
+title: Image
+description: A convenience component for rendering images with layout props.
+---
+
+`Image` renders an `img` element with required dimensions and optional styling.
+
+## Import
+
+```tsx
+import { Image } from '@fcannizzaro/streamdeck-react';
+```
+
+## Props
+
+```ts
+interface ImageProps {
+  className?: string;
+  src: string;
+  width: number;
+  height: number;
+  fit?: 'contain' | 'cover';
+  borderRadius?: number;
+  style?: CSSProperties;
+}
+```
+
+| Prop | Description |
+|------|-------------|
+| `src` | Image source: URL, base64 data URI, or `Buffer` |
+| `width` | Required width in pixels |
+| `height` | Required height in pixels |
+| `fit` | Maps to `objectFit` |
+| `borderRadius` | Border radius in pixels |
+
+## Example
+
+```tsx
+<Image
+  src="data:image/png;base64,..."
+  width={48}
+  height={48}
+  fit="contain"
+/>
+```
+
+## Notes
+
+- Provide explicit `width` and `height` for all `img` elements.
+- Remote URLs work if the plugin runtime can fetch them during rendering.

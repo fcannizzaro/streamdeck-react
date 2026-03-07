@@ -1,0 +1,21 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "tasks": {
+    "check-types": {
+      "dependsOn": ["^check-types"]
+    },
+    "build": {
+      "dependsOn": ["^build"]
+    },
+    "test": {
+      "dependsOn": ["^test"]
+    },
+    "@fcannizzaro/streamdeck-react#build": {
+      "outputs": ["dist/**"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    }
+  }
+}
