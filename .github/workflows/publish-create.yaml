@@ -38,8 +38,6 @@ jobs:
       - name: Publish
         run: npm publish --provenance --access public
         working-directory: packages/create-streamdeck-react
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
  
       - name: Create GitHub Release
         run: |
