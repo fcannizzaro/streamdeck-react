@@ -56,6 +56,16 @@ npm install -D rollup @rollup/plugin-node-resolve @rollup/plugin-commonjs @rollu
 bun add -d rollup @rollup/plugin-node-resolve @rollup/plugin-commonjs @rollup/plugin-json rollup-plugin-esbuild
 ```
 
+If you want to use [React Compiler](/guides/react-compiler), replace `rollup-plugin-esbuild` with Babel:
+
+```bash tab="npm"
+npm install -D rollup @rollup/plugin-node-resolve @rollup/plugin-commonjs @rollup/plugin-json @rollup/plugin-babel @babel/core @babel/preset-typescript @babel/preset-react babel-plugin-react-compiler
+```
+
+```bash tab="bun"
+bun add -d rollup @rollup/plugin-node-resolve @rollup/plugin-commonjs @rollup/plugin-json @rollup/plugin-babel @babel/core @babel/preset-typescript @babel/preset-react babel-plugin-react-compiler
+```
+
 `resolveLibraryPaths()` is no longer required. A standard Rollup config plus `nativeAddon({ targets })` is enough.
 
 ## Install Native Target Packages

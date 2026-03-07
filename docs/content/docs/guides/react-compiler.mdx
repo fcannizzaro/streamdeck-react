@@ -1,0 +1,143 @@
+---
+title: React Compiler
+description: Automatically optimize re-renders with React Compiler.
+---
+
+React Compiler is an optional build-time optimization that automatically memoizes your components, eliminating the need for manual `useMemo`, `useCallback`, and `React.memo`.
+
+## Why It Matters Here
+
+In a standard React DOM app, unnecessary re-renders cause DOM mutations -- relatively cheap operations. In `@fcannizzaro/streamdeck-react`, every re-render triggers an expensive pipeline:
+
+1. VNode tree reconstruction
+2. Layout computation (Takumi / Rust)
+3. Rasterization to PNG (Rust native addon)
+4. Image push to Stream Deck hardware
+
+React Compiler prevents unnecessary re-renders at the source, before the VNode tree is even touched. This is especially valuable for components using `useTick`, `useInterval`, or frequent state updates.
+
+## Setup via Scaffolding
+
+The easiest way is to enable it during project creation:
+
+```bash
+npm create streamdeck-react@latest
+```
+
+The CLI will ask **"Use React Compiler?"** during setup. You can also pass it as a flag:
+
+```bash
+npm create streamdeck-react@latest --react-compiler true
+```
+
+When enabled, the generated Rollup config uses `@rollup/plugin-babel` with `babel-plugin-react-compiler` instead of `rollup-plugin-esbuild`.
+
+## Manual Setup
+
+If you have an existing project using esbuild, replace it with Babel:
+
+### 1. Swap Dependencies
+
+Remove esbuild:
+
+```bash tab="npm"
+npm uninstall rollup-plugin-esbuild
+```
+
+```bash tab="bun"
+bun remove rollup-plugin-esbuild
+```
+
+Install Babel + React Compiler:
+
+```bash tab="npm"
+npm install -D @rollup/plugin-babel @babel/core @babel/preset-typescript @babel/preset-react babel-plugin-react-compiler
+```
+
+```bash tab="bun"
+bun add -d @rollup/plugin-babel @babel/core @babel/preset-typescript @babel/preset-react babel-plugin-react-compiler
+```
+
+### 2. Update Rollup Config
+
+Replace the esbuild import and plugin:
+
+```js
+// rollup.config.mjs
+import { builtinModules } from 'node:module';
+import { babel } from '@rollup/plugin-babel';
+import resolve from '@rollup/plugin-node-resolve';
+import commonjs from '@rollup/plugin-commonjs';
+import json from '@rollup/plugin-json';
+import { nativeAddon } from '@fcannizzaro/streamdeck-react/rollup';
+
+const PLUGIN_DIR = 'com.example.my-plugin.sdPlugin';
+const builtins = new Set(builtinModules.flatMap((m) => [m, `node:${m}`]));
+
+export default {
+  input: 'src/plugin.ts',
+  output: {
+    file: `${PLUGIN_DIR}/bin/plugin.mjs`,
+    format: 'es',
+    sourcemap: true,
+    inlineDynamicImports: true,
+  },
+  external: (id) => builtins.has(id),
+  plugins: [
+    resolve({ preferBuiltins: true }),
+    commonjs(),
+    json(),
+    babel({
+      babelHelpers: 'bundled',
+      extensions: ['.js', '.jsx', '.ts', '.tsx'],
+      exclude: '**/node_modules/**',
+      plugins: ['babel-plugin-react-compiler'],
+      presets: [
+        '@babel/preset-typescript',
+        ['@babel/preset-react', { runtime: 'automatic' }],
+      ],
+    }),
+    nativeAddon({
+      targets: [{ platform: 'darwin', arch: 'arm64' }],
+    }),
+  ],
+};
+```
+
+Key differences from the esbuild config:
+
+- `babel()` replaces `esbuild()`
+- `exclude: '**/node_modules/**'` prevents Babel from processing dependencies
+- `babel-plugin-react-compiler` must be listed in `plugins` (runs first)
+- `@babel/preset-typescript` and `@babel/preset-react` handle TypeScript and JSX
+
+## Verifying It Works
+
+After building, check the output bundle for the compiler's runtime marker:
+
+```bash
+grep "react.memo_cache_sentinel" com.example.my-plugin.sdPlugin/bin/plugin.mjs
+```
+
+If the compiler is active, you'll see `Symbol.for("react.memo_cache_sentinel")` in the output.
+
+## Opting Out Per Component
+
+If a specific component causes issues after compilation, use the `"use no memo"` directive:
+
+```tsx
+function ProblematicComponent() {
+  "use no memo";
+  // This component won't be optimized by the compiler
+}
+```
+
+## No Code Changes Required
+
+React Compiler works with standard React patterns. Your existing components, hooks, and state management (Zustand, Jotai, TanStack Query) all work without modification.
+
+<Cards>
+  <Card title="Installation" href="/installation" />
+  <Card title="Create CLI" href="/guides/create-cli" />
+  <Card title="Quick Start" href="/quick-start" />
+</Cards>

@@ -2,6 +2,7 @@
   "title": "Guides",
   "pages": [
     "create-cli",
+    "react-compiler",
     "dials-and-encoders",
     "touch-display",
     "settings-sync",
