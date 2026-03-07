@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="72" height="72" viewBox="0 0 72 72">
+  <rect width="72" height="72" rx="8" fill="#1A1A2E"/>
+  <!-- Snake body -->
+  <rect x="12" y="28" width="8" height="8" rx="1" fill="#00AA55"/>
+  <rect x="20" y="28" width="8" height="8" rx="1" fill="#00AA55"/>
+  <rect x="28" y="28" width="8" height="8" rx="1" fill="#00AA55"/>
+  <rect x="36" y="28" width="8" height="8" rx="1" fill="#00AA55"/>
+  <rect x="36" y="36" width="8" height="8" rx="1" fill="#00AA55"/>
+  <rect x="36" y="44" width="8" height="8" rx="1" fill="#00AA55"/>
+  <!-- Snake head -->
+  <rect x="44" y="44" width="8" height="8" rx="1" fill="#00FF88"/>
+  <!-- Eyes -->
+  <rect x="48" y="46" width="2" height="2" fill="#1A1A2E"/>
+  <!-- Food -->
+  <rect x="56" y="16" width="8" height="8" rx="1" fill="#FF3366"/>
+  <!-- Grid dots -->
+  <circle cx="10" cy="62" r="1" fill="#333"/>
+  <circle cx="18" cy="62" r="1" fill="#333"/>
+  <circle cx="26" cy="62" r="1" fill="#333"/>
+  <circle cx="34" cy="62" r="1" fill="#333"/>
+  <circle cx="42" cy="62" r="1" fill="#333"/>
+  <circle cx="50" cy="62" r="1" fill="#333"/>
+  <circle cx="58" cy="62" r="1" fill="#333"/>
+  <text x="36" y="68" text-anchor="middle" font-size="6" fill="#666">SNAKE</text>
+</svg>

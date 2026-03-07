@@ -1,0 +1,223 @@
+---
+title: TouchBar Component
+description: Render a single shared React component across the full Stream Deck+ touch strip using the touchBar option.
+---
+
+The `touchBar` option in `defineAction` replaces per-encoder dial rendering with a **single shared React tree** that spans the entire Stream Deck+ touch strip (800x100 pixels for 4 encoders).
+
+This is useful for animations, games, visualizations, or any UI that needs to render across the full strip width rather than in isolated 200x100 segments.
+
+## Defining a TouchBar Action
+
+Pass a `touchBar` component to `defineAction` instead of `dial`:
+
+```tsx
+import { defineAction, useTouchBar, useTick } from '@fcannizzaro/streamdeck-react';
+
+function MyTouchBar() {
+  const { width, height, fps } = useTouchBar();
+
+  return (
+    <div style={{ width, height, background: '#1a1a2e' }}>
+      <span style={{ color: 'white', fontSize: 16 }}>
+        Full strip: {width}x{height}
+      </span>
+    </div>
+  );
+}
+
+export const myAction = defineAction({
+  uuid: 'com.example.plugin.touchbar',
+  touchBar: MyTouchBar,
+  touchBarFPS: 30,
+});
+```
+
+Place this action on all encoder slots in the Stream Deck app. They will share a single render.
+
+## How It Works
+
+| Aspect | Per-encoder `dial` | Shared `touchBar` |
+|---|---|---|
+| React roots | One per encoder slot | One for the full strip |
+| Canvas size | 200x100 per slot | Up to 800x100 (4 slots) |
+| Events | Per-instance, no `column` needed | All events include `column` to identify the dial |
+| Render pipeline | Each root renders + pushes independently | One render, then sliced into 200px segments and pushed per-encoder |
+
+When `touchBar` is set, the library:
+
+1. Creates a single `TouchBarRoot` per device.
+2. Renders your component at the full strip width.
+3. Slices the rendered image into 200px segments.
+4. Pushes each slice to its corresponding encoder via `setFeedback`.
+
+## touchBarFPS
+
+Controls both the `useTick` cadence and the render debounce interval.
+
+```tsx
+export const myAction = defineAction({
+  uuid: 'com.example.plugin.action',
+  touchBar: MyTouchBar,
+  touchBarFPS: 30, // 30fps render loop
+});
+```
+
+The FPS value is available inside the component via `useTouchBar().fps`, which you should pass to `useTick` so the animation loop matches the render pipeline:
+
+```tsx
+function MyTouchBar() {
+  const { fps } = useTouchBar();
+
+  useTick((delta) => {
+    // delta is in milliseconds
+    // runs at the configured touchBarFPS rate
+  }, fps);
+
+  // ...
+}
+```
+
+Default is 60fps if not specified.
+
+## Geometry
+
+The touch strip geometry is available via `useTouchBar()`:
+
+- **`width`**: Full strip width. Computed as `(maxColumn + 1) * 200`. With 4 encoders at columns 0-3, width is 800.
+- **`height`**: Always 100 pixels.
+- **`segmentWidth`**: Always 200 pixels per encoder.
+- **`columns`**: Sorted array of active encoder columns (e.g. `[0, 1, 3]`). Adapts dynamically as encoders appear/disappear.
+
+## Handling All 4 Dials
+
+Since all encoder events arrive in one component, use the `column` field to distinguish which dial fired:
+
+```tsx
+import {
+  useTouchBarDialRotate,
+  useTouchBarDialDown,
+  useTouchBarTap,
+} from '@fcannizzaro/streamdeck-react';
+
+function MyTouchBar() {
+  useTouchBarDialRotate(({ column, ticks }) => {
+    switch (column) {
+      case 0: /* dial 0 logic */ break;
+      case 1: /* dial 1 logic */ break;
+      case 2: /* dial 2 logic */ break;
+      case 3: /* dial 3 logic */ break;
+    }
+  });
+
+  useTouchBarDialDown(({ column }) => {
+    if (column === 2) pause();
+    if (column === 3) restart();
+  });
+
+  useTouchBarTap(({ tapPos, column }) => {
+    // tapPos is absolute across the full strip
+    // column identifies which segment was tapped
+  });
+
+  // ...
+}
+```
+
+## Manifest Configuration
+
+The manifest action must use `"Controllers": ["Encoder"]` and provide a layout with a `canvas` pixmap:
+
+```json
+{
+  "Actions": [{
+    "UUID": "com.example.plugin.touchbar",
+    "Name": "My TouchBar",
+    "Controllers": ["Encoder"],
+    "Encoder": {
+      "layout": "layouts/touchbar.json",
+      "TriggerDescription": {
+        "Rotate": "Action description",
+        "Push": "Action description",
+        "Touch": "Action description"
+      }
+    }
+  }]
+}
+```
+
+The layout file (`layouts/touchbar.json`):
+
+```json
+{
+  "id": "com.streamdeck-react.touchbar-layout",
+  "items": [{
+    "key": "canvas",
+    "type": "pixmap",
+    "rect": [0, 0, 200, 100]
+  }]
+}
+```
+
+## Complete Example
+
+A scrolling animation with dial controls:
+
+```tsx
+import { useState, useRef } from 'react';
+import {
+  defineAction,
+  useTouchBar,
+  useTouchBarDialRotate,
+  useTouchBarDialDown,
+  useTick,
+} from '@fcannizzaro/streamdeck-react';
+
+function ScrollBar() {
+  const { width, height, fps } = useTouchBar();
+  const [offset, setOffset] = useState(0);
+  const [speed, setSpeed] = useState(1);
+  const [paused, setPaused] = useState(false);
+
+  useTick((delta) => {
+    if (paused) return;
+    setOffset((o) => (o + delta * 0.05 * speed) % width);
+  }, fps);
+
+  useTouchBarDialRotate(({ column, ticks }) => {
+    if (column === 0) {
+      setSpeed((s) => Math.max(0.5, Math.min(5, s + ticks * 0.5)));
+    }
+  });
+
+  useTouchBarDialDown(({ column }) => {
+    if (column === 2) setPaused((p) => !p);
+  });
+
+  return (
+    <div style={{ width, height, position: 'relative', overflow: 'hidden', background: '#0d1117' }}>
+      <div style={{
+        position: 'absolute',
+        left: offset,
+        top: 30,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        background: '#58a6ff',
+      }} />
+    </div>
+  );
+}
+
+export const scrollAction = defineAction({
+  uuid: 'com.example.plugin.scroll',
+  touchBar: ScrollBar,
+  touchBarFPS: 30,
+});
+```
+
+## See Also
+
+- [TouchBar Hooks](/hooks/touchbar) -- full API reference for all touchbar hooks
+- [Dial & Encoder Support](/guides/dials-and-encoders) -- per-encoder dial mode
+- [Utility Hooks](/hooks/utility) -- `useTick` documentation

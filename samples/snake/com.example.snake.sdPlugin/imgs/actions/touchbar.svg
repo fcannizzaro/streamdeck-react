@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="72" height="72" viewBox="0 0 72 72">
+  <rect width="72" height="72" rx="8" fill="#1A1A2E"/>
+  <!-- Touch strip background -->
+  <rect x="4" y="20" width="64" height="32" rx="4" fill="#0D1117"/>
+  <!-- Snake body -->
+  <rect x="10" y="28" width="6" height="6" rx="1" fill="#00AA55"/>
+  <rect x="16" y="28" width="6" height="6" rx="1" fill="#00AA55"/>
+  <rect x="22" y="28" width="6" height="6" rx="1" fill="#00AA55"/>
+  <rect x="28" y="28" width="6" height="6" rx="1" fill="#00AA55"/>
+  <rect x="28" y="34" width="6" height="6" rx="1" fill="#00AA55"/>
+  <!-- Snake head -->
+  <rect x="34" y="34" width="6" height="6" rx="1" fill="#00FF88"/>
+  <!-- Food -->
+  <rect x="50" y="24" width="6" height="6" rx="1" fill="#FF3366"/>
+  <!-- Dial indicators -->
+  <circle cx="14" cy="60" r="4" fill="none" stroke="#444" stroke-width="1"/>
+  <circle cx="28" cy="60" r="4" fill="none" stroke="#444" stroke-width="1"/>
+  <circle cx="42" cy="60" r="4" fill="none" stroke="#444" stroke-width="1"/>
+  <circle cx="56" cy="60" r="4" fill="none" stroke="#444" stroke-width="1"/>
+  <text x="36" y="14" text-anchor="middle" font-size="6" fill="#666">SNAKE</text>
+</svg>

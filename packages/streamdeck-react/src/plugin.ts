@@ -41,6 +41,7 @@ export function createPlugin(config: PluginConfig): Plugin {
     renderer,
     imageFormat: config.imageFormat ?? "png",
     caching: config.caching ?? true,
+    devicePixelRatio: config.devicePixelRatio ?? 1,
   };
 
   const renderDebounceMs = config.renderDebounceMs ?? 16;
@@ -105,6 +106,12 @@ function createSingletonAction(
       try {
         const controller = ev.payload.controller;
         const isEncoder = controller === "Encoder";
+
+        // Touchbar path: the registry handles shared TouchBarRoot creation
+        if (isEncoder && definition.touchBar) {
+          registry.create(ev, definition.touchBar, definition);
+          return;
+        }
 
         // Pick the appropriate component
         const component = isEncoder

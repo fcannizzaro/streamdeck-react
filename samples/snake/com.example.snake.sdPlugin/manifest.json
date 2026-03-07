@@ -1,0 +1,52 @@
+{
+  "$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
+  "Actions": [
+    {
+      "Icon": "imgs/actions/touchbar",
+      "Name": "Snake Game",
+      "States": [
+        {
+          "Image": "imgs/actions/touchbar"
+        }
+      ],
+      "UUID": "com.example.snake.touchbar",
+      "Controllers": ["Encoder"],
+      "Encoder": {
+        "layout": "layouts/touchbar.json",
+        "TriggerDescription": {
+          "Rotate": "Steer / Speed",
+          "Push": "Pause / Restart",
+          "Touch": "Steer snake"
+        }
+      },
+      "Tooltip": "Snake game on the Stream Deck+ touch strip. Use dials to steer, control speed, pause, and restart."
+    }
+  ],
+  "Author": "Francesco Saverio Cannizzaro",
+  "Category": "React Snake TouchBar",
+  "CategoryIcon": "imgs/plugin-icon",
+  "CodePath": "bin/plugin.mjs",
+  "Description": "Snake game demo: classic snake rendered on the full Stream Deck+ touch strip with dial controls.",
+  "Icon": "imgs/plugin-icon",
+  "Name": "React Snake TouchBar",
+  "Nodejs": {
+    "Version": "24",
+    "Debug": "--inspect=127.0.0.1:8095"
+  },
+  "OS": [
+    {
+      "Platform": "mac",
+      "MinimumVersion": "13"
+    },
+    {
+      "Platform": "windows",
+      "MinimumVersion": "10"
+    }
+  ],
+  "UUID": "com.example.snake",
+  "Version": "0.0.0.1",
+  "SDKVersion": 2,
+  "Software": {
+    "MinimumVersion": "6.9"
+  }
+}

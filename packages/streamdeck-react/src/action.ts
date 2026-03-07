@@ -14,6 +14,8 @@ export function defineAction<S extends JsonObject = JsonObject>(
     key: config.key,
     dial: config.dial,
     touch: config.touch,
+    touchBar: config.touchBar,
+    touchBarFPS: config.touchBarFPS,
     dialLayout: config.dialLayout,
     wrapper: config.wrapper,
     defaultSettings: config.defaultSettings ?? ({} as Partial<S>),

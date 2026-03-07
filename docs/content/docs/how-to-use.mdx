@@ -36,6 +36,8 @@ export const statusAction = defineAction({
 
 For encoder actions, provide a `dial` component. If `dial` is omitted, the `key` component is used as a fallback when the action is placed on an encoder.
 
+For full-strip rendering across all encoders, use `touchBar` instead of `dial`. See the [TouchBar Component](/guides/touchbar) guide.
+
 ## 3. Register Everything with createPlugin()
 
 Your plugin entry file loads fonts, passes in the action list, and connects once.
@@ -56,6 +58,7 @@ This file is the root of your plugin runtime.
 Use the exported hooks instead of wiring SDK listeners manually.
 
 - **Events**: `useKeyDown`, `useKeyUp`, `useDialRotate`, `useDialDown`, `useDialUp`, `useTouchTap`, `useDialHint`
+- **TouchBar**: `useTouchBar`, `useTouchBarTap`, `useTouchBarDialRotate`, `useTouchBarDialDown`, `useTouchBarDialUp`
 - **Settings**: `useSettings`, `useGlobalSettings`
 - **Lifecycle**: `useWillAppear`, `useWillDisappear`
 - **Context**: `useDevice`, `useAction`, `useCanvas`, `useStreamDeck`

@@ -5,7 +5,7 @@ import commonjs from "@rollup/plugin-commonjs";
 import json from "@rollup/plugin-json";
 import { nativeAddon } from "@fcannizzaro/streamdeck-react/rollup";
 
-const PLUGIN_DIR = "com.example.react-zustand.sdPlugin";
+const PLUGIN_DIR = "com.example.snake.sdPlugin";
 
 const builtins = new Set(builtinModules.flatMap((m) => [m, `node:${m}`]));
 
@@ -35,6 +35,11 @@ export default {
         ["@babel/preset-react", { runtime: "automatic" }],
       ],
     }),
-    nativeAddon(),
+    nativeAddon({
+      targets: [{
+        "arch": "arm64",
+        "platform": "darwin",
+      }]
+    }),
   ],
 };

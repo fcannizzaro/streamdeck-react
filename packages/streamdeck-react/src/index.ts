@@ -47,6 +47,15 @@ export {
   useTitle,
 } from "@/hooks/sdk";
 
+// ── Hooks — Touch Bar ───────────────────────────────────────────────
+export {
+  useTouchBar,
+  useTouchBarTap,
+  useTouchBarDialRotate,
+  useTouchBarDialDown,
+  useTouchBarDialUp,
+} from "@/hooks/touchbar";
+
 // ── Components ──────────────────────────────────────────────────────
 export { Box } from "@/components/Box";
 export { Text } from "@/components/Text";
@@ -79,6 +88,10 @@ export type {
   TouchTapPayload,
   DialHints,
   StreamDeckAccess,
+  TouchBarInfo,
+  TouchBarTapPayload,
+  TouchBarDialRotatePayload,
+  TouchBarDialPressPayload,
 } from "@/types";
 
 // ── Component Props Types ───────────────────────────────────────────

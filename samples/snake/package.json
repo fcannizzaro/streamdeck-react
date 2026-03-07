@@ -1,0 +1,30 @@
+{
+  "name": "sample-ichigo",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "bunx --bun rollup -c -w --watch.onEnd=\"streamdeck restart com.example.snake\"",
+    "build": "rollup -c",
+    "check-types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@takumi-rs/core-darwin-arm64": "^0.70.4",
+    "react": "^19.2.4",
+    "@fcannizzaro/streamdeck-react": "workspace:*",
+    "ws": "^8.19.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.28.0",
+    "@babel/preset-react": "^7.28.0",
+    "@babel/preset-typescript": "^7.28.0",
+    "@elgato/cli": "^1.7.1",
+    "@rollup/plugin-babel": "^7.0.0",
+    "@rollup/plugin-commonjs": "^29.0.0",
+    "@rollup/plugin-json": "^6.1.0",
+    "@rollup/plugin-node-resolve": "^16.0.3",
+    "@types/react": "^19.2.14",
+    "babel-plugin-react-compiler": "latest",
+    "rollup": "^4.59.0"
+  }
+}

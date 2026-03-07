@@ -1,4 +1,4 @@
 {
   "title": "Hooks",
-  "pages": ["events", "settings", "context", "lifecycle", "sdk", "utility"]
+  "pages": ["events", "touchbar", "settings", "context", "lifecycle", "sdk", "utility"]
 }

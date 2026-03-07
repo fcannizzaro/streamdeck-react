@@ -21,6 +21,7 @@ export default {
   plugins: [
     resolve({
       preferBuiltins: true,
+      extensions: [".js", ".jsx", ".ts", ".tsx"],
     }),
     commonjs(),
     json(),

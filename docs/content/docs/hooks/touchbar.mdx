@@ -1,0 +1,162 @@
+---
+title: TouchBar Hooks
+description: React hooks for the Stream Deck+ shared touch strip -- geometry, tap events, dial rotation, and dial press within a touchBar component.
+---
+
+TouchBar hooks are available inside a `touchBar` component registered via `defineAction`. They provide geometry info, tap coordinates, and per-dial events with `column` identification.
+
+> These hooks are **only available inside a `touchBar` component**. For per-encoder hooks (one React root per dial), see [Event Hooks](/hooks/events).
+
+## useTouchBar
+
+Returns the current touch strip geometry and configuration.
+
+```ts
+function useTouchBar(): TouchBarInfo;
+```
+
+```ts
+interface TouchBarInfo {
+  /** Full strip width in pixels (e.g. 800 for 4 encoders). */
+  width: number;
+  /** Strip height in pixels (always 100). */
+  height: number;
+  /** Sorted list of active encoder columns, e.g. [0, 1, 3]. */
+  columns: number[];
+  /** Width of each encoder segment in pixels (always 200). */
+  segmentWidth: number;
+  /** Target FPS from the action definition. */
+  fps: number;
+}
+```
+
+```tsx
+function MyTouchBar() {
+  const { width, height, fps, columns, segmentWidth } = useTouchBar();
+
+  return (
+    <div style={{ width, height, background: '#1a1a2e' }}>
+      <span style={{ color: 'white', fontSize: 14 }}>
+        {columns.length} dials active — {width}x{height}
+      </span>
+    </div>
+  );
+}
+```
+
+## useTouchBarTap
+
+Fires when the touch strip is tapped. Coordinates are **absolute** across the full strip width.
+
+```ts
+function useTouchBarTap(callback: (payload: TouchBarTapPayload) => void): void;
+```
+
+```ts
+interface TouchBarTapPayload {
+  /** Absolute tap position across the full strip. */
+  tapPos: [x: number, y: number];
+  /** Whether it was a long press. */
+  hold: boolean;
+  /** The encoder column that was touched. */
+  column: number;
+}
+```
+
+```tsx
+function MyTouchBar() {
+  const { width, height } = useTouchBar();
+  const [marker, setMarker] = useState(0);
+
+  useTouchBarTap(({ tapPos }) => {
+    setMarker(tapPos[0]);
+  });
+
+  return (
+    <div style={{ width, height, position: 'relative', background: '#1a1a2e' }}>
+      <div style={{
+        position: 'absolute',
+        left: marker,
+        top: 0,
+        width: 2,
+        height,
+        background: '#ff3366',
+      }} />
+    </div>
+  );
+}
+```
+
+Tap coordinates are translated from per-segment local coordinates to absolute strip coordinates automatically. A tap at local `[50, 30]` on column 2 becomes `[450, 30]`.
+
+## useTouchBarDialRotate
+
+Fires when any dial is rotated. The `column` field identifies which dial.
+
+```ts
+function useTouchBarDialRotate(
+  callback: (payload: TouchBarDialRotatePayload) => void,
+): void;
+```
+
+```ts
+interface TouchBarDialRotatePayload {
+  /** Which encoder column was rotated (0-indexed). */
+  column: number;
+  /** Signed rotation amount. Positive = clockwise. */
+  ticks: number;
+  /** Whether the dial was pressed while rotating. */
+  pressed: boolean;
+}
+```
+
+```tsx
+useTouchBarDialRotate(({ column, ticks }) => {
+  if (column === 0) {
+    // Dial 0: steer
+    setDirection((d) => ticks > 0 ? turnRight(d) : turnLeft(d));
+  } else if (column === 1) {
+    // Dial 1: speed
+    setSpeed((s) => Math.max(1, s + ticks));
+  }
+});
+```
+
+## useTouchBarDialDown
+
+Fires when a dial is pressed down.
+
+```ts
+function useTouchBarDialDown(
+  callback: (payload: TouchBarDialPressPayload) => void,
+): void;
+```
+
+```ts
+interface TouchBarDialPressPayload {
+  /** Which encoder column was pressed (0-indexed). */
+  column: number;
+}
+```
+
+## useTouchBarDialUp
+
+Fires when a dial is released.
+
+```ts
+function useTouchBarDialUp(
+  callback: (payload: TouchBarDialPressPayload) => void,
+): void;
+```
+
+Same payload as `useTouchBarDialDown`.
+
+## TouchBar vs Per-Encoder Hooks
+
+| | TouchBar hooks | Per-encoder hooks |
+|---|---|---|
+| Component | `touchBar` in `defineAction` | `dial` in `defineAction` |
+| React roots | One shared tree for the full strip | One root per encoder slot |
+| Event routing | All events arrive in one component; use `column` to distinguish | Each component only receives its own dial's events |
+| Canvas size | Full strip (e.g. 800x100) | Single segment (200x100) |
+| Hooks | `useTouchBar*` family | `useDialRotate`, `useDialDown`, `useTouchTap`, etc. |

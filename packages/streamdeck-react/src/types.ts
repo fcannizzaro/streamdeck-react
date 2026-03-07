@@ -96,6 +96,7 @@ export interface PluginConfig {
   renderDebounceMs?: number;
   imageFormat?: "png" | "webp";
   caching?: boolean;
+  devicePixelRatio?: number;
   onActionError?: (uuid: string, actionId: string, error: Error) => void;
 }
 
@@ -110,6 +111,10 @@ export interface ActionConfig<S extends JsonObject = JsonObject> {
   key?: ComponentType;
   dial?: ComponentType;
   touch?: ComponentType;
+  /** Full-strip touchbar component. When set, replaces per-encoder `dial` display with a single shared React tree that spans the entire touch strip. */
+  touchBar?: ComponentType;
+  /** Target frame rate for the touchbar animation loop and render pipeline. Controls both `useTick` cadence (via `useTouchBar().fps`) and the render debounce. @default 60 */
+  touchBarFPS?: number;
   /** Encoder feedback layout. Defaults to a full-width `pixmap` canvas layout. Custom layouts should include a `pixmap` item keyed as `canvas`. */
   dialLayout?: EncoderLayout;
   wrapper?: WrapperComponent;
@@ -121,6 +126,10 @@ export interface ActionDefinition<S extends JsonObject = JsonObject> {
   key?: ComponentType;
   dial?: ComponentType;
   touch?: ComponentType;
+  /** Full-strip touchbar component. When set, replaces per-encoder `dial` display with a single shared React tree that spans the entire touch strip. */
+  touchBar?: ComponentType;
+  /** Target frame rate for the touchbar animation loop and render pipeline. @default 60 */
+  touchBarFPS?: number;
   /** Encoder feedback layout. Defaults to a full-width `pixmap` canvas layout. Custom layouts should include a `pixmap` item keyed as `canvas`. */
   dialLayout?: EncoderLayout;
   wrapper?: WrapperComponent;
@@ -207,6 +216,41 @@ export interface DialHints {
   longTouch?: string;
 }
 
+// ── Touch Bar Info ──────────────────────────────────────────────────
+
+export interface TouchBarInfo {
+  /** Full render width in pixels (e.g., 800 for 4 encoders). */
+  width: number;
+  /** Strip height in pixels (always 100). */
+  height: number;
+  /** Sorted list of active encoder columns, e.g., [0, 1, 3]. */
+  columns: number[];
+  /** Width of each encoder segment in pixels (always 200). */
+  segmentWidth: number;
+  /** Target frame rate for the animation loop. Pass to `useTick` for matched cadence. */
+  fps: number;
+}
+
+// ── Touch Bar Event Payloads ────────────────────────────────────────
+
+export interface TouchBarTapPayload {
+  /** Absolute tap position across the full strip width. */
+  tapPos: [x: number, y: number];
+  hold: boolean;
+  /** The encoder column that was touched. */
+  column: number;
+}
+
+export interface TouchBarDialRotatePayload {
+  column: number;
+  ticks: number;
+  pressed: boolean;
+}
+
+export interface TouchBarDialPressPayload {
+  column: number;
+}
+
 // ── Event Bus Types ─────────────────────────────────────────────────
 
 export interface EventMap {
@@ -226,4 +270,8 @@ export interface EventMap {
     title: string;
     settings: JsonObject;
   };
+  touchBarTap: TouchBarTapPayload;
+  touchBarDialRotate: TouchBarDialRotatePayload;
+  touchBarDialDown: TouchBarDialPressPayload;
+  touchBarDialUp: TouchBarDialPressPayload;
 }

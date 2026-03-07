@@ -4,6 +4,7 @@
     "create-cli",
     "react-compiler",
     "dials-and-encoders",
+    "touchbar",
     "touch-display",
     "settings-sync",
     "shared-state",
