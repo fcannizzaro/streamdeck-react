@@ -3,6 +3,9 @@ name: CI
 on:
   push:
     branches: [main]
+    paths:
+      - "samples/**"
+      - "packages/**"
   pull_request:
     branches: [main]
 
