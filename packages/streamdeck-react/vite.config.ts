@@ -13,6 +13,7 @@ const externalPackages = [
   "react-reconciler",
   "rollup",
   "typescript",
+  "vite",
 ];
 
 function isExternal(id: string): boolean {
@@ -38,6 +39,7 @@ export default defineConfig({
       entry: {
         index: resolve(srcDir, "index.ts"),
         rollup: resolve(srcDir, "rollup.ts"),
+        vite: resolve(srcDir, "vite.ts"),
       },
       formats: ["es"],
       fileName: (_format, entryName) => `${entryName}.js`,

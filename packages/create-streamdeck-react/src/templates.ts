@@ -1,4 +1,5 @@
 export type PackageManager = "npm" | "pnpm" | "bun";
+export type Bundler = "rollup" | "rolldown";
 export type StarterExample = "minimal" | "counter" | "zustand" | "jotai" | "pokemon";
 export type StreamDeckPlatform = "mac" | "windows";
 export type NativeTargetId = "darwin-arm64" | "darwin-x64" | "win32-arm64" | "win32-x64";
@@ -11,6 +12,7 @@ export interface ScaffoldOptions {
   description: string;
   category: string;
   packageManager: PackageManager;
+  bundler: Bundler;
   example: StarterExample;
   platforms: StreamDeckPlatform[];
   nativeTargets: NativeTargetId[];
@@ -83,6 +85,25 @@ const COMPILER_DEV_DEPENDENCIES = {
   "babel-plugin-react-compiler": "latest",
 } satisfies Record<string, string>;
 
+const ROLLDOWN_BASE_DEV_DEPENDENCIES = {
+  "@elgato/cli": "^1.7.1",
+  "@types/node": "^25.3.3",
+  "@types/react": "^19.2.14",
+  typescript: "^5.9.3",
+  vite: "8.0.0-beta.16",
+} satisfies Record<string, string>;
+
+const ROLLDOWN_ESBUILD_DEV_DEPENDENCIES = {
+  "@vitejs/plugin-react": "6.0.0-beta.0",
+} satisfies Record<string, string>;
+
+const ROLLDOWN_COMPILER_DEV_DEPENDENCIES = {
+  "@babel/core": "^7.29.0",
+  "@rolldown/plugin-babel": "^0.2.0",
+  "@vitejs/plugin-react": "6.0.0-beta.0",
+  "babel-plugin-react-compiler": "^1.0.0",
+} satisfies Record<string, string>;
+
 const TARGET_PACKAGE_MAP: Record<NativeTargetId, string> = {
   "darwin-arm64": "@takumi-rs/core-darwin-arm64",
   "darwin-x64": "@takumi-rs/core-darwin-x64",
@@ -122,6 +143,11 @@ export const PACKAGE_MANAGER_OPTIONS: Array<ChoiceOption<PackageManager>> = [
   { value: "npm", label: "npm", description: "Use npm commands in the generated next steps." },
   { value: "pnpm", label: "pnpm", description: "Use pnpm commands in the generated next steps." },
   { value: "bun", label: "bun", description: "Use Bun commands in the generated next steps." },
+];
+
+export const BUNDLER_OPTIONS: Array<ChoiceOption<Bundler>> = [
+  { value: "rollup", label: "Rollup", description: "Stable Rollup-based build with esbuild or Babel." },
+  { value: "rolldown", label: "Rolldown (Vite 8 beta)", description: "Vite 8 with Rolldown and Oxc transforms." },
 ];
 
 export const PLATFORM_OPTIONS: Array<ChoiceOption<StreamDeckPlatform>> = [
@@ -394,11 +420,15 @@ export function buildProjectFiles(options: ScaffoldOptions): Record<string, stri
   const preset = EXAMPLE_PRESETS[options.example];
   const pluginDir = `${options.pluginUuid}.sdPlugin`;
 
+  const configFile: Record<string, string> = options.bundler === "rolldown"
+    ? { "vite.config.ts": buildViteConfig(options) }
+    : { "rollup.config.mjs": buildRollupConfig(options) };
+
   return {
     ".gitignore": createGitignore(),
     "package.json": buildPackageJson(options, preset.dependencies),
     "tsconfig.json": createProjectTsconfig(),
-    "rollup.config.mjs": buildRollupConfig(options),
+    ...configFile,
     "README.md": createProjectReadme(options),
     [`${pluginDir}/manifest.json`]: buildManifest(options, preset.actions),
     [`${pluginDir}/imgs/plugin-icon.svg`]: createPluginIconSvg(options.displayName),
@@ -474,35 +504,124 @@ export function buildRollupConfig(options: Pick<ScaffoldOptions, "pluginUuid" | 
   ].join("\n");
 }
 
+export function buildViteConfig(options: Pick<ScaffoldOptions, "pluginUuid" | "nativeTargets" | "reactCompiler">): string {
+  const renderedTargets = options.nativeTargets
+    .map((target) => {
+      const [platform, arch] = target.split("-");
+      return `        { platform: "${platform}", arch: "${arch}" },`;
+    })
+    .join("\n");
+
+  const compilerImport = options.reactCompiler
+    ? [
+        'import react, { reactCompilerPreset } from "@vitejs/plugin-react";',
+        'import babel from "@rolldown/plugin-babel";',
+      ]
+    : [
+        'import react from "@vitejs/plugin-react";',
+      ];
+
+  const compilerPlugin = options.reactCompiler
+    ? [
+        "    react(),",
+        "    // @ts-expect-error — @rolldown/plugin-babel types incorrectly mark inherited babel fields as required",
+        "    await babel({",
+        "      presets: [reactCompilerPreset()],",
+        "    }),",
+      ]
+    : [
+        "    react(),",
+      ];
+
+  return [
+    'import { builtinModules } from "node:module";',
+    'import { resolve } from "node:path";',
+    'import { defineConfig, esmExternalRequirePlugin } from "vite";',
+    ...compilerImport,
+    'import { streamDeckReact } from "@fcannizzaro/streamdeck-react/vite";',
+    "",
+    `const PLUGIN_DIR = "${options.pluginUuid}.sdPlugin";`,
+    "const builtins = builtinModules.flatMap((m) => [m, `node:${m}`]);",
+    "",
+    "export default defineConfig({",
+    "  resolve: {",
+    '    conditions: ["node"],',
+    "  },",
+    "  plugins: [",
+    "    esmExternalRequirePlugin({ external: builtins }),",
+    ...compilerPlugin,
+    "    streamDeckReact({",
+    `      uuid: "${options.pluginUuid}",`,
+    "      targets: [",
+    renderedTargets,
+    "      ],",
+    "    }),",
+    "  ],",
+    "  build: {",
+    '    target: "node20",',
+    "    outDir: resolve(PLUGIN_DIR, \"bin\"),",
+    "    emptyOutDir: false,",
+    "    sourcemap: true,",
+    "    minify: false,",
+    "    lib: {",
+    '      entry: resolve("src/plugin.ts"),',
+    '      formats: ["es"],',
+    "      fileName: () => \"plugin.mjs\",",
+    "    },",
+    "    rolldownOptions: {",
+    "      output: {",
+    "        codeSplitting: false,",
+    "      },",
+    "    },",
+    "  },",
+    "});",
+    "",
+  ].join("\n");
+}
+
 function buildPackageJson(
-  options: Pick<ScaffoldOptions, "packageName" | "description" | "nativeTargets" | "reactCompiler">,
+  options: Pick<ScaffoldOptions, "packageName" | "description" | "nativeTargets" | "reactCompiler" | "bundler">,
   exampleDependencies: Record<string, string>,
 ): string {
   const nativeDependencies = Object.fromEntries(
     options.nativeTargets.map((target) => [TARGET_PACKAGE_MAP[target], TAKUMI_VERSION]),
   );
 
-  const extraDevDeps = options.reactCompiler
-    ? COMPILER_DEV_DEPENDENCIES
-    : ESBUILD_DEV_DEPENDENCIES;
+  const isRolldown = options.bundler === "rolldown";
+
+  const baseDevDeps = isRolldown
+    ? ROLLDOWN_BASE_DEV_DEPENDENCIES
+    : BASE_DEV_DEPENDENCIES;
+
+  const extraDevDeps = isRolldown
+    ? (options.reactCompiler ? ROLLDOWN_COMPILER_DEV_DEPENDENCIES : ROLLDOWN_ESBUILD_DEV_DEPENDENCIES)
+    : (options.reactCompiler ? COMPILER_DEV_DEPENDENCIES : ESBUILD_DEV_DEPENDENCIES);
+
+  const scripts = isRolldown
+    ? {
+        build: "vite build",
+        dev: "vite build --watch",
+        "check-types": "tsc --noEmit",
+      }
+    : {
+        build: "rollup -c",
+        dev: "rollup -c -w",
+        "check-types": "tsc --noEmit",
+      };
 
   const packageJson = {
     name: options.packageName,
     private: true,
     version: "0.0.0",
     type: "module",
-    scripts: {
-      build: "rollup -c",
-      dev: "rollup -c -w",
-      "check-types": "tsc --noEmit",
-    },
+    scripts,
     dependencies: sortObject({
       ...BASE_DEPENDENCIES,
       ...exampleDependencies,
       ...nativeDependencies,
     }),
     devDependencies: sortObject({
-      ...BASE_DEV_DEPENDENCIES,
+      ...baseDevDeps,
       ...extraDevDeps,
     }),
     description: options.description,
@@ -512,7 +631,7 @@ function buildPackageJson(
 }
 
 function buildManifest(
-  options: Pick<ScaffoldOptions, "displayName" | "pluginUuid" | "author" | "description" | "category" | "platforms">,
+  options: Pick<ScaffoldOptions, "displayName" | "pluginUuid" | "author" | "description" | "category" | "platforms" | "bundler">,
   actions: ManifestActionTemplate[],
 ): string {
   const manifest = {
@@ -547,7 +666,7 @@ function buildManifest(
     Icon: "imgs/plugin-icon",
     Name: options.displayName,
     Nodejs: {
-      Version: "20",
+      Version: "24",
     },
     OS: options.platforms.map((platform) => ({
       Platform: platform,

@@ -8,6 +8,7 @@ const plugin = createPlugin({
     {
       name: "Inter",
       data: await readFile(
+        /* @vite-ignore */
         new URL("../fonts/Inter-Regular.ttf", import.meta.url),
       ),
       weight: 400,

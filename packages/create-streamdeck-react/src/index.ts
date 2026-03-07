@@ -6,6 +6,7 @@ import { basename, dirname, relative, resolve } from "node:path";
 import * as p from "@clack/prompts";
 import {
   EXAMPLE_OPTIONS,
+  BUNDLER_OPTIONS,
   PACKAGE_MANAGER_OPTIONS,
   PLATFORM_OPTIONS,
   TARGET_OPTIONS,
@@ -19,6 +20,7 @@ import {
   normalizeTargets,
   validatePlatformTargets,
   validatePluginUuid,
+  type Bundler,
   type NativeTargetId,
   type PackageManager,
   type ScaffoldOptions,
@@ -31,6 +33,7 @@ type ParsedArgs = {
   yes: boolean;
   help: boolean;
   example?: StarterExample;
+  bundler?: Bundler;
   displayName?: string;
   pluginUuid?: string;
   author?: string;
@@ -72,6 +75,7 @@ async function main(): Promise<void> {
   const category = await collectCategory(args, displayName, skipPrompt);
   const packageManager = await collectPackageManager(args, skipPrompt);
   const example = await collectExample(args, skipPrompt);
+  const bundler = await collectBundler(args, skipPrompt);
   const platforms = await collectPlatforms(args, skipPrompt);
   const nativeTargets = await collectNativeTargets(args, platforms, skipPrompt);
   const reactCompiler = await collectReactCompiler(args, skipPrompt);
@@ -86,6 +90,7 @@ async function main(): Promise<void> {
     description,
     category,
     packageManager,
+    bundler,
     example,
     platforms,
     nativeTargets,
@@ -187,6 +192,9 @@ function parseArgs(argv: string[]): ParsedArgs {
     switch (flag) {
       case "--example":
         parsed.example = parseExample(nextValue);
+        break;
+      case "--bundler":
+        parsed.bundler = parseBundler(nextValue);
         break;
       case "--name":
         parsed.displayName = nextValue;
@@ -438,6 +446,34 @@ async function collectExample(
   return answer;
 }
 
+async function collectBundler(
+  args: ParsedArgs,
+  skipPrompt: boolean,
+): Promise<Bundler> {
+  if (args.bundler) {
+    return args.bundler;
+  }
+
+  const fallback: Bundler = "rollup";
+
+  if (skipPrompt) {
+    return fallback;
+  }
+
+  const answer = await p.select({
+    message: "Bundler",
+    options: BUNDLER_OPTIONS.map((option) => ({
+      value: option.value as Bundler,
+      label: option.label,
+      hint: option.description,
+    })),
+    initialValue: fallback,
+  });
+
+  assertNotCancelled(answer);
+  return answer;
+}
+
 async function collectPlatforms(
   args: ParsedArgs,
   skipPrompt: boolean,
@@ -504,12 +540,12 @@ async function collectReactCompiler(
   }
 
   if (skipPrompt) {
-    return false;
+    return true;
   }
 
   const answer = await p.confirm({
     message: "Use React Compiler?",
-    initialValue: false,
+    initialValue: true,
   });
 
   assertNotCancelled(answer);
@@ -614,6 +650,12 @@ function parseExample(value: string | undefined): StarterExample | undefined {
   return option?.id;
 }
 
+function parseBundler(value: string | undefined): Bundler | undefined {
+  if (!value) return undefined;
+  if (value === "rollup" || value === "rolldown") return value;
+  throw new Error(`Unsupported bundler: ${value}. Use "rollup" or "rolldown".`);
+}
+
 function parsePackageManager(value: string | undefined): PackageManager | undefined {
   if (!value) return undefined;
   if (value === "npm" || value === "pnpm" || value === "bun") return value;
@@ -637,6 +679,7 @@ Options:
   -y, --yes                  Skip prompts and use defaults
   -h, --help                 Show this help message
   --example <name>           minimal | counter | zustand | jotai | pokemon
+  --bundler <name>           rollup | rolldown
   --name <display-name>      Plugin display name
   --uuid <plugin-uuid>       Reverse-domain plugin UUID
   --author <name>            Manifest author
