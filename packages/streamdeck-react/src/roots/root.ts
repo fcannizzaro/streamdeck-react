@@ -58,6 +58,46 @@ export class ReactRoot {
   private sdkInstance: StreamDeckAccess["sdk"];
   private disposed = false;
 
+  /** Last data URI successfully sent to hardware. Used by devtools snapshots. */
+  lastDataUri: string | null = null;
+
+  /**
+   * When true, doFlush skips pushing the normal image to hardware.
+   * Set by the devtools bridge while a highlight overlay is active so that
+   * rapid re-renders don't overwrite the highlight on the device.
+   * The highlight path calls pushImage directly (bypassing this flag).
+   */
+  suppressHardwarePush = false;
+
+  /** Push an arbitrary data URI to the hardware. Used by devtools highlight overlay. */
+  async pushImage(dataUri: string): Promise<void> {
+    if (this.disposed) return;
+
+    if (this.canvas.type === "key") {
+      if ("setImage" in this.sdkAction) {
+        await (this.sdkAction as KeyAction).setImage(dataUri);
+      }
+    } else if (this.canvas.type === "dial") {
+      if ("setFeedback" in this.sdkAction) {
+        await (this.sdkAction as DialAction).setFeedback({
+          canvas: dataUri,
+          title: "",
+        });
+      }
+    } else if (this.canvas.type === "touch") {
+      if ("setFeedback" in this.sdkAction) {
+        await (this.sdkAction as DialAction).setFeedback({
+          canvas: dataUri,
+        });
+      }
+    }
+  }
+
+  /** Exposes the VContainer for devtools inspection. */
+  get vcontainer(): VContainer {
+    return this.container;
+  }
+
   // Cached context values — avoid new object references on every render
   private streamDeckValue: StreamDeckAccess;
   private settingsValue: SettingsContextValue;
@@ -146,6 +186,10 @@ export class ReactRoot {
         ).setFeedbackLayout(this.resolvedDialLayout);
       }
     }
+
+    // Set eventBus owner for devtools observer
+    this.eventBus.ownerId = actionInfo.id;
+    this.eventBus.ownerUuid = actionInfo.uuid;
 
     // Initial render
     this.render();
@@ -243,24 +287,12 @@ export class ReactRoot {
 
       if (dataUri === null || this.disposed) return;
 
-      // Push to Stream Deck
-      if (this.canvas.type === "key") {
-        if ("setImage" in this.sdkAction) {
-          await (this.sdkAction as KeyAction).setImage(dataUri);
-        }
-      } else if (this.canvas.type === "dial") {
-        if ("setFeedback" in this.sdkAction) {
-          await (this.sdkAction as DialAction).setFeedback({
-            canvas: dataUri,
-            title: "",
-          });
-        }
-      } else if (this.canvas.type === "touch") {
-        if ("setFeedback" in this.sdkAction) {
-          await (this.sdkAction as DialAction).setFeedback({
-            canvas: dataUri,
-          });
-        }
+      // Store for devtools snapshots (before push so it's always available for restore)
+      this.lastDataUri = dataUri;
+
+      // Push to Stream Deck (skipped when devtools highlight overlay is active)
+      if (!this.suppressHardwarePush) {
+        await this.pushImage(dataUri);
       }
     } catch (err) {
       console.error("[@fcannizzaro/streamdeck-react] Render error:", err);

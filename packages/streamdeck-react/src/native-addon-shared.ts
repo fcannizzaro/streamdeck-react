@@ -59,6 +59,33 @@ export function isDevelopmentMode(watchMode: boolean | undefined): boolean {
   return watchMode || process.env.NODE_ENV === "development";
 }
 
+// ── DevTools stripping constants ────────────────────────────────────
+// Used by both Vite and Rollup plugins to replace the devtools module
+// with a noop stub in production builds.
+
+export const NOOP_DEVTOOLS_ID = "\0streamdeck-react:noop-devtools";
+export const NOOP_DEVTOOLS_CODE = "export function startDevtoolsServer() {}";
+const DEVTOOLS_IMPORT_SOURCE = "./devtools/index.js";
+
+/**
+ * Returns true when devtools should be stripped from the bundle.
+ * Only strips in explicit production mode (NODE_ENV=production) to avoid
+ * accidentally removing devtools during one-off development builds.
+ */
+export function shouldStripDevtools(watchMode: boolean | undefined): boolean {
+  if (watchMode) return false;
+  return process.env.NODE_ENV === "production";
+}
+
+export function isLibraryDevtoolsImport(source: string, importer: string | undefined): boolean {
+  if (source !== DEVTOOLS_IMPORT_SOURCE || !importer) return false;
+  const normalized = importer.replace(/\\/g, "/");
+  return (
+    normalized.includes("@fcannizzaro/streamdeck-react/") ||
+    normalized.includes("streamdeck-react/dist/")
+  );
+}
+
 export function resolveTargets(request: NativeAddonTarget): ResolvedTarget[] {
   return TARGETS.filter((target) => {
     if (target.platform !== request.platform || target.arch !== request.arch) {

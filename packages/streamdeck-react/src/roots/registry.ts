@@ -21,6 +21,7 @@ import type {
   WrapperComponent,
 } from "@/types";
 import type { RenderConfig } from "@/render/pipeline";
+import type { RegistryObserver } from "@/devtools/observers/lifecycle";
 
 // ── Constants ───────────────────────────────────────────────────────
 
@@ -74,6 +75,9 @@ export class RootRegistry {
   private globalSettings: JsonObject = {};
   private onGlobalSettingsChange: (settings: JsonObject) => Promise<void>;
   private wrapper?: WrapperComponent;
+
+  /** DevTools observer. Set externally by startDevtoolsServer(). null when devtools is off. */
+  observer: RegistryObserver | null = null;
 
   constructor(
     renderConfig: RenderConfig,
@@ -180,6 +184,16 @@ export class RootRegistry {
     });
 
     this.roots.set(contextId, root);
+
+    this.observer?.onRootCreated(contextId, root, {
+      actionUuid: definition.uuid,
+      surface: surfaceType,
+      canvas,
+      device: deviceInfo,
+      coordinates: actionInfo.coordinates
+        ? { column: actionInfo.coordinates.column, row: actionInfo.coordinates.row }
+        : undefined,
+    });
   }
 
   // ── Register an encoder column with the shared TouchBarRoot ───
@@ -224,10 +238,19 @@ export class RootRegistry {
       );
 
       this.touchBarRoots.set(deviceId, tbRoot);
+
+      this.observer?.onTouchBarCreated(deviceId, tbRoot, deviceInfo);
     }
 
     // Register this column
     tbRoot.addColumn(column, actionId, ev.action as DialAction);
+
+    // Notify observer about column change
+    this.observer?.onTouchBarColumnChanged(
+      deviceId,
+      [...tbRoot.columnNumbers],
+      tbRoot.columnActionMap,
+    );
 
     // Track reverse mapping for event routing
     this.touchBarActions.set(actionId, deviceId);
@@ -252,6 +275,7 @@ export class RootRegistry {
         }
         // Clean up the TouchBarRoot if no columns remain
         if (tbRoot.isEmpty) {
+          this.observer?.onTouchBarDestroyed(deviceId);
           tbRoot.unmount();
           this.touchBarRoots.delete(deviceId);
         }
@@ -263,6 +287,7 @@ export class RootRegistry {
     // ── Standard per-action root path ──
     const root = this.roots.get(contextId);
     if (root) {
+      this.observer?.onRootDestroyed(contextId);
       root.unmount();
       this.roots.delete(contextId);
     }
@@ -279,6 +304,7 @@ export class RootRegistry {
     const root = this.roots.get(contextId);
     if (root) {
       root.eventBus.emit(event, payload);
+      this.observer?.onDispatch(contextId, event, payload);
       return;
     }
 
@@ -288,6 +314,7 @@ export class RootRegistry {
       const tbRoot = this.touchBarRoots.get(deviceId);
       if (tbRoot) {
         this.dispatchToTouchBar(tbRoot, contextId, event, payload);
+        this.observer?.onDispatch(contextId, event, payload);
       }
     }
   }

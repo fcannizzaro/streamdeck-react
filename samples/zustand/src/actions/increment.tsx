@@ -7,6 +7,7 @@ function IncrementKey() {
 
   useKeyDown(() => {
     increment();
+    console.log("Incremented count:", count + 1);
   });
 
   return (

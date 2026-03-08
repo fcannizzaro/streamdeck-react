@@ -8,6 +8,16 @@ export class EventBus {
   private listeners = new Map<string, Set<Listener<unknown>>>();
   private sticky = new Map<string, unknown>();
 
+  /** Global devtools observer. Set by DevtoolsBridge when devtools mode is on. */
+  static devtoolsObserver:
+    | ((bus: EventBus, event: string, payload: unknown) => void)
+    | null = null;
+
+  /** Owning action ID. Set by ReactRoot/TouchBarRoot on creation. Used by devtools. */
+  ownerId: string | null = null;
+  /** Owning action UUID. Set by ReactRoot on creation. Used by devtools. */
+  ownerUuid: string | null = null;
+
   on<K extends keyof EventMap>(
     event: K,
     listener: Listener<EventMap[K]>,
@@ -30,6 +40,7 @@ export class EventBus {
   }
 
   emit<K extends keyof EventMap>(event: K, payload: EventMap[K]): void {
+    EventBus.devtoolsObserver?.(this, event, payload);
     const handlers = this.listeners.get(event);
     if (handlers) {
       for (const handler of handlers) {

@@ -108,6 +108,79 @@ function VolumeDial() {
 }
 ```
 
+## Gesture Hooks
+
+Higher-level interaction hooks built on top of key events. They handle timing and state tracking internally via the root's EventBus.
+
+### useTap
+
+Fires on a single `keyUp`. When `useDoubleTap` is also active for the same action, `useTap` is automatically delayed until the double-tap window expires -- and cancelled if a double-tap fires. When used alone, it fires immediately.
+
+```ts
+function useTap(
+  callback: (payload: KeyUpPayload) => void,
+  options?: TapOptions,
+): void;
+
+interface TapOptions {
+  /** Timeout override for the gated delay (inherits from useDoubleTap when omitted). */
+  timeout?: number;
+}
+```
+
+### useLongPress
+
+Fires when a key is held down for at least `timeout` ms. If the key is released before the timeout, the callback is not invoked.
+
+```ts
+function useLongPress(
+  callback: (payload: KeyDownPayload) => void,
+  options?: LongPressOptions,
+): void;
+
+interface LongPressOptions {
+  /** Milliseconds the key must be held before firing. @default 500 */
+  timeout?: number;
+}
+```
+
+### useDoubleTap
+
+Fires when two `keyUp` events occur within `timeout` ms of each other. A triple-tap triggers once on the second tap; the third tap starts a new pair.
+
+When `useTap` is also active, `useDoubleTap` registers a gate so that single-tap callbacks are delayed and can be cancelled on double-tap.
+
+```ts
+function useDoubleTap(
+  callback: (payload: KeyUpPayload) => void,
+  options?: DoubleTapOptions,
+): void;
+
+interface DoubleTapOptions {
+  /** Max milliseconds between two key-up events. @default 300 */
+  timeout?: number;
+}
+```
+
+### Combining useTap and useDoubleTap
+
+When both hooks are used in the same component, they coordinate automatically via an internal per-action TapGate. No extra configuration is needed:
+
+```tsx
+function ModeKey() {
+  const [label, setLabel] = useState('READY');
+
+  useTap(() => setLabel('SINGLE'));
+  useDoubleTap(() => setLabel('DOUBLE'));
+
+  return (
+    <div style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center', background: '#1a1a1a' }}>
+      <span style={{ color: 'white', fontSize: 16 }}>{label}</span>
+    </div>
+  );
+}
+```
+
 ## Settings Hooks
 
 ### useSettings

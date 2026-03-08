@@ -137,13 +137,13 @@ import { readFile } from 'node:fs/promises';
 const fonts: FontConfig[] = [
   {
     name: 'Inter',
-    data: await readFile(new URL('../fonts/Inter-Regular.ttf', import.meta.url)),
+    data: await readFile('./fonts/Inter-Regular.ttf'),
     weight: 400,
     style: 'normal',
   },
   {
     name: 'Inter',
-    data: await readFile(new URL('../fonts/Inter-Bold.ttf', import.meta.url)),
+    data: await readFile('./fonts/Inter-Bold.ttf'),
     weight: 700,
     style: 'normal',
   },

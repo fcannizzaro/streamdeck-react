@@ -66,6 +66,28 @@ export class TouchBarRoot {
   private fps: number;
   private pluginWrapper?: WrapperComponent;
 
+  /** Last rendered per-column data URIs. Used by devtools snapshots. */
+  lastSegmentUris = new Map<number, string>();
+
+  /** Exposes the VContainer for devtools inspection. */
+  get vcontainer(): VContainer {
+    return this.container;
+  }
+
+  /** Sorted column numbers for devtools observer. */
+  get columnNumbers(): number[] {
+    return [...this.columns.keys()].sort((a, b) => a - b);
+  }
+
+  /** Column → actionId map for devtools observer. */
+  get columnActionMap(): Map<number, string> {
+    const map = new Map<number, string>();
+    for (const [col, entry] of this.columns) {
+      map.set(col, entry.actionId);
+    }
+    return map;
+  }
+
   // Cached context values
   private globalSettingsValue: GlobalSettingsContextValue;
   private touchBarValue: TouchBarInfo;
@@ -140,6 +162,9 @@ export class TouchBarRoot {
       },
       () => {}, // onDefaultTransitionIndicator
     );
+
+    // Set eventBus owner for devtools observer
+    this.eventBus.ownerId = `touchbar:${deviceInfo.id}`;
   }
 
   // ── Column Management ─────────────────────────────────────────
@@ -282,6 +307,7 @@ export class TouchBarRoot {
           SEGMENT_WIDTH,
           SEGMENT_HEIGHT,
         );
+        this.lastSegmentUris.set(column, sliceUri);
         feedbackPromises.push(
           entry.sdkAction.setFeedback({ canvas: sliceUri }),
         );

@@ -21,6 +21,14 @@ Complete public API exported from `@fcannizzaro/streamdeck-react`.
 | `useTouchTap` | `(cb: (payload: TouchTapPayload) => void) => void` | Fires when the touch strip is tapped. |
 | `useDialHint` | `(hints: DialHints) => void` | Sets encoder trigger descriptions on Stream Deck+. |
 
+## Gesture Hooks
+
+| Export | Signature | Description |
+|--------|-----------|-------------|
+| `useTap` | `(cb: (payload: KeyUpPayload) => void, options?: TapOptions) => void` | Single tap. Auto-delayed when `useDoubleTap` is active on the same action. |
+| `useLongPress` | `(cb: (payload: KeyDownPayload) => void, options?: LongPressOptions) => void` | Fires when key is held for `timeout` ms (default 500). |
+| `useDoubleTap` | `(cb: (payload: KeyUpPayload) => void, options?: DoubleTapOptions) => void` | Fires on two rapid taps within `timeout` ms (default 300). |
+
 ## Settings Hooks
 
 | Export | Signature | Description |

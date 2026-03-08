@@ -1,6 +1,7 @@
 {
   "title": "Guides",
   "pages": [
+    "devtools",
     "create-cli",
     "react-compiler",
     "dials-and-encoders",
