@@ -450,6 +450,41 @@ When scaffolding or modifying a @fcannizzaro/streamdeck-react plugin, verify:
 - [ ] Build completes without errors: `npx rollup -c`
 - [ ] If React Compiler is enabled: output bundle contains `react.memo_cache_sentinel` (proof compiler is active)
 
+## DevTools
+
+A browser-based inspector for debugging plugins during development. When enabled, the plugin starts a WebSocket server on `localhost` (port range 39400-39499) and the browser UI auto-discovers running plugins by scanning that range.
+
+### Enabling
+
+```ts
+const plugin = createPlugin({
+  devtools: true,          // starts the WebSocket server
+  // devtoolsPort: 39400,  // optional fixed port (default: random in 39400-39499)
+  actions: [/* ... */],
+});
+```
+
+### Opening the DevTools
+
+- **Hosted** (no install): [streamdeckreact.fcannizzaro.com/devtools](https://streamdeckreact.fcannizzaro.com/devtools)
+- **Local**: `npx @fcannizzaro/streamdeck-react-devtools` (npm package `@fcannizzaro/streamdeck-react-devtools`)
+
+### Panels
+
+| Panel | Description |
+|-------|-------------|
+| Console | Intercepted `console.log/warn/error/info/debug` output |
+| Network | Intercepted `fetch` requests and responses |
+| Elements | VNode tree inspector with element highlighting on the physical device |
+| Preview | Live rendered images for every active action and touch bar |
+| Events | EventBus emissions (`keyDown`, `dialRotate`, `touchTap`, etc.) |
+
+### Key Details
+
+- **Element highlighting** -- hover a node in the Elements tree to highlight it with a cyan overlay on the Stream Deck hardware.
+- **Multi-plugin support** -- discovers and switches between multiple running plugins.
+- **Automatic production stripping** -- all devtools code, the `ws` dependency, and instrumentation hooks are removed from the bundle when `NODE_ENV=production` (non-watch builds). Zero overhead in release builds.
+
 ## Detailed References
 
 - [references/api-surface.md](references/api-surface.md) -- Full public API table

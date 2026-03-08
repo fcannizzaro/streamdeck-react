@@ -1,0 +1,101 @@
+---
+title: DevTools
+description: A browser-based inspector for debugging Stream Deck plugins built with streamdeck-react.
+---
+
+<img src="/devtools.webp" alt="DevTools Screenshot" style={{ width: '100%', borderRadius: '8px' }} />
+
+## Opening the DevTools
+
+The devtools are a browser-based inspector that connects to your running plugin over WebSocket. You can use either the hosted version or run a local copy.
+
+### Hosted Version
+
+Open the devtools directly in your browser -- no installation required:
+
+**[streamdeckreact.fcannizzaro.com/devtools](https://streamdeckreact.fcannizzaro.com/devtools)**
+
+Just visit the URL while your plugin is running in development mode. The UI will automatically discover any active plugins on `localhost`.
+
+### Local Version
+
+You can also run the devtools locally using the `@fcannizzaro/streamdeck-react-devtools` package:
+
+```bash tab="bun"
+bunx @fcannizzaro/streamdeck-react-devtools
+```
+
+```bash tab="npx"
+npx @fcannizzaro/streamdeck-react-devtools
+```
+
+Or install it as a dev dependency in your project:
+
+```bash tab="bun"
+bun add -D @fcannizzaro/streamdeck-react-devtools
+```
+
+```bash tab="npm"
+npm add -D @fcannizzaro/streamdeck-react-devtools
+```
+
+Then run it:
+
+```bash
+npx streamdeck-react-devtools
+```
+
+The local server starts on `127.0.0.1`, serves the devtools UI, and automatically opens your browser.
+
+## Enabling DevTools in Your Plugin
+
+Enable the devtools server by setting `devtools: true` in your `createPlugin` configuration:
+
+```tsx
+import { createPlugin } from "@fcannizzaro/streamdeck-react";
+
+const plugin = createPlugin({
+  devtools: true,
+  actions: [
+    // ...your actions
+  ],
+});
+```
+
+You can optionally specify a fixed port with the `devtoolsPort` option. If omitted, a random port in the range **39400 -- 39499** is selected automatically.
+
+```tsx
+const plugin = createPlugin({
+  devtools: true,
+  devtoolsPort: 39400,
+  actions: [
+    // ...your actions
+  ],
+});
+```
+
+## How It Works
+
+1. When `devtools: true` is set, the plugin starts a **WebSocket server** on `localhost` (port range 39400 -- 39499).
+2. The browser UI **auto-discovers** running plugins by scanning that port range.
+3. Once connected, the devtools receive real-time updates: renders, console output, network requests, events, and the component tree.
+4. All devtools code is **automatically stripped from production builds** -- there is zero overhead in release bundles.
+
+## Panels
+
+The devtools UI provides five panels for inspecting different aspects of your plugin:
+
+| Panel | Description |
+| --- | --- |
+| **Console** | Intercepted `console.log`, `console.warn`, `console.error`, `console.info`, and `console.debug` output from your plugin. |
+| **Network** | Intercepted `fetch` requests and responses, including method, URL, status, headers, and body. |
+| **Elements** | A tree view of the VNode component hierarchy for each action. Hover over a node to highlight it on the physical Stream Deck device. |
+| **Preview** | Live rendered images for every active action and touch bar surface. |
+| **Events** | EventBus emissions such as `keyDown`, `keyUp`, `dialRotate`, `touchTap`, and more. |
+
+## Features
+
+- **Element highlighting** -- hover over a node in the Elements tree and the corresponding area is highlighted with a cyan overlay directly on the Stream Deck hardware.
+- **Multi-plugin support** -- if multiple plugins are running with devtools enabled, the UI discovers all of them and lets you switch between them.
+- **History and filters** -- console, network, and event panels keep a scrollable history with text search and level filters.
+- **Automatic production stripping** -- the devtools server, WebSocket dependency, and all instrumentation hooks are removed from the bundle when building for production (`NODE_ENV=production`).
