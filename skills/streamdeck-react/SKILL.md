@@ -191,7 +191,7 @@ const plugin = createPlugin({
   fonts: [
     {
       name: 'Inter',
-      data: await readFile(new URL('../fonts/Inter-Regular.ttf', import.meta.url)),
+      data: await readFile('./fonts/Inter-Regular.ttf'),
       weight: 400,
       style: 'normal',
     },
@@ -329,6 +329,9 @@ Install the `.sdPlugin` folder in the Stream Deck app.
 | Events | `useDialRotate`, `useDialDown`, `useDialUp` | Encoder rotation/press |
 | Events | `useTouchTap` | Touch strip tap |
 | Events | `useDialHint` | Set encoder trigger descriptions |
+| Gestures | `useTap` | Single tap (auto-delayed when useDoubleTap is active) |
+| Gestures | `useLongPress` | Key held for configurable duration (default 500ms) |
+| Gestures | `useDoubleTap` | Two rapid taps within configurable window (default 300ms) |
 | Settings | `useSettings`, `useGlobalSettings` | Bidirectional settings sync |
 | Lifecycle | `useWillAppear`, `useWillDisappear` | Action mount/unmount |
 | Context | `useDevice`, `useAction`, `useCanvas` | Device/action/canvas metadata |

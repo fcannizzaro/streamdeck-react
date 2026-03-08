@@ -23,6 +23,7 @@ import type {
   ActionDefinition,
 } from "./types";
 import type { RenderConfig } from "@/render/pipeline";
+import { startDevtoolsServer } from "./devtools/index.js";
 
 // ── createPlugin ────────────────────────────────────────────────────
 
@@ -83,6 +84,16 @@ export function createPlugin(config: PluginConfig): Plugin {
       config.onActionError,
     );
     streamDeck.actions.registerAction(singletonAction);
+  }
+
+  // ── DevTools server (conditional) ──────────────────────────────────────
+  if (config.devtools) {
+    startDevtoolsServer({
+      port: config.devtoolsPort,
+      devtoolsName: streamDeck.info.plugin.uuid,
+      registry,
+      renderConfig,
+    });
   }
 
   return {

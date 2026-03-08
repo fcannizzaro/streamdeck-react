@@ -12,6 +12,8 @@ export interface RenderConfig {
   imageFormat: OutputFormat;
   caching: boolean;
   devicePixelRatio: number;
+  /** DevTools callback. Called after a non-null render with the container and data URI. */
+  onRender?: (container: VContainer, dataUri: string) => void;
 }
 
 // ── Buffer to Data URI ──────────────────────────────────────────────
@@ -71,10 +73,10 @@ export async function renderToDataUri(
     container.lastSvgHash = hash;
   }
 
-  return bufferToDataUri(buffer, config.imageFormat);
+  const dataUri = bufferToDataUri(buffer, config.imageFormat);
+  config.onRender?.(container, dataUri);
+  return dataUri;
 }
-
-// ── Raw Render Pipeline ─────────────────────────────────────────────
 // Renders the component tree to raw RGBA pixels (no encoding overhead).
 // Used by the touchbar pipeline for efficient buffer-based slicing.
 

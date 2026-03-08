@@ -14,6 +14,7 @@ const externalPackages = [
   "rollup",
   "typescript",
   "vite",
+  "ws",
 ];
 
 function isExternal(id: string): boolean {

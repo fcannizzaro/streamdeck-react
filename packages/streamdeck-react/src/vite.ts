@@ -1,7 +1,7 @@
 import { exec } from "node:child_process";
 import { resolve } from "node:path";
 import type { Plugin, ResolvedConfig } from "vite";
-import { copyNativeBindings } from "./native-addon-shared";
+import { copyNativeBindings, shouldStripDevtools, isLibraryDevtoolsImport, NOOP_DEVTOOLS_ID, NOOP_DEVTOOLS_CODE } from "./native-addon-shared";
 import { resolveFontId, loadFont } from "./font-inline";
 import type { NativeAddonTarget, NativeAddonOptions } from "./native-addon-shared";
 
@@ -32,11 +32,14 @@ export interface StreamDeckReactOptions extends NativeAddonOptions {
  *   access is needed.
  * - Copies platform-specific `@takumi-rs/core` native bindings (`.node` files)
  *   into the bundle output directory.
+ * - Strips devtools code in production builds (non-watch mode).
  * - Optionally restarts the Stream Deck plugin after each build when
  *   {@link StreamDeckReactOptions.uuid} is provided.
  */
 export function streamDeckReact(options: StreamDeckReactOptions = {}): Plugin {
   let resolvedConfig: ResolvedConfig;
+  let isDevelopment = false;
+  let stripDevtools = false;
 
   return {
     name: "fcannizzaro-streamdeck-react",
@@ -45,19 +48,25 @@ export function streamDeckReact(options: StreamDeckReactOptions = {}): Plugin {
 
     configResolved(config) {
       resolvedConfig = config;
+      const isWatch = config.build.watch !== null;
+      isDevelopment = isWatch || process.env.NODE_ENV === "development";
+      stripDevtools = shouldStripDevtools(isWatch);
     },
 
     resolveId(source, importer) {
+      // Strip devtools module in production builds
+      if (stripDevtools && isLibraryDevtoolsImport(source, importer)) {
+        return NOOP_DEVTOOLS_ID;
+      }
       return resolveFontId(source, importer);
     },
 
     load(id) {
+      if (id === NOOP_DEVTOOLS_ID) return NOOP_DEVTOOLS_CODE;
       return loadFont(id);
     },
 
     writeBundle() {
-      const isWatch = resolvedConfig.build.watch !== null;
-      const isDevelopment = isWatch || process.env.NODE_ENV === "development";
       const outDir = resolve(resolvedConfig.root, resolvedConfig.build.outDir);
 
       copyNativeBindings(outDir, isDevelopment, options, (msg) => {

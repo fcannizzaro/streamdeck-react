@@ -13,7 +13,7 @@ The `@elgato/streamdeck` SDK is powerful but low-level. You track state manually
 
 - **Declarative rendering** -- describe your key as JSX, not imperative draw calls.
 - **Full React hooks** -- `useState`, `useEffect`, `useRef`, `useContext`, custom hooks -- all work as expected.
-- **Hardware-aware hooks** -- `useKeyDown`, `useDialRotate`, `useTouchTap`, settings hooks, lifecycle hooks, and SDK hooks compose with the rest of React.
+- **Hardware-aware hooks** -- `useKeyDown`, `useDialRotate`, `useTouchTap`, gesture hooks (`useTap`, `useLongPress`, `useDoubleTap`), settings hooks, lifecycle hooks, and SDK hooks compose with the rest of React.
 - **Built-in primitives** -- `Box`, `Text`, `Image`, `Icon`, `ProgressBar`, `CircularGauge`, and `ErrorBoundary` help you build compact device UIs fast.
 - **Plugin-first workflow** -- define actions with `defineAction()`, register them with `createPlugin()`, and connect once.
 - **Flexible styling** -- use inline styles, `className`, and the `tw()` helper for Tailwind-like utility strings.
@@ -56,7 +56,7 @@ const plugin = createPlugin({
   fonts: [
     {
       name: 'Inter',
-      data: await readFile(new URL('../fonts/Inter-Regular.ttf', import.meta.url)),
+      data: await readFile('./fonts/Inter-Regular.ttf'),
       weight: 400,
       style: 'normal',
     },

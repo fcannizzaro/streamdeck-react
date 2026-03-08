@@ -81,6 +81,9 @@
     "typescript": "^5",
     "vite": "^7.0.0 || ^8.0.0"
   },
+  "optionalDependencies": {
+    "ws": "^8.0.0"
+  },
   "peerDependenciesMeta": {
     "rollup": {
       "optional": true

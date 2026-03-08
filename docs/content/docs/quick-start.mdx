@@ -3,7 +3,7 @@ title: Quick Start
 description: Build your first Stream Deck plugin with @fcannizzaro/streamdeck-react.
 ---
 
-This guide creates a minimal counter action, bundles it, and connects it to the Stream Deck runtime. You can use either **Rollup** or **Vite 8** as the bundler.
+This guide creates a minimal counter action, bundles it, and connects it to the Stream Deck runtime. You can use either **Rollup** or **Rolldown (Vite 8)** as the bundler.
 
 If you want the scaffold generated for you, start with [`create-streamdeck-react`](/guides/create-cli). The steps below show the manual setup.
 
@@ -15,12 +15,36 @@ Your action UUID in `manifest.json` must match the UUID you register in `defineA
 
 ## 2. Install Dependencies
 
-```bash tab="Rollup"
+### Rollup
+
+```bash tab="bun"
+bun add @fcannizzaro/streamdeck-react react @takumi-rs/core-darwin-arm64
+bun add -d rollup @rollup/plugin-node-resolve @rollup/plugin-commonjs @rollup/plugin-json rollup-plugin-esbuild
+```
+
+```bash tab="pnpm"
+pnpm add @fcannizzaro/streamdeck-react react @takumi-rs/core-darwin-arm64
+pnpm add -D rollup @rollup/plugin-node-resolve @rollup/plugin-commonjs @rollup/plugin-json rollup-plugin-esbuild
+```
+
+```bash tab="npm"
 npm install @fcannizzaro/streamdeck-react react @takumi-rs/core-darwin-arm64
 npm install -D rollup @rollup/plugin-node-resolve @rollup/plugin-commonjs @rollup/plugin-json rollup-plugin-esbuild
 ```
 
-```bash tab="Vite 8"
+### Rolldown (Vite 8)
+
+```bash tab="bun"
+bun add @fcannizzaro/streamdeck-react react @takumi-rs/core-darwin-arm64
+bun add -d vite@8.0.0-beta.16 @vitejs/plugin-react@6.0.0-beta.0
+```
+
+```bash tab="pnpm"
+pnpm add @fcannizzaro/streamdeck-react react @takumi-rs/core-darwin-arm64
+pnpm add -D vite@8.0.0-beta.16 @vitejs/plugin-react@6.0.0-beta.0
+```
+
+```bash tab="npm"
 npm install @fcannizzaro/streamdeck-react react @takumi-rs/core-darwin-arm64
 npm install -D vite@8.0.0-beta.16 @vitejs/plugin-react@6.0.0-beta.0
 ```
@@ -128,7 +152,7 @@ export default {
 };
 ```
 
-```ts tab="Vite 8"
+```ts tab="Rolldown (Vite 8)"
 // vite.config.ts
 import { builtinModules } from 'node:module';
 import { resolve } from 'node:path';
@@ -179,7 +203,7 @@ For production builds, pass explicit `targets`. In watch mode, `nativeAddon()` c
 npx rollup -c
 ```
 
-```bash tab="Vite 8"
+```bash tab="Rolldown (Vite 8)"
 npx vite build
 ```
 
