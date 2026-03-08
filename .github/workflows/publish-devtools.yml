@@ -32,6 +32,9 @@ jobs:
         run: bun run build
         working-directory: packages/devtools
 
+      - name: Copy LICENSE
+        run: cp LICENSE packages/devtools/LICENSE
+
       - name: Publish
         run: npm publish --provenance --access public
         working-directory: packages/devtools
