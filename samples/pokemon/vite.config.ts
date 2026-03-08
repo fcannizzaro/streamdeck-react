@@ -19,7 +19,6 @@ export default defineConfig({
   plugins: [
     esmExternalRequirePlugin({ external: builtins }),
     react(),
-    // @ts-expect-error — @rolldown/plugin-babel@0.2.0 types incorrectly mark inherited babel fields as required
     babel({ presets: [reactCompilerPreset()] }),
     streamDeckReact({
       uuid: "com.example.react-pokemon",

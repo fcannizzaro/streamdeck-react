@@ -13,6 +13,13 @@
     "@fcannizzaro/streamdeck-react#build": {
       "outputs": ["dist/**"]
     },
+    "@fcannizzaro/streamdeck-react-devtools#build": {
+      "outputs": ["dist/**"]
+    },
+    "docs#build": {
+      "dependsOn": ["@fcannizzaro/streamdeck-react-devtools#build"],
+      "outputs": ["out/**"]
+    },
     "dev": {
       "cache": false,
       "persistent": true

@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "docs/**"
+      - "packages/devtools/**"
 permissions:
   pages: write
   id-token: write
@@ -17,9 +18,13 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
       - name: Install dependencies
-        run: cd docs && bun install
+        run: bun install
+      - name: Build devtools
+        run: bun run build
+        working-directory: packages/devtools
       - name: Build docs
-        run: cd docs && bun run build
+        run: bun run build
+        working-directory: docs
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact
