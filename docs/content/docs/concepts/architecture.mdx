@@ -81,12 +81,10 @@ Every action root is automatically wrapped with providers:
         <StreamDeckProvider>
           <GlobalSettingsProvider>
             <SettingsProvider>
+              {/* if defined in createPlugin */}
               <PluginWrapper>
-                {" "}
-                {/* if defined in createPlugin */}
+                {/* if defined in defineAction */}
                 <ActionWrapper>
-                  {" "}
-                  {/* if defined in defineAction */}
                   <UserComponent />
                 </ActionWrapper>
               </PluginWrapper>
