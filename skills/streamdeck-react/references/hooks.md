@@ -44,8 +44,8 @@ Fires when a dial/encoder is rotated.
 function useDialRotate(callback: (payload: DialRotatePayload) => void): void;
 
 interface DialRotatePayload {
-  ticks: number;      // Positive = clockwise, negative = counter-clockwise
-  pressed: boolean;   // Whether the dial is pressed while rotating
+  ticks: number; // Positive = clockwise, negative = counter-clockwise
+  pressed: boolean; // Whether the dial is pressed while rotating
   settings: JsonObject;
 }
 ```
@@ -60,7 +60,7 @@ function useDialUp(callback: (payload: DialPressPayload) => void): void;
 
 interface DialPressPayload {
   settings: JsonObject;
-  controller: 'Encoder';
+  controller: "Encoder";
 }
 ```
 
@@ -72,8 +72,8 @@ Fires when the touch strip is tapped.
 function useTouchTap(callback: (payload: TouchTapPayload) => void): void;
 
 interface TouchTapPayload {
-  tapPos: [x: number, y: number];  // Tap coordinates
-  hold: boolean;                    // Whether it was a long press
+  tapPos: [x: number, y: number]; // Tap coordinates
+  hold: boolean; // Whether it was a long press
   settings: JsonObject;
 }
 ```
@@ -100,8 +100,8 @@ function VolumeDial() {
   const [muted, setMuted] = useState(false);
 
   useDialHint({
-    rotate: 'Adjust volume',
-    press: muted ? 'Unmute' : 'Mute',
+    rotate: "Adjust volume",
+    press: muted ? "Unmute" : "Mute",
   });
 
   // ...
@@ -117,10 +117,7 @@ Higher-level interaction hooks built on top of key events. They handle timing an
 Fires on a single `keyUp`. When `useDoubleTap` is also active for the same action, `useTap` is automatically delayed until the double-tap window expires -- and cancelled if a double-tap fires. When used alone, it fires immediately.
 
 ```ts
-function useTap(
-  callback: (payload: KeyUpPayload) => void,
-  options?: TapOptions,
-): void;
+function useTap(callback: (payload: KeyUpPayload) => void, options?: TapOptions): void;
 
 interface TapOptions {
   /** Timeout override for the gated delay (inherits from useDoubleTap when omitted). */
@@ -151,10 +148,7 @@ Fires when two `keyUp` events occur within `timeout` ms of each other. A triple-
 When `useTap` is also active, `useDoubleTap` registers a gate so that single-tap callbacks are delayed and can be cancelled on double-tap.
 
 ```ts
-function useDoubleTap(
-  callback: (payload: KeyUpPayload) => void,
-  options?: DoubleTapOptions,
-): void;
+function useDoubleTap(callback: (payload: KeyUpPayload) => void, options?: DoubleTapOptions): void;
 
 interface DoubleTapOptions {
   /** Max milliseconds between two key-up events. @default 250 */
@@ -168,14 +162,22 @@ When both hooks are used in the same component, they coordinate automatically vi
 
 ```tsx
 function ModeKey() {
-  const [label, setLabel] = useState('READY');
+  const [label, setLabel] = useState("READY");
 
-  useTap(() => setLabel('SINGLE'));
-  useDoubleTap(() => setLabel('DOUBLE'));
+  useTap(() => setLabel("SINGLE"));
+  useDoubleTap(() => setLabel("DOUBLE"));
 
   return (
-    <div style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center', background: '#1a1a1a' }}>
-      <span style={{ color: 'white', fontSize: 16 }}>{label}</span>
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "#1a1a1a",
+      }}
+    >
+      <span style={{ color: "white", fontSize: 16 }}>{label}</span>
     </div>
   );
 }
@@ -194,6 +196,7 @@ function useSettings<S extends JsonObject = JsonObject>(): [S, (partial: Partial
 **Merge semantics**: `setSettings` does `{ ...current, ...partial }` -- always merges, never replaces. This matches the SDK's `setSettings` behavior.
 
 **Sync flow**:
+
 1. **React to SDK**: calling `setSettings({ count: 5 })` updates React state (triggers re-render) AND calls `action.setSettings()` to persist.
 2. **SDK to React**: Property Inspector settings changes (`onDidReceiveSettings`) update internal state and re-render components using `useSettings()`.
 3. **Conflict resolution**: the SDK is source of truth. Last write wins.
@@ -217,7 +220,7 @@ function useWillAppear(callback: (payload: WillAppearPayload) => void): void;
 
 interface WillAppearPayload {
   settings: JsonObject;
-  controller: 'Keypad' | 'Encoder';
+  controller: "Keypad" | "Encoder";
   isInMultiAction: boolean;
 }
 ```
@@ -243,7 +246,7 @@ function useDevice(): DeviceInfo;
 
 interface DeviceInfo {
   id: string;
-  type: DeviceType;  // e.g. 0 (StreamDeck), 2 (StreamDeckXL), 7 (StreamDeckPlus)
+  type: DeviceType; // e.g. 0 (StreamDeck), 2 (StreamDeckXL), 7 (StreamDeckPlus)
   size: { columns: number; rows: number };
   name: string;
 }
@@ -257,9 +260,9 @@ Returns metadata about the current action instance. Set once on mount (immutable
 function useAction(): ActionInfo;
 
 interface ActionInfo {
-  id: string;             // Unique context ID for this placed instance
-  uuid: string;           // Action UUID (e.g. 'com.example.plugin.counter')
-  controller: 'Keypad' | 'Encoder';
+  id: string; // Unique context ID for this placed instance
+  uuid: string; // Action UUID (e.g. 'com.example.plugin.counter')
+  controller: "Keypad" | "Encoder";
   coordinates?: { row: number; column: number };
   isInMultiAction: boolean;
 }
@@ -273,9 +276,9 @@ Returns render target dimensions. Set once on mount (immutable).
 function useCanvas(): CanvasInfo;
 
 interface CanvasInfo {
-  width: number;    // Pixel width of the render target
-  height: number;   // Pixel height of the render target
-  type: 'key' | 'dial' | 'touch';
+  width: number; // Pixel width of the render target
+  height: number; // Pixel height of the render target
+  type: "key" | "dial" | "touch";
 }
 ```
 
@@ -362,7 +365,7 @@ Auto-cleaning interval. Pass `null` to pause.
 function useInterval(callback: () => void, delayMs: number | null): IntervalControls;
 
 interface IntervalControls {
-  reset: () => void;  // Restart the interval from zero
+  reset: () => void; // Restart the interval from zero
 }
 ```
 
@@ -394,7 +397,7 @@ Animation frame loop driven by timers. Receives elapsed milliseconds since the l
 ```ts
 function useTick(
   callback: (deltaMs: number) => void,
-  fpsOrActive?: number | boolean,  // Default: 60. Pass false to pause.
+  fpsOrActive?: number | boolean, // Default: 60. Pass false to pause.
 ): void;
 ```
 

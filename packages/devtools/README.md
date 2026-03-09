@@ -34,20 +34,20 @@ streamdeck-react-devtools 3000
 
 ## Panels
 
-| Panel        | Description                                       |
-| ------------ | ------------------------------------------------- |
-| **Console**  | Plugin `console.log`, `warn`, `error` output      |
-| **Network**  | Outgoing HTTP requests, responses, and errors      |
-| **Elements** | Live React component tree for each action          |
+| Panel        | Description                                            |
+| ------------ | ------------------------------------------------------ |
+| **Console**  | Plugin `console.log`, `warn`, `error` output           |
+| **Network**  | Outgoing HTTP requests, responses, and errors          |
+| **Elements** | Live React component tree for each action              |
 | **Preview**  | Visual preview of rendered keys, dials, and touch bars |
-| **Events**   | Stream Deck event bus messages per action           |
+| **Events**   | Stream Deck event bus messages per action              |
 
 ## Keyboard Shortcuts
 
-| Shortcut          | Action                 |
-| ----------------- | ---------------------- |
-| `Ctrl/Cmd + 1–5`  | Toggle panel           |
-| `Ctrl/Cmd + K`    | Clear active panel(s)  |
+| Shortcut         | Action                |
+| ---------------- | --------------------- |
+| `Ctrl/Cmd + 1–5` | Toggle panel          |
+| `Ctrl/Cmd + K`   | Clear active panel(s) |
 
 Tabs can be reordered via drag-and-drop. Right-click a tab to switch between horizontal and vertical layout.
 

@@ -7,19 +7,18 @@ import {
   isLibraryDevtoolsImport,
   NOOP_DEVTOOLS_ID,
   NOOP_DEVTOOLS_CODE,
-} from "./native-addon-shared";
+} from "./bundler-shared";
 import { resolveFontId, loadFont } from "./font-inline";
-import type { NativeAddonTarget, NativeAddonOptions } from "./native-addon-shared";
+import type { StreamDeckTarget, StreamDeckTargetOptions } from "./bundler-shared";
 
 export type {
-  NativeAddonPlatform,
-  NativeAddonArch,
-  NativeAddonLibc,
-  NativeAddonTarget,
-  NativeAddonOptions,
-} from "./native-addon-shared";
+  StreamDeckPlatform,
+  StreamDeckArch,
+  StreamDeckTarget,
+  StreamDeckTargetOptions,
+} from "./bundler-shared";
 
-export interface StreamDeckReactOptions extends NativeAddonOptions {
+export interface StreamDeckReactOptions extends StreamDeckTargetOptions {
   /**
    * The plugin UUID used to restart the plugin after each build
    * (e.g. `"com.example.react-pokemon"`).

@@ -2,7 +2,7 @@
 
 import { describe, expect, test } from "bun:test";
 import { act, useEffect, useState } from "react";
-import { useAnimationFrame, useInterval, usePrevious, useTick, useTimeout } from "@/hooks/utility";
+import { useInterval, usePrevious, useTick, useTimeout } from "@/hooks/utility";
 import { createDomRoot, sleep } from "@/test-utils/react";
 
 type HookHarnessApi<TResult> = {
@@ -208,34 +208,6 @@ describe("utility hooks", () => {
 
     await act(async () => {
       await sleep(70);
-    });
-
-    expect(deltas.length).toBe(pausedCount);
-    await hook.unmount();
-  });
-
-  test("useAnimationFrame remains compatible through useTick", async () => {
-    const deltas: number[] = [];
-
-    const hook = await renderStatefulHook(
-      ({ active }: { active: boolean }) =>
-        useAnimationFrame((deltaMs) => {
-          deltas.push(deltaMs);
-        }, active),
-      { active: true },
-    );
-
-    await act(async () => {
-      await sleep(40);
-    });
-
-    expect(deltas.length).toBeGreaterThanOrEqual(2);
-
-    await hook.rerender({ active: false });
-    const pausedCount = deltas.length;
-
-    await act(async () => {
-      await sleep(30);
     });
 
     expect(deltas.length).toBe(pausedCount);

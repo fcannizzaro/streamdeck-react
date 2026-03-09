@@ -8,26 +8,30 @@ description: Define a Stream Deck action with React components for keys, dials, 
 ## Basic Usage
 
 ```tsx
-import { defineAction, useKeyDown } from '@fcannizzaro/streamdeck-react';
-import { useState } from 'react';
+import { defineAction, useKeyDown } from "@fcannizzaro/streamdeck-react";
+import { useState } from "react";
 
 function CounterKey() {
   const [count, setCount] = useState(0);
   useKeyDown(() => setCount((c) => c + 1));
 
   return (
-    <div style={{
-      width: '100%', height: '100%',
-      alignItems: 'center', justifyContent: 'center',
-      background: '#000',
-    }}>
-      <span style={{ color: 'white', fontSize: 32 }}>{count}</span>
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "#000",
+      }}
+    >
+      <span style={{ color: "white", fontSize: 32 }}>{count}</span>
     </div>
   );
 }
 
 export const counterAction = defineAction({
-  uuid: 'com.example.plugin.counter',
+  uuid: "com.example.plugin.counter",
   key: CounterKey,
 });
 ```
@@ -81,9 +85,9 @@ If you provide a custom object layout, it should include a `pixmap` item keyed a
 
 ```tsx
 export const volumeAction = defineAction({
-  uuid: 'com.example.plugin.volume',
+  uuid: "com.example.plugin.volume",
   dial: VolumeDial,
-  dialLayout: '$A1',
+  dialLayout: "$A1",
 });
 ```
 
@@ -95,9 +99,9 @@ For encoder rendering, you can still pair a key surface with a dedicated dial co
 
 ```tsx
 export const volumeAction = defineAction<VolumeSettings>({
-  uuid: 'com.example.plugin.volume',
-  key: VolumeKey,        // Rendered on a key
-  dial: VolumeDial,      // Rendered on the dial display
+  uuid: "com.example.plugin.volume",
+  key: VolumeKey, // Rendered on a key
+  dial: VolumeDial, // Rendered on the dial display
   defaultSettings: { volume: 50, muted: false },
 });
 ```
@@ -116,11 +120,9 @@ An optional component that wraps this action's root. Use this for action-scoped 
 
 ```tsx
 export const myAction = defineAction({
-  uuid: 'com.example.plugin.my-action',
+  uuid: "com.example.plugin.my-action",
   key: MyKey,
-  wrapper: ({ children }) => (
-    <MyActionProvider>{children}</MyActionProvider>
-  ),
+  wrapper: ({ children }) => <MyActionProvider>{children}</MyActionProvider>,
 });
 ```
 
@@ -141,7 +143,7 @@ type VolumeSettings = {
 };
 
 export const volumeAction = defineAction<VolumeSettings>({
-  uuid: 'com.example.plugin.volume',
+  uuid: "com.example.plugin.volume",
   dial: VolumeDial,
   defaultSettings: { volume: 50, muted: false },
 });

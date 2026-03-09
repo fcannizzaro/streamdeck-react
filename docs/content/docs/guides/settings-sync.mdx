@@ -43,7 +43,7 @@ function MyKey() {
 ## Global Settings
 
 ```tsx
-type GlobalConfig = { apiKey: string; theme: 'light' | 'dark' };
+type GlobalConfig = { apiKey: string; theme: "light" | "dark" };
 
 function MyKey() {
   const [global, setGlobal] = useGlobalSettings<GlobalConfig>();
@@ -62,7 +62,7 @@ function MyKey() {
   const sendToPI = useSendToPI();
 
   useKeyDown(() => {
-    sendToPI({ currentState: 'active', timestamp: Date.now() });
+    sendToPI({ currentState: "active", timestamp: Date.now() });
   });
 }
 ```
@@ -72,7 +72,7 @@ function MyKey() {
 ```tsx
 function MyKey() {
   usePropertyInspector<{ action: string }>((msg) => {
-    if (msg.action === 'refresh') {
+    if (msg.action === "refresh") {
       // Handle PI message
     }
   });
@@ -85,8 +85,8 @@ Set default values in `defineAction` so new instances start with sensible state:
 
 ```tsx
 export const myAction = defineAction<MySettings>({
-  uuid: 'com.example.plugin.my-action',
+  uuid: "com.example.plugin.my-action",
   key: MyKey,
-  defaultSettings: { color: '#000', brightness: 50 },
+  defaultSettings: { color: "#000", brightness: 50 },
 });
 ```

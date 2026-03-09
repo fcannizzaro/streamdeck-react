@@ -16,7 +16,7 @@ The `streamdeck-react` skill teaches agents:
 - **Project setup** -- folder structure, dependencies, `package.json`, `tsconfig.json`
 - **Core workflow** -- `defineAction()` → `createPlugin()` → `plugin.connect()`
 - **Full API surface** -- every exported hook, component, type, and utility
-- **Rollup bundling** -- config template, `nativeAddon({ targets })`, production target selection
+- **Rollup bundling** -- config template, `streamDeckReact({ targets })`, production target selection
 - **Runtime prerequisites** -- fonts and platform-specific Takumi bindings
 - **manifest.json alignment** -- UUID matching, encoder blocks, CodePath
 - **State management** -- when to use `useState`, `useSettings`, `useGlobalSettings`, Zustand, or Jotai
@@ -67,7 +67,7 @@ skills/
       plugin-setup.md             # createPlugin / defineAction details
       hooks.md                    # All hooks with signatures
       components.md               # Component props tables
-      rollup-bundling.md          # Rollup config and native addon
+      rollup-bundling.md          # Rollup config and native bindings
       device-sizes.md             # Hardware dimensions
       limitations.md              # Constraints and trade-offs
 ```

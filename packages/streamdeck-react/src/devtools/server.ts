@@ -21,7 +21,6 @@ export class DevtoolsServer {
   private actualPort: number | null = null;
 
   private onConnectCb: ((clientId: string) => void) | null = null;
-  private onDisconnectCb: ((clientId: string) => void) | null = null;
   private onMessageCb: ((msg: ClientMessage) => void) | null = null;
 
   constructor(port: number) {
@@ -31,11 +30,6 @@ export class DevtoolsServer {
   /** Set a callback invoked when a new browser client connects via SSE. */
   setOnConnect(cb: (clientId: string) => void): void {
     this.onConnectCb = cb;
-  }
-
-  /** Set a callback invoked when a browser client disconnects. */
-  setOnDisconnect(cb: (clientId: string) => void): void {
-    this.onDisconnectCb = cb;
   }
 
   /** Set a callback for client→server messages (request:snapshot, highlight:action). */
@@ -207,7 +201,6 @@ export class DevtoolsServer {
 
     req.on("close", () => {
       this.clients.delete(clientId);
-      this.onDisconnectCb?.(clientId);
     });
   }
 
@@ -229,10 +222,7 @@ export class DevtoolsServer {
       }
     }
     // 1x1 transparent GIF — smallest valid image response
-    const pixel = Buffer.from(
-      "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
-      "base64",
-    );
+    const pixel = Buffer.from("R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7", "base64");
     res.writeHead(200, {
       "Content-Type": "image/gif",
       "Content-Length": String(pixel.length),

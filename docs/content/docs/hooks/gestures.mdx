@@ -10,10 +10,7 @@ Gesture hooks provide higher-level interaction patterns on top of the raw `keyDo
 Fires on a single `keyUp`. When `useDoubleTap` is also active for the same action, `useTap` is automatically delayed until the double-tap window expires -- and cancelled if a double-tap fires. When used alone, it fires immediately.
 
 ```ts
-function useTap(
-  callback: (payload: KeyUpPayload) => void,
-  options?: TapOptions,
-): void;
+function useTap(callback: (payload: KeyUpPayload) => void, options?: TapOptions): void;
 ```
 
 ```ts
@@ -32,14 +29,16 @@ function ToggleKey() {
   });
 
   return (
-    <div style={{
-      width: '100%', height: '100%',
-      alignItems: 'center', justifyContent: 'center',
-      background: on ? '#4CAF50' : '#333',
-    }}>
-      <span style={{ color: 'white', fontSize: 18 }}>
-        {on ? 'ON' : 'OFF'}
-      </span>
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        alignItems: "center",
+        justifyContent: "center",
+        background: on ? "#4CAF50" : "#333",
+      }}
+    >
+      <span style={{ color: "white", fontSize: 18 }}>{on ? "ON" : "OFF"}</span>
     </div>
   );
 }
@@ -65,22 +64,27 @@ interface LongPressOptions {
 
 ```tsx
 function ResetKey() {
-  const [status, setStatus] = useState('idle');
+  const [status, setStatus] = useState("idle");
 
-  useLongPress(() => {
-    setStatus('reset');
-    setTimeout(() => setStatus('idle'), 1000);
-  }, { timeout: 800 });
+  useLongPress(
+    () => {
+      setStatus("reset");
+      setTimeout(() => setStatus("idle"), 1000);
+    },
+    { timeout: 800 },
+  );
 
   return (
-    <div style={{
-      width: '100%', height: '100%',
-      alignItems: 'center', justifyContent: 'center',
-      background: status === 'reset' ? '#e53935' : '#1a1a1a',
-    }}>
-      <span style={{ color: 'white', fontSize: 16 }}>
-        {status === 'reset' ? 'RESET' : 'HOLD'}
-      </span>
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        alignItems: "center",
+        justifyContent: "center",
+        background: status === "reset" ? "#e53935" : "#1a1a1a",
+      }}
+    >
+      <span style={{ color: "white", fontSize: 16 }}>{status === "reset" ? "RESET" : "HOLD"}</span>
     </div>
   );
 }
@@ -95,10 +99,7 @@ The default long-press threshold is **500 ms**. Pass `{ timeout }` to override i
 Fires when two `keyUp` events occur within `timeout` milliseconds of each other. A triple tap triggers on the second tap; the third tap starts a new pair.
 
 ```ts
-function useDoubleTap(
-  callback: (payload: KeyUpPayload) => void,
-  options?: DoubleTapOptions,
-): void;
+function useDoubleTap(callback: (payload: KeyUpPayload) => void, options?: DoubleTapOptions): void;
 ```
 
 ```ts
@@ -117,13 +118,17 @@ function BookmarkKey() {
   });
 
   return (
-    <div style={{
-      width: '100%', height: '100%',
-      alignItems: 'center', justifyContent: 'center',
-      background: saved ? '#FFC107' : '#333',
-    }}>
-      <span style={{ color: saved ? '#000' : '#fff', fontSize: 18 }}>
-        {saved ? 'SAVED' : '2xTAP'}
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        alignItems: "center",
+        justifyContent: "center",
+        background: saved ? "#FFC107" : "#333",
+      }}
+    >
+      <span style={{ color: saved ? "#000" : "#fff", fontSize: 18 }}>
+        {saved ? "SAVED" : "2xTAP"}
       </span>
     </div>
   );
@@ -140,18 +145,22 @@ When both hooks are used in the same component, they coordinate automatically. `
 
 ```tsx
 function ModeKey() {
-  const [label, setLabel] = useState('READY');
+  const [label, setLabel] = useState("READY");
 
-  useTap(() => setLabel('SINGLE'));
-  useDoubleTap(() => setLabel('DOUBLE'));
+  useTap(() => setLabel("SINGLE"));
+  useDoubleTap(() => setLabel("DOUBLE"));
 
   return (
-    <div style={{
-      width: '100%', height: '100%',
-      alignItems: 'center', justifyContent: 'center',
-      background: '#1a1a1a',
-    }}>
-      <span style={{ color: 'white', fontSize: 16 }}>{label}</span>
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "#1a1a1a",
+      }}
+    >
+      <span style={{ color: "white", fontSize: 16 }}>{label}</span>
     </div>
   );
 }

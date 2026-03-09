@@ -26,14 +26,16 @@ function ClockKey() {
   }, 1000);
 
   return (
-    <div style={{
-      width: '100%', height: '100%',
-      alignItems: 'center', justifyContent: 'center',
-      background: '#000',
-    }}>
-      <span style={{ color: 'white', fontSize: 22 }}>
-        {time.toLocaleTimeString()}
-      </span>
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "#000",
+      }}
+    >
+      <span style={{ color: "white", fontSize: 22 }}>{time.toLocaleTimeString()}</span>
     </div>
   );
 }
@@ -78,10 +80,7 @@ function MyKey() {
 Calls the callback repeatedly with delta time using timer-driven ticks. Pass a number to set target FPS, `true` for 60fps, or `false` to pause.
 
 ```ts
-function useTick(
-  callback: (deltaMs: number) => void,
-  fpsOrActive?: number | boolean,
-): void;
+function useTick(callback: (deltaMs: number) => void, fpsOrActive?: number | boolean): void;
 ```
 
 Default FPS is 60. The callback receives the elapsed milliseconds since the last tick.
@@ -101,13 +100,3 @@ function AnimatedKey() {
 ### Note on Animation Performance
 
 The actual frame rate is capped by the render debounce (default 16ms = ~60fps theoretical max). In practice, rendering time limits real throughput to roughly 10-30fps depending on component complexity.
-
-## useAnimationFrame
-
-> **Deprecated**: Use `useTick` instead.
-
-Legacy wrapper that calls `useTick` under the hood with 60fps when active.
-
-```ts
-function useAnimationFrame(callback: (deltaMs: number) => void, active?: boolean): void;
-```

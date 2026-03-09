@@ -50,9 +50,7 @@ function validateLayout(layout: LayoutItem[]): LayoutItem[] {
  * Returns a 2D boolean array [row][col] where true = occupied.
  */
 function buildOccupancyGrid(layout: LayoutItem[]): boolean[][] {
-  const grid: boolean[][] = Array.from({ length: GRID_ROWS }, () =>
-    Array(GRID_COLS).fill(false),
-  );
+  const grid: boolean[][] = Array.from({ length: GRID_ROWS }, () => Array(GRID_COLS).fill(false));
   for (const item of layout) {
     for (let r = item.y; r < Math.min(item.y + item.h, GRID_ROWS); r++) {
       for (let c = item.x; c < Math.min(item.x + item.w, GRID_COLS); c++) {

@@ -2,20 +2,19 @@ import { createRequire } from "node:module";
 import { copyFileSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-export type NativeAddonPlatform = "darwin" | "linux" | "win32";
-export type NativeAddonArch = "arm64" | "x64";
-export type NativeAddonLibc = "gnu" | "musl";
+export type StreamDeckPlatform = "darwin" | "win32";
+export type StreamDeckArch = "arm64" | "x64";
 
-export interface NativeAddonTarget {
-  platform: NativeAddonPlatform;
-  arch: NativeAddonArch;
+export interface StreamDeckTarget {
+  platform: StreamDeckPlatform;
+  arch: StreamDeckArch;
 }
 
-export interface NativeAddonOptions {
-  targets?: NativeAddonTarget[];
+export interface StreamDeckTargetOptions {
+  targets?: StreamDeckTarget[];
 }
 
-export interface ResolvedTarget extends NativeAddonTarget {
+export interface ResolvedTarget extends StreamDeckTarget {
   pkg: string;
   file: string;
 }
@@ -47,11 +46,11 @@ export const TARGETS: ResolvedTarget[] = [
   },
 ];
 
-export function isPlatform(value: string): value is NativeAddonPlatform {
-  return value === "darwin" || value === "linux" || value === "win32";
+export function isPlatform(value: string): value is StreamDeckPlatform {
+  return value === "darwin" || value === "win32";
 }
 
-export function isArch(value: string): value is NativeAddonArch {
+export function isArch(value: string): value is StreamDeckArch {
   return value === "arm64" || value === "x64";
 }
 
@@ -86,7 +85,7 @@ export function isLibraryDevtoolsImport(source: string, importer: string | undef
   );
 }
 
-export function resolveTargets(request: NativeAddonTarget): ResolvedTarget[] {
+export function resolveTargets(request: StreamDeckTarget): ResolvedTarget[] {
   return TARGETS.filter((target) => {
     if (target.platform !== request.platform || target.arch !== request.arch) {
       return false;
@@ -96,9 +95,9 @@ export function resolveTargets(request: NativeAddonTarget): ResolvedTarget[] {
 }
 
 export function normalizeTargetRequests(
-  options: NativeAddonOptions,
+  options: StreamDeckTargetOptions,
   isDevelopment: boolean,
-): NativeAddonTarget[] {
+): StreamDeckTarget[] {
   if (options.targets?.length) {
     return options.targets;
   }
@@ -115,7 +114,7 @@ export function normalizeTargetRequests(
   ];
 }
 
-export function expandTargets(targets: NativeAddonTarget[]): ResolvedTarget[] {
+export function expandTargets(targets: StreamDeckTarget[]): ResolvedTarget[] {
   const resolved = targets.flatMap((target) => {
     const matches = resolveTargets(target);
 
@@ -133,11 +132,6 @@ export function expandTargets(targets: NativeAddonTarget[]): ResolvedTarget[] {
   );
 }
 
-export interface CopyNativeBindingsResult {
-  copied: string[];
-  missing: string[];
-}
-
 /**
  * Core logic for copying native bindings to the output directory.
  * Shared between the Rollup and Vite plugins.
@@ -145,7 +139,7 @@ export interface CopyNativeBindingsResult {
 export function copyNativeBindings(
   outDir: string,
   isDevelopment: boolean,
-  options: NativeAddonOptions,
+  options: StreamDeckTargetOptions,
   warn: (message: string) => void,
 ): void {
   try {
@@ -159,7 +153,7 @@ export function copyNativeBindings(
       }
 
       throw new Error(
-        "[@fcannizzaro/streamdeck-react] nativeAddon() requires explicit targets when building for production. Pass a `targets` array.",
+        "[@fcannizzaro/streamdeck-react] streamDeckReact() requires explicit targets when building for production. Pass a `targets` array.",
       );
     }
 

@@ -10,20 +10,20 @@ The renderer cannot access system fonts from the Stream Deck runtime. It needs f
 ## Loading Fonts
 
 ```ts
-import { readFile } from 'node:fs/promises';
+import { readFile } from "node:fs/promises";
 
 const fonts = [
   {
-    name: 'Inter',
-    data: await readFile('./fonts/Inter-Regular.ttf'),
+    name: "Inter",
+    data: await readFile("./fonts/Inter-Regular.ttf"),
     weight: 400 as const,
-    style: 'normal' as const,
+    style: "normal" as const,
   },
   {
-    name: 'Inter',
-    data: await readFile('./fonts/Inter-Bold.ttf'),
+    name: "Inter",
+    data: await readFile("./fonts/Inter-Bold.ttf"),
     weight: 700 as const,
-    style: 'normal' as const,
+    style: "normal" as const,
   },
 ];
 ```
@@ -35,7 +35,7 @@ interface FontConfig {
   name: string;
   data: ArrayBuffer | Buffer;
   weight: 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900;
-  style: 'normal' | 'italic';
+  style: "normal" | "italic";
 }
 ```
 
@@ -58,29 +58,30 @@ npm install @fontsource/inter
 Then resolve the font file from the package:
 
 ```ts
-import { readFile } from 'node:fs/promises';
-import { createRequire } from 'node:module';
+import { readFile } from "node:fs/promises";
+import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
 
 const fonts = [
   {
-    name: 'Inter',
-    data: await readFile(require.resolve('@fontsource/inter/files/inter-latin-400-normal.woff')),
+    name: "Inter",
+    data: await readFile(require.resolve("@fontsource/inter/files/inter-latin-400-normal.woff")),
     weight: 400 as const,
-    style: 'normal' as const,
+    style: "normal" as const,
   },
   {
-    name: 'Inter',
-    data: await readFile(require.resolve('@fontsource/inter/files/inter-latin-700-normal.woff')),
+    name: "Inter",
+    data: await readFile(require.resolve("@fontsource/inter/files/inter-latin-700-normal.woff")),
     weight: 700 as const,
-    style: 'normal' as const,
+    style: "normal" as const,
   },
 ];
 ```
 
 <Callout type="warn">
-Use `.woff` or `.ttf` files from `@fontsource` packages. WOFF2 (`.woff2`) is **not supported** by the renderer.
+  Use `.woff` or `.ttf` files from `@fontsource` packages. WOFF2 (`.woff2`) is **not supported** by
+  the renderer.
 </Callout>
 
 ## Using Fonts in Components
@@ -97,6 +98,7 @@ If a requested weight isn't loaded, the nearest available weight is used.
 ## Font Bundle Size
 
 Each font weight/style is a separate file:
+
 - Latin-only subset: ~50-300KB
 - CJK character sets: ~1-5MB
 

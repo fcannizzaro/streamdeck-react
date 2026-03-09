@@ -8,17 +8,17 @@ description: Configure and initialize the @fcannizzaro/streamdeck-react plugin.
 ## Basic Usage
 
 ```ts
-import { createPlugin } from '@fcannizzaro/streamdeck-react';
-import { readFile } from 'node:fs/promises';
-import { counterAction } from './actions/counter';
+import { createPlugin } from "@fcannizzaro/streamdeck-react";
+import { readFile } from "node:fs/promises";
+import { counterAction } from "./actions/counter";
 
 const plugin = createPlugin({
   fonts: [
     {
-      name: 'Inter',
-      data: await readFile(new URL('./fonts/Inter-Regular.ttf', import.meta.url)),
+      name: "Inter",
+      data: await readFile(new URL("./fonts/Inter-Regular.ttf", import.meta.url)),
       weight: 400,
-      style: 'normal' as const,
+      style: "normal" as const,
     },
   ],
   actions: [counterAction],
@@ -35,7 +35,7 @@ interface PluginConfig {
   actions: ActionDefinition[];
   wrapper?: WrapperComponent;
   renderDebounceMs?: number;
-  imageFormat?: 'png' | 'webp';
+  imageFormat?: "png" | "webp";
   caching?: boolean;
   devicePixelRatio?: number;
   onActionError?: (uuid: string, actionId: string, error: Error) => void;

@@ -8,7 +8,7 @@ description: A convenience component for rendering images with layout props.
 ## Import
 
 ```tsx
-import { Image } from '@fcannizzaro/streamdeck-react';
+import { Image } from "@fcannizzaro/streamdeck-react";
 ```
 
 ## Props
@@ -19,29 +19,24 @@ interface ImageProps {
   src: string;
   width: number;
   height: number;
-  fit?: 'contain' | 'cover';
+  fit?: "contain" | "cover";
   borderRadius?: number;
   style?: CSSProperties;
 }
 ```
 
-| Prop | Description |
-|------|-------------|
-| `src` | Image source: URL, base64 data URI, or `Buffer` |
-| `width` | Required width in pixels |
-| `height` | Required height in pixels |
-| `fit` | Maps to `objectFit` |
-| `borderRadius` | Border radius in pixels |
+| Prop           | Description                                     |
+| -------------- | ----------------------------------------------- |
+| `src`          | Image source: URL, base64 data URI, or `Buffer` |
+| `width`        | Required width in pixels                        |
+| `height`       | Required height in pixels                       |
+| `fit`          | Maps to `objectFit`                             |
+| `borderRadius` | Border radius in pixels                         |
 
 ## Example
 
 ```tsx
-<Image
-  src="data:image/png;base64,..."
-  width={48}
-  height={48}
-  fit="contain"
-/>
+<Image src="data:image/png;base64,..." width={48} height={48} fit="contain" />
 ```
 
 ## Notes

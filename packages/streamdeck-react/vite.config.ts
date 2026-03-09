@@ -18,8 +18,7 @@ const externalPackages = [
 
 function isExternal(id: string): boolean {
   return (
-    id.startsWith("node:") ||
-    externalPackages.some((pkg) => id === pkg || id.startsWith(`${pkg}/`))
+    id.startsWith("node:") || externalPackages.some((pkg) => id === pkg || id.startsWith(`${pkg}/`))
   );
 }
 

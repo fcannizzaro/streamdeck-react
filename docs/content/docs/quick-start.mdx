@@ -55,8 +55,8 @@ This example targets macOS Apple Silicon. Swap the `@takumi-rs/core-*` package a
 
 ```tsx
 // src/actions/counter.tsx
-import { useState } from 'react';
-import { defineAction, useKeyDown, useKeyUp, tw } from '@fcannizzaro/streamdeck-react';
+import { useState } from "react";
+import { defineAction, useKeyDown, useKeyUp, tw } from "@fcannizzaro/streamdeck-react";
 
 function CounterKey() {
   const [count, setCount] = useState(0);
@@ -74,10 +74,10 @@ function CounterKey() {
   return (
     <div
       className={tw(
-        'flex h-full w-full flex-col items-center justify-center gap-1',
+        "flex h-full w-full flex-col items-center justify-center gap-1",
         pressed
-          ? 'bg-linear-to-br from-[#2563eb] to-[#1d4ed8]'
-          : 'bg-linear-to-br from-[#0f172a] to-[#1e293b]',
+          ? "bg-linear-to-br from-[#2563eb] to-[#1d4ed8]"
+          : "bg-linear-to-br from-[#0f172a] to-[#1e293b]",
       )}
     >
       <span className="text-[12px] font-semibold uppercase tracking-[0.2em] text-white/70">
@@ -89,7 +89,7 @@ function CounterKey() {
 }
 
 export const counterAction = defineAction({
-  uuid: 'com.example.react-counter.counter',
+  uuid: "com.example.react-counter.counter",
   key: CounterKey,
 });
 ```
@@ -98,17 +98,17 @@ export const counterAction = defineAction({
 
 ```ts
 // src/plugin.ts
-import { readFile } from 'node:fs/promises';
-import { createPlugin } from '@fcannizzaro/streamdeck-react';
-import { counterAction } from './actions/counter.tsx';
+import { readFile } from "node:fs/promises";
+import { createPlugin } from "@fcannizzaro/streamdeck-react";
+import { counterAction } from "./actions/counter.tsx";
 
 const plugin = createPlugin({
   fonts: [
     {
-      name: 'Inter',
-      data: await readFile(new URL('../fonts/Inter-Regular.ttf', import.meta.url)),
+      name: "Inter",
+      data: await readFile(new URL("../fonts/Inter-Regular.ttf", import.meta.url)),
       weight: 400,
-      style: 'normal',
+      style: "normal",
     },
   ],
   actions: [counterAction],
@@ -121,21 +121,21 @@ await plugin.connect();
 
 ```js tab="Rollup"
 // rollup.config.mjs
-import { builtinModules } from 'node:module';
-import resolve from '@rollup/plugin-node-resolve';
-import commonjs from '@rollup/plugin-commonjs';
-import json from '@rollup/plugin-json';
-import esbuild from 'rollup-plugin-esbuild';
-import { nativeAddon } from '@fcannizzaro/streamdeck-react/rollup';
+import { builtinModules } from "node:module";
+import resolve from "@rollup/plugin-node-resolve";
+import commonjs from "@rollup/plugin-commonjs";
+import json from "@rollup/plugin-json";
+import esbuild from "rollup-plugin-esbuild";
+import { streamDeckReact } from "@fcannizzaro/streamdeck-react/rollup";
 
-const PLUGIN_DIR = 'com.example.react-counter.sdPlugin';
+const PLUGIN_DIR = "com.example.react-counter.sdPlugin";
 const builtins = new Set(builtinModules.flatMap((id) => [id, `node:${id}`]));
 
 export default {
-  input: 'src/plugin.ts',
+  input: "src/plugin.ts",
   output: {
     file: `${PLUGIN_DIR}/bin/plugin.mjs`,
-    format: 'es',
+    format: "es",
     sourcemap: true,
     inlineDynamicImports: true,
   },
@@ -144,9 +144,9 @@ export default {
     resolve({ preferBuiltins: true }),
     commonjs(),
     json(),
-    esbuild({ target: 'node20', jsx: 'automatic' }),
-    nativeAddon({
-      targets: [{ platform: 'darwin', arch: 'arm64' }],
+    esbuild({ target: "node20", jsx: "automatic" }),
+    streamDeckReact({
+      targets: [{ platform: "darwin", arch: "arm64" }],
     }),
   ],
 };
@@ -154,37 +154,37 @@ export default {
 
 ```ts tab="Rolldown (Vite 8)"
 // vite.config.ts
-import { builtinModules } from 'node:module';
-import { resolve } from 'node:path';
-import { defineConfig, esmExternalRequirePlugin } from 'vite';
-import react from '@vitejs/plugin-react';
-import { streamDeckReact } from '@fcannizzaro/streamdeck-react/vite';
+import { builtinModules } from "node:module";
+import { resolve } from "node:path";
+import { defineConfig, esmExternalRequirePlugin } from "vite";
+import react from "@vitejs/plugin-react";
+import { streamDeckReact } from "@fcannizzaro/streamdeck-react/vite";
 
-const PLUGIN_DIR = 'com.example.react-counter.sdPlugin';
+const PLUGIN_DIR = "com.example.react-counter.sdPlugin";
 const builtins = builtinModules.flatMap((m) => [m, `node:${m}`]);
 
 export default defineConfig({
   resolve: {
-    conditions: ['node'],
+    conditions: ["node"],
   },
   plugins: [
     esmExternalRequirePlugin({ external: builtins }),
     react(),
     streamDeckReact({
-      uuid: 'com.example.react-counter',
-      targets: [{ platform: 'darwin', arch: 'arm64' }],
+      uuid: "com.example.react-counter",
+      targets: [{ platform: "darwin", arch: "arm64" }],
     }),
   ],
   build: {
-    target: 'node20',
-    outDir: resolve(PLUGIN_DIR, 'bin'),
+    target: "node20",
+    outDir: resolve(PLUGIN_DIR, "bin"),
     emptyOutDir: false,
     sourcemap: true,
     minify: false,
     lib: {
-      entry: resolve('src/plugin.ts'),
-      formats: ['es'],
-      fileName: () => 'plugin.mjs',
+      entry: resolve("src/plugin.ts"),
+      formats: ["es"],
+      fileName: () => "plugin.mjs",
     },
     rolldownOptions: {
       output: {
@@ -195,7 +195,7 @@ export default defineConfig({
 });
 ```
 
-For production builds, pass explicit `targets`. In watch mode, `nativeAddon()` can still infer the current host platform when it is supported.
+For production builds, pass explicit `targets`. In watch mode, `streamDeckReact()` can still infer the current host platform when it is supported.
 
 ## 6. Dev
 

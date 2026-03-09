@@ -7,21 +7,21 @@ The library automatically detects the device type and sets render dimensions acc
 
 ## Key Sizes
 
-| Device | Key Size (px) |
-|--------|--------------|
-| Stream Deck (original) | 72 x 72 |
-| Stream Deck MK.2 | 72 x 72 |
-| Stream Deck XL | 96 x 96 |
-| Stream Deck Mini | 80 x 80 |
-| Stream Deck + | 144 x 144 |
-| Stream Deck + XL | 144 x 144 |
-| Stream Deck Neo | 72 x 72 |
-| Galleon 100 SD | 144 x 144 |
+| Device                 | Key Size (px) |
+| ---------------------- | ------------- |
+| Stream Deck (original) | 72 x 72       |
+| Stream Deck MK.2       | 72 x 72       |
+| Stream Deck XL         | 96 x 96       |
+| Stream Deck Mini       | 80 x 80       |
+| Stream Deck +          | 144 x 144     |
+| Stream Deck + XL       | 144 x 144     |
+| Stream Deck Neo        | 72 x 72       |
+| Galleon 100 SD         | 144 x 144     |
 
 ## Encoder Display Sizes (Stream Deck+, Stream Deck+ XL, Galleon 100 SD)
 
-| Surface | Size (px) |
-|---------|----------|
+| Surface                      | Size (px) |
+| ---------------------------- | --------- |
 | Encoder display (per action) | 200 x 100 |
 
 ## Touch Input Notes
@@ -31,21 +31,21 @@ The Stream Deck+ touch strip is 800 x 100 across the full device. Touch events a
 ## Stream Deck Neo
 
 | Surface | Size (px) |
-|---------|----------|
-| Key | 72 x 72 |
+| ------- | --------- |
+| Key     | 72 x 72   |
 
 ## Grid Sizes
 
-| Device | Columns | Rows |
-|--------|---------|------|
-| Stream Deck (original) | 5 | 3 |
-| Stream Deck MK.2 | 5 | 3 |
-| Stream Deck XL | 8 | 4 |
-| Stream Deck Mini | 3 | 2 |
-| Stream Deck + | 4 | 2 |
-| Stream Deck + XL | 9 | 4 |
-| Stream Deck Neo | 4 | 2 |
-| Galleon 100 SD | 3 | 4 |
+| Device                 | Columns | Rows |
+| ---------------------- | ------- | ---- |
+| Stream Deck (original) | 5       | 3    |
+| Stream Deck MK.2       | 5       | 3    |
+| Stream Deck XL         | 8       | 4    |
+| Stream Deck Mini       | 3       | 2    |
+| Stream Deck +          | 4       | 2    |
+| Stream Deck + XL       | 9       | 4    |
+| Stream Deck Neo        | 4       | 2    |
+| Galleon 100 SD         | 3       | 4    |
 
 ## Accessing Dimensions
 
@@ -56,8 +56,8 @@ function MyKey() {
   // type is 'key', 'dial', or 'touch'
 
   return (
-    <div style={{ width, height, background: '#000' }}>
-      <span style={{ color: 'white', fontSize: 12 }}>
+    <div style={{ width, height, background: "#000" }}>
+      <span style={{ color: "white", fontSize: 12 }}>
         {width}x{height}
       </span>
     </div>

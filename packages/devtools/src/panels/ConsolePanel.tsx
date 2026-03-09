@@ -119,7 +119,9 @@ function stringifyValue(value: SerializedValue): string {
       return `[${value.v.map(stringifyValue).join(", ")}]`;
     case "obj":
       if (value.circular) return "[Circular]";
-      return `{${Object.entries(value.v).map(([k, v]) => `${k}: ${stringifyValue(v)}`).join(", ")}}`;
+      return `{${Object.entries(value.v)
+        .map(([k, v]) => `${k}: ${stringifyValue(v)}`)
+        .join(", ")}}`;
   }
 }
 
@@ -163,12 +165,30 @@ function LogRow({ log }: { log: ConsoleMessage }) {
       >
         {copied ? (
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-            <path d="M3 7.5l2.5 2.5L11 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            <path
+              d="M3 7.5l2.5 2.5L11 4"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           </svg>
         ) : (
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-            <rect x="4.5" y="4.5" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="1.2" />
-            <path d="M9.5 4.5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v5.5a1 1 0 0 0 1 1h1.5" stroke="currentColor" strokeWidth="1.2" />
+            <rect
+              x="4.5"
+              y="4.5"
+              width="7"
+              height="7"
+              rx="1"
+              stroke="currentColor"
+              strokeWidth="1.2"
+            />
+            <path
+              d="M9.5 4.5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v5.5a1 1 0 0 0 1 1h1.5"
+              stroke="currentColor"
+              strokeWidth="1.2"
+            />
           </svg>
         )}
       </button>

@@ -8,7 +8,7 @@ description: Render inline SVG path icons without image files.
 ## Import
 
 ```tsx
-import { Icon } from '@fcannizzaro/streamdeck-react';
+import { Icon } from "@fcannizzaro/streamdeck-react";
 ```
 
 ## Props
@@ -24,22 +24,17 @@ interface IconProps {
 }
 ```
 
-| Prop | Default | Description |
-|------|---------|-------------|
-| `path` | -- | SVG path `d` attribute data |
-| `size` | `24` | Width and height in pixels |
-| `color` | `'white'` | Fill color for the path |
-| `viewBox` | `'0 0 24 24'` | SVG viewBox attribute |
+| Prop      | Default       | Description                 |
+| --------- | ------------- | --------------------------- |
+| `path`    | --            | SVG path `d` attribute data |
+| `size`    | `24`          | Width and height in pixels  |
+| `color`   | `'white'`     | Fill color for the path     |
+| `viewBox` | `'0 0 24 24'` | SVG viewBox attribute       |
 
 ## Example
 
 ```tsx
-<Icon
-  path="M12 2L2 22h20L12 2z"
-  size={32}
-  color="white"
-  viewBox="0 0 24 24"
-/>
+<Icon path="M12 2L2 22h20L12 2z" size={32} color="white" viewBox="0 0 24 24" />
 ```
 
 ## Using with Icon Libraries
@@ -47,7 +42,7 @@ interface IconProps {
 Most icon libraries provide SVG path data. For example, with Material Design Icons:
 
 ```tsx
-const mdiPlay = 'M8,5.14V19.14L19,12.14L8,5.14Z';
+const mdiPlay = "M8,5.14V19.14L19,12.14L8,5.14Z";
 
-<Icon path={mdiPlay} size={48} color="#4CAF50" />
+<Icon path={mdiPlay} size={48} color="#4CAF50" />;
 ```

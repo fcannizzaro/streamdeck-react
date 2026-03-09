@@ -7,18 +7,17 @@ import {
   isLibraryDevtoolsImport,
   NOOP_DEVTOOLS_ID,
   NOOP_DEVTOOLS_CODE,
-} from "./native-addon-shared";
+} from "./bundler-shared";
 import { resolveFontId, loadFont } from "./font-inline";
 
 export type {
-  NativeAddonPlatform,
-  NativeAddonArch,
-  NativeAddonLibc,
-  NativeAddonTarget,
-  NativeAddonOptions,
-} from "./native-addon-shared";
+  StreamDeckPlatform,
+  StreamDeckArch,
+  StreamDeckTarget,
+  StreamDeckTargetOptions,
+} from "./bundler-shared";
 
-import type { NativeAddonOptions } from "./native-addon-shared";
+import type { StreamDeckTargetOptions } from "./bundler-shared";
 
 /**
  * Rollup plugin that copies the `@takumi-rs/core` platform-specific native
@@ -32,9 +31,9 @@ import type { NativeAddonOptions } from "./native-addon-shared";
  * In production builds (non-watch mode), the devtools module is replaced with
  * a noop stub so the entire devtools tree and `ws` dependency are eliminated.
  */
-export function nativeAddon(options: NativeAddonOptions = {}): Plugin {
+export function streamDeckReact(options: StreamDeckTargetOptions = {}): Plugin {
   return {
-    name: "fcannizzaro-streamdeck-react-native-addon",
+    name: "fcannizzaro-streamdeck-react",
     onLog(_level: LogLevel, log: RollupLog) {
       if (log.code === "MODULE_LEVEL_DIRECTIVE") return false;
     },

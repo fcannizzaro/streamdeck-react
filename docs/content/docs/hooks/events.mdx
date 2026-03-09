@@ -31,8 +31,16 @@ function CounterKey() {
   });
 
   return (
-    <div style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center', background: '#000' }}>
-      <span style={{ color: 'white', fontSize: 32 }}>{count}</span>
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "#000",
+      }}
+    >
+      <span style={{ color: "white", fontSize: 32 }}>{count}</span>
     </div>
   );
 }
@@ -63,14 +71,16 @@ function HoldKey() {
   useKeyUp(() => setPressed(false));
 
   return (
-    <div style={{
-      width: '100%', height: '100%',
-      alignItems: 'center', justifyContent: 'center',
-      background: pressed ? '#4CAF50' : '#333',
-    }}>
-      <span style={{ color: 'white', fontSize: 18 }}>
-        {pressed ? 'HELD' : 'PRESS'}
-      </span>
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        alignItems: "center",
+        justifyContent: "center",
+        background: pressed ? "#4CAF50" : "#333",
+      }}
+    >
+      <span style={{ color: "white", fontSize: 18 }}>{pressed ? "HELD" : "PRESS"}</span>
     </div>
   );
 }
@@ -86,8 +96,8 @@ function useDialRotate(callback: (payload: DialRotatePayload) => void): void;
 
 ```ts
 interface DialRotatePayload {
-  ticks: number;     // Positive = clockwise, negative = counter-clockwise
-  pressed: boolean;  // Whether the dial is pressed while rotating
+  ticks: number; // Positive = clockwise, negative = counter-clockwise
+  pressed: boolean; // Whether the dial is pressed while rotating
   settings: JsonObject;
 }
 ```
@@ -101,8 +111,16 @@ function VolumeDial() {
   });
 
   return (
-    <div style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center', background: '#1a1a1a' }}>
-      <span style={{ color: 'white', fontSize: 28 }}>{volume}%</span>
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "#1a1a1a",
+      }}
+    >
+      <span style={{ color: "white", fontSize: 28 }}>{volume}%</span>
     </div>
   );
 }
@@ -120,7 +138,7 @@ function useDialUp(callback: (payload: DialPressPayload) => void): void;
 ```ts
 interface DialPressPayload {
   settings: JsonObject;
-  controller: 'Encoder';
+  controller: "Encoder";
 }
 ```
 
@@ -134,8 +152,8 @@ function useTouchTap(callback: (payload: TouchTapPayload) => void): void;
 
 ```ts
 interface TouchTapPayload {
-  tapPos: [x: number, y: number];  // Coordinates of the tap
-  hold: boolean;                    // Whether it was a long press
+  tapPos: [x: number, y: number]; // Coordinates of the tap
+  hold: boolean; // Whether it was a long press
   settings: JsonObject;
 }
 ```
@@ -162,8 +180,8 @@ function VolumeDial() {
   const [muted, setMuted] = useState(false);
 
   useDialHint({
-    rotate: 'Adjust volume',
-    press: muted ? 'Unmute' : 'Mute',
+    rotate: "Adjust volume",
+    press: muted ? "Unmute" : "Mute",
   });
 
   // ...

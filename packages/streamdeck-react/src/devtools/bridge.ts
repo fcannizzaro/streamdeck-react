@@ -51,11 +51,6 @@ class RingBuffer<T> {
     }
     return result;
   }
-
-  clear(): void {
-    this.head = 0;
-    this.count = 0;
-  }
 }
 
 // ── Action Metadata ─────────────────────────────────────────────────

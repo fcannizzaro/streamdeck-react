@@ -35,8 +35,8 @@ function MyTouchBar() {
   const { width, height, fps, columns, segmentWidth } = useTouchBar();
 
   return (
-    <div style={{ width, height, background: '#1a1a2e' }}>
-      <span style={{ color: 'white', fontSize: 14 }}>
+    <div style={{ width, height, background: "#1a1a2e" }}>
+      <span style={{ color: "white", fontSize: 14 }}>
         {columns.length} dials active — {width}x{height}
       </span>
     </div>
@@ -73,15 +73,17 @@ function MyTouchBar() {
   });
 
   return (
-    <div style={{ width, height, position: 'relative', background: '#1a1a2e' }}>
-      <div style={{
-        position: 'absolute',
-        left: marker,
-        top: 0,
-        width: 2,
-        height,
-        background: '#ff3366',
-      }} />
+    <div style={{ width, height, position: "relative", background: "#1a1a2e" }}>
+      <div
+        style={{
+          position: "absolute",
+          left: marker,
+          top: 0,
+          width: 2,
+          height,
+          background: "#ff3366",
+        }}
+      />
     </div>
   );
 }
@@ -94,9 +96,7 @@ Tap coordinates are translated from per-segment local coordinates to absolute st
 Fires when any dial is rotated. The `column` field identifies which dial.
 
 ```ts
-function useTouchBarDialRotate(
-  callback: (payload: TouchBarDialRotatePayload) => void,
-): void;
+function useTouchBarDialRotate(callback: (payload: TouchBarDialRotatePayload) => void): void;
 ```
 
 ```ts
@@ -114,7 +114,7 @@ interface TouchBarDialRotatePayload {
 useTouchBarDialRotate(({ column, ticks }) => {
   if (column === 0) {
     // Dial 0: steer
-    setDirection((d) => ticks > 0 ? turnRight(d) : turnLeft(d));
+    setDirection((d) => (ticks > 0 ? turnRight(d) : turnLeft(d)));
   } else if (column === 1) {
     // Dial 1: speed
     setSpeed((s) => Math.max(1, s + ticks));
@@ -127,9 +127,7 @@ useTouchBarDialRotate(({ column, ticks }) => {
 Fires when a dial is pressed down.
 
 ```ts
-function useTouchBarDialDown(
-  callback: (payload: TouchBarDialPressPayload) => void,
-): void;
+function useTouchBarDialDown(callback: (payload: TouchBarDialPressPayload) => void): void;
 ```
 
 ```ts
@@ -144,19 +142,17 @@ interface TouchBarDialPressPayload {
 Fires when a dial is released.
 
 ```ts
-function useTouchBarDialUp(
-  callback: (payload: TouchBarDialPressPayload) => void,
-): void;
+function useTouchBarDialUp(callback: (payload: TouchBarDialPressPayload) => void): void;
 ```
 
 Same payload as `useTouchBarDialDown`.
 
 ## TouchBar vs Per-Encoder Hooks
 
-| | TouchBar hooks | Per-encoder hooks |
-|---|---|---|
-| Component | `touchBar` in `defineAction` | `dial` in `defineAction` |
-| React roots | One shared tree for the full strip | One root per encoder slot |
-| Event routing | All events arrive in one component; use `column` to distinguish | Each component only receives its own dial's events |
-| Canvas size | Full strip (e.g. 800x100) | Single segment (200x100) |
-| Hooks | `useTouchBar*` family | `useDialRotate`, `useDialDown`, `useTouchTap`, etc. |
+|               | TouchBar hooks                                                  | Per-encoder hooks                                   |
+| ------------- | --------------------------------------------------------------- | --------------------------------------------------- |
+| Component     | `touchBar` in `defineAction`                                    | `dial` in `defineAction`                            |
+| React roots   | One shared tree for the full strip                              | One root per encoder slot                           |
+| Event routing | All events arrive in one component; use `column` to distinguish | Each component only receives its own dial's events  |
+| Canvas size   | Full strip (e.g. 800x100)                                       | Single segment (200x100)                            |
+| Hooks         | `useTouchBar*` family                                           | `useDialRotate`, `useDialDown`, `useTouchTap`, etc. |

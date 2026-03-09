@@ -32,9 +32,9 @@ function useAction(): ActionInfo;
 
 ```ts
 interface ActionInfo {
-  id: string;            // Unique context ID for this placed instance
-  uuid: string;          // Action UUID (e.g. 'com.example.plugin.counter')
-  controller: 'Keypad' | 'Encoder';
+  id: string; // Unique context ID for this placed instance
+  uuid: string; // Action UUID (e.g. 'com.example.plugin.counter')
+  controller: "Keypad" | "Encoder";
   coordinates?: { row: number; column: number };
   isInMultiAction: boolean;
 }
@@ -63,9 +63,9 @@ function useCanvas(): CanvasInfo;
 
 ```ts
 interface CanvasInfo {
-  width: number;   // Pixel width of the render target
-  height: number;  // Pixel height of the render target
-  type: 'key' | 'dial' | 'touch';
+  width: number; // Pixel width of the render target
+  height: number; // Pixel height of the render target
+  type: "key" | "dial" | "touch";
 }
 ```
 
@@ -75,11 +75,7 @@ The root wrapper `div` is automatically sized to these dimensions. Your componen
 function MyKey() {
   const { width, height } = useCanvas();
 
-  return (
-    <div style={{ width, height, background: '#000' }}>
-      {/* ... */}
-    </div>
-  );
+  return <div style={{ width, height, background: "#000" }}>{/* ... */}</div>;
 }
 ```
 
@@ -108,10 +104,10 @@ function AdvancedKey() {
 
   useKeyDown(async () => {
     await action.showOk();
-    await sdk.system.openUrl('https://example.com');
+    await sdk.system.openUrl("https://example.com");
   });
 
-  return <div style={{ width: '100%', height: '100%', background: '#000' }} />;
+  return <div style={{ width: "100%", height: "100%", background: "#000" }} />;
 }
 ```
 

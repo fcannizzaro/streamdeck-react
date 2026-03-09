@@ -28,10 +28,10 @@ const plugin = createPlugin({
 Wraps a single action's root (nested inside the plugin wrapper):
 
 ```tsx
-import { defineAction } from '@fcannizzaro/streamdeck-react';
+import { defineAction } from "@fcannizzaro/streamdeck-react";
 
 const action = defineAction({
-  uuid: 'com.example.action',
+  uuid: "com.example.action",
   key: MyKey,
   wrapper: ({ children }) => <MyActionProvider>{children}</MyActionProvider>,
 });
@@ -43,7 +43,7 @@ Zustand stores live in module scope, so each isolated React root subscribes to t
 
 ```ts
 // store.ts
-import { create } from 'zustand';
+import { create } from "zustand";
 
 export const useCountStore = create<{ count: number; increment: () => void }>((set) => ({
   count: 0,
@@ -70,8 +70,16 @@ function DisplayKey() {
   const count = useCountStore((s) => s.count);
 
   return (
-    <div style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center', background: '#000' }}>
-      <span style={{ color: 'white', fontSize: 32 }}>{count}</span>
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "#000",
+      }}
+    >
+      <span style={{ color: "white", fontSize: 32 }}>{count}</span>
     </div>
   );
 }
@@ -85,14 +93,14 @@ Jotai atoms can be shared across roots when all roots use the same store. Provid
 
 ```ts
 // store.ts
-import { createStore } from 'jotai';
+import { createStore } from "jotai";
 export const store = createStore();
 ```
 
 ```tsx
 // wrapper.tsx
-import { Provider } from 'jotai';
-import { store } from './store';
+import { Provider } from "jotai";
+import { store } from "./store";
 
 export function JotaiWrapper({ children }: { children: React.ReactNode }) {
   return <Provider store={store}>{children}</Provider>;

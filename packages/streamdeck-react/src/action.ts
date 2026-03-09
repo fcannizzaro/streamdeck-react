@@ -13,7 +13,6 @@ export function defineAction<S extends JsonObject = JsonObject>(
     uuid: config.uuid,
     key: config.key,
     dial: config.dial,
-    touch: config.touch,
     touchBar: config.touchBar,
     touchBarFPS: config.touchBarFPS,
     dialLayout: config.dialLayout,

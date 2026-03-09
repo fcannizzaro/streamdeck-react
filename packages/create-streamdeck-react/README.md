@@ -24,7 +24,7 @@ The interactive CLI walks you through the setup:
 - **Package manager** (`npm`, `pnpm`, `bun`)
 - **Starter example** (`minimal`, `counter`, `zustand`, `jotai`, `pokemon`)
 - **Supported platforms** (`mac`, `windows`)
-- **Native addon targets** for Rollup
+- **Native targets** for Rollup
 
 After scaffolding, the CLI optionally:
 

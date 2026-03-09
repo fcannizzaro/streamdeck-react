@@ -21,9 +21,9 @@ The `@elgato/streamdeck` SDK is powerful but low-level. You track state manually
 ## Quick Example
 
 ```tsx
-import { readFile } from 'node:fs/promises';
-import { createPlugin, defineAction, useKeyDown, tw } from '@fcannizzaro/streamdeck-react';
-import { useState } from 'react';
+import { readFile } from "node:fs/promises";
+import { createPlugin, defineAction, useKeyDown, tw } from "@fcannizzaro/streamdeck-react";
+import { useState } from "react";
 
 function CounterKey() {
   const [count, setCount] = useState(0);
@@ -35,8 +35,8 @@ function CounterKey() {
   return (
     <div
       className={tw(
-        'flex h-full w-full flex-col items-center justify-center gap-1',
-        'bg-linear-to-br from-[#0f172a] to-[#1d4ed8]',
+        "flex h-full w-full flex-col items-center justify-center gap-1",
+        "bg-linear-to-br from-[#0f172a] to-[#1d4ed8]",
       )}
     >
       <span className="text-[12px] font-semibold uppercase tracking-[0.2em] text-white/70">
@@ -48,17 +48,17 @@ function CounterKey() {
 }
 
 const counterAction = defineAction({
-  uuid: 'com.example.react-counter.counter',
+  uuid: "com.example.react-counter.counter",
   key: CounterKey,
 });
 
 const plugin = createPlugin({
   fonts: [
     {
-      name: 'Inter',
-      data: await readFile('./fonts/Inter-Regular.ttf'),
+      name: "Inter",
+      data: await readFile("./fonts/Inter-Regular.ttf"),
       weight: 400,
-      style: 'normal',
+      style: "normal",
     },
   ],
   actions: [counterAction],

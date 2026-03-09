@@ -40,10 +40,10 @@ test("manifest matches example actions and supported platforms", () => {
   ]);
 });
 
-test("rollup config renders explicit nativeAddon targets", () => {
+test("rollup config renders explicit streamDeckReact targets", () => {
   const config = buildRollupConfig(baseOptions);
 
-  expect(config).toContain("nativeAddon({");
+  expect(config).toContain("streamDeckReact({");
   expect(config).toContain('{ platform: "darwin", arch: "arm64" }');
   expect(config).toContain('{ platform: "win32", arch: "x64" }');
   expect(config).not.toContain("resolveLibraryPaths");

@@ -9,10 +9,10 @@ After the React reconciler commits, the host nodes form a virtual tree:
 
 ```ts
 interface VNode {
-  type: string;           // 'div', 'span', 'img', 'svg', etc.
+  type: string; // 'div', 'span', 'img', 'svg', etc.
   props: Record<string, unknown>;
   children: VNode[];
-  text?: string;          // For text instances
+  text?: string; // For text instances
 }
 ```
 
@@ -22,7 +22,7 @@ The VNode tree is serialized back into React elements:
 
 ```ts
 function vnodeToElement(node: VNode): React.ReactElement | string {
-  if (node.type === '#text') return node.text ?? '';
+  if (node.type === "#text") return node.text ?? "";
 
   const children = node.children.map(vnodeToElement);
   return React.createElement(node.type, node.props, ...children);
@@ -35,10 +35,10 @@ Those React elements are then converted into Takumi nodes by `@takumi-rs/helpers
 
 ```ts
 interface RenderConfig {
-  width: number;         // From device/controller detection
+  width: number; // From device/controller detection
   height: number;
-  fonts: FontConfig[];   // From plugin config
-  format: 'png' | 'webp';
+  fonts: FontConfig[]; // From plugin config
+  format: "png" | "webp";
 }
 ```
 
@@ -48,7 +48,7 @@ Dimensions are determined automatically from the device type and controller. See
 
 ```ts
 function bufferToDataUri(buffer: Buffer | Uint8Array, format: string): string {
-  return `data:image/${format};base64,${Buffer.from(buffer).toString('base64')}`;
+  return `data:image/${format};base64,${Buffer.from(buffer).toString("base64")}`;
 }
 ```
 

@@ -2,7 +2,7 @@
 
 `@fcannizzaro/streamdeck-react` supports two bundlers:
 
-- **Rollup** (stable) via `@fcannizzaro/streamdeck-react/rollup` -- provides `nativeAddon()`
+- **Rollup** (stable) via `@fcannizzaro/streamdeck-react/rollup` -- provides `streamDeckReact()`
 - **Vite 8 with Rolldown** (beta) via `@fcannizzaro/streamdeck-react/vite` -- provides `streamDeckReact()`
 
 If the user is starting from scratch, prefer `npm create streamdeck-react@latest` and let the scaffolder generate the config.
@@ -13,21 +13,21 @@ If the user is starting from scratch, prefer `npm create streamdeck-react@latest
 
 ```js
 // rollup.config.mjs
-import { builtinModules } from 'node:module';
-import resolve from '@rollup/plugin-node-resolve';
-import commonjs from '@rollup/plugin-commonjs';
-import json from '@rollup/plugin-json';
-import esbuild from 'rollup-plugin-esbuild';
-import { nativeAddon } from '@fcannizzaro/streamdeck-react/rollup';
+import { builtinModules } from "node:module";
+import resolve from "@rollup/plugin-node-resolve";
+import commonjs from "@rollup/plugin-commonjs";
+import json from "@rollup/plugin-json";
+import esbuild from "rollup-plugin-esbuild";
+import { streamDeckReact } from "@fcannizzaro/streamdeck-react/rollup";
 
-const PLUGIN_DIR = 'com.example.my-plugin.sdPlugin';
+const PLUGIN_DIR = "com.example.my-plugin.sdPlugin";
 const builtins = new Set(builtinModules.flatMap((m) => [m, `node:${m}`]));
 
 export default {
-  input: 'src/plugin.ts',
+  input: "src/plugin.ts",
   output: {
     file: `${PLUGIN_DIR}/bin/plugin.mjs`,
-    format: 'es',
+    format: "es",
     sourcemap: true,
     inlineDynamicImports: true,
   },
@@ -36,9 +36,9 @@ export default {
     resolve({ preferBuiltins: true }),
     commonjs(),
     json(),
-    esbuild({ target: 'node20', jsx: 'automatic' }),
-    nativeAddon({
-      targets: [{ platform: 'darwin', arch: 'arm64' }],
+    esbuild({ target: "node20", jsx: "automatic" }),
+    streamDeckReact({
+      targets: [{ platform: "darwin", arch: "arm64" }],
     }),
   ],
 };
@@ -50,21 +50,21 @@ When the user opts into React Compiler during scaffolding (`--react-compiler tru
 
 ```js
 // rollup.config.mjs
-import { builtinModules } from 'node:module';
-import { babel } from '@rollup/plugin-babel';
-import resolve from '@rollup/plugin-node-resolve';
-import commonjs from '@rollup/plugin-commonjs';
-import json from '@rollup/plugin-json';
-import { nativeAddon } from '@fcannizzaro/streamdeck-react/rollup';
+import { builtinModules } from "node:module";
+import { babel } from "@rollup/plugin-babel";
+import resolve from "@rollup/plugin-node-resolve";
+import commonjs from "@rollup/plugin-commonjs";
+import json from "@rollup/plugin-json";
+import { streamDeckReact } from "@fcannizzaro/streamdeck-react/rollup";
 
-const PLUGIN_DIR = 'com.example.my-plugin.sdPlugin';
+const PLUGIN_DIR = "com.example.my-plugin.sdPlugin";
 const builtins = new Set(builtinModules.flatMap((m) => [m, `node:${m}`]));
 
 export default {
-  input: 'src/plugin.ts',
+  input: "src/plugin.ts",
   output: {
     file: `${PLUGIN_DIR}/bin/plugin.mjs`,
-    format: 'es',
+    format: "es",
     sourcemap: true,
     inlineDynamicImports: true,
   },
@@ -74,17 +74,14 @@ export default {
     commonjs(),
     json(),
     babel({
-      babelHelpers: 'bundled',
-      extensions: ['.js', '.jsx', '.ts', '.tsx'],
-      exclude: '**/node_modules/**',
-      plugins: ['babel-plugin-react-compiler'],
-      presets: [
-        '@babel/preset-typescript',
-        ['@babel/preset-react', { runtime: 'automatic' }],
-      ],
+      babelHelpers: "bundled",
+      extensions: [".js", ".jsx", ".ts", ".tsx"],
+      exclude: "**/node_modules/**",
+      plugins: ["babel-plugin-react-compiler"],
+      presets: ["@babel/preset-typescript", ["@babel/preset-react", { runtime: "automatic" }]],
     }),
-    nativeAddon({
-      targets: [{ platform: 'darwin', arch: 'arm64' }],
+    streamDeckReact({
+      targets: [{ platform: "darwin", arch: "arm64" }],
     }),
   ],
 };
@@ -110,26 +107,27 @@ npm install -D rollup @rollup/plugin-node-resolve @rollup/plugin-commonjs @rollu
 npm install @fcannizzaro/streamdeck-react react ws
 ```
 
-You also need platform-specific Takumi native binding packages so `nativeAddon({ targets })` can copy the correct `.node` files into your plugin output.
+You also need platform-specific Takumi native binding packages so `streamDeckReact({ targets })` can copy the correct `.node` files into your plugin output.
 
-For production builds, always pass explicit `targets`. In watch mode, `nativeAddon()` can infer the current supported host target.
+For production builds, always pass explicit `targets`. In watch mode, `streamDeckReact()` can infer the current supported host target.
 
 ## Plugin Details
 
-### nativeAddon()
+### streamDeckReact()
 
 Copies the platform-specific `@takumi-rs/core` native binding (`.node` file) into the Rollup output directory. This is **required** -- without it, the plugin will crash on startup because the Takumi renderer can't find its native binary.
 
 ```ts
-type NativeAddonOptions = {
+type StreamDeckTargetOptions = {
   targets?: Array<{
-    platform: 'darwin' | 'linux' | 'win32';
-    arch: 'arm64' | 'x64';
+    platform: "darwin" | "win32";
+    arch: "arm64" | "x64";
   }>;
 };
 ```
 
 The plugin runs during `writeBundle` and:
+
 1. Uses explicit `targets` when provided.
 2. In watch mode, can infer the current supported host target.
 3. Resolves the corresponding `@takumi-rs/core-*` packages.
@@ -138,12 +136,12 @@ The plugin runs during `writeBundle` and:
 
 ### Supported Platforms
 
-| Platform | Architecture | Package | File |
-|----------|-------------|---------|------|
-| macOS | arm64 | `core-darwin-arm64` | `core.darwin-arm64.node` |
-| macOS | x64 | `core-darwin-x64` | `core.darwin-x64.node` |
-| Windows | x64 | `core-win32-x64-msvc` | `core.win32-x64-msvc.node` |
-| Windows | arm64 | `core-win32-arm64-msvc` | `core.win32-arm64-msvc.node` |
+| Platform | Architecture | Package                 | File                         |
+| -------- | ------------ | ----------------------- | ---------------------------- |
+| macOS    | arm64        | `core-darwin-arm64`     | `core.darwin-arm64.node`     |
+| macOS    | x64          | `core-darwin-x64`       | `core.darwin-x64.node`       |
+| Windows  | x64          | `core-win32-x64-msvc`   | `core.win32-x64-msvc.node`   |
+| Windows  | arm64        | `core-win32-arm64-msvc` | `core.win32-arm64-msvc.node` |
 
 The current built-in target map covers macOS and Windows presets.
 
@@ -168,7 +166,7 @@ The order of Rollup plugins matters:
 2. `commonjs()` -- CJS to ESM conversion
 3. `json()` -- JSON imports
 4. `esbuild({ target: 'node20', jsx: 'automatic' })` -- TypeScript/JSX compilation
-5. `nativeAddon({ targets })` -- copies native binaries (conventionally last)
+5. `streamDeckReact({ targets })` -- copies native binaries (conventionally last)
 
 **With React Compiler (Babel)**:
 
@@ -176,7 +174,7 @@ The order of Rollup plugins matters:
 2. `commonjs()` -- CJS to ESM conversion
 3. `json()` -- JSON imports
 4. `babel({ ... })` -- React Compiler + TypeScript/JSX compilation (must exclude `node_modules`)
-5. `nativeAddon({ targets })` -- copies native binaries (conventionally last)
+5. `streamDeckReact({ targets })` -- copies native binaries (conventionally last)
 
 ## Key Configuration Notes
 
@@ -206,37 +204,37 @@ bunx --bun rollup -c -w --watch.onEnd="streamdeck restart com.example.my-plugin"
 
 ```ts
 // vite.config.ts
-import { builtinModules } from 'node:module';
-import { resolve } from 'node:path';
-import { defineConfig, esmExternalRequirePlugin } from 'vite';
-import react from '@vitejs/plugin-react';
-import { streamDeckReact } from '@fcannizzaro/streamdeck-react/vite';
+import { builtinModules } from "node:module";
+import { resolve } from "node:path";
+import { defineConfig, esmExternalRequirePlugin } from "vite";
+import react from "@vitejs/plugin-react";
+import { streamDeckReact } from "@fcannizzaro/streamdeck-react/vite";
 
-const PLUGIN_DIR = 'com.example.my-plugin.sdPlugin';
+const PLUGIN_DIR = "com.example.my-plugin.sdPlugin";
 const builtins = builtinModules.flatMap((m) => [m, `node:${m}`]);
 
 export default defineConfig({
   resolve: {
-    conditions: ['node'],
+    conditions: ["node"],
   },
   plugins: [
     esmExternalRequirePlugin({ external: builtins }),
     react(),
     streamDeckReact({
-      uuid: 'com.example.my-plugin',
-      targets: [{ platform: 'darwin', arch: 'arm64' }],
+      uuid: "com.example.my-plugin",
+      targets: [{ platform: "darwin", arch: "arm64" }],
     }),
   ],
   build: {
-    target: 'node20',
-    outDir: resolve(PLUGIN_DIR, 'bin'),
+    target: "node20",
+    outDir: resolve(PLUGIN_DIR, "bin"),
     emptyOutDir: false,
     sourcemap: true,
     minify: false,
     lib: {
-      entry: resolve('src/plugin.ts'),
-      formats: ['es'],
-      fileName: () => 'plugin.mjs',
+      entry: resolve("src/plugin.ts"),
+      formats: ["es"],
+      fileName: () => "plugin.mjs",
     },
     rolldownOptions: {
       output: {
@@ -251,19 +249,19 @@ export default defineConfig({
 
 ```ts
 // vite.config.ts
-import { builtinModules } from 'node:module';
-import { resolve } from 'node:path';
-import { defineConfig, esmExternalRequirePlugin } from 'vite';
-import react, { reactCompilerPreset } from '@vitejs/plugin-react';
-import babel from '@rolldown/plugin-babel';
-import { streamDeckReact } from '@fcannizzaro/streamdeck-react/vite';
+import { builtinModules } from "node:module";
+import { resolve } from "node:path";
+import { defineConfig, esmExternalRequirePlugin } from "vite";
+import react, { reactCompilerPreset } from "@vitejs/plugin-react";
+import babel from "@rolldown/plugin-babel";
+import { streamDeckReact } from "@fcannizzaro/streamdeck-react/vite";
 
-const PLUGIN_DIR = 'com.example.my-plugin.sdPlugin';
+const PLUGIN_DIR = "com.example.my-plugin.sdPlugin";
 const builtins = builtinModules.flatMap((m) => [m, `node:${m}`]);
 
 export default defineConfig({
   resolve: {
-    conditions: ['node'],
+    conditions: ["node"],
   },
   plugins: [
     esmExternalRequirePlugin({ external: builtins }),
@@ -273,20 +271,20 @@ export default defineConfig({
       presets: [reactCompilerPreset()],
     }),
     streamDeckReact({
-      uuid: 'com.example.my-plugin',
-      targets: [{ platform: 'darwin', arch: 'arm64' }],
+      uuid: "com.example.my-plugin",
+      targets: [{ platform: "darwin", arch: "arm64" }],
     }),
   ],
   build: {
-    target: 'node20',
-    outDir: resolve(PLUGIN_DIR, 'bin'),
+    target: "node20",
+    outDir: resolve(PLUGIN_DIR, "bin"),
     emptyOutDir: false,
     sourcemap: true,
     minify: false,
     lib: {
-      entry: resolve('src/plugin.ts'),
-      formats: ['es'],
-      fileName: () => 'plugin.mjs',
+      entry: resolve("src/plugin.ts"),
+      formats: ["es"],
+      fileName: () => "plugin.mjs",
     },
     rolldownOptions: {
       output: {
@@ -317,7 +315,7 @@ npm install -D vite@8.0.0-beta.16 @vitejs/plugin-react@6.0.0-beta.0 @rolldown/pl
 - **`esmExternalRequirePlugin({ external: builtins })`** -- converts CJS `require()` calls for Node.js builtins to ESM `import` statements. Without this, bundled CJS code (e.g. `ws`) will crash at runtime because `require` is unavailable in ESM.
 - **`build.rolldownOptions`** -- replaces the deprecated `build.rollupOptions` in Vite 8.
 - **`codeSplitting: false`** -- replaces the deprecated `inlineDynamicImports: true` from Rollup.
-- **`streamDeckReact()`** -- combines native addon copying and optional plugin restart into a single plugin. Pass `uuid` to auto-restart after each build.
+- **`streamDeckReact()`** -- combines native binding copying and optional plugin restart into a single plugin. Pass `uuid` to auto-restart after each build.
 - **Manifest `Nodejs.Version`** should be `"24"` for all plugins.
 
 ## Vite Watch Mode (Development)

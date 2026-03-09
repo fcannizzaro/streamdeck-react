@@ -1,5 +1,4 @@
 import type { NetworkEntry } from "../types";
-import { ValueRenderer } from "./ValueRenderer";
 
 // ── Network Detail View ─────────────────────────────────────────────
 

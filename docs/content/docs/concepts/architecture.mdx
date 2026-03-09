@@ -81,8 +81,12 @@ Every action root is automatically wrapped with providers:
         <StreamDeckProvider>
           <GlobalSettingsProvider>
             <SettingsProvider>
-              <PluginWrapper>   {/* if defined in createPlugin */}
-                <ActionWrapper> {/* if defined in defineAction */}
+              <PluginWrapper>
+                {" "}
+                {/* if defined in createPlugin */}
+                <ActionWrapper>
+                  {" "}
+                  {/* if defined in defineAction */}
                   <UserComponent />
                 </ActionWrapper>
               </PluginWrapper>
@@ -95,12 +99,12 @@ Every action root is automatically wrapped with providers:
 </ActionProvider>
 ```
 
-| Context | Updated by |
-|---------|------------|
-| `SettingsContext` | `onDidReceiveSettings`, user `setSettings()` calls |
+| Context                 | Updated by                                                      |
+| ----------------------- | --------------------------------------------------------------- |
+| `SettingsContext`       | `onDidReceiveSettings`, user `setSettings()` calls              |
 | `GlobalSettingsContext` | `onDidReceiveGlobalSettings`, setter from `useGlobalSettings()` |
-| `ActionContext` | Set once on mount (immutable) |
-| `DeviceContext` | Set once on mount (immutable) |
-| `CanvasContext` | Set once on mount (immutable) |
-| `EventBusContext` | Stable reference, never changes |
-| `StreamDeckContext` | Stable reference, never changes |
+| `ActionContext`         | Set once on mount (immutable)                                   |
+| `DeviceContext`         | Set once on mount (immutable)                                   |
+| `CanvasContext`         | Set once on mount (immutable)                                   |
+| `EventBusContext`       | Stable reference, never changes                                 |
+| `StreamDeckContext`     | Stable reference, never changes                                 |

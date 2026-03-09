@@ -38,7 +38,7 @@ jobs:
       - name: Publish
         run: npm publish --provenance --access public
         working-directory: packages/create-streamdeck-react
- 
+
       - name: Create GitHub Release
         run: |
           version=$(node -p "require('./packages/create-streamdeck-react/package.json').version")

@@ -1,5 +1,11 @@
 # @fcannizzaro/streamdeck-react-devtools
 
+## 0.1.10
+
+### Patch Changes
+
+- update devtools flow, refactor and cleanup
+
 ## 0.1.9
 
 ### Patch Changes

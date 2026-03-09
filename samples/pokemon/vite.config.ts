@@ -2,11 +2,11 @@ import { builtinModules } from "node:module";
 import { resolve } from "node:path";
 import { defineConfig, esmExternalRequirePlugin } from "vite";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
-import babel from '@rolldown/plugin-babel'
+import babel from "@rolldown/plugin-babel";
 import {
   streamDeckReact,
-  type NativeAddonPlatform,
-  type NativeAddonArch,
+  type StreamDeckPlatform,
+  type StreamDeckArch,
 } from "@fcannizzaro/streamdeck-react/vite";
 
 const PLUGIN_DIR = "com.example.react-pokemon.sdPlugin";
@@ -24,8 +24,8 @@ export default defineConfig({
       uuid: "com.example.react-pokemon",
       targets: [
         {
-          platform: process.platform as NativeAddonPlatform,
-          arch: process.arch as NativeAddonArch,
+          platform: process.platform as StreamDeckPlatform,
+          arch: process.arch as StreamDeckArch,
         },
       ],
     }),

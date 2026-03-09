@@ -42,7 +42,7 @@ pnpm create streamdeck-react
 npm create streamdeck-react@latest
 ```
 
-The CLI asks for your plugin UUID, author, supported platforms, native addon targets, and starter example, then generates a complete `.sdPlugin` project.
+The CLI asks for your plugin UUID, author, supported platforms, native targets, and starter example, then generates a complete `.sdPlugin` project.
 
 ## Add a Bundler
 
@@ -106,14 +106,14 @@ npm install -D @rolldown/plugin-babel @babel/core babel-plugin-react-compiler
 
 ## Install Native Target Packages
 
-For manual setup, install the `@takumi-rs/core-*` packages that match the targets you pass to `nativeAddon({ targets })`.
+For manual setup, install the `@takumi-rs/core-*` packages that match the targets you pass to `streamDeckReact({ targets })`.
 
-| Target | Package |
-| --- | --- |
-| `darwin-arm64` | `@takumi-rs/core-darwin-arm64` |
-| `darwin-x64` | `@takumi-rs/core-darwin-x64` |
-| `win32-arm64` | `@takumi-rs/core-win32-arm64-msvc` |
-| `win32-x64` | `@takumi-rs/core-win32-x64-msvc` |
+| Target         | Package                            |
+| -------------- | ---------------------------------- |
+| `darwin-arm64` | `@takumi-rs/core-darwin-arm64`     |
+| `darwin-x64`   | `@takumi-rs/core-darwin-x64`       |
+| `win32-arm64`  | `@takumi-rs/core-win32-arm64-msvc` |
+| `win32-x64`    | `@takumi-rs/core-win32-x64-msvc`   |
 
 Example:
 
@@ -144,13 +144,13 @@ You must provide at least one font file to `createPlugin()`.
 - Source: local file loaded as `Buffer` or `ArrayBuffer`
 
 ```ts
-import { readFile } from 'node:fs/promises';
+import { readFile } from "node:fs/promises";
 
 const font = {
-  name: 'Inter',
-  data: await readFile(new URL('../fonts/Inter-Regular.ttf', import.meta.url)),
+  name: "Inter",
+  data: await readFile(new URL("../fonts/Inter-Regular.ttf", import.meta.url)),
   weight: 400,
-  style: 'normal' as const,
+  style: "normal" as const,
 };
 ```
 

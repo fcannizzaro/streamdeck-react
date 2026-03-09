@@ -47,14 +47,10 @@ const KEY_SIZES: Record<number, { width: number; height: number }> = {
 };
 
 const DIAL_SIZE = { width: 200, height: 100 };
-const TOUCH_SIZE = { width: 200, height: 100 };
 
-function getCanvasInfo(deviceType: DeviceType, surfaceType: "key" | "dial" | "touch"): CanvasInfo {
+function getCanvasInfo(deviceType: DeviceType, surfaceType: "key" | "dial"): CanvasInfo {
   if (surfaceType === "dial") {
     return { ...DIAL_SIZE, type: "dial" };
-  }
-  if (surfaceType === "touch") {
-    return { ...TOUCH_SIZE, type: "touch" };
   }
   const size = KEY_SIZES[deviceType as number] ?? { width: 72, height: 72 };
   return { ...size, type: "key" };

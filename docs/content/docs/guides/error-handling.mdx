@@ -16,14 +16,14 @@ When a component throws during render, the library catches it at the root level 
 Use the built-in `ErrorBoundary` component for granular error handling within your components:
 
 ```tsx
-import { ErrorBoundary } from '@fcannizzaro/streamdeck-react';
+import { ErrorBoundary } from "@fcannizzaro/streamdeck-react";
 
 function SafeKey() {
   return (
     <ErrorBoundary
       fallback={<ErrorFallback />}
       onError={(error, info) => {
-        console.error('Caught:', error);
+        console.error("Caught:", error);
       }}
     >
       <RiskyComponent />

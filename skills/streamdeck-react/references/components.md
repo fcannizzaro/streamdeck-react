@@ -7,19 +7,19 @@ All components are optional convenience wrappers. Raw HTML elements (`div`, `spa
 Renders a `div` with `display: flex` and convenience layout props.
 
 ```tsx
-import { Box } from '@fcannizzaro/streamdeck-react';
+import { Box } from "@fcannizzaro/streamdeck-react";
 ```
 
 ```ts
 interface BoxProps {
   className?: string;
-  center?: boolean;       // Sets alignItems and justifyContent to 'center'
-  padding?: number;       // Padding in pixels
-  background?: string;    // Background color
-  borderRadius?: number;  // Border radius in pixels
-  gap?: number;           // Gap between children in pixels
-  direction?: 'row' | 'column';  // Default: 'column'
-  style?: CSSProperties;  // Merged last, can override shorthands
+  center?: boolean; // Sets alignItems and justifyContent to 'center'
+  padding?: number; // Padding in pixels
+  background?: string; // Background color
+  borderRadius?: number; // Border radius in pixels
+  gap?: number; // Gap between children in pixels
+  direction?: "row" | "column"; // Default: 'column'
+  style?: CSSProperties; // Merged last, can override shorthands
   children?: ReactNode;
 }
 ```
@@ -28,8 +28,12 @@ Example:
 
 ```tsx
 <Box center padding={8} background="#1a1a1a" borderRadius={12} gap={4}>
-  <Text size={12} color="#888">LABEL</Text>
-  <Text size={24} color="white" weight={700}>42</Text>
+  <Text size={12} color="#888">
+    LABEL
+  </Text>
+  <Text size={24} color="white" weight={700}>
+    42
+  </Text>
 </Box>
 ```
 
@@ -38,18 +42,18 @@ Example:
 Renders a `span` with shorthand text styling props.
 
 ```tsx
-import { Text } from '@fcannizzaro/streamdeck-react';
+import { Text } from "@fcannizzaro/streamdeck-react";
 ```
 
 ```ts
 interface TextProps {
   className?: string;
-  size?: number;          // fontSize
-  color?: string;         // color
-  weight?: number;        // fontWeight
-  align?: 'left' | 'center' | 'right';  // textAlign
-  font?: string;          // fontFamily
-  lineHeight?: number;    // lineHeight
+  size?: number; // fontSize
+  color?: string; // color
+  weight?: number; // fontWeight
+  align?: "left" | "center" | "right"; // textAlign
+  font?: string; // fontFamily
+  lineHeight?: number; // lineHeight
   style?: CSSProperties;
   children?: ReactNode;
 }
@@ -70,16 +74,16 @@ Font must be loaded in `createPlugin()` for text to render.
 Renders an `img` element with required dimensions.
 
 ```tsx
-import { Image } from '@fcannizzaro/streamdeck-react';
+import { Image } from "@fcannizzaro/streamdeck-react";
 ```
 
 ```ts
 interface ImageProps {
   className?: string;
-  src: string;            // URL, base64 data URI, or Buffer
-  width: number;          // Required
-  height: number;         // Required
-  fit?: 'contain' | 'cover';  // Maps to objectFit
+  src: string; // URL, base64 data URI, or Buffer
+  width: number; // Required
+  height: number; // Required
+  fit?: "contain" | "cover"; // Maps to objectFit
   borderRadius?: number;
   style?: CSSProperties;
 }
@@ -98,16 +102,16 @@ Always provide explicit `width` and `height` for all `img` elements.
 Renders an `svg` element with a single `path` for simple icons.
 
 ```tsx
-import { Icon } from '@fcannizzaro/streamdeck-react';
+import { Icon } from "@fcannizzaro/streamdeck-react";
 ```
 
 ```ts
 interface IconProps {
   className?: string;
-  path: string;           // SVG path d attribute data
-  size?: number;          // Default: 24. Width and height in pixels
-  color?: string;         // Default: 'white'. Fill color
-  viewBox?: string;       // Default: '0 0 24 24'
+  path: string; // SVG path d attribute data
+  size?: number; // Default: 24. Width and height in pixels
+  color?: string; // Default: 'white'. Fill color
+  viewBox?: string; // Default: '0 0 24 24'
   style?: CSSProperties;
 }
 ```
@@ -115,8 +119,8 @@ interface IconProps {
 Example with icon library path data:
 
 ```tsx
-const mdiPlay = 'M8,5.14V19.14L19,12.14L8,5.14Z';
-<Icon path={mdiPlay} size={48} color="#4CAF50" />
+const mdiPlay = "M8,5.14V19.14L19,12.14L8,5.14Z";
+<Icon path={mdiPlay} size={48} color="#4CAF50" />;
 ```
 
 ## ProgressBar
@@ -124,18 +128,18 @@ const mdiPlay = 'M8,5.14V19.14L19,12.14L8,5.14Z';
 Renders a horizontal progress bar.
 
 ```tsx
-import { ProgressBar } from '@fcannizzaro/streamdeck-react';
+import { ProgressBar } from "@fcannizzaro/streamdeck-react";
 ```
 
 ```ts
 interface ProgressBarProps {
   className?: string;
-  value: number;          // Current value
-  max?: number;           // Default: 100
-  height?: number;        // Default: 8. Bar height in pixels
-  color?: string;         // Default: '#4CAF50'. Fill color
-  background?: string;    // Default: '#333'. Track background
-  borderRadius?: number;  // Default: 4
+  value: number; // Current value
+  max?: number; // Default: 100
+  height?: number; // Default: 8. Bar height in pixels
+  color?: string; // Default: '#4CAF50'. Fill color
+  background?: string; // Default: '#333'. Track background
+  borderRadius?: number; // Default: 4
   style?: CSSProperties;
 }
 ```
@@ -153,18 +157,18 @@ Example:
 Renders a circular ring/arc gauge using SVG `stroke-dasharray`.
 
 ```tsx
-import { CircularGauge } from '@fcannizzaro/streamdeck-react';
+import { CircularGauge } from "@fcannizzaro/streamdeck-react";
 ```
 
 ```ts
 interface CircularGaugeProps {
   className?: string;
-  value: number;          // Current value
-  max?: number;           // Default: 100
-  size?: number;          // Default: 80. Diameter in pixels
-  strokeWidth?: number;   // Default: 6. Ring thickness
-  color?: string;         // Default: '#2196F3'. Foreground arc color
-  background?: string;    // Default: '#333'. Background ring color
+  value: number; // Current value
+  max?: number; // Default: 100
+  size?: number; // Default: 80. Diameter in pixels
+  strokeWidth?: number; // Default: 6. Ring thickness
+  color?: string; // Default: '#2196F3'. Foreground arc color
+  background?: string; // Default: '#333'. Background ring color
   style?: CSSProperties;
 }
 ```
@@ -180,12 +184,12 @@ Example:
 Standard React error boundary that catches errors in its child tree.
 
 ```tsx
-import { ErrorBoundary } from '@fcannizzaro/streamdeck-react';
+import { ErrorBoundary } from "@fcannizzaro/streamdeck-react";
 ```
 
 ```ts
 interface ErrorBoundaryProps {
-  fallback?: ReactNode;   // Default: red background with "Error" text
+  fallback?: ReactNode; // Default: red background with "Error" text
   onError?: (error: Error, errorInfo: ErrorInfo) => void;
   children: ReactNode;
 }

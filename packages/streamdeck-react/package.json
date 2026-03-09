@@ -1,16 +1,42 @@
 {
   "name": "@fcannizzaro/streamdeck-react",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "Build Stream Deck plugins with React — render components directly to keys, dials, and touch screens",
-  "type": "module",
-  "module": "./dist/index.js",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "scripts": {
-    "build": "vite build",
-    "check-types": "tsc --noEmit",
-    "test": "bun test ./src"
+  "keywords": [
+    "elgato",
+    "plugin",
+    "react",
+    "stream-deck",
+    "streamdeck"
+  ],
+  "homepage": "https://streamdeckreact.fcannizzaro.com",
+  "bugs": {
+    "url": "https://github.com/fcannizzaro/streamdeck-react/issues"
   },
+  "license": "MIT",
+  "author": {
+    "name": "Francesco Saverio Cannizzaro",
+    "url": "https://github.com/fcannizzaro"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fcannizzaro/streamdeck-react.git",
+    "directory": "packages/streamdeck-react"
+  },
+  "funding": {
+    "type": "patreon",
+    "url": "https://patreon.com/fcannizzaro"
+  },
+  "files": [
+    "dist",
+    "font.d.ts",
+    "LICENSE",
+    "README.md"
+  ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -28,36 +54,10 @@
       "types": "./font.d.ts"
     }
   },
-  "files": [
-    "dist",
-    "font.d.ts",
-    "LICENSE",
-    "README.md"
-  ],
-  "keywords": [
-    "streamdeck",
-    "elgato",
-    "react",
-    "stream-deck",
-    "plugin"
-  ],
-  "license": "MIT",
-  "author": {
-    "name": "Francesco Saverio Cannizzaro",
-    "url": "https://github.com/fcannizzaro"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/fcannizzaro/streamdeck-react.git",
-    "directory": "packages/streamdeck-react"
-  },
-  "homepage": "https://streamdeckreact.fcannizzaro.com",
-  "bugs": {
-    "url": "https://github.com/fcannizzaro/streamdeck-react/issues"
-  },
-  "funding": {
-    "type": "patreon",
-    "url": "https://patreon.com/fcannizzaro"
+  "scripts": {
+    "build": "vite build",
+    "check-types": "tsc --noEmit",
+    "test": "bun test ./src"
   },
   "dependencies": {
     "@elgato/streamdeck": "^2.0.2",

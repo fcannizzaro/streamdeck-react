@@ -29,7 +29,7 @@ Use `defineAction()` to connect a manifest UUID to one or more surfaces.
 
 ```tsx
 export const statusAction = defineAction({
-  uuid: 'com.example.plugin.status',
+  uuid: "com.example.plugin.status",
   key: StatusKey,
 });
 ```
@@ -82,8 +82,8 @@ The samples show all three approaches:
 
 The sample projects use Rollup plus the helpers exported from `@fcannizzaro/streamdeck-react/rollup`:
 
-- `nativeAddon({ targets: [...] })` copies the Takumi native binaries you want to ship into your output directory.
-- In watch mode, `nativeAddon()` can infer the current supported host target. For production builds, prefer explicit `targets`.
+- `streamDeckReact({ targets: [...] })` copies the Takumi native binaries you want to ship into your output directory.
+- In watch mode, `streamDeckReact()` can infer the current supported host target. For production builds, prefer explicit `targets`.
 
 This is the easiest way to match the working sample setup.
 

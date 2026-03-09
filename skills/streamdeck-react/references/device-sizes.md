@@ -4,20 +4,20 @@ The library automatically detects the device type and sets render dimensions. Us
 
 ## Key Sizes
 
-| Device | Key Size (px) |
-|--------|--------------|
-| Stream Deck (original) | 72 x 72 |
-| Stream Deck MK.2 | 72 x 72 |
-| Stream Deck XL | 96 x 96 |
-| Stream Deck Mini | 80 x 80 |
-| Stream Deck + | 144 x 144 |
-| Stream Deck Neo | 72 x 72 |
-| Stream Deck + XL | 144 x 144 |
+| Device                 | Key Size (px) |
+| ---------------------- | ------------- |
+| Stream Deck (original) | 72 x 72       |
+| Stream Deck MK.2       | 72 x 72       |
+| Stream Deck XL         | 96 x 96       |
+| Stream Deck Mini       | 80 x 80       |
+| Stream Deck +          | 144 x 144     |
+| Stream Deck Neo        | 72 x 72       |
+| Stream Deck + XL       | 144 x 144     |
 
 ## Encoder Display Sizes (Stream Deck+)
 
-| Surface | Size (px) |
-|---------|----------|
+| Surface                      | Size (px) |
+| ---------------------------- | --------- |
 | Encoder display (per action) | 200 x 100 |
 
 ## Touch Input
@@ -26,22 +26,22 @@ The Stream Deck+ touch strip is 800 x 100 across the full device. Touch events a
 
 ## Grid Sizes
 
-| Device | Columns | Rows |
-|--------|---------|------|
-| Stream Deck (original) | 5 | 3 |
-| Stream Deck MK.2 | 5 | 3 |
-| Stream Deck XL | 8 | 4 |
-| Stream Deck Mini | 3 | 2 |
-| Stream Deck + | 4 | 2 |
-| Stream Deck Neo | 4 | 2 |
-| Stream Deck + | 9 | 4 |
+| Device                 | Columns | Rows |
+| ---------------------- | ------- | ---- |
+| Stream Deck (original) | 5       | 3    |
+| Stream Deck MK.2       | 5       | 3    |
+| Stream Deck XL         | 8       | 4    |
+| Stream Deck Mini       | 3       | 2    |
+| Stream Deck +          | 4       | 2    |
+| Stream Deck Neo        | 4       | 2    |
+| Stream Deck +          | 9       | 4    |
 
 ## Touch Sizes
 
-| Device | Columns | Rows |
-|--------|---------|------|
-| Stream Deck + | 4 | 1 |
-| Stream Deck + XL | 6 | 1 |
+| Device           | Columns | Rows |
+| ---------------- | ------- | ---- |
+| Stream Deck +    | 4       | 1    |
+| Stream Deck + XL | 6       | 1    |
 
 ## Design Guidelines
 

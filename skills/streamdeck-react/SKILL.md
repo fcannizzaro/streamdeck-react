@@ -13,6 +13,7 @@ A custom React renderer that turns JSX into rendered images for Elgato Stream De
 ## When to Use This Skill
 
 Use when the user is:
+
 - Creating or modifying a Stream Deck plugin that uses `@fcannizzaro/streamdeck-react`
 - Asking about rendering React components on Stream Deck keys or dials, or handling touch input
 - Working with `@elgato/streamdeck` SDK in a React-based plugin
@@ -44,7 +45,7 @@ For greenfield projects, prefer the scaffolder first:
 npm create streamdeck-react@latest
 ```
 
-It asks for the plugin UUID, author, platforms, native addon targets, starter example, and whether to use React Compiler, then generates a working project.
+It asks for the plugin UUID, author, platforms, native targets, starter example, and whether to use React Compiler, then generates a working project.
 
 To use React Compiler via CLI flag:
 
@@ -94,7 +95,7 @@ npm install -D rollup @rollup/plugin-node-resolve @rollup/plugin-commonjs @rollu
 npm install -D @types/react
 ```
 
-Also install the platform-specific Takumi native binding packages that match the targets you pass to `nativeAddon({ targets })`, for example:
+Also install the platform-specific Takumi native binding packages that match the targets you pass to `streamDeckReact({ targets })`, for example:
 
 ```bash
 # macOS Apple Silicon
@@ -148,8 +149,8 @@ Must use `"type": "module"`. Example:
 
 ```tsx
 // src/actions/counter.tsx
-import { useState } from 'react';
-import { defineAction, useKeyDown, useKeyUp, tw } from '@fcannizzaro/streamdeck-react';
+import { useState } from "react";
+import { defineAction, useKeyDown, useKeyUp, tw } from "@fcannizzaro/streamdeck-react";
 
 function CounterKey() {
   const [count, setCount] = useState(0);
@@ -163,10 +164,12 @@ function CounterKey() {
   useKeyUp(() => setPressed(false));
 
   return (
-    <div className={tw(
-      'flex flex-col items-center justify-center w-full h-full gap-1',
-      pressed ? 'bg-[#2563eb]' : 'bg-[#0f172a]',
-    )}>
+    <div
+      className={tw(
+        "flex flex-col items-center justify-center w-full h-full gap-1",
+        pressed ? "bg-[#2563eb]" : "bg-[#0f172a]",
+      )}
+    >
       <span className="text-white/70 text-[12px] font-medium">COUNT</span>
       <span className="text-white text-[36px] font-bold">{count}</span>
     </div>
@@ -174,7 +177,7 @@ function CounterKey() {
 }
 
 export const counterAction = defineAction({
-  uuid: 'com.example.my-plugin.counter',
+  uuid: "com.example.my-plugin.counter",
   key: CounterKey,
 });
 ```
@@ -183,17 +186,17 @@ export const counterAction = defineAction({
 
 ```ts
 // src/plugin.ts
-import { readFile } from 'node:fs/promises';
-import { createPlugin } from '@fcannizzaro/streamdeck-react';
-import { counterAction } from './actions/counter.tsx';
+import { readFile } from "node:fs/promises";
+import { createPlugin } from "@fcannizzaro/streamdeck-react";
+import { counterAction } from "./actions/counter.tsx";
 
 const plugin = createPlugin({
   fonts: [
     {
-      name: 'Inter',
-      data: await readFile('./fonts/Inter-Regular.ttf'),
+      name: "Inter",
+      data: await readFile("./fonts/Inter-Regular.ttf"),
       weight: 400,
-      style: 'normal',
+      style: "normal",
     },
   ],
   actions: [counterAction],
@@ -208,21 +211,21 @@ await plugin.connect();
 
 ```js
 // rollup.config.mjs
-import { builtinModules } from 'node:module';
-import resolve from '@rollup/plugin-node-resolve';
-import commonjs from '@rollup/plugin-commonjs';
-import json from '@rollup/plugin-json';
-import esbuild from 'rollup-plugin-esbuild';
-import { nativeAddon } from '@fcannizzaro/streamdeck-react/rollup';
+import { builtinModules } from "node:module";
+import resolve from "@rollup/plugin-node-resolve";
+import commonjs from "@rollup/plugin-commonjs";
+import json from "@rollup/plugin-json";
+import esbuild from "rollup-plugin-esbuild";
+import { streamDeckReact } from "@fcannizzaro/streamdeck-react/rollup";
 
-const PLUGIN_DIR = 'com.example.my-plugin.sdPlugin';
+const PLUGIN_DIR = "com.example.my-plugin.sdPlugin";
 const builtins = new Set(builtinModules.flatMap((m) => [m, `node:${m}`]));
 
 export default {
-  input: 'src/plugin.ts',
+  input: "src/plugin.ts",
   output: {
     file: `${PLUGIN_DIR}/bin/plugin.mjs`,
-    format: 'es',
+    format: "es",
     sourcemap: true,
     inlineDynamicImports: true,
   },
@@ -231,9 +234,9 @@ export default {
     resolve({ preferBuiltins: true }),
     commonjs(),
     json(),
-    esbuild({ target: 'node20', jsx: 'automatic' }),
-    nativeAddon({
-      targets: [{ platform: 'darwin', arch: 'arm64' }],
+    esbuild({ target: "node20", jsx: "automatic" }),
+    streamDeckReact({
+      targets: [{ platform: "darwin", arch: "arm64" }],
     }),
   ],
 };
@@ -243,21 +246,21 @@ export default {
 
 ```js
 // rollup.config.mjs
-import { builtinModules } from 'node:module';
-import { babel } from '@rollup/plugin-babel';
-import resolve from '@rollup/plugin-node-resolve';
-import commonjs from '@rollup/plugin-commonjs';
-import json from '@rollup/plugin-json';
-import { nativeAddon } from '@fcannizzaro/streamdeck-react/rollup';
+import { builtinModules } from "node:module";
+import { babel } from "@rollup/plugin-babel";
+import resolve from "@rollup/plugin-node-resolve";
+import commonjs from "@rollup/plugin-commonjs";
+import json from "@rollup/plugin-json";
+import { streamDeckReact } from "@fcannizzaro/streamdeck-react/rollup";
 
-const PLUGIN_DIR = 'com.example.my-plugin.sdPlugin';
+const PLUGIN_DIR = "com.example.my-plugin.sdPlugin";
 const builtins = new Set(builtinModules.flatMap((m) => [m, `node:${m}`]));
 
 export default {
-  input: 'src/plugin.ts',
+  input: "src/plugin.ts",
   output: {
     file: `${PLUGIN_DIR}/bin/plugin.mjs`,
-    format: 'es',
+    format: "es",
     sourcemap: true,
     inlineDynamicImports: true,
   },
@@ -267,23 +270,20 @@ export default {
     commonjs(),
     json(),
     babel({
-      babelHelpers: 'bundled',
-      extensions: ['.js', '.jsx', '.ts', '.tsx'],
-      exclude: '**/node_modules/**',
-      plugins: ['babel-plugin-react-compiler'],
-      presets: [
-        '@babel/preset-typescript',
-        ['@babel/preset-react', { runtime: 'automatic' }],
-      ],
+      babelHelpers: "bundled",
+      extensions: [".js", ".jsx", ".ts", ".tsx"],
+      exclude: "**/node_modules/**",
+      plugins: ["babel-plugin-react-compiler"],
+      presets: ["@babel/preset-typescript", ["@babel/preset-react", { runtime: "automatic" }]],
     }),
-    nativeAddon({
-      targets: [{ platform: 'darwin', arch: 'arm64' }],
+    streamDeckReact({
+      targets: [{ platform: "darwin", arch: "arm64" }],
     }),
   ],
 };
 ```
 
-For production builds, pass explicit `targets`. In watch mode, `nativeAddon()` can infer the current supported host target.
+For production builds, pass explicit `targets`. In watch mode, `streamDeckReact()` can infer the current supported host target.
 
 ### Step 4: Set Up manifest.json
 
@@ -325,38 +325,38 @@ If your `package.json` has a `dev` script configured, you can also just run `bun
 
 ## Hook Quick Reference
 
-| Category | Hooks | Purpose |
-|----------|-------|---------|
-| Events | `useKeyDown`, `useKeyUp` | Key press/release |
-| Events | `useDialRotate`, `useDialDown`, `useDialUp` | Encoder rotation/press |
-| Events | `useTouchTap` | Touch strip tap |
-| Events | `useDialHint` | Set encoder trigger descriptions |
-| Gestures | `useTap` | Single tap (auto-delayed when useDoubleTap is active) |
-| Gestures | `useLongPress` | Key held for configurable duration (default 500ms) |
-| Gestures | `useDoubleTap` | Two rapid taps within configurable window (default 250ms) |
-| Settings | `useSettings`, `useGlobalSettings` | Bidirectional settings sync |
-| Lifecycle | `useWillAppear`, `useWillDisappear` | Action mount/unmount |
-| Context | `useDevice`, `useAction`, `useCanvas` | Device/action/canvas metadata |
-| Context | `useStreamDeck` | Raw SDK escape hatch |
-| SDK | `useOpenUrl`, `useSwitchProfile` | System actions |
-| SDK | `useSendToPI`, `usePropertyInspector` | PI communication |
-| SDK | `useShowAlert`, `useShowOk`, `useTitle` | Key overlays |
-| Utility | `useInterval`, `useTimeout`, `usePrevious` | Timers and helpers |
-| Utility | `useTick` | Animation frame loop |
+| Category  | Hooks                                       | Purpose                                                   |
+| --------- | ------------------------------------------- | --------------------------------------------------------- |
+| Events    | `useKeyDown`, `useKeyUp`                    | Key press/release                                         |
+| Events    | `useDialRotate`, `useDialDown`, `useDialUp` | Encoder rotation/press                                    |
+| Events    | `useTouchTap`                               | Touch strip tap                                           |
+| Events    | `useDialHint`                               | Set encoder trigger descriptions                          |
+| Gestures  | `useTap`                                    | Single tap (auto-delayed when useDoubleTap is active)     |
+| Gestures  | `useLongPress`                              | Key held for configurable duration (default 500ms)        |
+| Gestures  | `useDoubleTap`                              | Two rapid taps within configurable window (default 250ms) |
+| Settings  | `useSettings`, `useGlobalSettings`          | Bidirectional settings sync                               |
+| Lifecycle | `useWillAppear`, `useWillDisappear`         | Action mount/unmount                                      |
+| Context   | `useDevice`, `useAction`, `useCanvas`       | Device/action/canvas metadata                             |
+| Context   | `useStreamDeck`                             | Raw SDK escape hatch                                      |
+| SDK       | `useOpenUrl`, `useSwitchProfile`            | System actions                                            |
+| SDK       | `useSendToPI`, `usePropertyInspector`       | PI communication                                          |
+| SDK       | `useShowAlert`, `useShowOk`, `useTitle`     | Key overlays                                              |
+| Utility   | `useInterval`, `useTimeout`, `usePrevious`  | Timers and helpers                                        |
+| Utility   | `useTick`                                   | Animation frame loop                                      |
 
 See [references/hooks.md](references/hooks.md) for full signatures and usage.
 
 ## Component Quick Reference
 
-| Component | Element | Purpose |
-|-----------|---------|---------|
-| `Box` | `div` | Flex container with shorthand props (`center`, `padding`, `gap`, `direction`) |
-| `Text` | `span` | Text with shorthand props (`size`, `color`, `weight`, `align`, `font`) |
-| `Image` | `img` | Image with required `width`/`height`, optional `fit` |
-| `Icon` | `svg` | Single SVG path icon with `path`, `size`, `color` |
-| `ProgressBar` | `div` | Horizontal progress bar with `value`/`max` |
-| `CircularGauge` | `svg` | Ring/arc gauge with `value`/`max`/`size`/`strokeWidth` |
-| `ErrorBoundary` | -- | Catches errors, renders fallback |
+| Component       | Element | Purpose                                                                       |
+| --------------- | ------- | ----------------------------------------------------------------------------- |
+| `Box`           | `div`   | Flex container with shorthand props (`center`, `padding`, `gap`, `direction`) |
+| `Text`          | `span`  | Text with shorthand props (`size`, `color`, `weight`, `align`, `font`)        |
+| `Image`         | `img`   | Image with required `width`/`height`, optional `fit`                          |
+| `Icon`          | `svg`   | Single SVG path icon with `path`, `size`, `color`                             |
+| `ProgressBar`   | `div`   | Horizontal progress bar with `value`/`max`                                    |
+| `CircularGauge` | `svg`   | Ring/arc gauge with `value`/`max`/`size`/`strokeWidth`                        |
+| `ErrorBoundary` | --      | Catches errors, renders fallback                                              |
 
 All components are optional convenience wrappers. Raw `div`, `span`, `img`, `svg` elements work directly.
 
@@ -367,11 +367,13 @@ See [references/components.md](references/components.md) for full props tables.
 Three approaches, all valid:
 
 1. **Tailwind classes** via `className` -- resolved by Takumi at render time (no CSS build step):
+
    ```tsx
    <div className="flex items-center justify-center w-full h-full bg-[#1a1a1a]">
    ```
 
 2. **`tw()` utility** for conditional classes (like `clsx`):
+
    ```tsx
    <div className={tw('w-full h-full', pressed && 'bg-green-500')}>
    ```
@@ -383,13 +385,13 @@ Three approaches, all valid:
 
 ## State Management Decision Guide
 
-| Need | Solution |
-|------|----------|
-| Simple per-action state | `useState` / `useReducer` |
-| Persist per-action settings across reloads | `useSettings<T>()` |
-| Plugin-wide shared config | `useGlobalSettings<T>()` |
-| Shared state across actions (no provider needed) | Zustand store in module scope |
-| Shared state with provider pattern | Jotai/React Context via `wrapper` on `createPlugin` or `defineAction` |
+| Need                                             | Solution                                                              |
+| ------------------------------------------------ | --------------------------------------------------------------------- |
+| Simple per-action state                          | `useState` / `useReducer`                                             |
+| Persist per-action settings across reloads       | `useSettings<T>()`                                                    |
+| Plugin-wide shared config                        | `useGlobalSettings<T>()`                                              |
+| Shared state across actions (no provider needed) | Zustand store in module scope                                         |
+| Shared state with provider pattern               | Jotai/React Context via `wrapper` on `createPlugin` or `defineAction` |
 
 ## Encoder / Dial Actions
 
@@ -397,7 +399,7 @@ For Stream Deck+ encoders, provide a `dial` component in `defineAction`. If omit
 
 ```tsx
 export const volumeAction = defineAction({
-  uuid: 'com.example.my-plugin.volume',
+  uuid: "com.example.my-plugin.volume",
   key: VolumeKey,
   dial: VolumeDial,
 });
@@ -426,8 +428,8 @@ For touch interaction on Stream Deck+, use `useTouchTap()` inside the mounted ac
 1. **Fonts are mandatory** -- the renderer cannot access system fonts. Load at least one `.ttf`, `.otf`, or `.woff` file. WOFF2 is NOT supported.
 2. **`plugin.connect()` must be called last** -- after `createPlugin()` and all setup.
 3. **UUID mismatch** -- the `uuid` in `defineAction()` must exactly match the `UUID` in `manifest.json`.
-4. **`nativeAddon({ targets })` is required for production builds** -- it copies the Takumi `.node` binaries into output. Without them, the plugin crashes on startup.
-5. **Install `ws` and matching `@takumi-rs/core-*` packages** -- they must line up with the targets passed to `nativeAddon({ targets })`.
+4. **`streamDeckReact({ targets })` is required for production builds** -- it copies the Takumi `.node` binaries into output. Without them, the plugin crashes on startup.
+5. **Install `ws` and matching `@takumi-rs/core-*` packages** -- they must line up with the targets passed to `streamDeckReact({ targets })`.
 6. **No animated images** -- each `setImage` call is a static frame. Use `useTick` for animation loops.
 7. **Design for 72x72 minimum** -- smallest key size. Use `useCanvas()` to adapt to larger devices.
 8. **Use simple layouts** -- this is not a browser DOM. Stick to flex layouts, fixed sizes, and simple elements (`div`, `span`, `img`, `svg`, `p`).
@@ -439,12 +441,12 @@ When scaffolding or modifying a @fcannizzaro/streamdeck-react plugin, verify:
 
 - [ ] `@fcannizzaro/streamdeck-react` and `react` are in dependencies
 - [ ] `ws` is installed for the Stream Deck SDK runtime
-- [ ] Matching `@takumi-rs/core-*` packages are installed for every `nativeAddon({ targets })` entry
+- [ ] Matching `@takumi-rs/core-*` packages are installed for every `streamDeckReact({ targets })` entry
 - [ ] `package.json` has `"type": "module"`
 - [ ] `tsconfig.json` has `"jsx": "react-jsx"`
 - [ ] At least one font file exists and is loaded in `createPlugin()`
 - [ ] Every `defineAction()` UUID matches its `manifest.json` UUID
-- [ ] `rollup.config.mjs` uses `nativeAddon({ targets })` for production builds
+- [ ] `rollup.config.mjs` uses `streamDeckReact({ targets })` for production builds
 - [ ] `manifest.json` `CodePath` points to the Rollup output (e.g., `bin/plugin.mjs`)
 - [ ] `manifest.json` declares `"Nodejs": { "Version": "20" }`
 - [ ] Encoder actions have `"Controllers": ["Encoder"]` and an `"Encoder"` block in manifest
@@ -460,9 +462,11 @@ A browser-based inspector for debugging plugins during development. When enabled
 
 ```ts
 const plugin = createPlugin({
-  devtools: true,          // starts the WebSocket server
+  devtools: true, // starts the WebSocket server
   // devtoolsPort: 39400,  // optional fixed port (default: random in 39400-39499)
-  actions: [/* ... */],
+  actions: [
+    /* ... */
+  ],
 });
 ```
 
@@ -473,13 +477,13 @@ const plugin = createPlugin({
 
 ### Panels
 
-| Panel | Description |
-|-------|-------------|
-| Console | Intercepted `console.log/warn/error/info/debug` output |
-| Network | Intercepted `fetch` requests and responses |
+| Panel    | Description                                                           |
+| -------- | --------------------------------------------------------------------- |
+| Console  | Intercepted `console.log/warn/error/info/debug` output                |
+| Network  | Intercepted `fetch` requests and responses                            |
 | Elements | VNode tree inspector with element highlighting on the physical device |
-| Preview | Live rendered images for every active action and touch bar |
-| Events | EventBus emissions (`keyDown`, `dialRotate`, `touchTap`, etc.) |
+| Preview  | Live rendered images for every active action and touch bar            |
+| Events   | EventBus emissions (`keyDown`, `dialRotate`, `touchTap`, etc.)        |
 
 ### Key Details
 
@@ -493,6 +497,6 @@ const plugin = createPlugin({
 - [references/plugin-setup.md](references/plugin-setup.md) -- `createPlugin` and `defineAction` details
 - [references/hooks.md](references/hooks.md) -- All hooks with signatures and payloads
 - [references/components.md](references/components.md) -- Component props tables
-- [references/rollup-bundling.md](references/rollup-bundling.md) -- Rollup config and native addon details
+- [references/rollup-bundling.md](references/rollup-bundling.md) -- Rollup config and native binding details
 - [references/device-sizes.md](references/device-sizes.md) -- Key/encoder/touch dimensions per device
 - [references/limitations.md](references/limitations.md) -- Styling constraints and known limitations

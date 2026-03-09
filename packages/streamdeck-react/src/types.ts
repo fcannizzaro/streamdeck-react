@@ -114,7 +114,6 @@ export interface ActionConfig<S extends JsonObject = JsonObject> {
   uuid: string;
   key?: ComponentType;
   dial?: ComponentType;
-  touch?: ComponentType;
   /** Full-strip touchbar component. When set, replaces per-encoder `dial` display with a single shared React tree that spans the entire touch strip. */
   touchBar?: ComponentType;
   /** Target frame rate for the touchbar animation loop and render pipeline. Controls both `useTick` cadence (via `useTouchBar().fps`) and the render debounce. @default 60 */
@@ -129,7 +128,6 @@ export interface ActionDefinition<S extends JsonObject = JsonObject> {
   uuid: string;
   key?: ComponentType;
   dial?: ComponentType;
-  touch?: ComponentType;
   /** Full-strip touchbar component. When set, replaces per-encoder `dial` display with a single shared React tree that spans the entire touch strip. */
   touchBar?: ComponentType;
   /** Target frame rate for the touchbar animation loop and render pipeline. @default 60 */

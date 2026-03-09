@@ -13,13 +13,13 @@ The renderer is NOT a browser DOM. Keep layouts simple and explicit.
 
 Use simple HTML/SVG primitives and the built-in components:
 
-| Element | Purpose |
-|---------|---------|
-| `div` | Container / layout (default `display: flex`) |
-| `span` | Inline text container |
-| `p` | Paragraph text |
-| `img` | Images (requires `width` and `height`) |
-| `svg` | Inline SVG for icons and gauges |
+| Element | Purpose                                      |
+| ------- | -------------------------------------------- |
+| `div`   | Container / layout (default `display: flex`) |
+| `span`  | Inline text container                        |
+| `p`     | Paragraph text                               |
+| `img`   | Images (requires `width` and `height`)       |
+| `svg`   | Inline SVG for icons and gauges              |
 
 All elements use props/styles interpreted by the Takumi renderer, not by a browser layout engine.
 
@@ -47,6 +47,7 @@ Use external state managers (Zustand, Jotai) or the wrapper API to share state a
 ## Font Bundle Size
 
 Fonts are loaded into the plugin runtime. Each font weight/style is a separate file:
+
 - Latin-only subset: ~50-300KB
 - CJK character sets: ~1-5MB
 

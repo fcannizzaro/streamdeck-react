@@ -1,5 +1,3 @@
-
-
 <p align="center">
   <img src="https://fcannizzaro.com/_astro/streamdeck-react.BAjPov6j.webp" alt="illustration" />
 </p>

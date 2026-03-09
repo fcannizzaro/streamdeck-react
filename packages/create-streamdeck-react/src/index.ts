@@ -510,7 +510,7 @@ async function collectNativeTargets(
   }
 
   const answer = await p.multiselect({
-    message: "Native addon targets",
+    message: "Native targets",
     options: TARGET_OPTIONS.map((option) => ({
       value: option.value as NativeTargetId,
       label: option.label,

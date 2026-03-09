@@ -150,14 +150,3 @@ export function useTick(
     callbackRef.current(delta);
   }, delayMs);
 }
-
-// ── useAnimationFrame ───────────────────────────────────────────────
-// Deprecated wrapper for compatibility. This uses timer ticks, not
-// browser requestAnimationFrame.
-
-/**
- * @deprecated Use `useTick` instead.
- */
-export function useAnimationFrame(callback: (deltaMs: number) => void, active = true): void {
-  useTick(callback, active ? DEFAULT_TICK_FPS : false);
-}

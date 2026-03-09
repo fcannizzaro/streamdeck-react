@@ -31,7 +31,13 @@ const PANEL_ICONS: Record<TabId, ReactNode> = {
   console: (
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
       <rect x="1" y="2" width="12" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.2" />
-      <path d="M4 6l2 1.5L4 9" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M4 6l2 1.5L4 9"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
       <path d="M7.5 9H10" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
     </svg>
   ),
@@ -44,8 +50,20 @@ const PANEL_ICONS: Record<TabId, ReactNode> = {
   ),
   elements: (
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-      <path d="M5.5 3L2 7l3.5 4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M8.5 3L12 7l-3.5 4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M5.5 3L2 7l3.5 4"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M8.5 3L12 7l-3.5 4"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   ),
   preview: (
@@ -56,7 +74,13 @@ const PANEL_ICONS: Record<TabId, ReactNode> = {
   ),
   events: (
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-      <path d="M7.5 1.5L4 8h3l-.5 4.5L10 6H7l.5-4.5z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M7.5 1.5L4 8h3l-.5 4.5L10 6H7l.5-4.5z"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   ),
 };

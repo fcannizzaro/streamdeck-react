@@ -3,7 +3,7 @@ import { babel } from "@rollup/plugin-babel";
 import resolve from "@rollup/plugin-node-resolve";
 import commonjs from "@rollup/plugin-commonjs";
 import json from "@rollup/plugin-json";
-import { nativeAddon } from "@fcannizzaro/streamdeck-react/rollup";
+import { streamDeckReact } from "@fcannizzaro/streamdeck-react/rollup";
 
 const PLUGIN_DIR = "com.example.react-zustand.sdPlugin";
 
@@ -30,11 +30,8 @@ export default {
       extensions: [".js", ".jsx", ".ts", ".tsx"],
       exclude: "**/node_modules/**",
       plugins: ["babel-plugin-react-compiler"],
-      presets: [
-        "@babel/preset-typescript",
-        ["@babel/preset-react", { runtime: "automatic" }],
-      ],
+      presets: ["@babel/preset-typescript", ["@babel/preset-react", { runtime: "automatic" }]],
     }),
-    nativeAddon(),
+    streamDeckReact(),
   ],
 };

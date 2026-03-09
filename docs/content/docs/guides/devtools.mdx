@@ -3,7 +3,7 @@ title: DevTools
 description: A browser-based inspector for debugging Stream Deck plugins built with streamdeck-react.
 ---
 
-<img src="/devtools.png" alt="DevTools Screenshot" style={{ width: '100%', borderRadius: '8px' }} />
+<img src="/devtools.png" alt="DevTools Screenshot" style={{ width: "100%", borderRadius: "8px" }} />
 
 ## Opening the DevTools
 
@@ -85,13 +85,13 @@ const plugin = createPlugin({
 
 The devtools UI provides five panels for inspecting different aspects of your plugin:
 
-| Panel | Description |
-| --- | --- |
-| **Console** | Intercepted `console.log`, `console.warn`, `console.error`, `console.info`, and `console.debug` output from your plugin. |
-| **Network** | Intercepted `fetch` requests and responses, including method, URL, status, headers, and body. |
+| Panel        | Description                                                                                                                         |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| **Console**  | Intercepted `console.log`, `console.warn`, `console.error`, `console.info`, and `console.debug` output from your plugin.            |
+| **Network**  | Intercepted `fetch` requests and responses, including method, URL, status, headers, and body.                                       |
 | **Elements** | A tree view of the VNode component hierarchy for each action. Hover over a node to highlight it on the physical Stream Deck device. |
-| **Preview** | Live rendered images for every active action and touch bar surface. |
-| **Events** | EventBus emissions such as `keyDown`, `keyUp`, `dialRotate`, `touchTap`, and more. |
+| **Preview**  | Live rendered images for every active action and touch bar surface.                                                                 |
+| **Events**   | EventBus emissions such as `keyDown`, `keyUp`, `dialRotate`, `touchTap`, and more.                                                  |
 
 ## Features
 

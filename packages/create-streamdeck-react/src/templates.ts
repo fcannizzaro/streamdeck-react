@@ -395,7 +395,7 @@ export function validatePlatformTargets(
   }
 
   if (nativeTargets.length === 0) {
-    throw new Error("Select at least one native addon target.");
+    throw new Error("Select at least one native target.");
   }
 
   const hasMacTarget = nativeTargets.some((target) => target.startsWith("darwin-"));
@@ -480,7 +480,7 @@ export function buildRollupConfig(
     'import resolve from "@rollup/plugin-node-resolve";',
     'import commonjs from "@rollup/plugin-commonjs";',
     'import json from "@rollup/plugin-json";',
-    'import { nativeAddon } from "@fcannizzaro/streamdeck-react/rollup";',
+    'import { streamDeckReact } from "@fcannizzaro/streamdeck-react/rollup";',
     "",
     `const PLUGIN_DIR = "${options.pluginUuid}.sdPlugin";`,
     "const builtins = new Set(builtinModules.flatMap((id) => [id, `node:${id}`]));",
@@ -499,7 +499,7 @@ export function buildRollupConfig(
     "    commonjs(),",
     "    json(),",
     ...transformPlugin,
-    "    nativeAddon({",
+    "    streamDeckReact({",
     "      targets: [",
     renderedTargets,
     "      ],",

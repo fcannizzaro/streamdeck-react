@@ -29,24 +29,31 @@ function VolumeDial() {
   });
 
   useDialHint({
-    rotate: 'Adjust volume',
-    press: muted ? 'Unmute' : 'Mute',
+    rotate: "Adjust volume",
+    press: muted ? "Unmute" : "Mute",
   });
 
   return (
-    <div style={{
-      width: '100%', height: '100%',
-      flexDirection: 'column',
-      alignItems: 'center', justifyContent: 'center',
-      background: muted ? '#4a0000' : '#1a1a1a',
-      gap: 4,
-    }}>
-      <span style={{ color: '#888', fontSize: 12 }}>Volume</span>
-      <span style={{
-        color: muted ? '#ff4444' : 'white',
-        fontSize: 24, fontWeight: 700,
-      }}>
-        {muted ? 'MUTE' : `${volume}%`}
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        background: muted ? "#4a0000" : "#1a1a1a",
+        gap: 4,
+      }}
+    >
+      <span style={{ color: "#888", fontSize: 12 }}>Volume</span>
+      <span
+        style={{
+          color: muted ? "#ff4444" : "white",
+          fontSize: 24,
+          fontWeight: 700,
+        }}
+      >
+        {muted ? "MUTE" : `${volume}%`}
       </span>
       {!muted && (
         <ProgressBar value={volume} height={4} color="#4CAF50" background="#333" borderRadius={2} />
@@ -56,7 +63,7 @@ function VolumeDial() {
 }
 
 export const volumeAction = defineAction<VolumeSettings>({
-  uuid: 'com.example.plugin.volume',
+  uuid: "com.example.plugin.volume",
   dial: VolumeDial,
   defaultSettings: { volume: 50, muted: false },
 });
@@ -68,10 +75,10 @@ Stream Deck+ shows contextual hints for what each dial action does. Use `useDial
 
 ```tsx
 useDialHint({
-  rotate: 'Adjust volume',
-  press: 'Toggle mute',
-  touch: 'Open settings',
-  longTouch: 'Reset to default',
+  rotate: "Adjust volume",
+  press: "Toggle mute",
+  touch: "Open settings",
+  longTouch: "Reset to default",
 });
 ```
 
@@ -84,10 +91,10 @@ Use `useTouchTap()` when your encoder action needs touch input from the Stream D
 ```tsx
 function VolumeDial() {
   useTouchTap(({ tapPos, hold }) => {
-    console.log('touch', tapPos, hold);
+    console.log("touch", tapPos, hold);
   });
 
-  return <div style={{ width: '100%', height: '100%' }} />;
+  return <div style={{ width: "100%", height: "100%" }} />;
 }
 ```
 
@@ -97,9 +104,9 @@ An action can support both key and encoder placement. Define separate components
 
 ```tsx
 export const volumeAction = defineAction<VolumeSettings>({
-  uuid: 'com.example.plugin.volume',
-  key: VolumeKey,        // Rendered when placed on a key
-  dial: VolumeDial,      // Rendered when placed on an encoder
+  uuid: "com.example.plugin.volume",
+  key: VolumeKey, // Rendered when placed on a key
+  dial: VolumeDial, // Rendered when placed on an encoder
   defaultSettings: { volume: 50, muted: false },
 });
 ```

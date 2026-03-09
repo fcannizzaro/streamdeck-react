@@ -16,7 +16,7 @@ function LinkKey() {
   const openUrl = useOpenUrl();
 
   useKeyDown(() => {
-    openUrl('https://github.com/myproject');
+    openUrl("https://github.com/myproject");
   });
 
   // ...
@@ -36,7 +36,7 @@ function ProfileKey() {
   const switchProfile = useSwitchProfile();
 
   useKeyDown(async () => {
-    await switchProfile('Gaming');
+    await switchProfile("Gaming");
   });
 
   // ...
@@ -58,7 +58,7 @@ function MyKey() {
   const sendToPI = useSendToPI();
 
   useKeyDown(() => {
-    sendToPI({ currentState: 'active' });
+    sendToPI({ currentState: "active" });
   });
 
   // ...
@@ -78,7 +78,7 @@ function usePropertyInspector<T extends JsonValue = JsonValue>(
 ```tsx
 function MyKey() {
   usePropertyInspector<{ action: string }>((msg) => {
-    if (msg.action === 'refresh') {
+    if (msg.action === "refresh") {
       // Handle PI message
     }
   });

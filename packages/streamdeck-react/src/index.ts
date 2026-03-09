@@ -26,7 +26,7 @@ export { useDevice, useAction, useCanvas, useStreamDeck } from "@/hooks/context"
 export { useWillAppear, useWillDisappear } from "@/hooks/lifecycle";
 
 // ── Hooks — Utility ─────────────────────────────────────────────────
-export { useInterval, useTimeout, usePrevious, useTick, useAnimationFrame } from "@/hooks/utility";
+export { useInterval, useTimeout, usePrevious, useTick } from "@/hooks/utility";
 
 // ── Hooks — SDK ─────────────────────────────────────────────────────
 export {
