@@ -197,17 +197,19 @@ export default defineConfig({
 
 For production builds, pass explicit `targets`. In watch mode, `nativeAddon()` can still infer the current host platform when it is supported.
 
-## 6. Build
+## 6. Dev
 
 ```bash tab="Rollup"
-npx rollup -c
+npx rollup -c -w
 ```
 
 ```bash tab="Rolldown (Vite 8)"
-npx vite build
+npx vite build --watch
 ```
 
 Install the generated `.sdPlugin` in the Stream Deck app, place the action on a key, and press it to see the counter update.
+
+If your `package.json` has a `dev` script configured, you can also just run `bun dev` (or `npm run dev` / `pnpm dev`).
 
 ## What's Happening
 

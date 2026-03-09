@@ -74,29 +74,31 @@ Events from the SDK cannot directly call React hooks. Each root has an **EventBu
 Every action root is automatically wrapped with providers:
 
 ```tsx
-<SettingsProvider>
-  <GlobalSettingsProvider>
-    <ActionProvider>
-      <DeviceProvider>
-        <CanvasProvider>
-          <EventBusProvider>
-            <StreamDeckProvider>
-              <RootWrapper width={canvasWidth} height={canvasHeight}>
-                <UserComponent />
-              </RootWrapper>
-            </StreamDeckProvider>
-          </EventBusProvider>
-        </CanvasProvider>
-      </DeviceProvider>
-    </ActionProvider>
-  </GlobalSettingsProvider>
-</SettingsProvider>
+<ActionProvider>
+  <DeviceProvider>
+    <CanvasProvider>
+      <EventBusProvider>
+        <StreamDeckProvider>
+          <GlobalSettingsProvider>
+            <SettingsProvider>
+              <PluginWrapper>   {/* if defined in createPlugin */}
+                <ActionWrapper> {/* if defined in defineAction */}
+                  <UserComponent />
+                </ActionWrapper>
+              </PluginWrapper>
+            </SettingsProvider>
+          </GlobalSettingsProvider>
+        </StreamDeckProvider>
+      </EventBusProvider>
+    </CanvasProvider>
+  </DeviceProvider>
+</ActionProvider>
 ```
 
 | Context | Updated by |
 |---------|------------|
 | `SettingsContext` | `onDidReceiveSettings`, user `setSettings()` calls |
-| `GlobalSettingsContext` | `onDidReceiveGlobalSettings`, user `setSettings()` calls |
+| `GlobalSettingsContext` | `onDidReceiveGlobalSettings`, setter from `useGlobalSettings()` |
 | `ActionContext` | Set once on mount (immutable) |
 | `DeviceContext` | Set once on mount (immutable) |
 | `CanvasContext` | Set once on mount (immutable) |

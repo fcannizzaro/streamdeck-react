@@ -103,7 +103,7 @@ function useDoubleTap(
 
 ```ts
 interface DoubleTapOptions {
-  /** Max milliseconds between two key-up events. @default 300 */
+  /** Max milliseconds between two key-up events. @default 250 */
   timeout?: number;
 }
 ```
@@ -132,7 +132,7 @@ function BookmarkKey() {
 
 ### Default Timeout
 
-The default double-tap window is **300 ms**. Pass `{ timeout }` to override it.
+The default double-tap window is **250 ms**. Pass `{ timeout }` to override it.
 
 ## Combining useTap and useDoubleTap
 

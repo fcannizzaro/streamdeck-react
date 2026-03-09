@@ -37,7 +37,10 @@ interface PluginConfig {
   renderDebounceMs?: number;
   imageFormat?: 'png' | 'webp';
   caching?: boolean;
+  devicePixelRatio?: number;
   onActionError?: (uuid: string, actionId: string, error: Error) => void;
+  devtools?: boolean;
+  devtoolsPort?: number;
 }
 ```
 
@@ -73,6 +76,10 @@ Output image format. Default: `'png'`. Set to `'webp'` if you prefer WebP output
 
 Enable output hash caching to skip duplicate `setImage()` calls. Default: `true`.
 
+### `devicePixelRatio`
+
+Device pixel ratio used by the Takumi renderer. Default: `1`.
+
 ### `onActionError`
 
 Called when a component error is caught by the root error boundary:
@@ -85,6 +92,14 @@ const plugin = createPlugin({
   },
 });
 ```
+
+### `devtools`
+
+Enable the devtools WebSocket server. The browser devtools UI discovers it via port scanning. Default: `false`. See [DevTools](/guides/devtools).
+
+### `devtoolsPort`
+
+Port for the devtools WebSocket server. If omitted, a random port in the range **39400 -- 39499** is selected automatically.
 
 ## connect()
 

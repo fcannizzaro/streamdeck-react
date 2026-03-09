@@ -83,7 +83,6 @@ The samples show all three approaches:
 The sample projects use Rollup plus the helpers exported from `@fcannizzaro/streamdeck-react/rollup`:
 
 - `nativeAddon({ targets: [...] })` copies the Takumi native binaries you want to ship into your output directory.
-- `resolveLibraryPaths()` is no longer needed in app projects.
 - In watch mode, `nativeAddon()` can infer the current supported host target. For production builds, prefer explicit `targets`.
 
 This is the easiest way to match the working sample setup.
