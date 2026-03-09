@@ -25,7 +25,7 @@ export interface DevtoolsState {
 
   // Connection
   serverInfo: ServerInfoMessage | null;
-  /** True when HTTP probe reached a devtools server but WebSocket was blocked (e.g. by a browser extension). */
+  /** True when probe reached a devtools server but SSE was blocked (e.g. mixed content on HTTPS). */
   blocked: boolean;
 
   // Plugin discovery
@@ -149,6 +149,10 @@ export const useStore = create<DevtoolsState>((set, get) => ({
     // Auto-select if nothing selected
     const selectedPort = state.selectedPort ?? plugin.port;
     set({ plugins, selectedPort });
+    // Persist known ports for fast reconnect on reload
+    try {
+      sessionStorage.setItem("sdreact:ports", JSON.stringify(plugins.map((p) => p.port)));
+    } catch {}
   },
 
   removePlugin: (port) => {
@@ -165,6 +169,14 @@ export const useStore = create<DevtoolsState>((set, get) => ({
     } else {
       set({ plugins: remaining });
     }
+    // Update persisted ports
+    try {
+      if (remaining.length > 0) {
+        sessionStorage.setItem("sdreact:ports", JSON.stringify(remaining.map((p) => p.port)));
+      } else {
+        sessionStorage.removeItem("sdreact:ports");
+      }
+    } catch {}
   },
 
   selectPlugin: (port) => {
@@ -372,9 +384,6 @@ export const useStore = create<DevtoolsState>((set, get) => ({
         }
         break;
       }
-
-      case "pong":
-        break;
     }
   },
 

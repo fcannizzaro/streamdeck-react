@@ -1,16 +1,5 @@
 import type { SerializedVNode } from "../types";
 
-// ── Find a node's path in the tree ──────────────────────────────────
-
-export function findNodePath(tree: SerializedVNode, targetNid: number): number[] | null {
-  if (tree.nid === targetNid) return [tree.nid];
-  for (const child of tree.children) {
-    const path = findNodePath(child, targetNid);
-    if (path) return [tree.nid, ...path];
-  }
-  return null;
-}
-
 // ── Build a display label for a VNode ───────────────────────────────
 
 export function nodeLabel(node: SerializedVNode): string {

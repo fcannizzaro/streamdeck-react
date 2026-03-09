@@ -1,6 +1,6 @@
 // ── Protocol Message Types ───────────────────────────────────────────
-// Shared type definitions for the devtools WebSocket protocol.
-// Plugin runs a WS server; browser connects directly.
+// Shared type definitions for the devtools HTTP + SSE protocol.
+// Plugin runs an HTTP server; browser connects via SSE + fetch POST.
 
 // ── Serialized Value ────────────────────────────────────────────────
 
@@ -168,18 +168,10 @@ export interface HighlightRenderMessage extends BaseMessage {
   dataUri: string | null;
 }
 
-export interface PongMessage extends BaseMessage {
-  type: "pong";
-}
-
 // ── Client → Server Messages (Browser → Plugin Server) ──────────────
 
 export interface RequestSnapshotMessage extends BaseMessage {
   type: "request:snapshot";
-}
-
-export interface PingMessage extends BaseMessage {
-  type: "ping";
 }
 
 export interface HighlightActionMessage extends BaseMessage {
@@ -192,7 +184,7 @@ export interface HighlightActionMessage extends BaseMessage {
 
 // ── Union Types ─────────────────────────────────────────────────────
 
-/** Messages the plugin server sends to browser clients. */
+/** Messages the plugin server sends to browser clients (via SSE). */
 export type ServerMessage =
   | ServerInfoMessage
   | SnapshotMessage
@@ -204,8 +196,7 @@ export type ServerMessage =
   | TouchBarRenderMessage
   | EventBusMessage
   | LifecycleMessage
-  | HighlightRenderMessage
-  | PongMessage;
+  | HighlightRenderMessage;
 
-/** Messages browser clients send to the plugin server. */
-export type ClientMessage = RequestSnapshotMessage | PingMessage | HighlightActionMessage;
+/** Messages browser clients send to the plugin server (via POST /message). */
+export type ClientMessage = RequestSnapshotMessage | HighlightActionMessage;

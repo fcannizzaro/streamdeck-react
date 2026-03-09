@@ -1,4 +1,3 @@
-import type { WebSocket } from "ws";
 import type { ReactRoot } from "@/roots/root";
 import type { TouchBarRoot } from "@/roots/touchbar-root";
 import type { CanvasInfo, DeviceInfo } from "@/types";
@@ -122,15 +121,13 @@ export class DevtoolsBridge implements RegistryObserver {
     server.setOnMessage((msg) => {
       if (msg.type === "request:snapshot") {
         this.server.broadcast(this.buildSnapshot());
-      } else if (msg.type === "ping") {
-        this.server.broadcast({ type: "pong", ts: Date.now() });
       } else if (msg.type === "highlight:action") {
         this.handleHighlight(msg.actionId, msg.nodeId).catch(() => {});
       }
     });
 
     // Handle new client connection — send info + snapshot to that client
-    server.setOnConnect((ws: WebSocket) => {
+    server.setOnConnect((clientId: string) => {
       const info: ServerInfoMessage = {
         type: "server:info",
         ts: Date.now(),
@@ -138,8 +135,8 @@ export class DevtoolsBridge implements RegistryObserver {
         library: "@fcannizzaro/streamdeck-react",
         devtoolsName: this.devtoolsName,
       };
-      this.server.send(ws, info);
-      this.server.send(ws, this.buildSnapshot());
+      this.server.send(clientId, info);
+      this.server.send(clientId, this.buildSnapshot());
     });
   }
 

@@ -2,36 +2,52 @@ import { useEffect, useRef, useCallback } from "react";
 import { useStore } from "./useStore";
 import type { ServerMessage, ClientMessage } from "../types";
 
-// ── Port Scanning Hook ──────────────────────────────────────────────
+// ── Port Scanning Hook (SSE) ────────────────────────────────────────
 // Scans ports 39400-39499 to discover running devtools servers.
-// Probes are staggered to avoid overwhelming browser connection limits.
-// Dead connections are detected via ping/pong timeout and evicted at
-// the start of each scan so the port gets re-probed.
 //
-// Scanning is NOT continuous — one scan runs on mount, and subsequent
-// scans are triggered manually via the returned `scan` function.
+// Discovery uses lightweight `fetch("/health")` probes — much faster
+// than WebSocket and immune to browser per-host connection limits.
+//
+// Once a server is found, an EventSource (SSE) connection streams
+// server→client messages.  Client→server messages are sent via
+// `fetch POST /message`.
+//
+// When persisted ports exist (from sessionStorage), they are probed
+// ALONE first (Phase 1).  Only if none connect does the full port
+// scan run (Phase 2).  This avoids flooding the connection pool.
+//
+// An automatic re-scan runs every AUTOSCAN_INTERVAL_MS when there
+// are no active connections, to pick up plugins started after load.
 
 const PORT_MIN = 39400;
 const PORT_MAX = 39499;
-const PING_INTERVAL_MS = 10_000; // ping every 10s for fast dead-connection detection
-const PONG_TIMEOUT_MS = 15_000; // close connection if no pong in 15s
-const CONNECT_TIMEOUT_MS = 2000;
-const STAGGER_MS = 5; // ms between each probe
+const PROBE_TIMEOUT_MS = 2000;
+const STAGGER_MS = 5; // ms between each probe in full scan
+const AUTOSCAN_INTERVAL_MS = 60_000;
+
+/** Read last-known plugin ports from sessionStorage (survives reload). */
+function getPersistedPorts(): number[] {
+  try {
+    const raw = sessionStorage.getItem("sdreact:ports");
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
 
 export function useDevtoolsSocket(): {
   requestSnapshot: (port: number) => void;
   send: (port: number, msg: ClientMessage) => void;
   scan: () => void;
 } {
-  // Map of port → WebSocket for active connections
-  const connectionsRef = useRef<Map<number, WebSocket>>(new Map());
+  // Map of port → EventSource for active SSE connections
+  const connectionsRef = useRef<Map<number, EventSource>>(new Map());
   // Ports currently being probed (to avoid duplicate attempts)
   const probingRef = useRef<Set<number>>(new Set());
-  // Last pong timestamp per port — for dead-connection detection
-  const lastPongRef = useRef<Map<number, number>>(new Map());
   // Timers for cleanup
   const staggerTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
-  const pingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // AbortControllers for in-flight fetch probes
+  const abortControllersRef = useRef<Set<AbortController>>(new Set());
 
   const handleMessage = useStore((s) => s.handleMessage);
   const addPlugin = useStore((s) => s.addPlugin);
@@ -39,166 +55,192 @@ export function useDevtoolsSocket(): {
   const setScanning = useStore((s) => s.setScanning);
   const setBlocked = useStore((s) => s.setBlocked);
 
-  const handleMessageForPort = useCallback(
-    (port: number, msg: ServerMessage) => {
-      if (msg.type === "server:info") {
-        addPlugin({
-          port,
-          devtoolsName: msg.devtoolsName,
-          version: msg.version,
-          library: msg.library,
-          connectedAt: Date.now(),
-        });
-        return;
-      }
-      // Track pong for dead-connection detection
-      if (msg.type === "pong") {
-        lastPongRef.current.set(port, Date.now());
-        return;
-      }
-      handleMessage(port, msg);
-    },
-    [handleMessage, addPlugin],
-  );
+  // ── Stable refs for async callbacks ──────────────────────────
+  const handleMessageRef = useRef(handleMessage);
+  handleMessageRef.current = handleMessage;
 
+  const addPluginRef = useRef(addPlugin);
+  addPluginRef.current = addPlugin;
+
+  const removePluginRef = useRef(removePlugin);
+  removePluginRef.current = removePlugin;
+
+  // connectSSE — establishes an EventSource connection to a discovered server.
+  // Called after a successful /health probe.  Stable (no deps).
+  const connectSSE = useCallback((port: number) => {
+    if (connectionsRef.current.has(port)) return;
+
+    const es = new EventSource(`http://127.0.0.1:${port}/events`);
+
+    es.onmessage = (event) => {
+      try {
+        const msg = JSON.parse(event.data) as ServerMessage;
+        if (msg.type === "server:info") {
+          connectionsRef.current.set(port, es);
+          addPluginRef.current({
+            port,
+            devtoolsName: msg.devtoolsName,
+            version: msg.version,
+            library: msg.library,
+            connectedAt: Date.now(),
+          });
+          return;
+        }
+        handleMessageRef.current(port, msg);
+      } catch {
+        // Ignore malformed messages
+      }
+    };
+
+    es.onerror = () => {
+      // EventSource will auto-reconnect on transient errors.
+      // If the server is truly gone, readyState will be CLOSED.
+      if (es.readyState === EventSource.CLOSED) {
+        es.close();
+        const wasTracked = connectionsRef.current.get(port) === es;
+        if (wasTracked) {
+          connectionsRef.current.delete(port);
+          removePluginRef.current(port);
+        }
+      }
+    };
+  }, []);
+
+  // probePort — lightweight HTTP probe via fetch("/health").
+  // If the server responds, we establish an SSE connection.  Stable (no deps).
   const probePort = useCallback(
     (port: number) => {
-      // Skip if already connected or probing
-      if (connectionsRef.current.has(port) || probingRef.current.has(port)) {
-        return;
-      }
+      if (connectionsRef.current.has(port)) return;
+      if (probingRef.current.has(port)) return;
 
       probingRef.current.add(port);
 
-      const ws = new WebSocket(`ws://127.0.0.1:${port}`);
-      const timeout = setTimeout(() => {
-        probingRef.current.delete(port);
-        if (ws.readyState === WebSocket.CONNECTING) {
-          ws.close();
-        }
-      }, CONNECT_TIMEOUT_MS);
+      const controller = new AbortController();
+      abortControllersRef.current.add(controller);
+      const timeout = setTimeout(() => controller.abort(), PROBE_TIMEOUT_MS);
 
-      ws.onopen = () => {
-        clearTimeout(timeout);
-        probingRef.current.delete(port);
-        connectionsRef.current.set(port, ws);
-        lastPongRef.current.set(port, Date.now()); // assume alive on connect
-      };
-
-      ws.onmessage = (event) => {
-        try {
-          const msg = JSON.parse(event.data as string) as ServerMessage;
-          handleMessageForPort(port, msg);
-        } catch {
-          // Ignore malformed messages
-        }
-      };
-
-      ws.onclose = () => {
-        clearTimeout(timeout);
-        probingRef.current.delete(port);
-        lastPongRef.current.delete(port);
-        if (connectionsRef.current.get(port) === ws) {
-          connectionsRef.current.delete(port);
-          removePlugin(port);
-        }
-      };
-
-      ws.onerror = () => {
-        // onclose will fire after this
-      };
+      fetch(`http://127.0.0.1:${port}/health`, { signal: controller.signal })
+        .then((res) => {
+          clearTimeout(timeout);
+          abortControllersRef.current.delete(controller);
+          probingRef.current.delete(port);
+          if (res.ok) connectSSE(port);
+        })
+        .catch(() => {
+          clearTimeout(timeout);
+          abortControllersRef.current.delete(controller);
+          probingRef.current.delete(port);
+        });
     },
-    [handleMessageForPort, removePlugin],
+    [connectSSE],
   );
 
+  // scan — two-phase: persisted ports first, then full scan if needed.
+  // Stable because probePort is stable and zustand setters are stable.
   const scan = useCallback(() => {
     // ── Defensive cleanup ──────────────────────────────────────
-    // Evict dead/closing connections so their ports get re-probed.
-    // This handles cases where onclose hasn't fired yet (TCP timeout).
-    for (const [port, ws] of connectionsRef.current) {
-      if (ws.readyState !== WebSocket.OPEN) {
-        ws.close();
+    for (const [port, es] of connectionsRef.current) {
+      if (es.readyState === EventSource.CLOSED) {
+        es.close();
         connectionsRef.current.delete(port);
-        lastPongRef.current.delete(port);
-        removePlugin(port);
+        removePluginRef.current(port);
       }
     }
-    // Clear stale probing entries from previous scan cycle
     probingRef.current.clear();
 
-    // Cancel any in-progress staggered probes from previous scan
+    // Cancel any in-progress probes from previous scan
     for (const t of staggerTimersRef.current) clearTimeout(t);
     staggerTimersRef.current = [];
+    for (const c of abortControllersRef.current) {
+      try {
+        c.abort();
+      } catch {
+        /* ignore */
+      }
+    }
+    abortControllersRef.current.clear();
 
     setScanning(true);
 
-    // Stagger probes: 5ms apart → ~100 ports over 500ms, max ~4-5 in-flight
-    let delay = 0;
-    for (let port = PORT_MIN; port <= PORT_MAX; port++) {
-      const t = setTimeout(() => probePort(port), delay);
-      staggerTimersRef.current.push(t);
-      delay += STAGGER_MS;
+    const priorityPorts = getPersistedPorts().filter((p) => p >= PORT_MIN && p <= PORT_MAX);
+
+    if (priorityPorts.length > 0) {
+      // ── Phase 1: probe persisted ports ONLY ──────────────────
+      for (const port of priorityPorts) {
+        probePort(port);
+      }
+
+      // Wait for priority probes to resolve, then decide
+      const phase1Timer = setTimeout(() => {
+        if (connectionsRef.current.size > 0) {
+          setScanning(false);
+          return;
+        }
+        startFullScan();
+      }, PROBE_TIMEOUT_MS + 200);
+      staggerTimersRef.current.push(phase1Timer);
+    } else {
+      startFullScan();
     }
 
-    // Scanning done after last probe + its timeout
-    const totalMs = delay + CONNECT_TIMEOUT_MS + 100;
-    const doneTimer = setTimeout(() => {
-      setScanning(false);
-      // On HTTPS, local connections are likely blocked by browser extensions.
-      // We can't probe (extensions block fetch too), so flag based on protocol.
-      if (connectionsRef.current.size === 0 && location.protocol === "https:") {
-        setBlocked(true);
+    function startFullScan() {
+      let delay = 0;
+      for (let port = PORT_MIN; port <= PORT_MAX; port++) {
+        const t = setTimeout(() => probePort(port), delay);
+        staggerTimersRef.current.push(t);
+        delay += STAGGER_MS;
       }
-    }, totalMs);
-    staggerTimersRef.current.push(doneTimer);
-  }, [probePort, setScanning, removePlugin, setBlocked]);
+
+      const totalMs = delay + PROBE_TIMEOUT_MS + 100;
+      const doneTimer = setTimeout(() => {
+        setScanning(false);
+        if (connectionsRef.current.size === 0 && location.protocol === "https:") {
+          setBlocked(true);
+        }
+      }, totalMs);
+      staggerTimersRef.current.push(doneTimer);
+    }
+  }, [probePort, setScanning, setBlocked]);
 
   useEffect(() => {
     // Initial scan on mount
     scan();
 
-    // Periodic ping + dead-connection detection
-    pingTimerRef.current = setInterval(() => {
-      const now = Date.now();
-      const pingJson = JSON.stringify({ type: "ping", ts: now });
-      for (const [port, ws] of connectionsRef.current) {
-        if (ws.readyState === WebSocket.OPEN) {
-          ws.send(pingJson);
-          // If we haven't received a pong in PONG_TIMEOUT_MS, the connection is dead
-          const lastPong = lastPongRef.current.get(port) ?? 0;
-          if (lastPong > 0 && now - lastPong > PONG_TIMEOUT_MS) {
-            ws.close(); // triggers onclose → cleanup → re-probe on next scan
-          }
-        }
+    // Auto-rescan every 60s when no connections are active
+    const autoscanTimer = setInterval(() => {
+      if (connectionsRef.current.size === 0) {
+        scan();
       }
-    }, PING_INTERVAL_MS);
+    }, AUTOSCAN_INTERVAL_MS);
 
     return () => {
-      if (pingTimerRef.current) clearInterval(pingTimerRef.current);
+      clearInterval(autoscanTimer);
       for (const t of staggerTimersRef.current) clearTimeout(t);
       staggerTimersRef.current = [];
-      // Close all connections
-      for (const ws of connectionsRef.current.values()) {
-        ws.close();
+      for (const c of abortControllersRef.current) {
+        try {
+          c.abort();
+        } catch {
+          /* ignore */
+        }
+      }
+      abortControllersRef.current.clear();
+      for (const es of connectionsRef.current.values()) {
+        es.close();
       }
       connectionsRef.current.clear();
       probingRef.current.clear();
-      lastPongRef.current.clear();
     };
   }, [scan]);
 
   const requestSnapshot = useCallback((port: number) => {
-    const ws = connectionsRef.current.get(port);
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: "request:snapshot", ts: Date.now() }));
-    }
+    const d = encodeURIComponent(JSON.stringify({ type: "request:snapshot", ts: Date.now() }));
+    fetch(`http://127.0.0.1:${port}/message?d=${d}`, { mode: "no-cors" }).catch(() => {});
   }, []);
 
   const send = useCallback((port: number, msg: ClientMessage) => {
-    const ws = connectionsRef.current.get(port);
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify(msg));
-    }
+    const d = encodeURIComponent(JSON.stringify(msg));
+    fetch(`http://127.0.0.1:${port}/message?d=${d}`, { mode: "no-cors" }).catch(() => {});
   }, []);
 
   // Sync hover state → highlight:action messages to plugin

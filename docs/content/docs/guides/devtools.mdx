@@ -7,7 +7,7 @@ description: A browser-based inspector for debugging Stream Deck plugins built w
 
 ## Opening the DevTools
 
-The devtools are a browser-based inspector that connects to your running plugin over WebSocket. You can use either the hosted version or run a local copy.
+The devtools are a browser-based inspector that connects to your running plugin over HTTP + SSE (Server-Sent Events). You can use either the hosted version or run a local copy.
 
 ### Hosted Version
 
@@ -76,7 +76,7 @@ const plugin = createPlugin({
 
 ## How It Works
 
-1. When `devtools: true` is set, the plugin starts a **WebSocket server** on `localhost` (port range 39400 -- 39499).
+1. When `devtools: true` is set, the plugin starts an **HTTP server** on `localhost` (port range 39400 -- 39499).
 2. The browser UI **auto-discovers** running plugins by scanning that port range.
 3. Once connected, the devtools receive real-time updates: renders, console output, network requests, events, and the component tree.
 4. All devtools code is **automatically stripped from production builds** -- there is zero overhead in release bundles.
@@ -98,4 +98,4 @@ The devtools UI provides five panels for inspecting different aspects of your pl
 - **Element highlighting** -- hover over a node in the Elements tree and the corresponding area is highlighted with a cyan overlay directly on the Stream Deck hardware.
 - **Multi-plugin support** -- if multiple plugins are running with devtools enabled, the UI discovers all of them and lets you switch between them.
 - **History and filters** -- console, network, and event panels keep a scrollable history with text search and level filters.
-- **Automatic production stripping** -- the devtools server, WebSocket dependency, and all instrumentation hooks are removed from the bundle when building for production (`NODE_ENV=production`).
+- **Automatic production stripping** -- the devtools server and all instrumentation hooks are removed from the bundle when building for production (`NODE_ENV=production`).

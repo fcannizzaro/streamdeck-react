@@ -12,6 +12,7 @@ const plugin = createPlugin({
       style: "normal",
     },
   ],
+  devtools: true,
   actions: [pokemonAction],
   wrapper: QueryWrapper,
 });

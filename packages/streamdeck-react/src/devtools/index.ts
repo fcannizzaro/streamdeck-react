@@ -7,8 +7,8 @@ import { patchConsole } from "./intercepts/console";
 import { patchFetch } from "./intercepts/fetch";
 
 // ── Start DevTools Server ──────────────────────────────────────────────
-// Called from plugin.ts when devtools: true. Creates a WebSocket server
-// using the `ws` package (static import, externalized by Vite build).
+// Called from plugin.ts when devtools: true. Creates an HTTP + SSE server
+// using Node.js built-in `http` module.
 
 const DEFAULT_PORT = 39400;
 
