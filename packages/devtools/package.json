@@ -1,6 +1,6 @@
 {
   "name": "@fcannizzaro/streamdeck-react-devtools",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "DevTools UI for @fcannizzaro/streamdeck-react — inspect actions, events, renders, console and network",
   "type": "module",
   "bin": {

@@ -1,7 +1,6 @@
 {
   "name": "sample-zustand",
   "private": true,
-  "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "bunx --bun rollup -c -w --watch.onEnd=\"streamdeck restart com.example.react-zustand\"",
