@@ -1,5 +1,5 @@
 import { createPlugin } from "@fcannizzaro/streamdeck-react";
-import { snakeTouchbarAction } from "./actions/snake";
+import { snakeAction } from "./actions/snake";
 import InterRegular from "@fontsource-variable/inter/files/inter-latin-wght-normal.woff2";
 
 const plugin = createPlugin({
@@ -11,7 +11,8 @@ const plugin = createPlugin({
       style: "normal",
     },
   ],
-  actions: [snakeTouchbarAction],
+  devtools: true,
+  actions: [snakeAction],
 });
 
 await plugin.connect();

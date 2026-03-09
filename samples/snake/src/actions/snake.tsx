@@ -450,7 +450,7 @@ function SnakeTouchBar() {
 // ── Action Definition ───────────────────────────────────────────────
 // One action placed in all encoder slots — all share the same touchbar.
 
-export const snakeTouchbarAction = defineAction({
+export const snakeAction = defineAction({
   uuid: "com.example.snake.touchbar",
   touchBar: SnakeTouchBar,
   touchBarFPS: 30,

@@ -1,52 +1,78 @@
-import { useState, useEffect, useCallback, useRef, type ReactNode } from "react";
-import * as ContextMenu from "@radix-ui/react-context-menu";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import ReactGridLayout, { useContainerWidth, verticalCompactor } from "react-grid-layout";
+import "react-grid-layout/css/styles.css";
 import { useDevtoolsSocket } from "./hooks/useDevtoolsSocket";
 import { useStore } from "./hooks/useStore";
+import { useLayoutStore, getActivePanelIds, type TabId } from "./hooks/useLayoutStore";
 import { ConnectionStatus } from "./components/ConnectionStatus";
 import { PluginSelector } from "./components/PluginSelector";
-import { ResizablePanels, type LayoutDirection } from "./components/ResizablePanels";
-import { ConsolePanel } from "./panels/ConsolePanel";
-import { NetworkPanel } from "./panels/NetworkPanel";
-import { ElementsPanel } from "./panels/ElementsPanel";
-import { PreviewPanel } from "./panels/PreviewPanel";
-import { EventsPanel } from "./panels/EventsPanel";
+import { GridPanel } from "./components/GridPanel";
+import type { Layout } from "react-grid-layout";
 
 // ── Tab Definitions ─────────────────────────────────────────────────
 
-const TABS = [
+const TABS: readonly { id: TabId; label: string; shortcut: string }[] = [
   { id: "console", label: "Console", shortcut: "1" },
   { id: "network", label: "Network", shortcut: "2" },
   { id: "elements", label: "Elements", shortcut: "3" },
   { id: "preview", label: "Preview", shortcut: "4" },
   { id: "events", label: "Events", shortcut: "5" },
-] as const;
+];
 
-type TabId = (typeof TABS)[number]["id"];
+// ── Grid constants ──────────────────────────────────────────────────
 
-const PANEL_COMPONENTS: Record<TabId, () => ReactNode> = {
-  console: () => <ConsolePanel />,
-  network: () => <NetworkPanel />,
-  elements: () => <ElementsPanel />,
-  preview: () => <PreviewPanel />,
-  events: () => <EventsPanel />,
-};
-
-// ── Context menu item class ─────────────────────────────────────────
-
-const CTX_ITEM =
-  "text-xs text-neutral-200 rounded px-2 py-1.5 cursor-pointer outline-none data-[highlighted]:bg-neutral-700 data-[disabled]:text-neutral-600 data-[disabled]:cursor-default flex items-center gap-2";
+const GRID_COLS = 12;
+const GRID_ROWS = 12;
+const GRID_GAP: [number, number] = [4, 4];
 
 // ── App ─────────────────────────────────────────────────────────────
 
 export function App() {
-  const [activeTabs, setActiveTabs] = useState<Set<TabId>>(() => new Set(["preview"]));
-  const [layoutDirection, setLayoutDirection] = useState<LayoutDirection>("horizontal");
-  const [tabOrder, setTabOrder] = useState<TabId[]>(() => TABS.map((t) => t.id));
-  const draggedTab = useRef<TabId | null>(null);
   const plugins = useStore((s) => s.plugins);
   const selectedPort = useStore((s) => s.selectedPort);
   const scanning = useStore((s) => s.scanning);
   const storeSelectPlugin = useStore((s) => s.selectPlugin);
+
+  const layout = useLayoutStore((s) => s.layout);
+  const addPanel = useLayoutStore((s) => s.addPanel);
+  const togglePanel = useLayoutStore((s) => s.togglePanel);
+  const updateLayout = useLayoutStore((s) => s.updateLayout);
+
+  // RGL width measurement
+  const { width, containerRef, mounted } = useContainerWidth();
+
+  // Track container height for dynamic rowHeight
+  const [containerHeight, setContainerHeight] = useState(600);
+  const heightObserverRef = useRef<ResizeObserver | null>(null);
+
+  // Observe container height changes
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setContainerHeight(entry.contentRect.height);
+      }
+    });
+    observer.observe(el);
+    heightObserverRef.current = observer;
+
+    return () => {
+      observer.disconnect();
+      heightObserverRef.current = null;
+    };
+  }, [containerRef]);
+
+  // Dynamic row height: fill available vertical space
+  const rowHeight = Math.max(1, (containerHeight - (GRID_ROWS - 1) * GRID_GAP[1]) / GRID_ROWS);
+
+  // Derive active/inactive panels from layout
+  const activePanelIds = useMemo(() => getActivePanelIds(layout), [layout]);
+  const inactiveTabs = useMemo(
+    () => TABS.filter((tab) => !activePanelIds.has(tab.id)),
+    [activePanelIds],
+  );
 
   // Start port scanning (once on mount + manual via scan())
   const { requestSnapshot, scan } = useDevtoolsSocket();
@@ -56,28 +82,6 @@ export function App() {
     requestSnapshot(port);
   };
 
-  const toggleTab = useCallback((id: TabId) => {
-    setActiveTabs((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        // Don't remove the last panel
-        if (next.size > 1) next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  }, []);
-
-  const activateTab = useCallback((id: TabId) => {
-    setActiveTabs((prev) => {
-      if (prev.has(id)) return prev;
-      const next = new Set(prev);
-      next.add(id);
-      return next;
-    });
-  }, []);
-
   // Keyboard shortcuts: Ctrl+1-5 toggles panels, Ctrl+K clears
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -85,68 +89,27 @@ export function App() {
         const tab = TABS.find((t) => t.shortcut === e.key);
         if (tab) {
           e.preventDefault();
-          toggleTab(tab.id);
+          togglePanel(tab.id);
         }
         if (e.key === "k") {
           e.preventDefault();
           const store = useStore.getState();
-          if (activeTabs.has("console")) store.clearConsole();
-          if (activeTabs.has("network")) store.clearNetwork();
-          if (activeTabs.has("events")) store.clearEvents();
+          if (activePanelIds.has("console")) store.clearConsole();
+          if (activePanelIds.has("network")) store.clearNetwork();
+          if (activePanelIds.has("events")) store.clearEvents();
         }
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [activeTabs, toggleTab]);
+  }, [activePanelIds, togglePanel]);
 
-  const isHorizontal = layoutDirection === "horizontal";
-
-  // Build ordered list of active panels (respects user-defined tab order)
-  const activePanels = tabOrder
-    .filter((id) => activeTabs.has(id))
-    .map((id) => ({
-      id,
-      content: PANEL_COMPONENTS[id](),
-    }));
-
-  const handleLayoutSelect = useCallback(
-    (tabId: TabId, dir: LayoutDirection) => {
-      activateTab(tabId);
-      setLayoutDirection(dir);
+  const handleLayoutChange = useCallback(
+    (newLayout: Layout) => {
+      updateLayout([...newLayout]);
     },
-    [activateTab],
+    [updateLayout],
   );
-
-  // ── Drag-and-drop reordering ────────────────────────────────────
-  const handleDragStart = useCallback((tabId: TabId) => {
-    draggedTab.current = tabId;
-  }, []);
-
-  const handleDragOver = useCallback((e: React.DragEvent, targetId: TabId) => {
-    e.preventDefault();
-    const src = draggedTab.current;
-    if (!src || src === targetId) return;
-    setTabOrder((prev) => {
-      const next = [...prev];
-      const srcIdx = next.indexOf(src);
-      const tgtIdx = next.indexOf(targetId);
-      if (srcIdx === -1 || tgtIdx === -1) return prev;
-      next.splice(srcIdx, 1);
-      next.splice(tgtIdx, 0, src);
-      return next;
-    });
-  }, []);
-
-  const handleDragEnd = useCallback(() => {
-    draggedTab.current = null;
-  }, []);
-
-  // Map tab ids to their definitions for ordered rendering
-  const tabsById = Object.fromEntries(TABS.map((t) => [t.id, t])) as Record<
-    TabId,
-    (typeof TABS)[number]
-  >;
 
   return (
     <div className="flex flex-col h-screen bg-neutral-900 text-neutral-100">
@@ -185,114 +148,59 @@ export function App() {
         </div>
       </div>
 
-      {/* Tab bar — left-click to toggle, right-click for layout direction, drag to reorder */}
-      <div className="flex border-b border-neutral-800 bg-neutral-900 shrink-0">
-        {tabOrder.map((tabId) => {
-          const tab = tabsById[tabId];
-          const isActive = activeTabs.has(tab.id);
-          return (
-            <ContextMenu.Root key={tab.id}>
-              <ContextMenu.Trigger asChild>
-                <button
-                  draggable
-                  onDragStart={() => handleDragStart(tab.id)}
-                  onDragOver={(e) => handleDragOver(e, tab.id)}
-                  onDragEnd={handleDragEnd}
-                  onClick={() => toggleTab(tab.id)}
-                  className={`px-4 py-2 text-xs transition-colors cursor-pointer ${
-                    isActive
-                      ? "text-blue-400 border-b-2 border-blue-400 bg-neutral-800/30"
-                      : "text-neutral-500 hover:text-neutral-300 border-b-2 border-transparent"
-                  }`}
-                >
-                  {tab.label}
-                  <span className="ml-1 text-[10px] text-neutral-600">{tab.shortcut}</span>
-                </button>
-              </ContextMenu.Trigger>
-              <ContextMenu.Portal>
-                <ContextMenu.Content className="min-w-[160px] bg-neutral-800 border border-neutral-700 rounded-md p-1 shadow-lg shadow-black/40">
-                  <ContextMenu.Item
-                    disabled={isActive && isHorizontal}
-                    onSelect={() => handleLayoutSelect(tab.id, "horizontal")}
-                    className={CTX_ITEM}
-                  >
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 14 14"
-                      fill="none"
-                      className="shrink-0"
-                    >
-                      <rect
-                        x="1"
-                        y="2"
-                        width="5"
-                        height="10"
-                        rx="1"
-                        stroke="currentColor"
-                        strokeWidth="1.2"
-                      />
-                      <rect
-                        x="8"
-                        y="2"
-                        width="5"
-                        height="10"
-                        rx="1"
-                        stroke="currentColor"
-                        strokeWidth="1.2"
-                      />
-                    </svg>
-                    Horizontal
-                  </ContextMenu.Item>
-                  <ContextMenu.Item
-                    disabled={isActive && !isHorizontal}
-                    onSelect={() => handleLayoutSelect(tab.id, "vertical")}
-                    className={CTX_ITEM}
-                  >
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 14 14"
-                      fill="none"
-                      className="shrink-0"
-                    >
-                      <rect
-                        x="2"
-                        y="1"
-                        width="10"
-                        height="5"
-                        rx="1"
-                        stroke="currentColor"
-                        strokeWidth="1.2"
-                      />
-                      <rect
-                        x="2"
-                        y="8"
-                        width="10"
-                        height="5"
-                        rx="1"
-                        stroke="currentColor"
-                        strokeWidth="1.2"
-                      />
-                    </svg>
-                    Vertical
-                  </ContextMenu.Item>
-                </ContextMenu.Content>
-              </ContextMenu.Portal>
-            </ContextMenu.Root>
-          );
-        })}
-      </div>
+      {/* Tab bar — only show inactive panels; hide when all are active */}
+      {inactiveTabs.length > 0 && (
+        <div className="flex border-b border-neutral-800 bg-neutral-900 shrink-0">
+          {inactiveTabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => addPanel(tab.id)}
+              className="px-4 py-2 text-xs text-neutral-500 hover:text-neutral-300 border-b-2 border-transparent transition-colors cursor-pointer"
+            >
+              {tab.label}
+              <span className="ml-1 text-[10px] text-neutral-600">{tab.shortcut}</span>
+            </button>
+          ))}
+        </div>
+      )}
 
-      {/* Panels */}
-      <div className="flex-1 min-h-0 overflow-hidden">
+      {/* Grid panels */}
+      <div ref={containerRef} className="flex-1 min-h-0 overflow-auto">
         {plugins.length === 0 ? (
           <div className="flex items-center justify-center h-full text-neutral-500 text-sm">
             {scanning ? "Scanning for plugins..." : "No plugins found"}
           </div>
-        ) : (
-          <ResizablePanels panels={activePanels} direction={layoutDirection} />
-        )}
+        ) : mounted && layout.length > 0 ? (
+          <ReactGridLayout
+            width={width}
+            layout={layout}
+            gridConfig={{
+              cols: GRID_COLS,
+              rowHeight,
+              margin: GRID_GAP,
+              containerPadding: [0, 0],
+            }}
+            dragConfig={{
+              enabled: true,
+              handle: ".panel-drag-handle",
+            }}
+            resizeConfig={{
+              enabled: true,
+              handles: ["se", "sw", "e", "s", "w"],
+            }}
+            compactor={verticalCompactor}
+            autoSize
+            onLayoutChange={handleLayoutChange}
+          >
+            {layout.map((item) => (
+              <GridPanel key={item.i} panelId={item.i as TabId} />
+            ))}
+          </ReactGridLayout>
+        ) : layout.length === 0 ? (
+          <div className="flex items-center justify-center h-full text-neutral-500 text-sm">
+            Click a tab to open a panel
+          </div>
+        ) : null}
       </div>
     </div>
   );

@@ -1,7 +1,8 @@
-import { useMemo, useRef, useEffect } from "react";
+import { useMemo, useRef, useEffect, useState, useCallback } from "react";
 import { useStore } from "../hooks/useStore";
 import { Toolbar, ToggleButton } from "../components/Toolbar";
 import { ConsoleArgs } from "../components/ValueRenderer";
+import type { SerializedValue, ConsoleMessage } from "../types";
 
 // ── Console Panel ───────────────────────────────────────────────────
 
@@ -88,18 +89,65 @@ export function ConsolePanel() {
   );
 }
 
+// ── Stringify SerializedValue for clipboard ─────────────────────────
+
+function stringifyValue(value: SerializedValue): string {
+  switch (value.t) {
+    case "s":
+      return value.v;
+    case "n":
+      return String(value.v);
+    case "b":
+      return String(value.v);
+    case "null":
+      return "null";
+    case "undef":
+      return "undefined";
+    case "fn":
+      return `f ${value.name}()`;
+    case "sym":
+      return `Symbol(${value.v})`;
+    case "bigint":
+      return `${value.v}n`;
+    case "buf":
+      return `Buffer(${value.byteLength})`;
+    case "trunc":
+      return `[${value.hint}]`;
+    case "err":
+      return value.stack ?? `${value.name}: ${value.message}`;
+    case "arr":
+      return `[${value.v.map(stringifyValue).join(", ")}]`;
+    case "obj":
+      if (value.circular) return "[Circular]";
+      return `{${Object.entries(value.v).map(([k, v]) => `${k}: ${stringifyValue(v)}`).join(", ")}}`;
+  }
+}
+
+function stringifyArgs(args: SerializedValue[]): string {
+  return args.map(stringifyValue).join(" ");
+}
+
 // ── Log Row ─────────────────────────────────────────────────────────
 
-function LogRow({ log }: { log: import("../types").ConsoleMessage }) {
+function LogRow({ log }: { log: ConsoleMessage }) {
+  const [copied, setCopied] = useState(false);
   const colors = LEVEL_COLORS[log.level] ?? LEVEL_COLORS.log;
   const time = new Date(log.ts);
   const ts = `${time.getHours().toString().padStart(2, "0")}:${time.getMinutes().toString().padStart(2, "0")}:${time.getSeconds().toString().padStart(2, "0")}.${time.getMilliseconds().toString().padStart(3, "0")}`;
 
+  const handleCopy = useCallback(() => {
+    const text = stringifyArgs(log.args);
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  }, [log.args]);
+
   return (
     <div
-      className={`flex items-start gap-2 px-3 py-1 border-b border-neutral-800/50 hover:bg-neutral-800/50 ${colors.row}`}
+      className={`group flex items-start gap-2 px-3 py-1 border-b border-neutral-800/50 hover:bg-neutral-800/50 ${colors.row}`}
     >
-      <span className="text-neutral-600 shrink-0 w-20 select-none">{ts}</span>
+      <span className="text-neutral-600 shrink-0 w-20 mr-2 select-none">{ts}</span>
       <span
         className={`shrink-0 text-[10px] px-1.5 py-0.5 rounded w-12 text-center ${colors.badge}`}
       >
@@ -108,6 +156,22 @@ function LogRow({ log }: { log: import("../types").ConsoleMessage }) {
       <div className="flex-1 min-w-0 break-words">
         <ConsoleArgs args={log.args} />
       </div>
+      <button
+        onClick={handleCopy}
+        title="Copy to clipboard"
+        className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-neutral-600 hover:text-neutral-300 cursor-pointer p-0.5"
+      >
+        {copied ? (
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path d="M3 7.5l2.5 2.5L11 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        ) : (
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <rect x="4.5" y="4.5" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="1.2" />
+            <path d="M9.5 4.5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v5.5a1 1 0 0 0 1 1h1.5" stroke="currentColor" strokeWidth="1.2" />
+          </svg>
+        )}
+      </button>
     </div>
   );
 }

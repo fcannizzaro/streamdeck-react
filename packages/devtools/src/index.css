@@ -16,3 +16,27 @@ body {
   margin: 0;
   min-height: 100vh;
 }
+
+/* ── react-grid-layout overrides ─────────────────────────────────── */
+
+.react-grid-layout {
+  height: 100% !important;
+}
+
+.react-grid-item.react-grid-placeholder {
+  background: #3b82f6;
+  opacity: 0.15;
+  border-radius: 4px;
+}
+
+.react-resizable-handle {
+  background: none;
+}
+
+.react-resizable-handle::after {
+  border-color: #525252 !important;
+}
+
+.react-resizable-handle:hover::after {
+  border-color: #3b82f6 !important;
+}
