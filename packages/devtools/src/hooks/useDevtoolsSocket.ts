@@ -69,7 +69,7 @@ export function useDevtoolsSocket(): {
 
       probingRef.current.add(port);
 
-      const ws = new WebSocket(`ws://localhost:${port}`);
+      const ws = new WebSocket(`ws://127.0.0.1:${port}`);
       const timeout = setTimeout(() => {
         probingRef.current.delete(port);
         if (ws.readyState === WebSocket.CONNECTING) {
