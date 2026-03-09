@@ -157,7 +157,7 @@ function useDoubleTap(
 ): void;
 
 interface DoubleTapOptions {
-  /** Max milliseconds between two key-up events. @default 300 */
+  /** Max milliseconds between two key-up events. @default 250 */
   timeout?: number;
 }
 ```

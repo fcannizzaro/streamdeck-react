@@ -27,7 +27,10 @@ interface PluginConfig {
   renderDebounceMs?: number;   // Default: 16 (~60fps ceiling)
   imageFormat?: 'png' | 'webp'; // Default: 'png'
   caching?: boolean;            // Default: true
+  devicePixelRatio?: number;    // Default: 1
   onActionError?: (uuid: string, actionId: string, error: Error) => void;
+  devtools?: boolean;           // Default: false
+  devtoolsPort?: number;        // Default: random in 39400-39499
 }
 ```
 
@@ -39,7 +42,10 @@ interface PluginConfig {
 | `renderDebounceMs` | No | Coalesces renders. Increase for dial-heavy UIs. |
 | `imageFormat` | No | Output format. PNG is default and most compatible. |
 | `caching` | No | FNV-1a hash caching to skip duplicate `setImage()` calls. |
+| `devicePixelRatio` | No | Device pixel ratio used by the Takumi renderer. Default: `1`. |
 | `onActionError` | No | Called when a component throws in any action root. |
+| `devtools` | No | Enable the devtools WebSocket server. Default: `false`. |
+| `devtoolsPort` | No | Port for the devtools WebSocket server. Default: random in 39400-39499. |
 
 ### Plugin-Level Wrapper
 
@@ -83,6 +89,8 @@ interface ActionConfig<S extends JsonObject = JsonObject> {
   key?: ComponentType;
   dial?: ComponentType;
   touch?: ComponentType;
+  touchBar?: ComponentType;
+  touchBarFPS?: number;
   dialLayout?: EncoderLayout;
   wrapper?: WrapperComponent;
   defaultSettings?: Partial<S>;
@@ -95,6 +103,8 @@ interface ActionConfig<S extends JsonObject = JsonObject> {
 | `key` | No | Component for key (Keypad controller). |
 | `dial` | No | Component for encoder display (Stream Deck+). Falls back to `key` if not provided. |
 | `touch` | No | Reserved in the current action shape; prefer `useTouchTap()` for touch interaction guidance in user projects. |
+| `touchBar` | No | Full-strip touchbar component. Replaces per-encoder `dial` with a single shared React tree spanning the entire touch strip. |
+| `touchBarFPS` | No | Target FPS for the touchbar animation loop and render pipeline. Default: `60`. |
 | `dialLayout` | No | Encoder feedback layout. Defaults to a full-width canvas `pixmap` layout keyed as `canvas`. |
 | `wrapper` | No | Component that wraps this action's root (nested inside plugin wrapper). |
 | `defaultSettings` | No | Default settings shallow-merged with stored settings. |
@@ -186,17 +196,16 @@ Critical rules for the manifest:
 Every action root is automatically wrapped:
 
 ```
-SettingsProvider
-  GlobalSettingsProvider
-    ActionProvider
-      DeviceProvider
-        CanvasProvider
-          EventBusProvider
-            StreamDeckProvider
+ActionProvider
+  DeviceProvider
+    CanvasProvider
+      EventBusProvider
+        StreamDeckProvider
+          GlobalSettingsProvider
+            SettingsProvider
               PluginWrapper (if set)
                 ActionWrapper (if set)
-                  RootWrapper (sized to canvas)
-                    <YourComponent />
+                  <YourComponent />
 ```
 
 All context values except settings are set once on mount and are immutable.

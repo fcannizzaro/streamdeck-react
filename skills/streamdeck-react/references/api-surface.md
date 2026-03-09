@@ -27,7 +27,7 @@ Complete public API exported from `@fcannizzaro/streamdeck-react`.
 |--------|-----------|-------------|
 | `useTap` | `(cb: (payload: KeyUpPayload) => void, options?: TapOptions) => void` | Single tap. Auto-delayed when `useDoubleTap` is active on the same action. |
 | `useLongPress` | `(cb: (payload: KeyDownPayload) => void, options?: LongPressOptions) => void` | Fires when key is held for `timeout` ms (default 500). |
-| `useDoubleTap` | `(cb: (payload: KeyUpPayload) => void, options?: DoubleTapOptions) => void` | Fires on two rapid taps within `timeout` ms (default 300). |
+| `useDoubleTap` | `(cb: (payload: KeyUpPayload) => void, options?: DoubleTapOptions) => void` | Fires on two rapid taps within `timeout` ms (default 250). |
 
 ## Settings Hooks
 

@@ -313,13 +313,15 @@ For production builds, pass explicit `targets`. In watch mode, `nativeAddon()` c
 
 > **Critical**: The `UUID` in each manifest action must exactly match the `uuid` passed to `defineAction()`.
 
-### Step 5: Build and Install
+### Step 5: Dev
 
 ```bash
-npx rollup -c
+npx rollup -c -w
 ```
 
 Install the `.sdPlugin` folder in the Stream Deck app.
+
+If your `package.json` has a `dev` script configured, you can also just run `bun dev` (or `npm run dev` / `pnpm dev`).
 
 ## Hook Quick Reference
 
@@ -331,7 +333,7 @@ Install the `.sdPlugin` folder in the Stream Deck app.
 | Events | `useDialHint` | Set encoder trigger descriptions |
 | Gestures | `useTap` | Single tap (auto-delayed when useDoubleTap is active) |
 | Gestures | `useLongPress` | Key held for configurable duration (default 500ms) |
-| Gestures | `useDoubleTap` | Two rapid taps within configurable window (default 300ms) |
+| Gestures | `useDoubleTap` | Two rapid taps within configurable window (default 250ms) |
 | Settings | `useSettings`, `useGlobalSettings` | Bidirectional settings sync |
 | Lifecycle | `useWillAppear`, `useWillDisappear` | Action mount/unmount |
 | Context | `useDevice`, `useAction`, `useCanvas` | Device/action/canvas metadata |

@@ -185,7 +185,6 @@ The order of Rollup plugins matters:
 - **`external`** -- Node.js builtins must be externalized (they're available in the runtime).
 - **`target: 'node20'`** -- matches the Stream Deck plugin runtime.
 - **`jsx: 'automatic'`** -- uses the React JSX transform (no manual `import React`).
-- **No `resolveLibraryPaths()`** -- user projects do not need it anymore.
 
 ## Watch Mode (Development)
 
