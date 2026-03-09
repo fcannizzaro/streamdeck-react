@@ -1,8 +1,4 @@
-import {
-  createElement,
-  type ComponentType,
-  type ReactElement,
-} from "react";
+import { createElement, type ComponentType, type ReactElement } from "react";
 import { reconciler } from "@/reconciler/renderer";
 import { createVContainer, type VContainer } from "@/reconciler/vnode";
 import { renderToRaw, sliceToDataUri, type RenderConfig } from "@/render/pipeline";
@@ -14,12 +10,7 @@ import {
   type GlobalSettingsContextValue,
 } from "@/context/providers";
 import { TouchBarContext } from "@/context/touchbar-context";
-import type {
-  DeviceInfo,
-  EncoderLayout,
-  TouchBarInfo,
-  WrapperComponent,
-} from "@/types";
+import type { DeviceInfo, EncoderLayout, TouchBarInfo, WrapperComponent } from "@/types";
 import type { DialAction } from "@elgato/streamdeck";
 import type { JsonObject } from "@elgato/utils";
 
@@ -108,9 +99,8 @@ export class TouchBarRoot {
     this.fps = touchBarFPS ?? DEFAULT_TOUCHBAR_FPS;
     // When touchBarFPS is explicitly set, derive debounce from it;
     // otherwise fall back to the global renderDebounceMs.
-    this.renderDebounceMs = touchBarFPS != null
-      ? Math.max(1, Math.round(1000 / touchBarFPS))
-      : renderDebounceMs;
+    this.renderDebounceMs =
+      touchBarFPS != null ? Math.max(1, Math.round(1000 / touchBarFPS)) : renderDebounceMs;
     this.pluginWrapper = pluginWrapper;
 
     // Global settings mutator
@@ -207,9 +197,7 @@ export class TouchBarRoot {
 
   private updateTouchBarInfo(): void {
     const sortedColumns = [...this.columns.keys()].sort((a, b) => a - b);
-    const maxCol = sortedColumns.length > 0
-      ? sortedColumns[sortedColumns.length - 1]! + 1
-      : 0;
+    const maxCol = sortedColumns.length > 0 ? sortedColumns[sortedColumns.length - 1]! + 1 : 0;
 
     this.touchBarValue = {
       width: maxCol * SEGMENT_WIDTH,
@@ -245,11 +233,7 @@ export class TouchBarRoot {
         createElement(
           EventBusContext.Provider,
           { value: this.eventBus },
-          createElement(
-            GlobalSettingsContext.Provider,
-            { value: this.globalSettingsValue },
-            child,
-          ),
+          createElement(GlobalSettingsContext.Provider, { value: this.globalSettingsValue }, child),
         ),
       ),
     );
@@ -287,12 +271,7 @@ export class TouchBarRoot {
       if (width === 0) return;
 
       // Single Takumi render → raw RGBA pixels
-      const result = await renderToRaw(
-        this.container,
-        width,
-        SEGMENT_HEIGHT,
-        this.renderConfig,
-      );
+      const result = await renderToRaw(this.container, width, SEGMENT_HEIGHT, this.renderConfig);
 
       if (result === null || this.disposed) return;
 
@@ -308,9 +287,7 @@ export class TouchBarRoot {
           SEGMENT_HEIGHT,
         );
         this.lastSegmentUris.set(column, sliceUri);
-        feedbackPromises.push(
-          entry.sdkAction.setFeedback({ canvas: sliceUri }),
-        );
+        feedbackPromises.push(entry.sdkAction.setFeedback({ canvas: sliceUri }));
       }
       await Promise.all(feedbackPromises);
     } catch (err) {

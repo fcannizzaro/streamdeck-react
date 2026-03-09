@@ -1,5 +1,10 @@
 import { test, expect } from "bun:test";
-import { buildProjectFiles, buildRollupConfig, buildViteConfig, type ScaffoldOptions } from "./templates.js";
+import {
+  buildProjectFiles,
+  buildRollupConfig,
+  buildViteConfig,
+  type ScaffoldOptions,
+} from "./templates.js";
 
 const baseOptions: ScaffoldOptions = {
   packageName: "demo-plugin",
@@ -29,13 +34,16 @@ test("manifest matches example actions and supported platforms", () => {
   const manifest = JSON.parse(files["com.example.demo-plugin.sdPlugin/manifest.json"] ?? "{}");
 
   expect(manifest.Actions).toHaveLength(4);
-  expect(manifest.OS.map((entry: { Platform: string }) => entry.Platform)).toEqual(["mac", "windows"]);
+  expect(manifest.OS.map((entry: { Platform: string }) => entry.Platform)).toEqual([
+    "mac",
+    "windows",
+  ]);
 });
 
 test("rollup config renders explicit nativeAddon targets", () => {
   const config = buildRollupConfig(baseOptions);
 
-  expect(config).toContain('nativeAddon({');
+  expect(config).toContain("nativeAddon({");
   expect(config).toContain('{ platform: "darwin", arch: "arm64" }');
   expect(config).toContain('{ platform: "win32", arch: "x64" }');
   expect(config).not.toContain("resolveLibraryPaths");
@@ -74,10 +82,10 @@ test("rolldown bundler generates vite.config.ts", () => {
 test("vite config renders streamDeckReact with targets", () => {
   const config = buildViteConfig(baseOptions);
 
-  expect(config).toContain('streamDeckReact({');
+  expect(config).toContain("streamDeckReact({");
   expect(config).toContain('{ platform: "darwin", arch: "arm64" }');
   expect(config).toContain('{ platform: "win32", arch: "x64" }');
-  expect(config).toContain('esmExternalRequirePlugin');
+  expect(config).toContain("esmExternalRequirePlugin");
   expect(config).toContain('conditions: ["node"]');
 });
 

@@ -5,12 +5,7 @@ interface ToolbarProps {
   children?: React.ReactNode;
 }
 
-export function Toolbar({
-  search,
-  onSearchChange,
-  onClear,
-  children,
-}: ToolbarProps) {
+export function Toolbar({ search, onSearchChange, onClear, children }: ToolbarProps) {
   return (
     <div className="flex items-center gap-2 px-3 py-1.5 border-b border-neutral-800 bg-neutral-900/80 shrink-0">
       <input
@@ -50,9 +45,7 @@ export function ToggleButton({
     <button
       onClick={onClick}
       className={`text-xs px-1.5 py-0.5 rounded cursor-pointer transition-colors ${
-        active
-          ? `${color} bg-neutral-700`
-          : "text-neutral-600 bg-neutral-800/50"
+        active ? `${color} bg-neutral-700` : "text-neutral-600 bg-neutral-800/50"
       }`}
     >
       {label}

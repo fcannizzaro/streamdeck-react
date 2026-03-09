@@ -20,8 +20,20 @@ export function NetworkDetail({ entry }: { entry: NetworkEntry | null }) {
       <Section title="General">
         <Row label="URL" value={request.url} />
         <Row label="Method" value={request.method} />
-        <Row label="Status" value={response ? `${response.status} ${response.statusText}` : error ? `Error: ${error.error}` : "Pending..."} />
-        <Row label="Duration" value={response ? `${response.durationMs}ms` : error ? `${error.durationMs}ms` : "-"} />
+        <Row
+          label="Status"
+          value={
+            response
+              ? `${response.status} ${response.statusText}`
+              : error
+                ? `Error: ${error.error}`
+                : "Pending..."
+          }
+        />
+        <Row
+          label="Duration"
+          value={response ? `${response.durationMs}ms` : error ? `${error.durationMs}ms` : "-"}
+        />
       </Section>
 
       {/* Request Headers */}

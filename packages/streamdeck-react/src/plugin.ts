@@ -15,13 +15,9 @@ import streamDeck, {
   type TitleParametersDidChangeEvent,
 } from "@elgato/streamdeck";
 import { Renderer } from "@takumi-rs/core";
-import type { JsonObject, JsonValue } from "@elgato/utils"
+import type { JsonObject, JsonValue } from "@elgato/utils";
 import { RootRegistry } from "@/roots/registry";
-import type {
-  PluginConfig,
-  Plugin,
-  ActionDefinition,
-} from "./types";
+import type { PluginConfig, Plugin, ActionDefinition } from "./types";
 import type { RenderConfig } from "@/render/pipeline";
 import { startDevtoolsServer } from "./devtools/index.js";
 
@@ -65,10 +61,7 @@ export function createPlugin(config: PluginConfig): Plugin {
       registry.setGlobalSettings(gs);
     })
     .catch((err) => {
-      console.error(
-        "[@fcannizzaro/streamdeck-react] Failed to load global settings:",
-        err,
-      );
+      console.error("[@fcannizzaro/streamdeck-react] Failed to load global settings:", err);
     });
 
   // Listen for global settings changes
@@ -78,11 +71,7 @@ export function createPlugin(config: PluginConfig): Plugin {
 
   // Register each action definition
   for (const definition of config.actions) {
-    const singletonAction = createSingletonAction(
-      definition,
-      registry,
-      config.onActionError,
-    );
+    const singletonAction = createSingletonAction(definition, registry, config.onActionError);
     streamDeck.actions.registerAction(singletonAction);
   }
 
@@ -125,9 +114,7 @@ function createSingletonAction(
         }
 
         // Pick the appropriate component
-        const component = isEncoder
-          ? definition.dial ?? definition.key
-          : definition.key;
+        const component = isEncoder ? (definition.dial ?? definition.key) : definition.key;
 
         if (!component) return;
 
@@ -239,37 +226,23 @@ function createSingletonAction(
       }
     }
 
-    override onPropertyInspectorDidAppear(
-      ev: PropertyInspectorDidAppearEvent<JsonObject>,
-    ) {
+    override onPropertyInspectorDidAppear(ev: PropertyInspectorDidAppearEvent<JsonObject>) {
       try {
-        registry.dispatch(
-          ev.action.id,
-          "propertyInspectorDidAppear",
-          undefined as never,
-        );
+        registry.dispatch(ev.action.id, "propertyInspectorDidAppear", undefined as never);
       } catch (err) {
         this.handleError(ev.action.id, err);
       }
     }
 
-    override onPropertyInspectorDidDisappear(
-      ev: PropertyInspectorDidDisappearEvent<JsonObject>,
-    ) {
+    override onPropertyInspectorDidDisappear(ev: PropertyInspectorDidDisappearEvent<JsonObject>) {
       try {
-        registry.dispatch(
-          ev.action.id,
-          "propertyInspectorDidDisappear",
-          undefined as never,
-        );
+        registry.dispatch(ev.action.id, "propertyInspectorDidDisappear", undefined as never);
       } catch (err) {
         this.handleError(ev.action.id, err);
       }
     }
 
-    override onTitleParametersDidChange(
-      ev: TitleParametersDidChangeEvent<JsonObject>,
-    ) {
+    override onTitleParametersDidChange(ev: TitleParametersDidChangeEvent<JsonObject>) {
       try {
         registry.dispatch(ev.action.id, "titleParametersDidChange", {
           title: ev.payload.title,

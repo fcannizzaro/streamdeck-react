@@ -126,8 +126,9 @@ export function useDevtoolsSocket(): {
       const ports = Array.from({ length: PORT_MAX - PORT_MIN + 1 }, (_, i) => PORT_MIN + i);
       const results = await Promise.allSettled(
         ports.map((port) =>
-          fetch(`http://127.0.0.1:${port}`, { signal: controller.signal, mode: "cors" })
-            .then((res) => res.ok),
+          fetch(`http://127.0.0.1:${port}`, { signal: controller.signal, mode: "cors" }).then(
+            (res) => res.ok,
+          ),
         ),
       );
       const anyReachable = results.some((r) => r.status === "fulfilled" && r.value);
@@ -230,12 +231,9 @@ export function useDevtoolsSocket(): {
   // Sync hover state → highlight:action messages to plugin
   useEffect(() => {
     const unsub = useStore.subscribe((state, prevState) => {
-      const derivedAction =
-        state.hoveredNodeId !== null ? state.selectedActionId : null;
+      const derivedAction = state.hoveredNodeId !== null ? state.selectedActionId : null;
       const prevDerivedAction =
-        prevState.hoveredNodeId !== null
-          ? prevState.selectedActionId
-          : null;
+        prevState.hoveredNodeId !== null ? prevState.selectedActionId : null;
       const derivedNode = state.hoveredNodeId;
       const prevDerivedNode = prevState.hoveredNodeId;
 

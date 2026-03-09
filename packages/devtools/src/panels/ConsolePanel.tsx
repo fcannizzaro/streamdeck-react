@@ -75,19 +75,13 @@ export function ConsolePanel() {
         </span>
       </Toolbar>
 
-      <div
-        ref={listRef}
-        className="flex-1 overflow-auto font-mono text-xs"
-        onScroll={handleScroll}
-      >
+      <div ref={listRef} className="flex-1 overflow-auto font-mono text-xs" onScroll={handleScroll}>
         {filtered.length === 0 ? (
           <div className="flex items-center justify-center h-full text-neutral-600 text-xs">
             No console output
           </div>
         ) : (
-          filtered.map((log) => (
-            <LogRow key={log.id} log={log} />
-          ))
+          filtered.map((log) => <LogRow key={log.id} log={log} />)
         )}
       </div>
     </div>

@@ -32,16 +32,11 @@ function ToggleKey() {
         {modes.map((m) => (
           <div
             key={m}
-            className={tw(
-              "w-2 h-2 rounded-full",
-              m === mode ? "bg-white" : "bg-white/30",
-            )}
+            className={tw("w-2 h-2 rounded-full", m === mode ? "bg-white" : "bg-white/30")}
           />
         ))}
       </div>
-      <span className="text-white text-[20px] font-bold">
-        {modeLabels[mode]}
-      </span>
+      <span className="text-white text-[20px] font-bold">{modeLabels[mode]}</span>
     </div>
   );
 }

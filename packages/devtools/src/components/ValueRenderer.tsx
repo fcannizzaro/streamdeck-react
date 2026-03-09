@@ -25,19 +25,13 @@ export function ValueRenderer({
     case "undef":
       return <span className="text-neutral-500 italic">undefined</span>;
     case "fn":
-      return (
-        <span className="text-yellow-400 italic">
-          f {value.name}()
-        </span>
-      );
+      return <span className="text-yellow-400 italic">f {value.name}()</span>;
     case "sym":
       return <span className="text-orange-400">Symbol({value.v})</span>;
     case "bigint":
       return <span className="text-blue-400">{value.v}n</span>;
     case "buf":
-      return (
-        <span className="text-neutral-500">Buffer({value.byteLength})</span>
-      );
+      return <span className="text-neutral-500">Buffer({value.byteLength})</span>;
     case "trunc":
       return <span className="text-neutral-500 italic">[{value.hint}]</span>;
     case "err":
@@ -46,8 +40,7 @@ export function ValueRenderer({
       if (inline || depth > 3) return <InlineArray value={value} />;
       return <ExpandableArray value={value} depth={depth} />;
     case "obj":
-      if (value.circular)
-        return <span className="text-red-400">[Circular]</span>;
+      if (value.circular) return <span className="text-red-400">[Circular]</span>;
       if (inline || depth > 3) return <InlineObject value={value} />;
       return <ExpandableObject value={value} depth={depth} />;
   }
@@ -55,24 +48,15 @@ export function ValueRenderer({
 
 // ── Error ───────────────────────────────────────────────────────────
 
-function ErrorValue({
-  value,
-}: {
-  value: Extract<SerializedValue, { t: "err" }>;
-}) {
+function ErrorValue({ value }: { value: Extract<SerializedValue, { t: "err" }> }) {
   const [expanded, setExpanded] = useState(false);
   return (
     <span className="text-red-400">
-      <span
-        className="cursor-pointer hover:underline"
-        onClick={() => setExpanded(!expanded)}
-      >
+      <span className="cursor-pointer hover:underline" onClick={() => setExpanded(!expanded)}>
         {value.name}: {value.message}
       </span>
       {expanded && value.stack && (
-        <pre className="text-xs text-red-300/70 mt-1 ml-4 whitespace-pre-wrap">
-          {value.stack}
-        </pre>
+        <pre className="text-xs text-red-300/70 mt-1 ml-4 whitespace-pre-wrap">{value.stack}</pre>
       )}
     </span>
   );
@@ -80,11 +64,7 @@ function ErrorValue({
 
 // ── Inline previews ─────────────────────────────────────────────────
 
-function InlineArray({
-  value,
-}: {
-  value: Extract<SerializedValue, { t: "arr" }>;
-}) {
+function InlineArray({ value }: { value: Extract<SerializedValue, { t: "arr" }> }) {
   return (
     <span className="text-neutral-400">
       [{value.v.length > 0 ? `\u2026${value.v.length}` : ""}]
@@ -92,11 +72,7 @@ function InlineArray({
   );
 }
 
-function InlineObject({
-  value,
-}: {
-  value: Extract<SerializedValue, { t: "obj" }>;
-}) {
+function InlineObject({ value }: { value: Extract<SerializedValue, { t: "obj" }> }) {
   const keys = Object.keys(value.v);
   return (
     <span className="text-neutral-400">
@@ -174,13 +150,7 @@ function ExpandableObject({
 
 // ── Chevron toggle ──────────────────────────────────────────────────
 
-function Chevron({
-  expanded,
-  onClick,
-}: {
-  expanded: boolean;
-  onClick: () => void;
-}) {
+function Chevron({ expanded, onClick }: { expanded: boolean; onClick: () => void }) {
   return (
     <button
       onClick={onClick}

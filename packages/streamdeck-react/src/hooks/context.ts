@@ -5,12 +5,7 @@ import {
   CanvasContext,
   StreamDeckContext,
 } from "@/context/providers";
-import type {
-  ActionInfo,
-  CanvasInfo,
-  DeviceInfo,
-  StreamDeckAccess,
-} from "@/types";
+import type { ActionInfo, CanvasInfo, DeviceInfo, StreamDeckAccess } from "@/types";
 
 // ── useDevice ───────────────────────────────────────────────────────
 

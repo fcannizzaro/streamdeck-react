@@ -1,7 +1,13 @@
 import { exec } from "node:child_process";
 import { resolve } from "node:path";
 import type { Plugin, ResolvedConfig } from "vite";
-import { copyNativeBindings, shouldStripDevtools, isLibraryDevtoolsImport, NOOP_DEVTOOLS_ID, NOOP_DEVTOOLS_CODE } from "./native-addon-shared";
+import {
+  copyNativeBindings,
+  shouldStripDevtools,
+  isLibraryDevtoolsImport,
+  NOOP_DEVTOOLS_ID,
+  NOOP_DEVTOOLS_CODE,
+} from "./native-addon-shared";
 import { resolveFontId, loadFont } from "./font-inline";
 import type { NativeAddonTarget, NativeAddonOptions } from "./native-addon-shared";
 

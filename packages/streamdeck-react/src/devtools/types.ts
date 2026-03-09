@@ -208,7 +208,4 @@ export type ServerMessage =
   | PongMessage;
 
 /** Messages browser clients send to the plugin server. */
-export type ClientMessage =
-  | RequestSnapshotMessage
-  | PingMessage
-  | HighlightActionMessage;
+export type ClientMessage = RequestSnapshotMessage | PingMessage | HighlightActionMessage;

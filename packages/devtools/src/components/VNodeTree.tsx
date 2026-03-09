@@ -64,9 +64,7 @@ export function VNodeTree({ node, depth = 0 }: { node: SerializedVNode; depth?: 
         <span>
           <span className="text-pink-400">&lt;{node.type}</span>
           <NodeAttrs props={node.props} />
-          <span className="text-pink-400">
-            {hasChildren ? ">" : " />"}
-          </span>
+          <span className="text-pink-400">{hasChildren ? ">" : " />"}</span>
         </span>
       </div>
       {expanded && hasChildren && (
@@ -74,10 +72,7 @@ export function VNodeTree({ node, depth = 0 }: { node: SerializedVNode; depth?: 
           {node.children.map((child) => (
             <VNodeTree key={child.nid} node={child} depth={depth + 1} />
           ))}
-          <div
-            className="text-xs text-pink-400 py-0.5"
-            style={{ paddingLeft: depth * 16 + 12 }}
-          >
+          <div className="text-xs text-pink-400 py-0.5" style={{ paddingLeft: depth * 16 + 12 }}>
             &lt;/{node.type}&gt;
           </div>
         </>
@@ -113,7 +108,11 @@ function NodeAttrs({ props }: { props: Record<string, import("../types").Seriali
 function AttrValue({ value }: { value: import("../types").SerializedValue }) {
   switch (value.t) {
     case "s":
-      return <span className="text-green-400">"{value.v.length > 30 ? value.v.slice(0, 27) + "..." : value.v}"</span>;
+      return (
+        <span className="text-green-400">
+          "{value.v.length > 30 ? value.v.slice(0, 27) + "..." : value.v}"
+        </span>
+      );
     case "n":
       return <span className="text-blue-400">{`{${value.v}}`}</span>;
     case "b":

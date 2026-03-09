@@ -20,24 +20,13 @@ export { useTap, useLongPress, useDoubleTap } from "@/hooks/gestures";
 export { useSettings, useGlobalSettings } from "@/hooks/settings";
 
 // ── Hooks — Context ─────────────────────────────────────────────────
-export {
-  useDevice,
-  useAction,
-  useCanvas,
-  useStreamDeck,
-} from "@/hooks/context";
+export { useDevice, useAction, useCanvas, useStreamDeck } from "@/hooks/context";
 
 // ── Hooks — Lifecycle ───────────────────────────────────────────────
 export { useWillAppear, useWillDisappear } from "@/hooks/lifecycle";
 
 // ── Hooks — Utility ─────────────────────────────────────────────────
-export {
-  useInterval,
-  useTimeout,
-  usePrevious,
-  useTick,
-  useAnimationFrame,
-} from "@/hooks/utility";
+export { useInterval, useTimeout, usePrevious, useTick, useAnimationFrame } from "@/hooks/utility";
 
 // ── Hooks — SDK ─────────────────────────────────────────────────────
 export {

@@ -101,24 +101,13 @@ export function patchFetch(cb: FetchCallback): () => void {
         /* ignore */
       }
 
-      cb.onResponse(
-        id,
-        response.status,
-        response.statusText,
-        resHeaders,
-        resBody,
-        duration,
-      );
+      cb.onResponse(id, response.status, response.statusText, resHeaders, resBody, duration);
 
       // Return the ORIGINAL response — never the clone
       return response;
     } catch (err) {
       const duration = Date.now() - start;
-      cb.onError(
-        id,
-        err instanceof Error ? err.message : String(err),
-        duration,
-      );
+      cb.onError(id, err instanceof Error ? err.message : String(err), duration);
       throw err;
     }
   };
@@ -132,9 +121,7 @@ export function patchFetch(cb: FetchCallback): () => void {
 
 // ── Body Reader ─────────────────────────────────────────────────────
 
-async function readBodySafe(
-  reqOrRes: Request | Response,
-): Promise<string | undefined> {
+async function readBodySafe(reqOrRes: Request | Response): Promise<string | undefined> {
   const contentType = reqOrRes.headers.get("content-type") ?? "";
   const contentLength = Number(reqOrRes.headers.get("content-length") || 0);
 
@@ -151,10 +138,7 @@ async function readBodySafe(
   try {
     const text = await reqOrRes.text();
     if (text.length > MAX_BODY_BYTES) {
-      return (
-        text.slice(0, MAX_BODY_BYTES) +
-        `\n...[truncated at ${MAX_BODY_BYTES} bytes]`
-      );
+      return text.slice(0, MAX_BODY_BYTES) + `\n...[truncated at ${MAX_BODY_BYTES} bytes]`;
     }
     return text;
   } catch {

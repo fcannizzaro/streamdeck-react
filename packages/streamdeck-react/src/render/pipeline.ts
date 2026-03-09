@@ -18,10 +18,7 @@ export interface RenderConfig {
 
 // ── Buffer to Data URI ──────────────────────────────────────────────
 
-export function bufferToDataUri(
-  buffer: Buffer | Uint8Array,
-  format: string,
-): string {
+export function bufferToDataUri(buffer: Buffer | Uint8Array, format: string): string {
   const b = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer);
   return `data:image/${format};base64,${b.toString("base64")}`;
 }

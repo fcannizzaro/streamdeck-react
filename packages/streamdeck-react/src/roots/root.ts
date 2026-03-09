@@ -1,8 +1,4 @@
-import {
-  createElement,
-  type ComponentType,
-  type ReactElement,
-} from "react";
+import { createElement, type ComponentType, type ReactElement } from "react";
 import { reconciler } from "@/reconciler/renderer";
 import { createVContainer, type VContainer } from "@/reconciler/vnode";
 import { renderToDataUri, type RenderConfig } from "@/render/pipeline";
@@ -26,7 +22,7 @@ import type {
   StreamDeckAccess,
   WrapperComponent,
 } from "@/types";
-import type { JsonObject } from "@elgato/utils"
+import type { JsonObject } from "@elgato/utils";
 import type { Action, DialAction, KeyAction } from "@elgato/streamdeck";
 
 const DEFAULT_DIAL_LAYOUT: Exclude<EncoderLayout, string> = {
@@ -139,7 +135,10 @@ export class ReactRoot {
 
     this.setGlobalSettingsFn = (partial: JsonObject) => {
       this.globalSettings = { ...this.globalSettings, ...partial };
-      this.globalSettingsValue = { settings: this.globalSettings, setSettings: this.setGlobalSettingsFn };
+      this.globalSettingsValue = {
+        settings: this.globalSettings,
+        setSettings: this.setGlobalSettingsFn,
+      };
       onGlobalSettingsChange(this.globalSettings);
       this.scheduleRerender();
     };
@@ -147,7 +146,10 @@ export class ReactRoot {
     // Initialize cached context values (stable references until data changes)
     this.streamDeckValue = { action: this.sdkAction, sdk: this.sdkInstance };
     this.settingsValue = { settings: this.settings, setSettings: this.setSettingsFn };
-    this.globalSettingsValue = { settings: this.globalSettings, setSettings: this.setGlobalSettingsFn };
+    this.globalSettingsValue = {
+      settings: this.globalSettings,
+      setSettings: this.setGlobalSettingsFn,
+    };
 
     // Create virtual container with render callback
     this.container = createVContainer(() => {
@@ -234,11 +236,7 @@ export class ReactRoot {
               createElement(
                 GlobalSettingsContext.Provider,
                 { value: this.globalSettingsValue },
-                createElement(
-                  SettingsContext.Provider,
-                  { value: this.settingsValue },
-                  child,
-                ),
+                createElement(SettingsContext.Provider, { value: this.settingsValue }, child),
               ),
             ),
           ),
@@ -310,7 +308,10 @@ export class ReactRoot {
 
   updateGlobalSettings(settings: JsonObject): void {
     this.globalSettings = { ...settings };
-    this.globalSettingsValue = { settings: this.globalSettings, setSettings: this.setGlobalSettingsFn };
+    this.globalSettingsValue = {
+      settings: this.globalSettings,
+      setSettings: this.setGlobalSettingsFn,
+    };
     this.scheduleRerender();
   }
 

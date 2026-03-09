@@ -9,19 +9,14 @@ export class EventBus {
   private sticky = new Map<string, unknown>();
 
   /** Global devtools observer. Set by DevtoolsBridge when devtools mode is on. */
-  static devtoolsObserver:
-    | ((bus: EventBus, event: string, payload: unknown) => void)
-    | null = null;
+  static devtoolsObserver: ((bus: EventBus, event: string, payload: unknown) => void) | null = null;
 
   /** Owning action ID. Set by ReactRoot/TouchBarRoot on creation. Used by devtools. */
   ownerId: string | null = null;
   /** Owning action UUID. Set by ReactRoot on creation. Used by devtools. */
   ownerUuid: string | null = null;
 
-  on<K extends keyof EventMap>(
-    event: K,
-    listener: Listener<EventMap[K]>,
-  ): void {
+  on<K extends keyof EventMap>(event: K, listener: Listener<EventMap[K]>): void {
     if (!this.listeners.has(event)) {
       this.listeners.set(event, new Set());
     }
@@ -32,10 +27,7 @@ export class EventBus {
     }
   }
 
-  off<K extends keyof EventMap>(
-    event: K,
-    listener: Listener<EventMap[K]>,
-  ): void {
+  off<K extends keyof EventMap>(event: K, listener: Listener<EventMap[K]>): void {
     this.listeners.get(event)?.delete(listener as Listener<unknown>);
   }
 
@@ -59,18 +51,11 @@ export class EventBus {
     this.sticky.clear();
   }
 
-  private callListener(
-    event: string,
-    listener: Listener<unknown>,
-    payload: unknown,
-  ): void {
+  private callListener(event: string, listener: Listener<unknown>, payload: unknown): void {
     try {
       listener(payload);
     } catch (err) {
-      console.error(
-        `[@fcannizzaro/streamdeck-react] Error in event handler for "${event}":`,
-        err,
-      );
+      console.error(`[@fcannizzaro/streamdeck-react] Error in event handler for "${event}":`, err);
     }
   }
 }

@@ -19,10 +19,7 @@ export interface VContainer {
 
 // ── Factory Functions ───────────────────────────────────────────────
 
-export function createVNode(
-  type: string,
-  props: Record<string, unknown>,
-): VNode {
+export function createVNode(type: string, props: Record<string, unknown>): VNode {
   return { type, props, children: [] };
 }
 
@@ -51,8 +48,7 @@ export function vnodeToElement(node: VNode): ReactElement | string {
 
   // Map className → tw for Takumi's built-in Tailwind parser
   if (typeof className === "string" && className.length > 0) {
-    const existingTw =
-      typeof restProps.tw === "string" ? restProps.tw + " " : "";
+    const existingTw = typeof restProps.tw === "string" ? restProps.tw + " " : "";
     restProps.tw = existingTw + className;
   }
 

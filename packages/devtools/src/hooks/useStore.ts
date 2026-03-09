@@ -64,12 +64,8 @@ export interface DevtoolsState {
   clearConsole: () => void;
   clearNetwork: () => void;
   clearEvents: () => void;
-  setConsoleFilter: (
-    filter: Partial<{ levels: Set<string>; search: string }>,
-  ) => void;
-  setEventFilter: (
-    filter: Partial<{ types: Set<string>; search: string }>,
-  ) => void;
+  setConsoleFilter: (filter: Partial<{ levels: Set<string>; search: string }>) => void;
+  setEventFilter: (filter: Partial<{ types: Set<string>; search: string }>) => void;
   setSelectedAction: (id: string | null) => void;
   setSelectedNode: (nid: number | null) => void;
   setHoveredNode: (nid: number | null) => void;
@@ -194,10 +190,7 @@ export const useStore = create<DevtoolsState>((set, get) => ({
 
         const touchBars = new Map<string, TouchBarEntry>();
         for (const tb of msg.touchBars) {
-          const segments = new Map<
-            number,
-            { actionId: string; dataUri: string | null }
-          >();
+          const segments = new Map<number, { actionId: string; dataUri: string | null }>();
           for (const s of tb.segments) {
             segments.set(s.column, {
               actionId: s.actionId,
@@ -234,7 +227,7 @@ export const useStore = create<DevtoolsState>((set, get) => ({
           state.selectedActionId && actions.has(state.selectedActionId)
             ? state.selectedActionId
             : actions.size > 0
-              ? actions.keys().next().value ?? null
+              ? (actions.keys().next().value ?? null)
               : null;
 
         set({
@@ -251,8 +244,7 @@ export const useStore = create<DevtoolsState>((set, get) => ({
 
       case "console": {
         const logs = [...state.consoleLogs, msg];
-        if (logs.length > MAX_CONSOLE)
-          logs.splice(0, logs.length - MAX_CONSOLE);
+        if (logs.length > MAX_CONSOLE) logs.splice(0, logs.length - MAX_CONSOLE);
         set({ consoleLogs: logs });
         break;
       }
@@ -347,8 +339,7 @@ export const useStore = create<DevtoolsState>((set, get) => ({
 
       case "event": {
         const events = [...state.events, msg];
-        if (events.length > MAX_EVENTS)
-          events.splice(0, events.length - MAX_EVENTS);
+        if (events.length > MAX_EVENTS) events.splice(0, events.length - MAX_EVENTS);
         set({ events });
         break;
       }
@@ -366,17 +357,16 @@ export const useStore = create<DevtoolsState>((set, get) => ({
             tree: null,
             dataUri: null,
           });
-          const selectedActionId =
-            state.selectedActionId ?? msg.actionId;
+          const selectedActionId = state.selectedActionId ?? msg.actionId;
           set({ actions, selectedActionId });
         } else {
           const actions = new Map(state.actions);
           actions.delete(msg.actionId);
           const selectedActionId =
             state.selectedActionId === msg.actionId
-              ? (actions.size > 0
-                  ? actions.keys().next().value ?? null
-                  : null)
+              ? actions.size > 0
+                ? (actions.keys().next().value ?? null)
+                : null
               : state.selectedActionId;
           set({ actions, selectedActionId });
         }
@@ -397,13 +387,10 @@ export const useStore = create<DevtoolsState>((set, get) => ({
     }),
   clearEvents: () => set({ events: [] }),
 
-  setConsoleFilter: (filter) =>
-    set((s) => ({ consoleFilter: { ...s.consoleFilter, ...filter } })),
-  setEventFilter: (filter) =>
-    set((s) => ({ eventFilter: { ...s.eventFilter, ...filter } })),
+  setConsoleFilter: (filter) => set((s) => ({ consoleFilter: { ...s.consoleFilter, ...filter } })),
+  setEventFilter: (filter) => set((s) => ({ eventFilter: { ...s.eventFilter, ...filter } })),
 
-  setSelectedAction: (id) =>
-    set({ selectedActionId: id, selectedNodeId: null }),
+  setSelectedAction: (id) => set({ selectedActionId: id, selectedNodeId: null }),
   setSelectedNode: (nid) => set({ selectedNodeId: nid }),
   setHoveredNode: (nid) => set({ hoveredNodeId: nid }),
   setSelectedRequest: (id) => set({ selectedRequestId: id }),
@@ -412,10 +399,7 @@ export const useStore = create<DevtoolsState>((set, get) => ({
 
 // ── Selectors ───────────────────────────────────────────────────────
 
-export function findNodeByNid(
-  tree: SerializedVNode | null,
-  nid: number,
-): SerializedVNode | null {
+export function findNodeByNid(tree: SerializedVNode | null, nid: number): SerializedVNode | null {
   if (!tree) return null;
   if (tree.nid === nid) return tree;
   for (const child of tree.children) {

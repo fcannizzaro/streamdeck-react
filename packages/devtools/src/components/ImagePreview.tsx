@@ -4,9 +4,7 @@ import { useStore } from "../hooks/useStore";
 // ── Image Preview Card ──────────────────────────────────────────────
 
 export function ImagePreview({ action }: { action: ActionEntry }) {
-  const highlightUri = useStore(
-    (s) => s.highlightDataUri.get(action.actionId) ?? null,
-  );
+  const highlightUri = useStore((s) => s.highlightDataUri.get(action.actionId) ?? null);
 
   const surfaceColors: Record<string, string> = {
     key: "bg-blue-900/40 text-blue-300",
@@ -24,13 +22,14 @@ export function ImagePreview({ action }: { action: ActionEntry }) {
         <span className={`px-1.5 py-0.5 rounded ${surfaceColors[action.surface] ?? ""}`}>
           {action.surface}
         </span>
-        <span className="text-neutral-500 truncate ml-2">
-          {action.actionUuid.split(".").pop()}
-        </span>
+        <span className="text-neutral-500 truncate ml-2">{action.actionUuid.split(".").pop()}</span>
       </div>
 
       {/* Image */}
-      <div className="relative" style={{ width: action.canvas.width, height: action.canvas.height }}>
+      <div
+        className="relative"
+        style={{ width: action.canvas.width, height: action.canvas.height }}
+      >
         {displayUri ? (
           <img
             src={displayUri}
@@ -68,16 +67,12 @@ export function ImagePreview({ action }: { action: ActionEntry }) {
 // ── TouchBar Preview ────────────────────────────────────────────────
 
 export function TouchBarPreview({ touchBar }: { touchBar: TouchBarEntry }) {
-  const segments = [...touchBar.segments.entries()].sort(
-    ([a], [b]) => a - b,
-  );
+  const segments = [...touchBar.segments.entries()].sort(([a], [b]) => a - b);
 
   return (
     <div className="bg-neutral-800 rounded-lg p-3 flex flex-col gap-2">
       <div className="text-[10px] text-neutral-400 flex items-center gap-2">
-        <span className="bg-purple-900/40 text-purple-300 px-1.5 py-0.5 rounded">
-          touchbar
-        </span>
+        <span className="bg-purple-900/40 text-purple-300 px-1.5 py-0.5 rounded">touchbar</span>
         <span className="text-neutral-500">{touchBar.deviceName}</span>
         <span className="text-neutral-600 ml-auto">
           {touchBar.canvas.width}x{touchBar.canvas.height}

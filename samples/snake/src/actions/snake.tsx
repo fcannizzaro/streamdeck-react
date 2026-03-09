@@ -179,8 +179,7 @@ function SnakeTouchBar() {
       }
 
       // Check food
-      const ate =
-        newHead.x === foodRef.current.x && newHead.y === foodRef.current.y;
+      const ate = newHead.x === foodRef.current.x && newHead.y === foodRef.current.y;
 
       if (ate) {
         const grown = [newHead, ...prev];
@@ -322,47 +321,45 @@ function SnakeTouchBar() {
             background: "rgba(0,0,0,0.6)",
           }}
         >
-          {(gameState === "idle" ? DIAL_HINTS : DIAL_HINTS_PAUSED).map(
-            (hint, i) => (
+          {(gameState === "idle" ? DIAL_HINTS : DIAL_HINTS_PAUSED).map((hint, i) => (
+            <div
+              key={`hint-${i}`}
+              style={{
+                position: "absolute",
+                left: i * segmentWidth,
+                top: 0,
+                width: segmentWidth,
+                height,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
               <div
-                key={`hint-${i}`}
                 style={{
-                  position: "absolute",
-                  left: i * segmentWidth,
-                  top: 0,
-                  width: segmentWidth,
-                  height,
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
+                  color: TEXT_COLOR,
+                  fontSize: 18,
+                  fontFamily: "Inter",
+                  textAlign: "center",
                 }}
               >
-                <div
-                  style={{
-                    color: TEXT_COLOR,
-                    fontSize: 18,
-                    fontFamily: "Inter",
-                    textAlign: "center",
-                  }}
-                >
-                  {hint.label}
-                </div>
-                <div
-                  style={{
-                    color: TEXT_COLOR,
-                    fontSize: 12,
-                    fontFamily: "Inter",
-                    opacity: 0.5,
-                    textAlign: "center",
-                    marginTop: 4,
-                  }}
-                >
-                  {hint.desc}
-                </div>
+                {hint.label}
               </div>
-            ),
-          )}
+              <div
+                style={{
+                  color: TEXT_COLOR,
+                  fontSize: 12,
+                  fontFamily: "Inter",
+                  opacity: 0.5,
+                  textAlign: "center",
+                  marginTop: 4,
+                }}
+              >
+                {hint.desc}
+              </div>
+            </div>
+          ))}
         </div>
       )}
 

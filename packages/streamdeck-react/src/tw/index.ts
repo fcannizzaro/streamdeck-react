@@ -11,8 +11,6 @@
  * <div className={tw("flex items-center", pressed && "bg-green-500")} />
  * ```
  */
-export function tw(
-  ...args: Array<string | false | null | undefined | 0>
-): string {
+export function tw(...args: Array<string | false | null | undefined | 0>): string {
   return args.filter(Boolean).join(" ");
 }

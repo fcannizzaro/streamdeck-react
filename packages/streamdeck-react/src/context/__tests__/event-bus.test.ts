@@ -10,7 +10,7 @@ describe("EventBus", () => {
       controller: "Keypad" as const,
       isInMultiAction: false,
     };
-    const received: typeof payload[] = [];
+    const received: (typeof payload)[] = [];
 
     bus.emitSticky("willAppear", payload);
     bus.on("willAppear", (event) => {

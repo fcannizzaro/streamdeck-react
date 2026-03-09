@@ -2,11 +2,7 @@
 // Monkey-patches console.log/warn/error/info/debug to capture output
 // for the devtools server. Always calls the original method first.
 
-export type ConsoleCallback = (
-  level: string,
-  args: unknown[],
-  stack: string | undefined,
-) => void;
+export type ConsoleCallback = (level: string, args: unknown[], stack: string | undefined) => void;
 
 /**
  * Patches console methods to forward output to the devtools bridge.

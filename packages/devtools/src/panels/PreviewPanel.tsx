@@ -53,9 +53,7 @@ export function PreviewPanel() {
 
       {touchBarList.length > 0 && (
         <div>
-          <div className="text-xs text-neutral-500 mb-2 font-bold">
-            Touch Bars
-          </div>
+          <div className="text-xs text-neutral-500 mb-2 font-bold">Touch Bars</div>
           <div className="space-y-3">
             {touchBarList.map((tb) => (
               <TouchBarPreview key={tb.deviceId} touchBar={tb} />

@@ -24,9 +24,7 @@ export function serializeValue(
   }
 
   if (typeof value === "number") {
-    return Number.isFinite(value)
-      ? { t: "n", v: value }
-      : { t: "s", v: String(value) };
+    return Number.isFinite(value) ? { t: "n", v: value } : { t: "s", v: String(value) };
   }
 
   if (typeof value === "boolean") return { t: "b", v: value };

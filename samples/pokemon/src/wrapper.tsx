@@ -15,7 +15,5 @@ type QueryWrapperProps = {
 };
 
 export function QueryWrapper({ children }: QueryWrapperProps) {
-  return (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-  );
+  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
 }

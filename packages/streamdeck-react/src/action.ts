@@ -1,5 +1,5 @@
 import type { ActionConfig, ActionDefinition } from "./types";
-import type { JsonObject } from "@elgato/utils"
+import type { JsonObject } from "@elgato/utils";
 
 // ── defineAction ────────────────────────────────────────────────────
 // Creates an action definition that maps React components to a

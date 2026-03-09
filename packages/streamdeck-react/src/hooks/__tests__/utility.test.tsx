@@ -2,13 +2,7 @@
 
 import { describe, expect, test } from "bun:test";
 import { act, useEffect, useState } from "react";
-import {
-  useAnimationFrame,
-  useInterval,
-  usePrevious,
-  useTick,
-  useTimeout,
-} from "@/hooks/utility";
+import { useAnimationFrame, useInterval, usePrevious, useTick, useTimeout } from "@/hooks/utility";
 import { createDomRoot, sleep } from "@/test-utils/react";
 
 type HookHarnessApi<TResult> = {
@@ -23,9 +17,7 @@ type StatefulHookHarnessApi<TProps, TResult> = {
   unmount: () => Promise<void>;
 };
 
-async function renderHook<TResult>(
-  useHook: () => TResult,
-): Promise<HookHarnessApi<TResult>> {
+async function renderHook<TResult>(useHook: () => TResult): Promise<HookHarnessApi<TResult>> {
   let current!: TResult;
 
   function HookHarness() {
@@ -196,10 +188,7 @@ describe("utility hooks", () => {
   test("useTick uses fps-based timing and can pause", async () => {
     const deltas: number[] = [];
 
-    const hook = await renderStatefulHook<
-      { fpsOrActive: number | boolean },
-      void
-    >(
+    const hook = await renderStatefulHook<{ fpsOrActive: number | boolean }, void>(
       ({ fpsOrActive }) =>
         useTick((deltaMs) => {
           deltas.push(deltaMs);

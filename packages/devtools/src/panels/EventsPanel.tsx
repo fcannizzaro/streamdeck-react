@@ -43,8 +43,7 @@ export function EventsPanel() {
   // Filtered events
   const filtered = useMemo(() => {
     return events.filter((ev) => {
-      if (eventFilter.types.size > 0 && !eventFilter.types.has(ev.event))
-        return false;
+      if (eventFilter.types.size > 0 && !eventFilter.types.has(ev.event)) return false;
       if (eventFilter.search) {
         const searchLower = eventFilter.search.toLowerCase();
         if (
@@ -104,11 +103,7 @@ export function EventsPanel() {
         </span>
       </Toolbar>
 
-      <div
-        ref={listRef}
-        className="flex-1 overflow-auto font-mono text-xs"
-        onScroll={handleScroll}
-      >
+      <div ref={listRef} className="flex-1 overflow-auto font-mono text-xs" onScroll={handleScroll}>
         {filtered.length === 0 ? (
           <div className="flex items-center justify-center h-full text-neutral-600 text-xs">
             No events

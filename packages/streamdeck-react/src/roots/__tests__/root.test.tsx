@@ -49,10 +49,7 @@ function createRegistry(
   );
 }
 
-function createWillAppearEvent(overrides?: {
-  settings?: JsonObject;
-  actionId?: string;
-}) {
+function createWillAppearEvent(overrides?: { settings?: JsonObject; actionId?: string }) {
   return {
     action: {
       id: overrides?.actionId ?? "action-1",
@@ -239,11 +236,7 @@ describe("ReactRoot integration", () => {
     const registry = createRegistry(fakeSdk);
 
     await act(async () => {
-      registry.create(
-        createWillAppearEvent({ settings: { count: 0 } }),
-        TestAction,
-        definition,
-      );
+      registry.create(createWillAppearEvent({ settings: { count: 0 } }), TestAction, definition);
       await sleep(20);
     });
 
@@ -285,11 +278,7 @@ describe("ReactRoot integration", () => {
     const registry = createRegistry(fakeSdk);
 
     await act(async () => {
-      registry.create(
-        createWillAppearEvent({ settings: { volume: 50 } }),
-        TestAction,
-        definition,
-      );
+      registry.create(createWillAppearEvent({ settings: { volume: 50 } }), TestAction, definition);
       await sleep(20);
     });
 

@@ -27,9 +27,7 @@ export function ElementsPanel() {
           onChange={(e) => setSelectedAction(e.target.value || null)}
           className="bg-neutral-800 text-neutral-200 text-xs px-2 py-1 rounded border border-neutral-700 focus:border-neutral-500 focus:outline-none"
         >
-          {actionList.length === 0 && (
-            <option value="">No actions</option>
-          )}
+          {actionList.length === 0 && <option value="">No actions</option>}
           {actionList.map(([id, action]) => (
             <option key={id} value={id}>
               {action.actionUuid.split(".").pop()} [{action.surface}]
@@ -41,7 +39,8 @@ export function ElementsPanel() {
         </select>
         {selectedAction && (
           <span className="text-[10px] text-neutral-600 ml-auto">
-            {selectedAction.canvas.width}x{selectedAction.canvas.height} - {selectedAction.device.name}
+            {selectedAction.canvas.width}x{selectedAction.canvas.height} -{" "}
+            {selectedAction.device.name}
           </span>
         )}
       </div>

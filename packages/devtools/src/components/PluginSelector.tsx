@@ -8,9 +8,7 @@ interface Props {
 
 export function PluginSelector({ plugins, selectedPort, onSelect }: Props) {
   if (plugins.length === 0) {
-    return (
-      <span className="text-xs text-neutral-500">No plugins discovered</span>
-    );
+    return <span className="text-xs text-neutral-500">No plugins discovered</span>;
   }
 
   return (

@@ -71,14 +71,18 @@ function vnodeToElementHighlighted(
   if (node.type === "#text") {
     if (isTarget) {
       // Wrap highlighted text in a span with highlight styles
-      return createElement("span", {
-        style: {
-          borderWidth: HIGHLIGHT_BORDER_WIDTH,
-          borderStyle: "solid",
-          borderColor: HIGHLIGHT_BORDER_COLOR,
-          backgroundColor: HIGHLIGHT_BG,
+      return createElement(
+        "span",
+        {
+          style: {
+            borderWidth: HIGHLIGHT_BORDER_WIDTH,
+            borderStyle: "solid",
+            borderColor: HIGHLIGHT_BORDER_COLOR,
+            backgroundColor: HIGHLIGHT_BG,
+          },
         },
-      }, node.text ?? "");
+        node.text ?? "",
+      );
     }
     return node.text ?? "";
   }
@@ -87,8 +91,7 @@ function vnodeToElementHighlighted(
 
   // Map className → tw (same as vnodeToElement in vnode.ts)
   if (typeof className === "string" && className.length > 0) {
-    const existingTw =
-      typeof restProps.tw === "string" ? restProps.tw + " " : "";
+    const existingTw = typeof restProps.tw === "string" ? restProps.tw + " " : "";
     restProps.tw = existingTw + className;
   }
 

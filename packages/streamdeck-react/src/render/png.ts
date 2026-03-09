@@ -48,11 +48,7 @@ const PNG_SIGNATURE = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
  * @param height Image height in pixels.
  * @param rgba   Raw RGBA pixel data (width × height × 4 bytes, row-major).
  */
-export function encodePng(
-  width: number,
-  height: number,
-  rgba: Buffer | Uint8Array,
-): Buffer {
+export function encodePng(width: number, height: number, rgba: Buffer | Uint8Array): Buffer {
   // IHDR: width(4) + height(4) + bitDepth(1) + colorType(1) + compression(1) + filter(1) + interlace(1)
   const ihdr = Buffer.alloc(13);
   ihdr.writeUInt32BE(width, 0);

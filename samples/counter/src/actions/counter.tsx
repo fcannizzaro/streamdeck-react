@@ -1,5 +1,14 @@
 import { useState } from "react";
-import { defineAction, useKeyDown, useKeyUp, useTap, useLongPress, useDoubleTap, useSettings, tw } from "@fcannizzaro/streamdeck-react";
+import {
+  defineAction,
+  useKeyDown,
+  useKeyUp,
+  useTap,
+  useLongPress,
+  useDoubleTap,
+  useSettings,
+  tw,
+} from "@fcannizzaro/streamdeck-react";
 
 type CounterSettings = { count: number };
 

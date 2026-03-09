@@ -3,7 +3,7 @@ import { counterAction } from "./actions/counter";
 import { timerAction } from "./actions/timer";
 import { volumeAction } from "./actions/volume";
 import { toggleAction } from "./actions/toggle";
-import InterRegular from "@fontsource-variable/inter/files/inter-latin-wght-normal.woff2"
+import InterRegular from "@fontsource-variable/inter/files/inter-latin-wght-normal.woff2";
 import SplineSansMono from "@fontsource-variable/spline-sans-mono/files/spline-sans-mono-latin-wght-normal.woff2";
 
 const plugin = createPlugin({
@@ -19,7 +19,7 @@ const plugin = createPlugin({
       data: SplineSansMono,
       weight: 400,
       style: "normal",
-    }
+    },
   ],
   actions: [counterAction, timerAction, volumeAction, toggleAction],
 });

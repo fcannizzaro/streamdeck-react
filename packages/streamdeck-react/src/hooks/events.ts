@@ -39,29 +39,21 @@ export function useKeyUp(callback: (payload: KeyUpPayload) => void): void {
 
 // ── Dial / Encoder Events ───────────────────────────────────────────
 
-export function useDialRotate(
-  callback: (payload: DialRotatePayload) => void,
-): void {
+export function useDialRotate(callback: (payload: DialRotatePayload) => void): void {
   useEvent("dialRotate", callback);
 }
 
-export function useDialDown(
-  callback: (payload: DialPressPayload) => void,
-): void {
+export function useDialDown(callback: (payload: DialPressPayload) => void): void {
   useEvent("dialDown", callback);
 }
 
-export function useDialUp(
-  callback: (payload: DialPressPayload) => void,
-): void {
+export function useDialUp(callback: (payload: DialPressPayload) => void): void {
   useEvent("dialUp", callback);
 }
 
 // ── Touch Events ────────────────────────────────────────────────────
 
-export function useTouchTap(
-  callback: (payload: TouchTapPayload) => void,
-): void {
+export function useTouchTap(callback: (payload: TouchTapPayload) => void): void {
   useEvent("touchTap", callback);
 }
 

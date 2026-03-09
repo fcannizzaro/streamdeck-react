@@ -1,12 +1,7 @@
 import { createContext } from "react";
 import type { EventBus } from "./event-bus";
-import type {
-  ActionInfo,
-  CanvasInfo,
-  DeviceInfo,
-  StreamDeckAccess,
-} from "@/types";
-import type { JsonObject } from "@elgato/utils"
+import type { ActionInfo, CanvasInfo, DeviceInfo, StreamDeckAccess } from "@/types";
+import type { JsonObject } from "@elgato/utils";
 
 // ── Settings Context ────────────────────────────────────────────────
 
@@ -24,8 +19,7 @@ export interface GlobalSettingsContextValue {
   setSettings: (partial: JsonObject) => void;
 }
 
-export const GlobalSettingsContext =
-  createContext<GlobalSettingsContextValue>(null!);
+export const GlobalSettingsContext = createContext<GlobalSettingsContextValue>(null!);
 
 // ── Action Context ──────────────────────────────────────────────────
 

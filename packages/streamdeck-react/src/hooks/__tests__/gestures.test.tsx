@@ -31,14 +31,9 @@ type RenderResult = {
   unmount: () => Promise<void>;
 };
 
-async function renderWithBus(
-  bus: EventBus,
-  element: React.ReactElement,
-): Promise<RenderResult> {
+async function renderWithBus(bus: EventBus, element: React.ReactElement): Promise<RenderResult> {
   const root = createDomRoot();
-  await root.render(
-    <EventBusContext.Provider value={bus}>{element}</EventBusContext.Provider>,
-  );
+  await root.render(<EventBusContext.Provider value={bus}>{element}</EventBusContext.Provider>);
 
   return {
     bus,

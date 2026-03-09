@@ -34,9 +34,7 @@ export function useTouchBar(): TouchBarInfo {
 // ── useTouchBarTap ──────────────────────────────────────────────────
 // Receives touch events with absolute coordinates across the full strip.
 
-export function useTouchBarTap(
-  callback: (payload: TouchBarTapPayload) => void,
-): void {
+export function useTouchBarTap(callback: (payload: TouchBarTapPayload) => void): void {
   useTouchBarEvent("touchBarTap", callback);
 }
 
@@ -50,16 +48,12 @@ export function useTouchBarDialRotate(
 
 // ── useTouchBarDialDown ─────────────────────────────────────────────
 
-export function useTouchBarDialDown(
-  callback: (payload: TouchBarDialPressPayload) => void,
-): void {
+export function useTouchBarDialDown(callback: (payload: TouchBarDialPressPayload) => void): void {
   useTouchBarEvent("touchBarDialDown", callback);
 }
 
 // ── useTouchBarDialUp ───────────────────────────────────────────────
 
-export function useTouchBarDialUp(
-  callback: (payload: TouchBarDialPressPayload) => void,
-): void {
+export function useTouchBarDialUp(callback: (payload: TouchBarDialPressPayload) => void): void {
   useTouchBarEvent("touchBarDialUp", callback);
 }

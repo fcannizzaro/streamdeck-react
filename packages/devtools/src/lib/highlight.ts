@@ -2,10 +2,7 @@ import type { SerializedVNode } from "../types";
 
 // ── Find a node's path in the tree ──────────────────────────────────
 
-export function findNodePath(
-  tree: SerializedVNode,
-  targetNid: number,
-): number[] | null {
+export function findNodePath(tree: SerializedVNode, targetNid: number): number[] | null {
   if (tree.nid === targetNid) return [tree.nid];
   for (const child of tree.children) {
     const path = findNodePath(child, targetNid);

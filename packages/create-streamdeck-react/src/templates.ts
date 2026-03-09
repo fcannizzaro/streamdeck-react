@@ -147,8 +147,16 @@ export const PACKAGE_MANAGER_OPTIONS: Array<ChoiceOption<PackageManager>> = [
 ];
 
 export const BUNDLER_OPTIONS: Array<ChoiceOption<Bundler>> = [
-  { value: "rollup", label: "Rollup", description: "Stable Rollup-based build with esbuild or Babel." },
-  { value: "rolldown", label: "Rolldown (Vite 8 beta)", description: "Vite 8 with Rolldown and Oxc transforms." },
+  {
+    value: "rollup",
+    label: "Rollup",
+    description: "Stable Rollup-based build with esbuild or Babel.",
+  },
+  {
+    value: "rolldown",
+    label: "Rolldown (Vite 8 beta)",
+    description: "Vite 8 with Rolldown and Oxc transforms.",
+  },
 ];
 
 export const PLATFORM_OPTIONS: Array<ChoiceOption<StreamDeckPlatform>> = [
@@ -262,11 +270,7 @@ const EXAMPLE_PRESETS: Record<StarterExample, ExamplePreset> = {
       "src/actions/display.tsx": createZustandDisplayAction(options.pluginUuid),
       "src/actions/increment.tsx": createZustandIncrementAction(options.pluginUuid),
       "src/actions/reset.tsx": createZustandResetAction(options.pluginUuid),
-      "src/plugin.ts": createPluginEntrypoint([
-        "displayAction",
-        "incrementAction",
-        "resetAction",
-      ]),
+      "src/plugin.ts": createPluginEntrypoint(["displayAction", "incrementAction", "resetAction"]),
     }),
   },
   jotai: {
@@ -302,11 +306,10 @@ const EXAMPLE_PRESETS: Record<StarterExample, ExamplePreset> = {
       "src/actions/display.tsx": createJotaiDisplayAction(options.pluginUuid),
       "src/actions/increment.tsx": createJotaiIncrementAction(options.pluginUuid),
       "src/actions/reset.tsx": createJotaiResetAction(options.pluginUuid),
-      "src/plugin.ts": createPluginEntrypoint([
-        "displayAction",
-        "incrementAction",
-        "resetAction",
-      ], "JotaiWrapper"),
+      "src/plugin.ts": createPluginEntrypoint(
+        ["displayAction", "incrementAction", "resetAction"],
+        "JotaiWrapper",
+      ),
     }),
   },
   pokemon: {
@@ -421,9 +424,10 @@ export function buildProjectFiles(options: ScaffoldOptions): Record<string, stri
   const preset = EXAMPLE_PRESETS[options.example];
   const pluginDir = `${options.pluginUuid}.sdPlugin`;
 
-  const configFile: Record<string, string> = options.bundler === "rolldown"
-    ? { "vite.config.ts": buildViteConfig(options) }
-    : { "rollup.config.mjs": buildRollupConfig(options) };
+  const configFile: Record<string, string> =
+    options.bundler === "rolldown"
+      ? { "vite.config.ts": buildViteConfig(options) }
+      : { "rollup.config.mjs": buildRollupConfig(options) };
 
   return {
     ".gitignore": createGitignore(),
@@ -441,7 +445,9 @@ export function buildProjectFiles(options: ScaffoldOptions): Record<string, stri
   };
 }
 
-export function buildRollupConfig(options: Pick<ScaffoldOptions, "pluginUuid" | "nativeTargets" | "reactCompiler">): string {
+export function buildRollupConfig(
+  options: Pick<ScaffoldOptions, "pluginUuid" | "nativeTargets" | "reactCompiler">,
+): string {
   const renderedTargets = options.nativeTargets
     .map((target) => {
       const [platform, arch] = target.split("-");
@@ -466,9 +472,7 @@ export function buildRollupConfig(options: Pick<ScaffoldOptions, "pluginUuid" | 
         "      ],",
         "    }),",
       ]
-    : [
-        '    esbuild({ target: "node20", jsx: "automatic" }),',
-      ];
+    : ['    esbuild({ target: "node20", jsx: "automatic" }),'];
 
   return [
     'import { builtinModules } from "node:module";',
@@ -484,7 +488,7 @@ export function buildRollupConfig(options: Pick<ScaffoldOptions, "pluginUuid" | 
     "export default {",
     '  input: "src/plugin.ts",',
     "  output: {",
-    '    file: `${PLUGIN_DIR}/bin/plugin.mjs`,',
+    "    file: `${PLUGIN_DIR}/bin/plugin.mjs`,",
     '    format: "es",',
     "    sourcemap: true,",
     "    inlineDynamicImports: true,",
@@ -506,7 +510,9 @@ export function buildRollupConfig(options: Pick<ScaffoldOptions, "pluginUuid" | 
   ].join("\n");
 }
 
-export function buildViteConfig(options: Pick<ScaffoldOptions, "pluginUuid" | "nativeTargets" | "reactCompiler">): string {
+export function buildViteConfig(
+  options: Pick<ScaffoldOptions, "pluginUuid" | "nativeTargets" | "reactCompiler">,
+): string {
   const renderedTargets = options.nativeTargets
     .map((target) => {
       const [platform, arch] = target.split("-");
@@ -519,9 +525,7 @@ export function buildViteConfig(options: Pick<ScaffoldOptions, "pluginUuid" | "n
         'import react, { reactCompilerPreset } from "@vitejs/plugin-react";',
         'import babel from "@rolldown/plugin-babel";',
       ]
-    : [
-        'import react from "@vitejs/plugin-react";',
-      ];
+    : ['import react from "@vitejs/plugin-react";'];
 
   const compilerPlugin = options.reactCompiler
     ? [
@@ -531,9 +535,7 @@ export function buildViteConfig(options: Pick<ScaffoldOptions, "pluginUuid" | "n
         "      presets: [reactCompilerPreset()],",
         "    }),",
       ]
-    : [
-        "    react(),",
-      ];
+    : ["    react(),"];
 
   return [
     'import { builtinModules } from "node:module";',
@@ -561,14 +563,14 @@ export function buildViteConfig(options: Pick<ScaffoldOptions, "pluginUuid" | "n
     "  ],",
     "  build: {",
     '    target: "node20",',
-    "    outDir: resolve(PLUGIN_DIR, \"bin\"),",
+    '    outDir: resolve(PLUGIN_DIR, "bin"),',
     "    emptyOutDir: false,",
     "    sourcemap: true,",
     "    minify: false,",
     "    lib: {",
     '      entry: resolve("src/plugin.ts"),',
     '      formats: ["es"],',
-    "      fileName: () => \"plugin.mjs\",",
+    '      fileName: () => "plugin.mjs",',
     "    },",
     "    rolldownOptions: {",
     "      output: {",
@@ -582,7 +584,10 @@ export function buildViteConfig(options: Pick<ScaffoldOptions, "pluginUuid" | "n
 }
 
 function buildPackageJson(
-  options: Pick<ScaffoldOptions, "packageName" | "description" | "nativeTargets" | "reactCompiler" | "bundler">,
+  options: Pick<
+    ScaffoldOptions,
+    "packageName" | "description" | "nativeTargets" | "reactCompiler" | "bundler"
+  >,
   exampleDependencies: Record<string, string>,
 ): string {
   const nativeDependencies = Object.fromEntries(
@@ -591,13 +596,15 @@ function buildPackageJson(
 
   const isRolldown = options.bundler === "rolldown";
 
-  const baseDevDeps = isRolldown
-    ? ROLLDOWN_BASE_DEV_DEPENDENCIES
-    : BASE_DEV_DEPENDENCIES;
+  const baseDevDeps = isRolldown ? ROLLDOWN_BASE_DEV_DEPENDENCIES : BASE_DEV_DEPENDENCIES;
 
   const extraDevDeps = isRolldown
-    ? (options.reactCompiler ? ROLLDOWN_COMPILER_DEV_DEPENDENCIES : ROLLDOWN_ESBUILD_DEV_DEPENDENCIES)
-    : (options.reactCompiler ? COMPILER_DEV_DEPENDENCIES : ESBUILD_DEV_DEPENDENCIES);
+    ? options.reactCompiler
+      ? ROLLDOWN_COMPILER_DEV_DEPENDENCIES
+      : ROLLDOWN_ESBUILD_DEV_DEPENDENCIES
+    : options.reactCompiler
+      ? COMPILER_DEV_DEPENDENCIES
+      : ESBUILD_DEV_DEPENDENCIES;
 
   const scripts = isRolldown
     ? {
@@ -633,7 +640,10 @@ function buildPackageJson(
 }
 
 function buildManifest(
-  options: Pick<ScaffoldOptions, "displayName" | "pluginUuid" | "author" | "description" | "category" | "platforms" | "bundler">,
+  options: Pick<
+    ScaffoldOptions,
+    "displayName" | "pluginUuid" | "author" | "description" | "category" | "platforms" | "bundler"
+  >,
   actions: ManifestActionTemplate[],
 ): string {
   const manifest = {
@@ -709,27 +719,31 @@ function createGitignore(): string {
 }
 
 function createProjectTsconfig(): string {
-  return `${JSON.stringify({
-    compilerOptions: {
-      lib: ["ESNext"],
-      target: "ESNext",
-      module: "Preserve",
-      moduleDetection: "force",
-      jsx: "react-jsx",
-      baseUrl: ".",
-      moduleResolution: "bundler",
-      allowImportingTsExtensions: true,
-      verbatimModuleSyntax: true,
-      types: ["node"],
-      noEmit: true,
-      strict: true,
-      skipLibCheck: true,
-      noFallthroughCasesInSwitch: true,
-      noUncheckedIndexedAccess: true,
-      noImplicitOverride: true,
+  return `${JSON.stringify(
+    {
+      compilerOptions: {
+        lib: ["ESNext"],
+        target: "ESNext",
+        module: "Preserve",
+        moduleDetection: "force",
+        jsx: "react-jsx",
+        baseUrl: ".",
+        moduleResolution: "bundler",
+        allowImportingTsExtensions: true,
+        verbatimModuleSyntax: true,
+        types: ["node"],
+        noEmit: true,
+        strict: true,
+        skipLibCheck: true,
+        noFallthroughCasesInSwitch: true,
+        noUncheckedIndexedAccess: true,
+        noImplicitOverride: true,
+      },
+      include: ["src"],
     },
-    include: ["src"],
-  }, null, 2)}\n`;
+    null,
+    2,
+  )}\n`;
 }
 
 function createFontTypeDeclarations(): string {
@@ -769,16 +783,16 @@ function createPluginIconSvg(displayName: string): string {
 
   return [
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 144 144">',
-    '  <defs>',
+    "  <defs>",
     '    <linearGradient id="plugin-gradient" x1="0%" x2="100%" y1="0%" y2="100%">',
     '      <stop offset="0%" stop-color="#0f172a" />',
     '      <stop offset="100%" stop-color="#2563eb" />',
-    '    </linearGradient>',
-    '  </defs>',
+    "    </linearGradient>",
+    "  </defs>",
     '  <rect width="144" height="144" rx="28" fill="url(#plugin-gradient)" />',
     '  <circle cx="72" cy="72" r="42" fill="rgba(255,255,255,0.12)" />',
     `  <text x="72" y="86" text-anchor="middle" font-family="Arial, sans-serif" font-size="42" font-weight="700" fill="#ffffff">${escapeXml(initials)}</text>`,
-    '</svg>',
+    "</svg>",
     "",
   ].join("\n");
 }
@@ -789,23 +803,26 @@ function createBadgeSvg(label: string, from: string, to: string): string {
 
   return [
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 144 144">',
-    '  <defs>',
+    "  <defs>",
     `    <linearGradient id="${gradientId}" x1="0%" x2="100%" y1="0%" y2="100%">`,
     `      <stop offset="0%" stop-color="${from}" />`,
     `      <stop offset="100%" stop-color="${to}" />`,
-    '    </linearGradient>',
-    '  </defs>',
+    "    </linearGradient>",
+    "  </defs>",
     `  <rect width="144" height="144" rx="24" fill="url(#${gradientId})" />`,
     '  <rect x="18" y="18" width="108" height="108" rx="18" fill="rgba(0,0,0,0.18)" />',
     `  <text x="72" y="84" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" font-weight="700" fill="#ffffff">${escapeXml(initials)}</text>`,
-    '</svg>',
+    "</svg>",
     "",
   ].join("\n");
 }
 
 function createPluginEntrypoint(actionExports: string[], wrapperName?: string): string {
   const imports = actionExports
-    .map((actionName) => `import { ${actionName} } from "./actions/${stripActionSuffix(actionName)}.tsx";`)
+    .map(
+      (actionName) =>
+        `import { ${actionName} } from "./actions/${stripActionSuffix(actionName)}.tsx";`,
+    )
     .join("\n");
   const wrapperImport = wrapperName ? `import { ${wrapperName} } from "./wrapper.tsx";\n` : "";
   const wrapperConfig = wrapperName ? `,\n  wrapper: ${wrapperName}` : "";
@@ -821,7 +838,7 @@ function createPluginEntrypoint(actionExports: string[], wrapperName?: string): 
     "    {",
     '      name: "Inter",',
     "      data: InterRegular,",
-    '      weight: 400,',
+    "      weight: 400,",
     '      style: "normal",',
     "    },",
     "  ],",
@@ -843,7 +860,7 @@ function createMinimalAction(pluginUuid: string): string {
     'import { defineAction, useKeyDown, tw } from "@fcannizzaro/streamdeck-react";',
     "",
     "function StatusKey() {",
-    '  const [live, setLive] = useState(false);',
+    "  const [live, setLive] = useState(false);",
     "",
     "  useKeyDown(() => {",
     "    setLive((value) => !value);",
@@ -857,8 +874,8 @@ function createMinimalAction(pluginUuid: string): string {
     "      )}",
     "    >",
     '      <span className="text-[11px] font-semibold uppercase tracking-[0.24em] text-white/70">',
-    '        Plugin',
-    '      </span>',
+    "        Plugin",
+    "      </span>",
     '      <span className="text-[24px] font-black text-white">{live ? "Live" : "Standby"}</span>',
     '      <span className="text-[10px] text-white/65">press to toggle</span>',
     "    </div>",
@@ -899,8 +916,8 @@ function createCounterAction(pluginUuid: string): string {
     "      )}",
     "    >",
     '      <span className="text-[12px] font-semibold uppercase tracking-[0.2em] text-white/70">',
-    '        Count',
-    '      </span>',
+    "        Count",
+    "      </span>",
     '      <span className="text-[34px] font-black text-white">{count}</span>',
     "    </div>",
     "  );",
@@ -986,20 +1003,20 @@ function createToggleAction(pluginUuid: string): string {
     "    <div",
     "      className={tw(",
     '        "flex h-full w-full flex-col items-center justify-center gap-1.5",',
-    '        `bg-[${modeColors[mode]}]`,',
+    "        `bg-[${modeColors[mode]}]`,",
     "      )}",
     "    >",
     '      <div className="flex flex-row gap-1.5">',
-    '        {modes.map((value) => (',
-    '          <div',
-    '            key={value}',
-    '            className={tw(',
+    "        {modes.map((value) => (",
+    "          <div",
+    "            key={value}",
+    "            className={tw(",
     '              "h-2 w-2 rounded-full",',
     '              value === mode ? "bg-white" : "bg-white/30",',
-    '            )}',
-    '          />',
-    '        ))}',
-    '      </div>',
+    "            )}",
+    "          />",
+    "        ))}",
+    "      </div>",
     '      <span className="text-[20px] font-bold text-white">{modeLabels[mode]}</span>',
     "    </div>",
     "  );",
@@ -1047,14 +1064,14 @@ function createVolumeAction(pluginUuid: string): string {
     "    >",
     '      <span className={tw("text-[24px] font-bold", muted ? "text-[#ff4444]" : "text-white")}>',
     '        {muted ? "MUTE" : `${volume}%`}',
-    '      </span>',
-    '      <ProgressBar',
-    '        value={muted ? 0 : volume}',
-    '        height={4}',
+    "      </span>",
+    "      <ProgressBar",
+    "        value={muted ? 0 : volume}",
+    "        height={4}",
     '        color={muted ? "#ff4444" : "#4caf50"}',
     '        background="#333"',
-    '        borderRadius={2}',
-    '      />',
+    "        borderRadius={2}",
+    "      />",
     "    </div>",
     "  );",
     "}",
@@ -1106,8 +1123,8 @@ function createZustandDisplayAction(pluginUuid: string): string {
     "      )}",
     "    >",
     '      <span className="text-[11px] font-medium uppercase tracking-[0.24em] text-white/70">',
-    '        Shared',
-    '      </span>',
+    "        Shared",
+    "      </span>",
     '      <span className="text-[34px] font-bold text-white">{count}</span>',
     '      <span className="text-[10px] text-white/75">updates everywhere</span>',
     "    </div>",
@@ -1279,8 +1296,8 @@ function createJotaiIncrementAction(pluginUuid: string): string {
     "      )}",
     "    >",
     '      <span className="text-[12px] font-semibold uppercase tracking-[0.22em] text-[#0b132b]/70">',
-    '        Pulse',
-    '      </span>',
+    "        Pulse",
+    "      </span>",
     '      <span className="text-[30px] font-black text-[#0b132b]">+1</span>',
     '      <span className="text-[10px] text-[#0b132b]/70">shared atom write</span>',
     "    </div>",
@@ -1378,7 +1395,7 @@ function createPokemonAction(pluginUuid: string): string {
     "async function bufferToDataUri(response: Response, mime: string): Promise<string> {",
     "  const arrayBuffer = await response.arrayBuffer();",
     '  const base64 = Buffer.from(arrayBuffer).toString("base64");',
-    '  return `data:${mime};base64,${base64}`;',
+    "  return `data:${mime};base64,${base64}`;",
     "}",
     "",
     "type PokemonData = {",
@@ -1388,10 +1405,10 @@ function createPokemonAction(pluginUuid: string): string {
     "};",
     "",
     "async function fetchPokemon(id: number, signal: AbortSignal): Promise<PokemonData> {",
-    '  const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`, { signal });',
+    "  const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`, { signal });",
     "",
     "  if (!response.ok) {",
-    '    throw new Error(`PokeAPI returned ${response.status}`);',
+    "    throw new Error(`PokeAPI returned ${response.status}`);",
     "  }",
     "",
     "  const payload = (await response.json()) as {",
@@ -1408,17 +1425,17 @@ function createPokemonAction(pluginUuid: string): string {
     "    null;",
     "",
     "  if (!spriteUrl) {",
-    '    throw new Error(`No sprite available for Pokemon ${id}`);',
+    "    throw new Error(`No sprite available for Pokemon ${id}`);",
     "  }",
     "",
     "  const spriteResponse = await fetch(spriteUrl, { signal });",
     "",
     "  if (!spriteResponse.ok) {",
-    '    throw new Error(`Sprite fetch returned ${spriteResponse.status}`);',
+    "    throw new Error(`Sprite fetch returned ${spriteResponse.status}`);",
     "  }",
     "",
     '  const spriteDataUri = await bufferToDataUri(spriteResponse, "image/png");',
-    '  return { id, name: payload.name, spriteDataUri };',
+    "  return { id, name: payload.name, spriteDataUri };",
     "}",
     "",
     "function PokemonKey() {",
@@ -1430,7 +1447,7 @@ function createPokemonAction(pluginUuid: string): string {
     "",
     "  const { data, isLoading, isError } = useQuery({",
     '    queryKey: ["pokemon", pokemonId],',
-    '    queryFn: ({ signal }) => fetchPokemon(pokemonId, signal),',
+    "    queryFn: ({ signal }) => fetchPokemon(pokemonId, signal),",
     "  });",
     "",
     "  if (isLoading) {",
@@ -1469,15 +1486,15 @@ function createPokemonAction(pluginUuid: string): string {
     "    >",
     '      <div className={tw("absolute inset-0 flex items-center justify-center")}>',
     '        <Image src={data.spriteDataUri} width={144} height={144} fit="contain" />',
-    '      </div>',
+    "      </div>",
     '      <div className={tw("relative z-10 flex h-full w-full items-end justify-center px-2 pb-2")}>',
-    '        <span',
+    "        <span",
     '          className="text-[16px] font-bold text-white"',
     '          style={{ textShadow: "0 3px 8px rgba(0, 0, 0, 0.9)" }}',
-    '        >',
-    '          {capitalize(data.name)}',
-    '        </span>',
-    '      </div>',
+    "        >",
+    "          {capitalize(data.name)}",
+    "        </span>",
+    "      </div>",
     "    </div>",
     "  );",
     "}",
@@ -1497,7 +1514,9 @@ function getRunPrefix(packageManager: PackageManager): string {
 }
 
 function sortObject(input: Record<string, string>): Record<string, string> {
-  return Object.fromEntries(Object.entries(input).sort(([left], [right]) => left.localeCompare(right)));
+  return Object.fromEntries(
+    Object.entries(input).sort(([left], [right]) => left.localeCompare(right)),
+  );
 }
 
 function unique<T>(values: T[]): T[] {

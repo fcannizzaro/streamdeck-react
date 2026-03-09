@@ -37,12 +37,7 @@ function VolumeDial() {
         muted ? "bg-[#4a0000]" : "bg-[#1a1a1a]",
       )}
     >
-      <span
-        className={tw(
-          "text-[24px] font-bold",
-          muted ? "text-[#ff4444]" : "text-white",
-        )}
-      >
+      <span className={tw("text-[24px] font-bold", muted ? "text-[#ff4444]" : "text-white")}>
         {muted ? "MUTE" : `${volume}%`}
       </span>
       <ProgressBar

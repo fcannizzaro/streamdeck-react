@@ -6,7 +6,7 @@ import type {
   WillAppearEvent,
   DeviceType,
 } from "@elgato/streamdeck";
-import type { JsonObject } from "@elgato/utils"
+import type { JsonObject } from "@elgato/utils";
 import { ReactRoot } from "./root";
 import { TouchBarRoot } from "./touchbar-root";
 import type {
@@ -49,10 +49,7 @@ const KEY_SIZES: Record<number, { width: number; height: number }> = {
 const DIAL_SIZE = { width: 200, height: 100 };
 const TOUCH_SIZE = { width: 200, height: 100 };
 
-function getCanvasInfo(
-  deviceType: DeviceType,
-  surfaceType: "key" | "dial" | "touch",
-): CanvasInfo {
+function getCanvasInfo(deviceType: DeviceType, surfaceType: "key" | "dial" | "touch"): CanvasInfo {
   if (surfaceType === "dial") {
     return { ...DIAL_SIZE, type: "dial" };
   }
@@ -146,9 +143,7 @@ export class RootRegistry {
       id: contextId,
       uuid: definition.uuid,
       controller,
-      coordinates: "coordinates" in ev.action
-        ? (ev.action as KeyAction).coordinates
-        : undefined,
+      coordinates: "coordinates" in ev.action ? (ev.action as KeyAction).coordinates : undefined,
       isInMultiAction: ev.payload.isInMultiAction,
     };
 
@@ -295,11 +290,7 @@ export class RootRegistry {
 
   // ── Dispatch an event to a root ───────────────────────────────
 
-  dispatch<K extends keyof EventMap>(
-    contextId: string,
-    event: K,
-    payload: EventMap[K],
-  ): void {
+  dispatch<K extends keyof EventMap>(contextId: string, event: K, payload: EventMap[K]): void {
     // ── Try per-action root first ──
     const root = this.roots.get(contextId);
     if (root) {

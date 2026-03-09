@@ -18,10 +18,7 @@ function padId(id: number): string {
   return `#${String(id).padStart(3, "0")}`;
 }
 
-async function bufferToDataUri(
-  response: Response,
-  mime: string,
-): Promise<string> {
+async function bufferToDataUri(response: Response, mime: string): Promise<string> {
   const arrayBuffer = await response.arrayBuffer();
   const base64 = Buffer.from(arrayBuffer).toString("base64");
   return `data:${mime};base64,${base64}`;
@@ -35,10 +32,7 @@ interface PokemonData {
   spriteDataUri: string;
 }
 
-async function fetchPokemon(
-  id: number,
-  signal: AbortSignal,
-): Promise<PokemonData> {
+async function fetchPokemon(id: number, signal: AbortSignal): Promise<PokemonData> {
   // 1. Fetch Pokemon data
   const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`, {
     signal,
@@ -62,9 +56,7 @@ async function fetchPokemon(
 
   // 2. Pick sprite URL (front_default with official-artwork fallback)
   const spriteUrl =
-    json.sprites.front_default ??
-    json.sprites.other?.["official-artwork"]?.front_default ??
-    null;
+    json.sprites.front_default ?? json.sprites.other?.["official-artwork"]?.front_default ?? null;
 
   if (!spriteUrl) {
     throw new Error(`No sprite available for Pokemon ${id}`);
@@ -104,9 +96,7 @@ function PokemonKey() {
           "bg-linear-to-br from-[#1a1a2e] to-[#16213e]",
         )}
       >
-        <span className="text-[14px] font-bold text-white/80">
-          Loading...
-        </span>
+        <span className="text-[14px] font-bold text-white/80">Loading...</span>
       </div>
     );
   }
@@ -135,11 +125,7 @@ function PokemonKey() {
       <div className={tw("absolute inset-0 flex items-center justify-center")}>
         <Image src={data.spriteDataUri} width={144} height={144} fit="contain" />
       </div>
-      <div
-        className={tw(
-          "relative z-10 flex h-full w-full items-end justify-center px-2 pb-2",
-        )}
-      >
+      <div className={tw("relative z-10 flex h-full w-full items-end justify-center px-2 pb-2")}>
         <span
           className="text-[16px] font-bold text-white"
           style={{ textShadow: "0 3px 8px rgba(0, 0, 0, 0.9)" }}

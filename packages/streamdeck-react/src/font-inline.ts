@@ -19,10 +19,7 @@ export function isFontFile(id: string): boolean {
  * Supports both relative paths (`../fonts/Inter-Regular.ttf`) and
  * package imports (`@fonts/inter/Inter-Regular.ttf`).
  */
-export function resolveFontId(
-  source: string,
-  importer: string | undefined,
-): string | null {
+export function resolveFontId(source: string, importer: string | undefined): string | null {
   if (!isFontFile(source) || !importer) return null;
 
   // Relative or absolute paths

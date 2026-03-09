@@ -12,9 +12,12 @@ function TimerKey() {
     setRunning((r) => !r);
   });
 
-  useInterval(() => {
-    setElapsed((e) => e + 100);
-  }, running ? 100 : null);
+  useInterval(
+    () => {
+      setElapsed((e) => e + 100);
+    },
+    running ? 100 : null,
+  );
 
   const formatTime = useCallback((ms: number) => {
     const seconds = Math.floor(ms / 1000);
@@ -34,9 +37,7 @@ function TimerKey() {
       <span className="text-white/60 text-[10px] font-medium">
         {running ? "RUNNING" : "STOPPED"}
       </span>
-      <span className="text-white text-[22px] font-bold">
-        {formatTime(elapsed)}
-      </span>
+      <span className="text-white text-[22px] font-bold">{formatTime(elapsed)}</span>
     </div>
   );
 }

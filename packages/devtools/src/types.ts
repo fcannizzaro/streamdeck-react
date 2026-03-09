@@ -73,11 +73,7 @@ export interface SnapshotMessage extends BaseMessage {
   actions: SnapshotAction[];
   touchBars: SnapshotTouchBar[];
   recentConsole: ConsoleMessage[];
-  recentNetwork: (
-    | NetworkRequestMessage
-    | NetworkResponseMessage
-    | NetworkErrorMessage
-  )[];
+  recentNetwork: (NetworkRequestMessage | NetworkResponseMessage | NetworkErrorMessage)[];
   recentEvents: EventBusMessage[];
 }
 
@@ -203,10 +199,7 @@ export type ServerMessage =
   | PongMessage;
 
 /** Messages browser clients send to the plugin server. */
-export type ClientMessage =
-  | RequestSnapshotMessage
-  | PingMessage
-  | HighlightActionMessage;
+export type ClientMessage = RequestSnapshotMessage | PingMessage | HighlightActionMessage;
 
 // ── Derived Types for UI ────────────────────────────────────────────
 

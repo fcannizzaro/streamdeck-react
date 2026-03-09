@@ -1,11 +1,6 @@
 import { createContext } from "react";
 import { DefaultEventPriority } from "react-reconciler/constants.js";
-import {
-  createVNode,
-  createTextVNode,
-  type VNode,
-  type VContainer,
-} from "./vnode";
+import { createVNode, createTextVNode, type VNode, type VContainer } from "./vnode";
 
 // ── No-op / Stub values ────────────────────────────────────────────
 
@@ -150,11 +145,7 @@ export const hostConfig = {
     }
   },
 
-  insertInContainerBefore(
-    container: VContainer,
-    child: VNode,
-    beforeChild: VNode,
-  ): void {
+  insertInContainerBefore(container: VContainer, child: VNode, beforeChild: VNode): void {
     const index = container.children.indexOf(beforeChild);
     if (index >= 0) {
       container.children.splice(index, 0, child);
@@ -187,11 +178,7 @@ export const hostConfig = {
     instance.props = cleanProps;
   },
 
-  commitTextUpdate(
-    textInstance: VNode,
-    _oldText: string,
-    newText: string,
-  ): void {
+  commitTextUpdate(textInstance: VNode, _oldText: string, newText: string): void {
     textInstance.text = newText;
   },
 

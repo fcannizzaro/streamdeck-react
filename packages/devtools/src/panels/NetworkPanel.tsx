@@ -13,9 +13,7 @@ export function NetworkPanel() {
   const clearNetwork = useStore((s) => s.clearNetwork);
   const [search, setSearch] = useState("");
 
-  const selectedEntry = selectedRequestId
-    ? networkRequests.get(selectedRequestId) ?? null
-    : null;
+  const selectedEntry = selectedRequestId ? (networkRequests.get(selectedRequestId) ?? null) : null;
 
   const filteredOrder = useMemo(() => {
     if (!search) return networkOrder;
@@ -28,14 +26,8 @@ export function NetworkPanel() {
 
   return (
     <div className="flex flex-col h-full">
-      <Toolbar
-        search={search}
-        onSearchChange={setSearch}
-        onClear={clearNetwork}
-      >
-        <span className="text-[10px] text-neutral-600 ml-2">
-          {filteredOrder.length} requests
-        </span>
+      <Toolbar search={search} onSearchChange={setSearch} onClear={clearNetwork}>
+        <span className="text-[10px] text-neutral-600 ml-2">{filteredOrder.length} requests</span>
       </Toolbar>
 
       <div className="flex flex-1 min-h-0">
@@ -115,11 +107,7 @@ function RequestRow({
     statusColor = "text-neutral-500";
   }
 
-  const duration = response
-    ? `${response.durationMs}ms`
-    : error
-      ? `${error.durationMs}ms`
-      : "-";
+  const duration = response ? `${response.durationMs}ms` : error ? `${error.durationMs}ms` : "-";
 
   // Extract pathname from URL for display
   let displayUrl = request.url;
@@ -132,9 +120,7 @@ function RequestRow({
 
   return (
     <tr
-      className={`cursor-pointer hover:bg-neutral-800 ${
-        isSelected ? "bg-blue-900/30" : ""
-      }`}
+      className={`cursor-pointer hover:bg-neutral-800 ${isSelected ? "bg-blue-900/30" : ""}`}
       onClick={onClick}
     >
       <td className={`px-2 py-1 ${statusColor}`}>{statusText}</td>

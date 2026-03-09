@@ -50,11 +50,7 @@ class TapGate {
   }
 
   /** Called by useTap to schedule a delayed single-tap. */
-  schedule(
-    callback: (p: KeyUpPayload) => void,
-    payload: KeyUpPayload,
-    timeout: number,
-  ): void {
+  schedule(callback: (p: KeyUpPayload) => void, payload: KeyUpPayload, timeout: number): void {
     this.cancel();
     this.pendingCallback = callback;
     this.pendingPayload = payload;
@@ -93,10 +89,7 @@ function getGate(bus: EventBus): TapGate {
 // same action, the callback is automatically delayed until the
 // double-tap window expires (and cancelled if a double-tap fires).
 
-export function useTap(
-  callback: (payload: KeyUpPayload) => void,
-  options?: TapOptions,
-): void {
+export function useTap(callback: (payload: KeyUpPayload) => void, options?: TapOptions): void {
   const bus = useContext(EventBusContext);
   const callbackRef = useCallbackRef(callback);
   const overrideTimeout = options?.timeout;
@@ -108,11 +101,7 @@ export function useTap(
       const gateTimeout = overrideTimeout ?? gate.timeout;
 
       if (gateTimeout > 0) {
-        gate.schedule(
-          (p) => callbackRef.current(p),
-          payload,
-          gateTimeout,
-        );
+        gate.schedule((p) => callbackRef.current(p), payload, gateTimeout);
       } else {
         callbackRef.current(payload);
       }

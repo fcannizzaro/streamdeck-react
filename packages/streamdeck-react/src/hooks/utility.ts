@@ -23,10 +23,7 @@ function toTickIntervalMs(fps: number): number {
 // ── useInterval ─────────────────────────────────────────────────────
 // Safe interval hook. Auto-cleans on unmount. Pass null to pause.
 
-export function useInterval(
-  callback: () => void,
-  delayMs: number | null,
-): IntervalControls {
+export function useInterval(callback: () => void, delayMs: number | null): IntervalControls {
   const callbackRef = useCallbackRef(callback);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -69,10 +66,7 @@ export function useInterval(
 // ── useTimeout ──────────────────────────────────────────────────────
 // Safe timeout hook. Auto-cleans on unmount. Pass null to cancel.
 
-export function useTimeout(
-  callback: () => void,
-  delayMs: number | null,
-): TimeoutControls {
+export function useTimeout(callback: () => void, delayMs: number | null): TimeoutControls {
   const callbackRef = useCallbackRef(callback);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -164,9 +158,6 @@ export function useTick(
 /**
  * @deprecated Use `useTick` instead.
  */
-export function useAnimationFrame(
-  callback: (deltaMs: number) => void,
-  active = true,
-): void {
+export function useAnimationFrame(callback: (deltaMs: number) => void, active = true): void {
   useTick(callback, active ? DEFAULT_TICK_FPS : false);
 }

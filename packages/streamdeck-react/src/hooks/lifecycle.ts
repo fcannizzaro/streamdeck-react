@@ -6,9 +6,7 @@ import { useCallbackRef } from "./internal/useCallbackRef";
 // ── useWillAppear ───────────────────────────────────────────────────
 // Fires once when the action instance appears and the root is mounted.
 
-export function useWillAppear(
-  callback: (payload: WillAppearPayload) => void,
-): void {
+export function useWillAppear(callback: (payload: WillAppearPayload) => void): void {
   const bus = useContext(EventBusContext);
   const callbackRef = useCallbackRef(callback);
 

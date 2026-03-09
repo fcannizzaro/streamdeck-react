@@ -1,7 +1,7 @@
 import { useContext, useCallback, useEffect } from "react";
 import { EventBusContext, StreamDeckContext } from "@/context/providers";
 import type { KeyAction } from "@elgato/streamdeck";
-import type { JsonValue } from "@elgato/utils"
+import type { JsonValue } from "@elgato/utils";
 import { useCallbackRef } from "./internal/useCallbackRef";
 
 // ── useOpenUrl ──────────────────────────────────────────────────────
@@ -19,10 +19,7 @@ export function useOpenUrl(): (url: string) => Promise<void> {
 
 // ── useSwitchProfile ────────────────────────────────────────────────
 
-export function useSwitchProfile(): (
-  profile: string,
-  deviceId?: string,
-) => Promise<void> {
+export function useSwitchProfile(): (profile: string, deviceId?: string) => Promise<void> {
   const { sdk, action } = useContext(StreamDeckContext);
 
   return useCallback(

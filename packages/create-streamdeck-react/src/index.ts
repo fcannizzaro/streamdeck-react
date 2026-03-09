@@ -121,10 +121,13 @@ async function main(): Promise<void> {
         s.stop(`Dependencies installed`);
         installed = true;
       } catch (error) {
-        const stderr = error instanceof Error && "stderr" in error
-          ? String((error as { stderr: unknown }).stderr).trim()
-          : "";
-        s.stop(stderr ? `Failed to install dependencies: ${stderr}` : `Failed to install dependencies`);
+        const stderr =
+          error instanceof Error && "stderr" in error
+            ? String((error as { stderr: unknown }).stderr).trim()
+            : "";
+        s.stop(
+          stderr ? `Failed to install dependencies: ${stderr}` : `Failed to install dependencies`,
+        );
       }
     }
 
@@ -148,9 +151,10 @@ async function main(): Promise<void> {
         s.stop(`Plugin linked to Stream Deck`);
         linked = true;
       } catch (error) {
-        const stderr = error instanceof Error && "stderr" in error
-          ? String((error as { stderr: unknown }).stderr).trim()
-          : "";
+        const stderr =
+          error instanceof Error && "stderr" in error
+            ? String((error as { stderr: unknown }).stderr).trim()
+            : "";
         s.stop(stderr ? `Failed to link plugin: ${stderr}` : `Failed to link plugin`);
       }
     }
@@ -235,10 +239,7 @@ function parseArgs(argv: string[]): ParsedArgs {
   return parsed;
 }
 
-async function collectTargetDirectory(
-  args: ParsedArgs,
-  skipPrompt: boolean,
-): Promise<string> {
+async function collectTargetDirectory(args: ParsedArgs, skipPrompt: boolean): Promise<string> {
   const provided = args.directory?.trim();
 
   if (provided) {
@@ -317,10 +318,7 @@ async function collectPluginUuid(
   return answer;
 }
 
-async function collectAuthor(
-  args: ParsedArgs,
-  skipPrompt: boolean,
-): Promise<string> {
+async function collectAuthor(args: ParsedArgs, skipPrompt: boolean): Promise<string> {
   const fallback =
     process.env.npm_config_init_author_name ??
     process.env.GIT_AUTHOR_NAME ??
@@ -418,10 +416,7 @@ async function collectPackageManager(
   return answer;
 }
 
-async function collectExample(
-  args: ParsedArgs,
-  skipPrompt: boolean,
-): Promise<StarterExample> {
+async function collectExample(args: ParsedArgs, skipPrompt: boolean): Promise<StarterExample> {
   if (args.example) {
     return args.example;
   }
@@ -446,10 +441,7 @@ async function collectExample(
   return answer;
 }
 
-async function collectBundler(
-  args: ParsedArgs,
-  skipPrompt: boolean,
-): Promise<Bundler> {
+async function collectBundler(args: ParsedArgs, skipPrompt: boolean): Promise<Bundler> {
   if (args.bundler) {
     return args.bundler;
   }
@@ -531,10 +523,7 @@ async function collectNativeTargets(
   return answer;
 }
 
-async function collectReactCompiler(
-  args: ParsedArgs,
-  skipPrompt: boolean,
-): Promise<boolean> {
+async function collectReactCompiler(args: ParsedArgs, skipPrompt: boolean): Promise<boolean> {
   if (args.reactCompiler !== undefined) {
     return args.reactCompiler;
   }
@@ -564,7 +553,6 @@ function createProject(targetDirectory: string, options: ScaffoldOptions): void 
     mkdirSync(dirname(filePath), { recursive: true });
     writeFileSync(filePath, content, "utf8");
   }
-
 }
 
 function buildLinkCommand(packageManager: PackageManager, pluginDir: string): string {
@@ -655,7 +643,10 @@ function parsePackageManager(value: string | undefined): PackageManager | undefi
 
 function splitCsv(value: string | undefined): string[] {
   if (!value) return [];
-  return value.split(",").map((part: string) => part.trim()).filter(Boolean);
+  return value
+    .split(",")
+    .map((part: string) => part.trim())
+    .filter(Boolean);
 }
 
 function printHelp(): void {

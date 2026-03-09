@@ -22,11 +22,7 @@ export interface RegistryObserver {
 
   onRootDestroyed(actionId: string): void;
 
-  onTouchBarCreated(
-    deviceId: string,
-    root: TouchBarRoot,
-    deviceInfo: DeviceInfo,
-  ): void;
+  onTouchBarCreated(deviceId: string, root: TouchBarRoot, deviceInfo: DeviceInfo): void;
 
   onTouchBarColumnChanged(
     deviceId: string,

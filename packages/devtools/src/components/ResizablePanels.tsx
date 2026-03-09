@@ -90,10 +90,7 @@ export function ResizablePanels({ panels, direction }: Props) {
   if (count === 0 || sizes.length !== count) return null;
 
   return (
-    <div
-      ref={containerRef}
-      className={`${isHorizontal ? "flex" : "flex flex-col"} h-full w-full`}
-    >
+    <div ref={containerRef} className={`${isHorizontal ? "flex" : "flex flex-col"} h-full w-full`}>
       {panels.map((panel, i) => (
         <Fragment key={panel.id}>
           <div

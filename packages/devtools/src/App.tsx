@@ -39,9 +39,7 @@ const CTX_ITEM =
 // ── App ─────────────────────────────────────────────────────────────
 
 export function App() {
-  const [activeTabs, setActiveTabs] = useState<Set<TabId>>(
-    () => new Set(["preview"]),
-  );
+  const [activeTabs, setActiveTabs] = useState<Set<TabId>>(() => new Set(["preview"]));
   const [layoutDirection, setLayoutDirection] = useState<LayoutDirection>("horizontal");
   const [tabOrder, setTabOrder] = useState<TabId[]>(() => TABS.map((t) => t.id));
   const draggedTab = useRef<TabId | null>(null);
@@ -125,39 +123,37 @@ export function App() {
     draggedTab.current = tabId;
   }, []);
 
-  const handleDragOver = useCallback(
-    (e: React.DragEvent, targetId: TabId) => {
-      e.preventDefault();
-      const src = draggedTab.current;
-      if (!src || src === targetId) return;
-      setTabOrder((prev) => {
-        const next = [...prev];
-        const srcIdx = next.indexOf(src);
-        const tgtIdx = next.indexOf(targetId);
-        if (srcIdx === -1 || tgtIdx === -1) return prev;
-        next.splice(srcIdx, 1);
-        next.splice(tgtIdx, 0, src);
-        return next;
-      });
-    },
-    [],
-  );
+  const handleDragOver = useCallback((e: React.DragEvent, targetId: TabId) => {
+    e.preventDefault();
+    const src = draggedTab.current;
+    if (!src || src === targetId) return;
+    setTabOrder((prev) => {
+      const next = [...prev];
+      const srcIdx = next.indexOf(src);
+      const tgtIdx = next.indexOf(targetId);
+      if (srcIdx === -1 || tgtIdx === -1) return prev;
+      next.splice(srcIdx, 1);
+      next.splice(tgtIdx, 0, src);
+      return next;
+    });
+  }, []);
 
   const handleDragEnd = useCallback(() => {
     draggedTab.current = null;
   }, []);
 
   // Map tab ids to their definitions for ordered rendering
-  const tabsById = Object.fromEntries(TABS.map((t) => [t.id, t])) as Record<TabId, (typeof TABS)[number]>;
+  const tabsById = Object.fromEntries(TABS.map((t) => [t.id, t])) as Record<
+    TabId,
+    (typeof TABS)[number]
+  >;
 
   return (
     <div className="flex flex-col h-screen bg-neutral-900 text-neutral-100">
       {/* Top bar */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-neutral-800 bg-neutral-950 shrink-0">
         <div className="flex items-center gap-4">
-          <span className="text-sm font-bold text-neutral-300">
-            SD React DevTools
-          </span>
+          <span className="text-sm font-bold text-neutral-300">SD React DevTools</span>
           <ConnectionStatus />
         </div>
 
@@ -210,9 +206,7 @@ export function App() {
                   }`}
                 >
                   {tab.label}
-                  <span className="ml-1 text-[10px] text-neutral-600">
-                    {tab.shortcut}
-                  </span>
+                  <span className="ml-1 text-[10px] text-neutral-600">{tab.shortcut}</span>
                 </button>
               </ContextMenu.Trigger>
               <ContextMenu.Portal>
@@ -222,9 +216,31 @@ export function App() {
                     onSelect={() => handleLayoutSelect(tab.id, "horizontal")}
                     className={CTX_ITEM}
                   >
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0">
-                      <rect x="1" y="2" width="5" height="10" rx="1" stroke="currentColor" strokeWidth="1.2" />
-                      <rect x="8" y="2" width="5" height="10" rx="1" stroke="currentColor" strokeWidth="1.2" />
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 14 14"
+                      fill="none"
+                      className="shrink-0"
+                    >
+                      <rect
+                        x="1"
+                        y="2"
+                        width="5"
+                        height="10"
+                        rx="1"
+                        stroke="currentColor"
+                        strokeWidth="1.2"
+                      />
+                      <rect
+                        x="8"
+                        y="2"
+                        width="5"
+                        height="10"
+                        rx="1"
+                        stroke="currentColor"
+                        strokeWidth="1.2"
+                      />
                     </svg>
                     Horizontal
                   </ContextMenu.Item>
@@ -233,9 +249,31 @@ export function App() {
                     onSelect={() => handleLayoutSelect(tab.id, "vertical")}
                     className={CTX_ITEM}
                   >
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0">
-                      <rect x="2" y="1" width="10" height="5" rx="1" stroke="currentColor" strokeWidth="1.2" />
-                      <rect x="2" y="8" width="10" height="5" rx="1" stroke="currentColor" strokeWidth="1.2" />
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 14 14"
+                      fill="none"
+                      className="shrink-0"
+                    >
+                      <rect
+                        x="2"
+                        y="1"
+                        width="10"
+                        height="5"
+                        rx="1"
+                        stroke="currentColor"
+                        strokeWidth="1.2"
+                      />
+                      <rect
+                        x="2"
+                        y="8"
+                        width="10"
+                        height="5"
+                        rx="1"
+                        stroke="currentColor"
+                        strokeWidth="1.2"
+                      />
                     </svg>
                     Vertical
                   </ContextMenu.Item>
@@ -253,10 +291,7 @@ export function App() {
             {scanning ? "Scanning for plugins..." : "No plugins found"}
           </div>
         ) : (
-          <ResizablePanels
-            panels={activePanels}
-            direction={layoutDirection}
-          />
+          <ResizablePanels panels={activePanels} direction={layoutDirection} />
         )}
       </div>
     </div>

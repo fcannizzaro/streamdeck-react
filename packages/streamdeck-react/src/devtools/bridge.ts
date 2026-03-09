@@ -231,11 +231,7 @@ export class DevtoolsBridge implements RegistryObserver {
     }
   }
 
-  onTouchBarCreated(
-    deviceId: string,
-    root: TouchBarRoot,
-    deviceInfo: DeviceInfo,
-  ): void {
+  onTouchBarCreated(deviceId: string, root: TouchBarRoot, deviceInfo: DeviceInfo): void {
     this.touchBars.set(deviceId, {
       root,
       deviceInfo,
@@ -496,10 +492,7 @@ export class DevtoolsBridge implements RegistryObserver {
     this.server.broadcast(msg);
   }
 
-  private emitTouchBarRender(
-    deviceId: string,
-    tb: TouchBarMeta,
-  ): void {
+  private emitTouchBarRender(deviceId: string, tb: TouchBarMeta): void {
     const tree = serializeVNode(tb.root.vcontainer);
     const segments: TouchBarRenderMessage["segments"] = [];
     for (const [column, actionId] of tb.columns) {
@@ -575,11 +568,7 @@ export class DevtoolsBridge implements RegistryObserver {
     }
   }
 
-  private async applyHighlight(
-    actionId: string,
-    nodeId: number,
-    meta: ActionMeta,
-  ): Promise<void> {
+  private async applyHighlight(actionId: string, nodeId: number, meta: ActionMeta): Promise<void> {
     try {
       const uri = await renderWithHighlight(
         meta.root.vcontainer,

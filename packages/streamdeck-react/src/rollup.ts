@@ -1,6 +1,13 @@
 import { dirname } from "node:path";
 import type { LogLevel, Plugin, NormalizedOutputOptions, PluginContext, RollupLog } from "rollup";
-import { copyNativeBindings, isDevelopmentMode, shouldStripDevtools, isLibraryDevtoolsImport, NOOP_DEVTOOLS_ID, NOOP_DEVTOOLS_CODE } from "./native-addon-shared";
+import {
+  copyNativeBindings,
+  isDevelopmentMode,
+  shouldStripDevtools,
+  isLibraryDevtoolsImport,
+  NOOP_DEVTOOLS_ID,
+  NOOP_DEVTOOLS_CODE,
+} from "./native-addon-shared";
 import { resolveFontId, loadFont } from "./font-inline";
 
 export type {

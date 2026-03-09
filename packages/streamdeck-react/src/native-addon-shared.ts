@@ -107,10 +107,12 @@ export function normalizeTargetRequests(
     return [];
   }
 
-  return [{
-    platform: process.platform,
-    arch: process.arch,
-  }];
+  return [
+    {
+      platform: process.platform,
+      arch: process.arch,
+    },
+  ];
 }
 
 export function expandTargets(targets: NativeAddonTarget[]): ResolvedTarget[] {
@@ -209,9 +211,7 @@ export function copyNativeBindings(
       return;
     }
 
-    console.log(
-      `[@fcannizzaro/streamdeck-react] Copied ${copied.join(", ")} -> ${outDir}`,
-    );
+    console.log(`[@fcannizzaro/streamdeck-react] Copied ${copied.join(", ")} -> ${outDir}`);
   } catch (err) {
     if (err instanceof Error) {
       throw err;
