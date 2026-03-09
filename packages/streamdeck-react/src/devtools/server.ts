@@ -163,7 +163,13 @@ export class DevtoolsServer {
         }
 
         // Basic informational response for direct HTTP access
-        res.writeHead(200, { "Content-Type": "text/plain" });
+        const corsHeaders: Record<string, string> = origin
+          ? {
+              "Access-Control-Allow-Origin": origin,
+              "Access-Control-Allow-Private-Network": "true",
+            }
+          : {};
+        res.writeHead(200, { "Content-Type": "text/plain", ...corsHeaders });
         res.end("streamdeck-react devtools server");
       });
 

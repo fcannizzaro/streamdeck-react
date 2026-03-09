@@ -37,6 +37,7 @@ export function useDevtoolsSocket(): {
   const addPlugin = useStore((s) => s.addPlugin);
   const removePlugin = useStore((s) => s.removePlugin);
   const setScanning = useStore((s) => s.setScanning);
+  const setBlocked = useStore((s) => s.setBlocked);
 
   const handleMessageForPort = useCallback(
     (port: number, msg: ServerMessage) => {
@@ -110,6 +111,36 @@ export function useDevtoolsSocket(): {
     [handleMessageForPort, removePlugin],
   );
 
+  // ── HTTP probe: detect extension blocking ──────────────────────────
+  // After WS scan finds nothing, try HTTP fetch to the same ports.
+  // If HTTP succeeds but WS didn't, an extension is blocking WebSocket.
+  const probeHttpForBlocking = useCallback(async () => {
+    // Only relevant when WS scan found nothing
+    if (connectionsRef.current.size > 0) return;
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), CONNECT_TIMEOUT_MS);
+
+    try {
+      // Probe a few ports concurrently (not all 100 — just enough to detect)
+      const ports = Array.from({ length: PORT_MAX - PORT_MIN + 1 }, (_, i) => PORT_MIN + i);
+      const results = await Promise.allSettled(
+        ports.map((port) =>
+          fetch(`http://127.0.0.1:${port}`, { signal: controller.signal, mode: "cors" })
+            .then((res) => res.ok),
+        ),
+      );
+      const anyReachable = results.some((r) => r.status === "fulfilled" && r.value);
+      if (anyReachable && connectionsRef.current.size === 0) {
+        setBlocked(true);
+      }
+    } catch {
+      // Ignore — probing is best-effort
+    } finally {
+      clearTimeout(timeout);
+    }
+  }, [setBlocked]);
+
   const scan = useCallback(() => {
     // ── Defensive cleanup ──────────────────────────────────────
     // Evict dead/closing connections so their ports get re-probed.
@@ -141,9 +172,12 @@ export function useDevtoolsSocket(): {
 
     // Scanning done after last probe + its timeout
     const totalMs = delay + CONNECT_TIMEOUT_MS + 100;
-    const doneTimer = setTimeout(() => setScanning(false), totalMs);
+    const doneTimer = setTimeout(() => {
+      setScanning(false);
+      probeHttpForBlocking();
+    }, totalMs);
     staggerTimersRef.current.push(doneTimer);
-  }, [probePort, setScanning, removePlugin]);
+  }, [probePort, setScanning, removePlugin, probeHttpForBlocking]);
 
   useEffect(() => {
     // Initial scan on mount

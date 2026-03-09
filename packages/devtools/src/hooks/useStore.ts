@@ -25,6 +25,8 @@ export interface DevtoolsState {
 
   // Connection
   serverInfo: ServerInfoMessage | null;
+  /** True when HTTP probe reached a devtools server but WebSocket was blocked (e.g. by a browser extension). */
+  blocked: boolean;
 
   // Plugin discovery
   plugins: DiscoveredPlugin[];
@@ -72,6 +74,7 @@ export interface DevtoolsState {
   setSelectedNode: (nid: number | null) => void;
   setHoveredNode: (nid: number | null) => void;
   setSelectedRequest: (id: string | null) => void;
+  setBlocked: (blocked: boolean) => void;
 }
 
 // ── Helper: clear all data panels ───────────────────────────────────
@@ -101,6 +104,7 @@ export const useStore = create<DevtoolsState>((set, get) => ({
 
   // Connection
   serverInfo: null,
+  blocked: false,
 
   // Plugin discovery
   plugins: [],
@@ -133,7 +137,7 @@ export const useStore = create<DevtoolsState>((set, get) => ({
   eventFilter: { types: new Set<string>(), search: "" },
 
   // Actions
-  setScanning: (scanning) => set({ scanning }),
+  setScanning: (scanning) => set({ scanning, ...(scanning ? { blocked: false } : {}) }),
 
   addPlugin: (plugin) => {
     const state = get();
@@ -403,6 +407,7 @@ export const useStore = create<DevtoolsState>((set, get) => ({
   setSelectedNode: (nid) => set({ selectedNodeId: nid }),
   setHoveredNode: (nid) => set({ hoveredNodeId: nid }),
   setSelectedRequest: (id) => set({ selectedRequestId: id }),
+  setBlocked: (blocked) => set({ blocked }),
 }));
 
 // ── Selectors ───────────────────────────────────────────────────────
