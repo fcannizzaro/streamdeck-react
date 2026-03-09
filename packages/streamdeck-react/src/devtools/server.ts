@@ -1,4 +1,3 @@
-import { createServer, type Server } from "node:http";
 import { WebSocketServer, type WebSocket } from "ws";
 import type { BaseMessage, ClientMessage } from "./types";
 import { origConsole } from "./intercepts/console";
@@ -13,7 +12,6 @@ const MAX_RETRIES = 10;
 
 export class DevtoolsServer {
   private wss: WebSocketServer | null = null;
-  private httpServer: Server | null = null;
   private clients = new Set<WebSocket>();
   private port: number;
   private actualPort: number | null = null;
@@ -77,10 +75,6 @@ export class DevtoolsServer {
       this.wss.close();
       this.wss = null;
     }
-    if (this.httpServer) {
-      this.httpServer.close();
-      this.httpServer = null;
-    }
   }
 
   /** Whether any browser devtools clients are connected. Fast-path guard to skip serialization. */
@@ -120,85 +114,19 @@ export class DevtoolsServer {
 
   // ── Internal ──────────────────────────────────────────────────
 
-  private isAllowedOrigin(origin: string | undefined): boolean {
-    if (!origin) return false;
-    try {
-      const url = new URL(origin);
-      // Allow localhost (any port) and the hosted devtools site
-      return (
-        url.hostname === "localhost" ||
-        url.hostname === "127.0.0.1" ||
-        url.hostname === "streamdeckreact.fcannizzaro.com"
-      );
-    } catch {
-      return false;
-    }
-  }
-
   private listen(port: number): Promise<void> {
     return new Promise((resolve, reject) => {
-      const httpServer = createServer((req, res) => {
-        const origin = req.headers.origin;
+      const wss = new WebSocketServer({ port, host: "127.0.0.1" });
 
-        // Reject requests from disallowed origins
-        if (origin && !this.isAllowedOrigin(origin)) {
-          res.writeHead(403);
-          res.end();
-          return;
-        }
-
-        // ── PNA / CORS preflight ──────────────────────────────────
-        // Browsers send an OPTIONS request before allowing WebSocket
-        // connections from a public HTTPS origin to a local address.
-        if (req.method === "OPTIONS") {
-          res.writeHead(204, {
-            "Access-Control-Allow-Origin": origin || "*",
-            "Access-Control-Allow-Methods": "GET, OPTIONS",
-            "Access-Control-Allow-Headers": "*",
-            "Access-Control-Allow-Private-Network": "true",
-            "Access-Control-Max-Age": "86400",
-          });
-          res.end();
-          return;
-        }
-
-        // Basic informational response for direct HTTP access
-        const corsHeaders: Record<string, string> = origin
-          ? {
-              "Access-Control-Allow-Origin": origin,
-              "Access-Control-Allow-Private-Network": "true",
-            }
-          : {};
-        res.writeHead(200, { "Content-Type": "text/plain", ...corsHeaders });
-        res.end("streamdeck-react devtools server");
-      });
-
-      const wss = new WebSocketServer({ noServer: true });
-
-      httpServer.on("upgrade", (req, socket, head) => {
-        // Validate origin on WebSocket upgrade requests too
-        const origin = req.headers.origin;
-        if (origin && !this.isAllowedOrigin(origin)) {
-          socket.destroy();
-          return;
-        }
-        wss.handleUpgrade(req, socket, head, (ws) => {
-          wss.emit("connection", ws, req);
-        });
-      });
-
-      httpServer.on("listening", () => {
+      wss.on("listening", () => {
         this.wss = wss;
-        this.httpServer = httpServer;
         this.setupConnectionHandler(wss);
         resolve();
       });
 
-      httpServer.on("error", (err) => {
+      wss.on("error", (err) => {
         reject(err);
       });
-
-      httpServer.listen(port, "127.0.0.1");
     });
   }
 

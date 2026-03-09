@@ -17,7 +17,7 @@ export function ConnectionStatus() {
           : scanning
             ? "Scanning..."
             : blocked
-              ? "Plugin found but WebSocket blocked — disable ad blocker for this site"
+              ? "Connection may be blocked by an ad blocker — disable it for this site or use npx streamdeck-react-devtools"
               : "No plugins found"}
       </span>
       {serverInfo && (
