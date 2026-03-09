@@ -7,6 +7,7 @@
 # @fcannizzaro/streamdeck-react
 
 [![npm](https://img.shields.io/npm/v/@fcannizzaro/streamdeck-react?label=@fcannizzaro/streamdeck-react)](https://www.npmjs.com/package/@fcannizzaro/streamdeck-react)
+[![npm](https://img.shields.io/npm/v/@fcannizzaro/streamdeck-react-devtools?label=@fcannizzaro/streamdeck-react-devtools)](https://www.npmjs.com/package/@fcannizzaro/streamdeck-react-devtools)
 [![npm](https://img.shields.io/npm/v/create-streamdeck-react?label=create-streamdeck-react)](https://www.npmjs.com/package/create-streamdeck-react)
 
 React primitives, hooks, and a custom renderer for building Stream Deck plugins with React across keys, dials, and touch surfaces.
@@ -88,6 +89,25 @@ await plugin.connect();
 - `samples/zustand/` - shared external store across multiple actions
 - `samples/jotai/` - shared atom state with a plugin-level wrapper
 - `samples/pokemon/` - richer plugin example with custom wrappers
+
+## DevTools
+
+A browser-based inspector for debugging plugins during development. Enable it in your plugin config:
+
+```ts
+const plugin = createPlugin({
+  devtools: true,
+  // ...
+});
+```
+
+Then open the hosted UI at [streamdeckreact.fcannizzaro.com/devtools](https://streamdeckreact.fcannizzaro.com/devtools), or run a local copy:
+
+```bash
+npx @fcannizzaro/streamdeck-react-devtools
+```
+
+Panels include Console, Network, Elements (with on-device highlighting), Preview, and Events. All devtools code is automatically stripped from production builds.
 
 ## Documentation
 
