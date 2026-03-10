@@ -55,13 +55,33 @@
         }
       },
       "Tooltip": "Adjust volume with the dial, press to mute."
+    },
+    {
+      "Icon": "imgs/actions/volume",
+      "Name": "Equalizer",
+      "States": [
+        {
+          "Image": "imgs/actions/volume"
+        }
+      ],
+      "UUID": "com.example.react-counter.equalizer",
+      "Controllers": ["Encoder"],
+      "Encoder": {
+        "layout": "layouts/touchbar.json",
+        "TriggerDescription": {
+          "Rotate": "Adjust speed / amplitude",
+          "Push": "Pause / Reset",
+          "Touch": "Change color theme"
+        }
+      },
+      "Tooltip": "Animated equalizer across the full touch strip."
     }
   ],
   "Author": "Francesco Saverio Cannizzaro",
   "Category": "React Counter Sample",
   "CategoryIcon": "imgs/plugin-icon",
   "CodePath": "bin/plugin.mjs",
-  "Description": "Sample plugin demonstrating @fcannizzaro/streamdeck-react with counter, timer, toggle, and volume actions.",
+  "Description": "Sample plugin demonstrating @fcannizzaro/streamdeck-react with counter, timer, toggle, volume, and equalizer touchbar actions.",
   "Icon": "imgs/plugin-icon",
   "Name": "React Counter Sample",
   "Nodejs": {

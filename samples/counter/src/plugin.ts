@@ -3,6 +3,7 @@ import { counterAction } from "./actions/counter";
 import { timerAction } from "./actions/timer";
 import { volumeAction } from "./actions/volume";
 import { toggleAction } from "./actions/toggle";
+import { equalizerAction } from "./actions/equalizer";
 import InterRegular from "@fontsource-variable/inter/files/inter-latin-wght-normal.woff2";
 import SplineSansMono from "@fontsource-variable/spline-sans-mono/files/spline-sans-mono-latin-wght-normal.woff2";
 
@@ -21,7 +22,7 @@ const plugin = createPlugin({
       style: "normal",
     },
   ],
-  actions: [counterAction, timerAction, volumeAction, toggleAction],
+  actions: [counterAction, timerAction, volumeAction, toggleAction, equalizerAction],
 });
 
 await plugin.connect();

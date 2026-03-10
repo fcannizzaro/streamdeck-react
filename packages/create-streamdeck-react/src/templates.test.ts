@@ -33,7 +33,7 @@ test("manifest matches example actions and supported platforms", () => {
   const files = buildProjectFiles(baseOptions);
   const manifest = JSON.parse(files["com.example.demo-plugin.sdPlugin/manifest.json"] ?? "{}");
 
-  expect(manifest.Actions).toHaveLength(4);
+  expect(manifest.Actions).toHaveLength(5);
   expect(manifest.OS.map((entry: { Platform: string }) => entry.Platform)).toEqual([
     "mac",
     "windows",
