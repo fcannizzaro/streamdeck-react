@@ -23,8 +23,10 @@ The interactive CLI walks you through the setup:
 - **Description** and **category**
 - **Package manager** (`npm`, `pnpm`, `bun`)
 - **Starter example** (`minimal`, `counter`, `zustand`, `jotai`, `pokemon`)
+- **Bundler** (`rollup` or `rolldown` via Vite 8 beta)
 - **Supported platforms** (`mac`, `windows`)
-- **Native targets** for Rollup
+- **Native targets** for the selected bundler
+- **React Compiler** opt-in (enabled by default)
 
 After scaffolding, the CLI optionally:
 
@@ -37,6 +39,7 @@ After scaffolding, the CLI optionally:
 -y, --yes                  Skip prompts and use defaults
 -h, --help                 Show help message
 --example <name>           minimal | counter | zustand | jotai | pokemon
+--bundler <name>           rollup | rolldown
 --name <display-name>      Plugin display name
 --uuid <plugin-uuid>       Reverse-domain plugin UUID
 --author <name>            Manifest author
@@ -45,6 +48,7 @@ After scaffolding, the CLI optionally:
 --package-manager <pm>     npm | pnpm | bun
 --platforms <list>         Comma-separated: mac,windows
 --targets <list>           Comma-separated native targets
+--react-compiler <bool>    Enable React Compiler (true | false)
 ```
 
 ## Output
@@ -52,7 +56,7 @@ After scaffolding, the CLI optionally:
 The generated project includes:
 
 - `package.json` with all required dependencies
-- `rollup.config.mjs` configured for the selected native targets
+- `rollup.config.mjs` (Rollup) or `vite.config.ts` (Rolldown) configured for the selected native targets
 - Stream Deck manifest (`<uuid>.sdPlugin/manifest.json`)
 - Starter source files based on the chosen example
 - Auto-generated plugin and action icons
