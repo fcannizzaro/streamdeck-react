@@ -24,12 +24,17 @@ const PORT_MAX = 39499;
 const PROBE_TIMEOUT_MS = 2000;
 const STAGGER_MS = 5; // ms between each probe in full scan
 const AUTOSCAN_INTERVAL_MS = 60_000;
+const RECONNECT_PROBE_MS = 5_000;
+const HEALTH_CHECK_MS = 10_000;
+const HEALTH_CHECK_TIMEOUT_MS = 3_000;
 
-/** Read last-known plugin ports from sessionStorage (survives reload). */
+/** Read last-known plugin ports from localStorage (stable across restarts). */
 function getPersistedPorts(): number[] {
   try {
-    const raw = sessionStorage.getItem("sdreact:ports");
-    return raw ? JSON.parse(raw) : [];
+    const raw = localStorage.getItem("sdreact:plugin-ports");
+    if (!raw) return [];
+    const map = JSON.parse(raw) as Record<string, number>;
+    return Object.values(map);
   } catch {
     return [];
   }
@@ -170,12 +175,10 @@ export function useDevtoolsSocket(): {
         probePort(port);
       }
 
-      // Wait for priority probes to resolve, then decide
+      // Wait for priority probes to resolve, then always run full scan
+      // to discover any new plugins on ports not in sessionStorage.
+      // probePort already skips ports with active connections.
       const phase1Timer = setTimeout(() => {
-        if (connectionsRef.current.size > 0) {
-          setScanning(false);
-          return;
-        }
         startFullScan();
       }, PROBE_TIMEOUT_MS + 200);
       staggerTimersRef.current.push(phase1Timer);
@@ -232,6 +235,68 @@ export function useDevtoolsSocket(): {
       probingRef.current.clear();
     };
   }, [scan]);
+
+  // Auto-reconnect: when waiting for a plugin to reconnect, probe its port frequently
+  useEffect(() => {
+    let reconnectTimer: ReturnType<typeof setInterval> | null = null;
+
+    const unsub = useStore.subscribe((state, prev) => {
+      const shouldProbe = state.waitingForReconnect && state.selectedPort !== null;
+      const wasProbing = prev.waitingForReconnect && prev.selectedPort !== null;
+
+      if (shouldProbe && !wasProbing) {
+        // Start reconnect probing
+        const port = state.selectedPort!;
+        probePort(port);
+        reconnectTimer = setInterval(() => probePort(port), RECONNECT_PROBE_MS);
+      } else if (!shouldProbe && wasProbing) {
+        // Stop reconnect probing
+        if (reconnectTimer) {
+          clearInterval(reconnectTimer);
+          reconnectTimer = null;
+        }
+      }
+    });
+
+    // Check initial state
+    const { waitingForReconnect, selectedPort } = useStore.getState();
+    if (waitingForReconnect && selectedPort !== null) {
+      probePort(selectedPort);
+      reconnectTimer = setInterval(() => probePort(selectedPort), RECONNECT_PROBE_MS);
+    }
+
+    return () => {
+      unsub();
+      if (reconnectTimer) clearInterval(reconnectTimer);
+    };
+  }, [probePort]);
+
+  // Periodic health check: probe all connected plugins to detect unresponsive servers
+  useEffect(() => {
+    const healthCheckTimer = setInterval(() => {
+      for (const [port, es] of connectionsRef.current) {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), HEALTH_CHECK_TIMEOUT_MS);
+
+        fetch(`http://127.0.0.1:${port}/health`, { signal: controller.signal })
+          .then((res) => {
+            clearTimeout(timeout);
+            if (!res.ok) throw new Error("unhealthy");
+          })
+          .catch(() => {
+            clearTimeout(timeout);
+            // Health check failed — treat as disconnection
+            es.close();
+            if (connectionsRef.current.get(port) === es) {
+              connectionsRef.current.delete(port);
+              removePluginRef.current(port);
+            }
+          });
+      }
+    }, HEALTH_CHECK_MS);
+
+    return () => clearInterval(healthCheckTimer);
+  }, []);
 
   const requestSnapshot = useCallback((port: number) => {
     const d = encodeURIComponent(JSON.stringify({ type: "request:snapshot", ts: Date.now() }));

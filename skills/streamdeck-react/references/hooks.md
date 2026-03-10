@@ -158,7 +158,7 @@ interface DoubleTapOptions {
 
 ### Combining useTap and useDoubleTap
 
-When both hooks are used in the same component, they coordinate automatically via an internal per-action TapGate. No extra configuration is needed:
+When both hooks are used in the same action, they coordinate automatically via an internal per-action TapGate. No extra configuration is needed:
 
 ```tsx
 function ModeKey() {
@@ -402,11 +402,3 @@ function useTick(
 ```
 
 Actual frame rate is capped by `renderDebounceMs` (default 16ms). In practice, real throughput is roughly 10-30fps depending on component complexity.
-
-### useAnimationFrame (Deprecated)
-
-Legacy wrapper that calls `useTick` with 60fps when active. Use `useTick` instead.
-
-```ts
-function useAnimationFrame(callback: (deltaMs: number) => void, active?: boolean): void;
-```

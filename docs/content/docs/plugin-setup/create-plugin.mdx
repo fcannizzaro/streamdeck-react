@@ -9,16 +9,16 @@ description: Configure and initialize the @fcannizzaro/streamdeck-react plugin.
 
 ```ts
 import { createPlugin } from "@fcannizzaro/streamdeck-react";
-import { readFile } from "node:fs/promises";
+import InterRegular from "@fontsource-variable/inter/files/inter-latin-wght-normal.woff2";
 import { counterAction } from "./actions/counter";
 
 const plugin = createPlugin({
   fonts: [
     {
       name: "Inter",
-      data: await readFile(new URL("./fonts/Inter-Regular.ttf", import.meta.url)),
+      data: InterRegular,
       weight: 400,
-      style: "normal" as const,
+      style: "normal",
     },
   ],
   actions: [counterAction],
@@ -40,7 +40,6 @@ interface PluginConfig {
   devicePixelRatio?: number;
   onActionError?: (uuid: string, actionId: string, error: Error) => void;
   devtools?: boolean;
-  devtoolsPort?: number;
 }
 ```
 
@@ -95,17 +94,10 @@ const plugin = createPlugin({
 
 ### `devtools`
 
-Enable the devtools server. The browser devtools UI discovers it via port scanning. Default: `false`. See [DevTools](/guides/devtools).
-
-### `devtoolsPort`
-
-Port for the devtools server. If omitted, a random port in the range **39400 -- 39499** is selected automatically.
+Enable the devtools server. The browser devtools UI discovers it via port scanning. The port is derived deterministically from the plugin UUID (range 39400-39499). Default: `false`. See [DevTools](/guides/devtools).
 
 ## connect()
 
-`connect()` must be the last call in your entry file. It:
+`connect()` must be the last call in your entry file. It calls `streamDeck.connect()` to establish the WebSocket connection with the Stream Deck software.
 
-1. Instantiates a `SingletonAction` for each defined action.
-2. Registers each with `streamDeck.actions.registerAction()`.
-3. Calls `streamDeck.connect()`.
-4. Initializes the renderer with the provided fonts.
+The action registration, font initialization, and renderer setup all happen during the `createPlugin()` call itself — `connect()` only opens the connection.

@@ -61,8 +61,6 @@ A minimal plugin project needs:
 
 ```
 my-plugin/
-  fonts/
-    Inter-Regular.ttf     # At least one font file
   src/
     plugin.ts           # Entry point
     actions/
@@ -84,6 +82,9 @@ npm install @fcannizzaro/streamdeck-react react
 
 # Runtime support used by the Stream Deck SDK
 npm install ws
+
+# Fonts (use any @fontsource or @fontsource-variable package)
+npm install @fontsource-variable/inter
 
 # Build tooling (default -- esbuild)
 npm install -D rollup @rollup/plugin-node-resolve @rollup/plugin-commonjs @rollup/plugin-json rollup-plugin-esbuild
@@ -108,7 +109,7 @@ npm install @takumi-rs/core-darwin-x64
 npm install @takumi-rs/core-win32-x64-msvc
 ```
 
-See [references/rollup-bundling.md](references/rollup-bundling.md) for the full platform matrix.
+See [references/bundling.md](references/bundling.md) for the full platform matrix.
 
 ### package.json
 
@@ -186,15 +187,15 @@ export const counterAction = defineAction({
 
 ```ts
 // src/plugin.ts
-import { readFile } from "node:fs/promises";
 import { createPlugin } from "@fcannizzaro/streamdeck-react";
+import InterRegular from "@fontsource-variable/inter/files/inter-latin-wght-normal.woff2";
 import { counterAction } from "./actions/counter.tsx";
 
 const plugin = createPlugin({
   fonts: [
     {
       name: "Inter",
-      data: await readFile("./fonts/Inter-Regular.ttf"),
+      data: InterRegular,
       weight: 400,
       style: "normal",
     },
@@ -425,7 +426,7 @@ For touch interaction on Stream Deck+, use `useTouchTap()` inside the mounted ac
 
 ## Critical Gotchas
 
-1. **Fonts are mandatory** -- the renderer cannot access system fonts. Load at least one `.ttf`, `.otf`, or `.woff` file. WOFF2 is NOT supported.
+1. **Fonts are mandatory** -- the renderer cannot access system fonts. Install a font package (e.g. `@fontsource-variable/inter`) and import the font file directly. The bundler plugin inlines it as a `Buffer`. Supported formats: `.ttf`, `.otf`, `.woff`, `.woff2`.
 2. **`plugin.connect()` must be called last** -- after `createPlugin()` and all setup.
 3. **UUID mismatch** -- the `uuid` in `defineAction()` must exactly match the `UUID` in `manifest.json`.
 4. **`streamDeckReact({ targets })` is required for production builds** -- it copies the Takumi `.node` binaries into output. Without them, the plugin crashes on startup.
@@ -444,7 +445,7 @@ When scaffolding or modifying a @fcannizzaro/streamdeck-react plugin, verify:
 - [ ] Matching `@takumi-rs/core-*` packages are installed for every `streamDeckReact({ targets })` entry
 - [ ] `package.json` has `"type": "module"`
 - [ ] `tsconfig.json` has `"jsx": "react-jsx"`
-- [ ] At least one font file exists and is loaded in `createPlugin()`
+- [ ] At least one font is installed (e.g. `@fontsource-variable/inter`) and imported in `createPlugin()`
 - [ ] Every `defineAction()` UUID matches its `manifest.json` UUID
 - [ ] `rollup.config.mjs` uses `streamDeckReact({ targets })` for production builds
 - [ ] `manifest.json` `CodePath` points to the Rollup output (e.g., `bin/plugin.mjs`)
@@ -462,8 +463,10 @@ A browser-based inspector for debugging plugins during development. When enabled
 
 ```ts
 const plugin = createPlugin({
-  devtools: true, // starts the WebSocket server
-  // devtoolsPort: 39400,  // optional fixed port (default: random in 39400-39499)
+  devtools: true, // starts the devtools server (port derived from plugin UUID)
+  fonts: [
+    // ...your fonts
+  ],
   actions: [
     /* ... */
   ],
@@ -497,6 +500,6 @@ const plugin = createPlugin({
 - [references/plugin-setup.md](references/plugin-setup.md) -- `createPlugin` and `defineAction` details
 - [references/hooks.md](references/hooks.md) -- All hooks with signatures and payloads
 - [references/components.md](references/components.md) -- Component props tables
-- [references/rollup-bundling.md](references/rollup-bundling.md) -- Rollup config and native binding details
+- [references/bundling.md](references/bundling.md) -- Rollup/Rolldown config and native binding details
 - [references/device-sizes.md](references/device-sizes.md) -- Key/encoder/touch dimensions per device
 - [references/limitations.md](references/limitations.md) -- Styling constraints and known limitations

@@ -91,9 +91,9 @@ export const volumeAction = defineAction({
 });
 ```
 
-### `touch`
+### `touchBar`
 
-Reserved in the current action shape. For touch interactions on Stream Deck+, use [`useTouchTap`](/hooks/events) from the mounted action root instead.
+Component for full-strip rendering across all encoders. When set, replaces per-encoder `dial` display with a single shared React tree that spans the entire Stream Deck+ touch strip. See the [TouchBar Component](/guides/touchbar) guide.
 
 For encoder rendering, you can still pair a key surface with a dedicated dial component:
 
@@ -105,10 +105,6 @@ export const volumeAction = defineAction<VolumeSettings>({
   defaultSettings: { volume: 50, muted: false },
 });
 ```
-
-### `touchBar`
-
-Component for full-strip rendering across all encoders. When set, replaces per-encoder `dial` display with a single shared React tree that spans the entire Stream Deck+ touch strip. See the [TouchBar Component](/guides/touchbar) guide.
 
 ### `touchBarFPS`
 

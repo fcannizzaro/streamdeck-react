@@ -1,5 +1,11 @@
 # @fcannizzaro/streamdeck-react
 
+## 0.1.9
+
+### Patch Changes
+
+- update devtools, docs, bump packages
+
 ## 0.1.8
 
 ### Patch Changes

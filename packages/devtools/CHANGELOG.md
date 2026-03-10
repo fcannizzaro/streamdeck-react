@@ -1,5 +1,11 @@
 # @fcannizzaro/streamdeck-react-devtools
 
+## 0.1.11
+
+### Patch Changes
+
+- update devtools, docs, bump packages
+
 ## 0.1.10
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "name": "@fcannizzaro/streamdeck-react-devtools",
-  "version": "0.1.10",
+  "version": "0.1.11",
   "description": "DevTools UI for @fcannizzaro/streamdeck-react — inspect actions, events, renders, console and network",
   "keywords": [
     "devtools",
@@ -58,6 +58,6 @@
     "babel-plugin-react-compiler": "^1.0.0",
     "tailwindcss": "^4.1.7",
     "typescript": "^5.8.3",
-    "vite": "^7.3.1"
+    "vite": "8.0.0-beta.18"
   }
 }

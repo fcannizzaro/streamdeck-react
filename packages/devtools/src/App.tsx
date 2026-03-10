@@ -31,6 +31,8 @@ export function App() {
   const plugins = useStore((s) => s.plugins);
   const selectedPort = useStore((s) => s.selectedPort);
   const scanning = useStore((s) => s.scanning);
+  const waitingForReconnect = useStore((s) => s.waitingForReconnect);
+  const disconnectedPlugin = useStore((s) => s.disconnectedPlugin);
   const storeSelectPlugin = useStore((s) => s.selectPlugin);
 
   const layout = useLayoutStore((s) => s.layout);
@@ -124,6 +126,7 @@ export function App() {
           <PluginSelector
             plugins={plugins}
             selectedPort={selectedPort}
+            disconnectedPlugin={disconnectedPlugin}
             onSelect={handleSelectPlugin}
           />
           <button
@@ -166,7 +169,37 @@ export function App() {
 
       {/* Grid panels */}
       <div ref={containerRef} className="flex-1 min-h-0 overflow-auto">
-        {plugins.length === 0 ? (
+        {waitingForReconnect ? (
+          <div className="flex flex-col items-center justify-center h-full text-neutral-500 gap-3">
+            <svg
+              width="32"
+              height="32"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="text-neutral-600"
+            >
+              <path d="M12 2v4" />
+              <path d="M12 18v4" />
+              <path d="M4.93 4.93l2.83 2.83" />
+              <path d="M16.24 16.24l2.83 2.83" />
+              <path d="M2 12h4" />
+              <path d="M18 12h4" />
+              <path d="M4.93 19.07l2.83-2.83" />
+              <path d="M16.24 7.76l2.83-2.83" />
+            </svg>
+            <span className="text-sm">
+              Waiting for{" "}
+              <span className="text-neutral-400">
+                {disconnectedPlugin?.devtoolsName ?? "plugin"}
+              </span>{" "}
+              to reconnect&hellip;
+            </span>
+          </div>
+        ) : plugins.length === 0 ? (
           <div className="flex items-center justify-center h-full text-neutral-500 text-sm">
             {scanning ? "Scanning for plugins..." : "No plugins found"}
           </div>

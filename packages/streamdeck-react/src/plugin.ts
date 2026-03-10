@@ -78,7 +78,6 @@ export function createPlugin(config: PluginConfig): Plugin {
   // ── DevTools server (conditional) ──────────────────────────────────────
   if (config.devtools) {
     startDevtoolsServer({
-      port: config.devtoolsPort,
       devtoolsName: streamDeck.info.plugin.uuid,
       registry,
       renderConfig,

@@ -54,13 +54,12 @@ Complete public API exported from `@fcannizzaro/streamdeck-react`.
 
 ## Utility Hooks
 
-| Export              | Signature                                                                  | Description                                                                |
-| ------------------- | -------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| `useInterval`       | `(cb: () => void, delayMs: number \| null) => IntervalControls`            | Auto-cleaning interval. Pass `null` to pause. Returns `{ reset }`.         |
-| `useTimeout`        | `(cb: () => void, delayMs: number \| null) => TimeoutControls`             | Auto-cleaning timeout. Pass `null` to cancel. Returns `{ cancel, reset }`. |
-| `usePrevious`       | `<T>(value: T) => T \| undefined`                                          | Returns the value from the previous render.                                |
-| `useTick`           | `(cb: (deltaMs: number) => void, fpsOrActive?: number \| boolean) => void` | Animation frame loop. Default 60fps. Pass `false` to pause.                |
-| `useAnimationFrame` | `(cb: (deltaMs: number) => void, active?: boolean) => void`                | **Deprecated**. Use `useTick` instead.                                     |
+| Export        | Signature                                                                  | Description                                                                |
+| ------------- | -------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `useInterval` | `(cb: () => void, delayMs: number \| null) => IntervalControls`            | Auto-cleaning interval. Pass `null` to pause. Returns `{ reset }`.         |
+| `useTimeout`  | `(cb: () => void, delayMs: number \| null) => TimeoutControls`             | Auto-cleaning timeout. Pass `null` to cancel. Returns `{ cancel, reset }`. |
+| `usePrevious` | `<T>(value: T) => T \| undefined`                                          | Returns the value from the previous render.                                |
+| `useTick`     | `(cb: (deltaMs: number) => void, fpsOrActive?: number \| boolean) => void` | Animation frame loop. Default 60fps. Pass `false` to pause.                |
 
 ## SDK Hooks
 
@@ -73,6 +72,16 @@ Complete public API exported from `@fcannizzaro/streamdeck-react`.
 | `useShowAlert`         | `() => () => Promise<void>`                                   | Triggers the alert overlay animation.                |
 | `useShowOk`            | `() => () => Promise<void>`                                   | Triggers the OK checkmark overlay. Key actions only. |
 | `useTitle`             | `() => (title: string) => Promise<void>`                      | Sets the native title overlay. Key actions only.     |
+
+## Touch Bar Hooks
+
+| Export                  | Signature                                                    | Description                                                            |
+| ----------------------- | ------------------------------------------------------------ | ---------------------------------------------------------------------- |
+| `useTouchBar`           | `() => TouchBarInfo`                                         | Returns touch bar metadata: width, height, columns, segmentWidth, fps. |
+| `useTouchBarTap`        | `(cb: (payload: TouchBarTapPayload) => void) => void`        | Touch events with absolute coordinates across the full strip.          |
+| `useTouchBarDialRotate` | `(cb: (payload: TouchBarDialRotatePayload) => void) => void` | Dial rotation events with column info.                                 |
+| `useTouchBarDialDown`   | `(cb: (payload: TouchBarDialPressPayload) => void) => void`  | Dial press events with column info.                                    |
+| `useTouchBarDialUp`     | `(cb: (payload: TouchBarDialPressPayload) => void) => void`  | Dial release events with column info.                                  |
 
 ## Components
 
@@ -109,23 +118,33 @@ Complete public API exported from `@fcannizzaro/streamdeck-react`.
 
 ## Types
 
-| Export              | Kind      | Description                                                                             |
-| ------------------- | --------- | --------------------------------------------------------------------------------------- |
-| `PluginConfig`      | Interface | Configuration for `createPlugin()`.                                                     |
-| `FontConfig`        | Interface | Font file descriptor: `name`, `data`, `weight`, `style`.                                |
-| `ActionConfig`      | Interface | Configuration for `defineAction()`.                                                     |
-| `ActionDefinition`  | Interface | Resolved action definition (output of `defineAction`).                                  |
-| `WrapperComponent`  | Type      | `ComponentType<{ children?: ReactNode }>`.                                              |
-| `DeviceInfo`        | Interface | Device metadata: `id`, `type`, `size`, `name`.                                          |
-| `ActionInfo`        | Interface | Action instance metadata: `id`, `uuid`, `controller`, `coordinates`, `isInMultiAction`. |
-| `CanvasInfo`        | Interface | Render target: `width`, `height`, `type` (`'key' \| 'dial' \| 'touch'`).                |
-| `KeyDownPayload`    | Interface | `{ settings, isInMultiAction, state?, userDesiredState? }`.                             |
-| `KeyUpPayload`      | Interface | Same shape as `KeyDownPayload`.                                                         |
-| `DialRotatePayload` | Interface | `{ ticks, pressed, settings }`.                                                         |
-| `DialPressPayload`  | Interface | `{ settings, controller: 'Encoder' }`.                                                  |
-| `TouchTapPayload`   | Interface | `{ tapPos: [x, y], hold, settings }`.                                                   |
-| `DialHints`         | Interface | `{ rotate?, press?, touch?, longTouch? }`.                                              |
-| `StreamDeckAccess`  | Interface | `{ action: Action \| DialAction \| KeyAction, sdk }`.                                   |
+| Export                      | Kind      | Description                                                                                       |
+| --------------------------- | --------- | ------------------------------------------------------------------------------------------------- |
+| `PluginConfig`              | Interface | Configuration for `createPlugin()`.                                                               |
+| `FontConfig`                | Interface | Font file descriptor: `name`, `data`, `weight`, `style`.                                          |
+| `ActionConfig`              | Interface | Configuration for `defineAction()`.                                                               |
+| `ActionDefinition`          | Interface | Resolved action definition (output of `defineAction`).                                            |
+| `EncoderLayout`             | Type      | `string \| TouchStripLayout`.                                                                     |
+| `WrapperComponent`          | Type      | `ComponentType<{ children?: ReactNode }>`.                                                        |
+| `DeviceInfo`                | Interface | Device metadata: `id`, `type`, `size`, `name`.                                                    |
+| `ActionInfo`                | Interface | Action instance metadata: `id`, `uuid`, `controller`, `coordinates`, `isInMultiAction`.           |
+| `CanvasInfo`                | Interface | Render target: `width`, `height`, `type` (`'key' \| 'dial' \| 'touch'`).                          |
+| `KeyDownPayload`            | Interface | `{ settings, isInMultiAction, state?, userDesiredState? }`.                                       |
+| `KeyUpPayload`              | Interface | Same shape as `KeyDownPayload`.                                                                   |
+| `DialRotatePayload`         | Interface | `{ ticks, pressed, settings }`.                                                                   |
+| `DialPressPayload`          | Interface | `{ settings, controller: 'Encoder' }`.                                                            |
+| `TouchTapPayload`           | Interface | `{ tapPos: [x, y], hold, settings }`.                                                             |
+| `DialHints`                 | Interface | `{ rotate?, press?, touch?, longTouch? }`.                                                        |
+| `StreamDeckAccess`          | Interface | `{ action: Action \| DialAction \| KeyAction, sdk }`.                                             |
+| `TouchBarInfo`              | Interface | `{ width, height, columns, segmentWidth, fps }`.                                                  |
+| `TouchBarTapPayload`        | Interface | `{ tapPos: [x, y], hold, column }`.                                                               |
+| `TouchBarDialRotatePayload` | Interface | `{ column, ticks, pressed }`.                                                                     |
+| `TouchBarDialPressPayload`  | Interface | `{ column }`.                                                                                     |
+| `TouchStripLayout`          | Interface | `{ $schema?, id, items: TouchStripLayoutItem[] }`.                                                |
+| `TouchStripLayoutItem`      | Type      | Union of `TouchStripBarItem \| TouchStripGBarItem \| TouchStripPixmapItem \| TouchStripTextItem`. |
+| `TapOptions`                | Interface | `{ timeout?: number }`.                                                                           |
+| `LongPressOptions`          | Interface | `{ timeout?: number }`. Default: 500ms.                                                           |
+| `DoubleTapOptions`          | Interface | `{ timeout?: number }`. Default: 250ms.                                                           |
 
 ## Component Props Types
 

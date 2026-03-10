@@ -10,7 +10,17 @@ import { origConsole } from "./intercepts/console";
 
 const PORT_MIN = 39400;
 const PORT_MAX = 39499;
+const PORT_RANGE = PORT_MAX - PORT_MIN + 1;
 const MAX_RETRIES = 10;
+
+/** djb2 hash of a string mapped to a port in [PORT_MIN, PORT_MAX]. */
+export function hashToPort(str: string): number {
+  let hash = 5381;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) + hash + str.charCodeAt(i)) | 0;
+  }
+  return PORT_MIN + (((hash % PORT_RANGE) + PORT_RANGE) % PORT_RANGE);
+}
 
 let clientIdCounter = 0;
 
@@ -23,7 +33,10 @@ export class DevtoolsServer {
   private onConnectCb: ((clientId: string) => void) | null = null;
   private onMessageCb: ((msg: ClientMessage) => void) | null = null;
 
-  constructor(port: number) {
+  constructor(
+    port: number,
+    private uuid: string,
+  ) {
     this.port = port;
   }
 
@@ -37,10 +50,11 @@ export class DevtoolsServer {
     this.onMessageCb = cb;
   }
 
-  /** Start listening. Tries the configured port, then random ports in range on EADDRINUSE. */
+  /** Start listening. Tries the configured port, then sequential ports in range on EADDRINUSE. */
   async start(): Promise<void> {
     let port = this.port;
     let retries = 0;
+    const baseOffset = hashToPort(this.uuid) - PORT_MIN;
 
     while (retries < MAX_RETRIES) {
       try {
@@ -53,7 +67,7 @@ export class DevtoolsServer {
       } catch (err: unknown) {
         if ((err as NodeJS.ErrnoException).code === "EADDRINUSE") {
           retries++;
-          port = PORT_MIN + Math.floor(Math.random() * (PORT_MAX - PORT_MIN + 1));
+          port = PORT_MIN + ((baseOffset + retries) % PORT_RANGE);
           continue;
         }
         throw err;

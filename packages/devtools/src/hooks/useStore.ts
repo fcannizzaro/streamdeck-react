@@ -17,6 +17,50 @@ const MAX_CONSOLE = 1000;
 const MAX_NETWORK = 500;
 const MAX_EVENTS = 1000;
 
+// ── Persist selected plugin name ────────────────────────────────────
+
+const SELECTED_PLUGIN_KEY = "sdreact:selected-plugin";
+const PLUGIN_PORTS_KEY = "sdreact:plugin-ports";
+
+function getPersistedPluginName(): string | null {
+  try {
+    return localStorage.getItem(SELECTED_PLUGIN_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function persistPluginName(name: string | null) {
+  try {
+    if (name) {
+      localStorage.setItem(SELECTED_PLUGIN_KEY, name);
+    } else {
+      localStorage.removeItem(SELECTED_PLUGIN_KEY);
+    }
+  } catch {}
+}
+
+// ── Persist known plugin ports (stable across restarts) ─────────────
+
+function getPersistedPluginPorts(): Record<string, number> {
+  try {
+    const raw = localStorage.getItem(PLUGIN_PORTS_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function persistPluginPorts(plugins: DiscoveredPlugin[]) {
+  try {
+    const map = getPersistedPluginPorts();
+    for (const p of plugins) {
+      map[p.devtoolsName] = p.port;
+    }
+    localStorage.setItem(PLUGIN_PORTS_KEY, JSON.stringify(map));
+  } catch {}
+}
+
 // ── Store Interface ─────────────────────────────────────────────────
 
 export interface DevtoolsState {
@@ -31,6 +75,10 @@ export interface DevtoolsState {
   // Plugin discovery
   plugins: DiscoveredPlugin[];
   selectedPort: number | null;
+  /** True when the selected plugin disconnected and we're waiting for it to reconnect. */
+  waitingForReconnect: boolean;
+  /** Info about the disconnected plugin we're waiting for. */
+  disconnectedPlugin: DiscoveredPlugin | null;
 
   // Console
   consoleLogs: ConsoleMessage[];
@@ -105,6 +153,8 @@ export const useStore = create<DevtoolsState>((set, get) => ({
   // Plugin discovery
   plugins: [],
   selectedPort: null,
+  waitingForReconnect: false,
+  disconnectedPlugin: null,
 
   // Console
   consoleLogs: [],
@@ -146,41 +196,64 @@ export const useStore = create<DevtoolsState>((set, get) => ({
     } else {
       plugins = [...state.plugins, plugin];
     }
-    // Auto-select if nothing selected
-    const selectedPort = state.selectedPort ?? plugin.port;
-    set({ plugins, selectedPort });
-    // Persist known ports for fast reconnect on reload
-    try {
-      sessionStorage.setItem("sdreact:ports", JSON.stringify(plugins.map((p) => p.port)));
-    } catch {}
+    // Check if the selected plugin is reconnecting
+    const isReconnect = state.waitingForReconnect && state.selectedPort === plugin.port;
+    // Auto-select: prefer persisted plugin, defer if it hasn't been discovered yet
+    let selectedPort = state.selectedPort;
+    if (selectedPort === null) {
+      const preferredName = getPersistedPluginName();
+      if (preferredName) {
+        // Only select if THIS plugin matches, otherwise wait for the right one
+        if (plugin.devtoolsName === preferredName) {
+          selectedPort = plugin.port;
+        }
+      } else {
+        // No preference persisted — select first found and remember it
+        selectedPort = plugin.port;
+        persistPluginName(plugin.devtoolsName);
+      }
+    }
+    set({
+      plugins,
+      selectedPort,
+      ...(isReconnect ? { waitingForReconnect: false, disconnectedPlugin: null } : {}),
+    });
+    // Persist known ports to localStorage (stable across restarts)
+    persistPluginPorts(plugins);
   },
 
   removePlugin: (port) => {
     const state = get();
     const remaining = state.plugins.filter((p) => p.port !== port);
     if (state.selectedPort === port) {
-      // Selected plugin disconnected — clear data, pick next
-      const nextPort = remaining.length > 0 ? remaining[0].port : null;
-      set({
-        plugins: remaining,
-        selectedPort: nextPort,
-        ...emptyDataState(),
-      });
+      // Already waiting for reconnect on this port — just update plugin list
+      if (state.waitingForReconnect) {
+        set({ plugins: remaining });
+      } else {
+        // Selected plugin disconnected — keep selectedPort, wait for reconnect
+        const disconnectedPlugin = state.plugins.find((p) => p.port === port) ?? null;
+        set({
+          plugins: remaining,
+          waitingForReconnect: true,
+          disconnectedPlugin,
+          ...emptyDataState(),
+        });
+      }
     } else {
       set({ plugins: remaining });
     }
-    // Update persisted ports
-    try {
-      if (remaining.length > 0) {
-        sessionStorage.setItem("sdreact:ports", JSON.stringify(remaining.map((p) => p.port)));
-      } else {
-        sessionStorage.removeItem("sdreact:ports");
-      }
-    } catch {}
   },
 
   selectPlugin: (port) => {
-    set({ selectedPort: port, ...emptyDataState() });
+    const state = get();
+    const plugin = state.plugins.find((p) => p.port === port);
+    persistPluginName(plugin?.devtoolsName ?? null);
+    set({
+      selectedPort: port,
+      waitingForReconnect: false,
+      disconnectedPlugin: null,
+      ...emptyDataState(),
+    });
   },
 
   handleMessage: (port: number, msg: ServerMessage) => {

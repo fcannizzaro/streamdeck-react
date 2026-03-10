@@ -35,14 +35,14 @@ Those React elements are then converted into Takumi nodes by `@takumi-rs/helpers
 
 ```ts
 interface RenderConfig {
-  width: number; // From device/controller detection
-  height: number;
-  fonts: FontConfig[]; // From plugin config
-  format: "png" | "webp";
+  renderer: Renderer; // Shared Takumi renderer instance
+  imageFormat: OutputFormat; // "png" | "webp"
+  caching: boolean; // FNV-1a hash deduplication
+  devicePixelRatio: number; // Default: 1
 }
 ```
 
-Dimensions are determined automatically from the device type and controller. See [Device Sizes](/reference/device-sizes) for the full table.
+Dimensions (width/height) are determined automatically from the device type and controller, and passed to the render function separately. See [Device Sizes](/reference/device-sizes) for the full table.
 
 ## Image Buffer to Data URI
 

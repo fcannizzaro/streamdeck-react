@@ -141,7 +141,7 @@ The default double-tap window is **250 ms**. Pass `{ timeout }` to override it.
 
 ## Combining useTap and useDoubleTap
 
-When both hooks are used in the same component, they coordinate automatically. `useTap` delays its callback by the double-tap timeout so a second tap can cancel it. No extra configuration is needed.
+When both hooks are used in the same action, they coordinate automatically. `useTap` delays its callback by the double-tap timeout so a second tap can cancel it. No extra configuration is needed.
 
 ```tsx
 function ModeKey() {

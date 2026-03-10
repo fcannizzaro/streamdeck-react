@@ -5,20 +5,24 @@ export function ConnectionStatus() {
   const serverInfo = useStore((s) => s.serverInfo);
   const pluginCount = useStore((s) => s.plugins.length);
   const blocked = useStore((s) => s.blocked);
+  const waitingForReconnect = useStore((s) => s.waitingForReconnect);
+  const disconnectedPlugin = useStore((s) => s.disconnectedPlugin);
 
   return (
     <div className="flex items-center gap-2 text-xs">
       <div
-        className={`w-2 h-2 rounded-full ${pluginCount > 0 ? "bg-green-500" : scanning ? "bg-yellow-500 animate-pulse" : blocked ? "bg-orange-500" : "bg-red-500"}`}
+        className={`w-2 h-2 rounded-full ${waitingForReconnect ? "bg-orange-500 animate-pulse" : pluginCount > 0 ? "bg-green-500" : scanning ? "bg-yellow-500 animate-pulse" : blocked ? "bg-orange-500" : "bg-red-500"}`}
       />
       <span className="text-neutral-400">
-        {pluginCount > 0
-          ? `${pluginCount} plugin${pluginCount !== 1 ? "s" : ""} connected`
-          : scanning
-            ? "Scanning..."
-            : blocked
-              ? "Connection may be blocked by an ad blocker — disable it for this site or use npx streamdeck-react-devtools"
-              : "No plugins found"}
+        {waitingForReconnect
+          ? `Plugin disconnected${disconnectedPlugin ? ` (${disconnectedPlugin.devtoolsName})` : ""}, reconnecting...`
+          : pluginCount > 0
+            ? `${pluginCount} plugin${pluginCount !== 1 ? "s" : ""} connected`
+            : scanning
+              ? "Scanning..."
+              : blocked
+                ? "Connection may be blocked by an ad blocker — disable it for this site or use npx streamdeck-react-devtools"
+                : "No plugins found"}
       </span>
       {serverInfo && (
         <span className="text-neutral-600">

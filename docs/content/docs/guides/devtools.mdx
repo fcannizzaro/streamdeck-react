@@ -56,27 +56,20 @@ import { createPlugin } from "@fcannizzaro/streamdeck-react";
 
 const plugin = createPlugin({
   devtools: true,
+  fonts: [
+    // ...your fonts
+  ],
   actions: [
     // ...your actions
   ],
 });
 ```
 
-You can optionally specify a fixed port with the `devtoolsPort` option. If omitted, a random port in the range **39400 -- 39499** is selected automatically.
-
-```tsx
-const plugin = createPlugin({
-  devtools: true,
-  devtoolsPort: 39400,
-  actions: [
-    // ...your actions
-  ],
-});
-```
+The port is derived deterministically from the plugin UUID (range **39400 -- 39499**), so the same plugin always uses the same port.
 
 ## How It Works
 
-1. When `devtools: true` is set, the plugin starts an **HTTP server** on `localhost` (port range 39400 -- 39499).
+1. When `devtools: true` is set, the plugin starts an **HTTP server** on `localhost` (port range 39400 -- 39499). The port is derived from the plugin UUID hash.
 2. The browser UI **auto-discovers** running plugins by scanning that port range.
 3. Once connected, the devtools receive real-time updates: renders, console output, network requests, events, and the component tree.
 4. All devtools code is **automatically stripped from production builds** -- there is zero overhead in release bundles.

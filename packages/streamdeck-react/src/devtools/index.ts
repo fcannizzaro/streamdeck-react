@@ -2,7 +2,7 @@ import type { RootRegistry } from "@/roots/registry";
 import type { RenderConfig } from "@/render/pipeline";
 import { EventBus } from "@/context/event-bus";
 import { DevtoolsBridge } from "./bridge";
-import { DevtoolsServer } from "./server";
+import { DevtoolsServer, hashToPort } from "./server";
 import { patchConsole } from "./intercepts/console";
 import { patchFetch } from "./intercepts/fetch";
 
@@ -10,18 +10,15 @@ import { patchFetch } from "./intercepts/fetch";
 // Called from plugin.ts when devtools: true. Creates an HTTP + SSE server
 // using Node.js built-in `http` module.
 
-const DEFAULT_PORT = 39400;
-
 export function startDevtoolsServer(config: {
-  port?: number;
   devtoolsName: string;
   registry: RootRegistry;
   renderConfig: RenderConfig;
 }): void {
-  const port = config.port ?? DEFAULT_PORT;
+  const port = hashToPort(config.devtoolsName);
 
   // 1. Create server + bridge
-  const server = new DevtoolsServer(port);
+  const server = new DevtoolsServer(port, config.devtoolsName);
   const bridge = new DevtoolsBridge(server, config.devtoolsName, config.renderConfig);
 
   // 2. Attach observer to registry

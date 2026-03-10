@@ -57,13 +57,13 @@ bun run format
 
 This project follows [Conventional Commits](https://www.conventionalcommits.org):
 
-| Prefix       | Usage                          |
-| ------------ | ------------------------------ |
-| `feat:`      | New feature                    |
-| `fix:`       | Bug fix                        |
-| `refactor:`  | Code change (no feature/fix)   |
-| `docs:`      | Documentation only             |
-| `chore:`     | Tooling, deps, CI              |
+| Prefix      | Usage                        |
+| ----------- | ---------------------------- |
+| `feat:`     | New feature                  |
+| `fix:`      | Bug fix                      |
+| `refactor:` | Code change (no feature/fix) |
+| `docs:`     | Documentation only           |
+| `chore:`    | Tooling, deps, CI            |
 
 ## Changesets
 

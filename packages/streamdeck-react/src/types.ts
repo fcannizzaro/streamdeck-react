@@ -100,8 +100,6 @@ export interface PluginConfig {
   onActionError?: (uuid: string, actionId: string, error: Error) => void;
   /** Enable the devtools WebSocket server. Browser devtools UI discovers it via port scanning. @default false */
   devtools?: boolean;
-  /** Port for the devtools WebSocket server. If omitted, picks a random port in range 39400-39499. */
-  devtoolsPort?: number;
 }
 
 export interface Plugin {

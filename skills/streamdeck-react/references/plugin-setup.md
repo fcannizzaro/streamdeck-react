@@ -30,22 +30,20 @@ interface PluginConfig {
   devicePixelRatio?: number; // Default: 1
   onActionError?: (uuid: string, actionId: string, error: Error) => void;
   devtools?: boolean; // Default: false
-  devtoolsPort?: number; // Default: random in 39400-39499
 }
 ```
 
-| Field              | Required | Description                                                             |
-| ------------------ | -------- | ----------------------------------------------------------------------- |
-| `fonts`            | Yes      | At least one font file. See FontConfig below.                           |
-| `actions`          | Yes      | Array of action definitions from `defineAction()`.                      |
-| `wrapper`          | No       | Component that wraps ALL action roots. Use for global providers.        |
-| `renderDebounceMs` | No       | Coalesces renders. Increase for dial-heavy UIs.                         |
-| `imageFormat`      | No       | Output format. PNG is default and most compatible.                      |
-| `caching`          | No       | FNV-1a hash caching to skip duplicate `setImage()` calls.               |
-| `devicePixelRatio` | No       | Device pixel ratio used by the Takumi renderer. Default: `1`.           |
-| `onActionError`    | No       | Called when a component throws in any action root.                      |
-| `devtools`         | No       | Enable the devtools WebSocket server. Default: `false`.                 |
-| `devtoolsPort`     | No       | Port for the devtools WebSocket server. Default: random in 39400-39499. |
+| Field              | Required | Description                                                              |
+| ------------------ | -------- | ------------------------------------------------------------------------ |
+| `fonts`            | Yes      | At least one font file. See FontConfig below.                            |
+| `actions`          | Yes      | Array of action definitions from `defineAction()`.                       |
+| `wrapper`          | No       | Component that wraps ALL action roots. Use for global providers.         |
+| `renderDebounceMs` | No       | Coalesces renders. Increase for dial-heavy UIs.                          |
+| `imageFormat`      | No       | Output format. PNG is default and most compatible.                       |
+| `caching`          | No       | FNV-1a hash caching to skip duplicate `setImage()` calls.                |
+| `devicePixelRatio` | No       | Device pixel ratio used by the Takumi renderer. Default: `1`.            |
+| `onActionError`    | No       | Called when a component throws in any action root.                       |
+| `devtools`         | No       | Enable the devtools server. Port derived from plugin UUID (39400-39499). |
 
 ### Plugin-Level Wrapper
 
@@ -61,12 +59,9 @@ const plugin = createPlugin({
 
 ### connect()
 
-Must be called after `createPlugin()` and must be the last call in the entry file. It:
+Must be called after `createPlugin()` and must be the last call in the entry file. It calls `streamDeck.connect()` to establish the WebSocket connection with the Stream Deck software.
 
-1. Creates a `SingletonAction` subclass for each action definition.
-2. Registers them with `streamDeck.actions.registerAction()`.
-3. Calls `streamDeck.connect()`.
-4. Loads initial global settings.
+Action registration, font initialization, renderer setup, and global settings loading all happen during the `createPlugin()` call itself -- `connect()` only opens the connection.
 
 ## defineAction(config)
 
@@ -88,7 +83,6 @@ interface ActionConfig<S extends JsonObject = JsonObject> {
   uuid: string;
   key?: ComponentType;
   dial?: ComponentType;
-  touch?: ComponentType;
   touchBar?: ComponentType;
   touchBarFPS?: number;
   dialLayout?: EncoderLayout;
@@ -102,7 +96,6 @@ interface ActionConfig<S extends JsonObject = JsonObject> {
 | `uuid`            | Yes      | Must exactly match the `UUID` in `manifest.json`.                                                                           |
 | `key`             | No       | Component for key (Keypad controller).                                                                                      |
 | `dial`            | No       | Component for encoder display (Stream Deck+). Falls back to `key` if not provided.                                          |
-| `touch`           | No       | Reserved in the current action shape; prefer `useTouchTap()` for touch interaction guidance in user projects.               |
 | `touchBar`        | No       | Full-strip touchbar component. Replaces per-encoder `dial` with a single shared React tree spanning the entire touch strip. |
 | `touchBarFPS`     | No       | Target FPS for the touchbar animation loop and render pipeline. Default: `60`.                                              |
 | `dialLayout`      | No       | Encoder feedback layout. Defaults to a full-width canvas `pixmap` layout keyed as `canvas`.                                 |
@@ -141,6 +134,23 @@ interface FontConfig {
 
 ### Loading Fonts
 
+The recommended approach is to install a `@fontsource` or `@fontsource-variable` package and import the font file directly. The bundler plugin (`streamDeckReact()`) inlines the font data as a `Buffer` at build time.
+
+```ts
+import InterRegular from "@fontsource-variable/inter/files/inter-latin-wght-normal.woff2";
+
+const fonts: FontConfig[] = [
+  {
+    name: "Inter",
+    data: InterRegular,
+    weight: 400,
+    style: "normal",
+  },
+];
+```
+
+You can also load fonts manually via `readFile` if needed:
+
 ```ts
 import { readFile } from "node:fs/promises";
 
@@ -151,20 +161,13 @@ const fonts: FontConfig[] = [
     weight: 400,
     style: "normal",
   },
-  {
-    name: "Inter",
-    data: await readFile("./fonts/Inter-Bold.ttf"),
-    weight: 700,
-    style: "normal",
-  },
 ];
 ```
 
 ### Font Rules
 
 - At least one font is required in `createPlugin()`.
-- Supported formats: `.ttf`, `.otf`, `.woff`.
-- **WOFF2 is NOT supported.**
+- Supported formats: `.ttf`, `.otf`, `.woff`, `.woff2`.
 - The renderer cannot access system fonts. Every font used must be explicitly loaded.
 - Font is matched by `fontFamily`, `fontWeight`, and `fontStyle`. If the requested weight isn't loaded, the nearest available weight is used.
 - Each font weight/style is a separate file. Minimize variants to reduce bundle size.
