@@ -87,6 +87,8 @@ await plugin.connect();
 - `samples/zustand/` - shared external store across multiple actions
 - `samples/jotai/` - shared atom state with a plugin-level wrapper
 - `samples/pokemon/` - richer plugin example with custom wrappers
+- `samples/snake/` - snake game on the Stream Deck+ touch strip using dial controls and touch tap
+- `samples/weather/` - weather forecast dials with animated detail panels and a shared Zustand store
 
 ## DevTools
 
