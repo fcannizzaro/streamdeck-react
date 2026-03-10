@@ -1,5 +1,11 @@
 # @fcannizzaro/streamdeck-react
 
+## 0.1.10
+
+### Patch Changes
+
+- fix README.md
+
 ## 0.1.9
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "name": "@fcannizzaro/streamdeck-react",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "description": "Build Stream Deck plugins with React — render components directly to keys, dials, and touch screens",
   "keywords": [
     "elgato",

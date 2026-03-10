@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://fcannizzaro.com/_astro/streamdeck-react.BAjPov6j.webp" alt="illustration" />
+  <img src="https://fcannizzaro.com/_astro/streamdeck-react.tzWCgEgf.webp" alt="illustration" />
 </p>
 
 # @fcannizzaro/streamdeck-react
