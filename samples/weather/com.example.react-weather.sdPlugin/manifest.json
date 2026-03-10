@@ -12,20 +12,21 @@
       "UUID": "com.example.react-weather.forecast",
       "Controllers": ["Encoder"],
       "Encoder": {
-        "layout": "$A0",
+        "layout": "layouts/touchbar.json",
         "TriggerDescription": {
           "Rotate": "Scroll forecast",
-          "Push": "Focus"
+          "Push": "Toggle details",
+          "Touch": "Select forecast"
         }
       },
-      "Tooltip": "Shows weather forecast on the encoder display. Rotate to scroll through the timeline."
+      "Tooltip": "Shows weather forecast on the touch strip. Rotate to scroll, press to expand details, tap to select."
     }
   ],
   "Author": "Francesco Saverio Cannizzaro",
   "Category": "React Weather Sample",
   "CategoryIcon": "imgs/plugin-icon",
   "CodePath": "bin/plugin.mjs",
-  "Description": "Sample plugin demonstrating @fcannizzaro/streamdeck-react with a weather forecast dial action using Open-Meteo API.",
+  "Description": "Sample plugin demonstrating @fcannizzaro/streamdeck-react with a weather forecast touchbar action using Open-Meteo API.",
   "Icon": "imgs/plugin-icon",
   "Name": "React Weather Sample",
   "Nodejs": {

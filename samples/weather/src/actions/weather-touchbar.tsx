@@ -1,39 +1,41 @@
-// ── Weather Dial ───────────────────────────────────────────────────
-// Per-encoder dial component (200x100). Renders 3 mini weather cards
-// side by side. Dial rotation moves a cursor highlight between them.
-// Pressing the dial or tapping a card expands a detail overlay that
-// animates up from the bottom.
+// ── Weather TouchBar ───────────────────────────────────────────────
+// Full-width touch strip component (800×100). Renders 12 mini weather
+// cards (4 segments × 3 cards). Dial rotation moves a cursor highlight.
+// Pressing a dial or tapping a card expands a detail overlay on the
+// segment containing the selected card.
 
 import { useState, useRef } from "react";
 import {
   defineAction,
-  useAction,
-  useDialRotate,
-  useDialDown,
-  useDialUp,
-  useDialHint,
-  useTouchTap,
+  useTouchBar,
+  useTouchBarTap,
+  useTouchBarDialRotate,
+  useTouchBarDialDown,
   useTick,
-  useWillAppear,
-  useWillDisappear,
   Icon,
   tw,
 } from "@fcannizzaro/streamdeck-react";
-import { useWeatherStore, getDialEntries, getForecastIndex, COLS_PER_DIAL } from "../store";
+import {
+  useWeatherStore,
+  getSegmentEntries,
+  getForecastIndex,
+  COLS_PER_SEGMENT,
+  NUM_SEGMENTS,
+} from "../store";
 import { getWeatherIcon, ICON_THERMO_HIGH, ICON_THERMO_LOW } from "../icons";
 import { getSubColBackground, getSubColShadow, DIAL_BACKGROUND } from "../theme";
 import type { ForecastEntry } from "../types";
 
 // ── Layout constants ───────────────────────────────────────────────
-// Half-gap at dial edges so adjacent dials produce a full gap at the
-// physical seam: g/2 + 0 + g/2 = g  ✓
 
-const DIAL_W = 200;
-const DIAL_H = 100;
+const STRIP_H = 100;
+const SEGMENT_W = 200;
 const GAP = 6;
-const EDGE_PAD = GAP / 2; // 3px at each dial edge
-const CARD_W = Math.floor((DIAL_W - EDGE_PAD * 2 - GAP * (COLS_PER_DIAL - 1)) / COLS_PER_DIAL);
-const CARD_H = DIAL_H - GAP; // top/bottom padding
+const EDGE_PAD = GAP / 2; // 3px at each segment edge
+const CARD_W = Math.floor(
+  (SEGMENT_W - EDGE_PAD * 2 - GAP * (COLS_PER_SEGMENT - 1)) / COLS_PER_SEGMENT,
+);
+const CARD_H = STRIP_H - GAP; // top/bottom padding
 const ANIM_SPEED = 5; // progress units per second
 
 // ── Mini weather card ──────────────────────────────────────────────
@@ -90,11 +92,19 @@ function EmptyCard({ width }: { width: number }) {
 }
 
 // ── Detail overlay panel ───────────────────────────────────────────
-// Big label watermark in background. Two rows: MAX and MIN with
-// icon + label on left, value on right.
+// Positioned on a single segment (200×100). Shows a big label watermark
+// and two rows: MAX and MIN with icon + label on left, value on right.
 
-function DetailPanel({ entry, progress }: { entry: ForecastEntry; progress: number }) {
-  const panelH = Math.round(DIAL_H * progress);
+function DetailPanel({
+  entry,
+  progress,
+  segmentLeft,
+}: {
+  entry: ForecastEntry;
+  progress: number;
+  segmentLeft: number;
+}) {
+  const panelH = Math.round(STRIP_H * progress);
   const contentOpacity = Math.min(1, Math.max(0, (progress - 0.3) / 0.5));
   const bg = getSubColBackground(entry.isDay);
 
@@ -102,9 +112,9 @@ function DetailPanel({ entry, progress }: { entry: ForecastEntry; progress: numb
     <div
       style={{
         position: "absolute",
-        left: 0,
-        bottom: 0,
-        width: DIAL_W,
+        left: segmentLeft,
+        top: STRIP_H - panelH,
+        width: SEGMENT_W,
         height: panelH,
         backgroundColor: bg,
         borderRadius: 10,
@@ -115,8 +125,8 @@ function DetailPanel({ entry, progress }: { entry: ForecastEntry; progress: numb
       {progress > 0.3 && (
         <div
           style={{
-            width: DIAL_W,
-            height: DIAL_H,
+            width: SEGMENT_W,
+            height: STRIP_H,
             position: "relative",
             opacity: contentOpacity,
           }}
@@ -142,7 +152,7 @@ function DetailPanel({ entry, progress }: { entry: ForecastEntry; progress: numb
               position: "absolute",
               left: 10,
               right: 10,
-              bottom: 8,
+              top: STRIP_H - 8 - 52,
               display: "flex",
               flexDirection: "column",
               gap: 4,
@@ -172,39 +182,70 @@ function DetailPanel({ entry, progress }: { entry: ForecastEntry; progress: numb
   );
 }
 
+// ── Segment renderer ───────────────────────────────────────────────
+// Renders 3 cards for a single 200px segment of the touch strip.
+
+function Segment({
+  segment,
+  forecast,
+  scrollOffset,
+  cursor,
+}: {
+  segment: number;
+  forecast: ForecastEntry[];
+  scrollOffset: number;
+  cursor: number;
+}) {
+  const entries = getSegmentEntries(forecast, scrollOffset, segment);
+
+  return (
+    <div
+      className={tw("flex items-center")}
+      style={{
+        width: SEGMENT_W,
+        height: STRIP_H,
+        paddingLeft: EDGE_PAD,
+        paddingRight: EDGE_PAD,
+        paddingTop: GAP / 2,
+        paddingBottom: GAP / 2,
+        gap: GAP + 0.5,
+        flexShrink: 0,
+      }}
+    >
+      {entries.map((entry, i) => {
+        const forecastIdx = getForecastIndex(scrollOffset, segment, i);
+        const isFocused = forecastIdx === cursor;
+
+        if (!entry) {
+          return <EmptyCard key={`empty-${segment}-${i}`} width={CARD_W} />;
+        }
+
+        return <MiniCard key={forecastIdx} entry={entry} isFocused={isFocused} width={CARD_W} />;
+      })}
+    </div>
+  );
+}
+
 // ── Main component ─────────────────────────────────────────────────
 
-function WeatherDial() {
-  const dialColumn = useAction().coordinates?.column ?? 0;
+function WeatherTouchBar() {
+  const { width, height } = useTouchBar();
 
   // Store state
   const forecast = useWeatherStore((s) => s.forecast);
   const scrollOffset = useWeatherStore((s) => s.scrollOffset);
   const cursor = useWeatherStore((s) => s.cursor);
-  const expandedColumn = useWeatherStore((s) => s.expandedColumn);
+  const expandedSegment = useWeatherStore((s) => s.expandedSegment);
   const isLoading = useWeatherStore((s) => s.isLoading && s.forecast.length === 0);
 
-  const isExpanded = expandedColumn === dialColumn;
-  const anotherIsExpanded = expandedColumn !== null && !isExpanded;
-
-  // Get the 3 entries for this dial
-  const entries = getDialEntries(forecast, scrollOffset, dialColumn);
-
-  // ── Lifecycle: register/unregister this column ─────────────────
-
-  useWillAppear(() => {
-    useWeatherStore.getState().registerColumn(dialColumn);
-  });
-
-  useWillDisappear(() => {
-    useWeatherStore.getState().unregisterColumn(dialColumn);
-  });
+  // Which segment has the cursor
+  const cursorSegment = Math.floor((cursor - scrollOffset) / COLS_PER_SEGMENT);
 
   // ── Local animation state ──────────────────────────────────────
 
   const [progress, setProgress] = useState(0);
   const targetRef = useRef(0);
-  targetRef.current = isExpanded ? 1 : 0;
+  targetRef.current = expandedSegment !== null ? 1 : 0;
 
   const needsAnimation = Math.abs(progress - targetRef.current) > 0.005;
 
@@ -221,65 +262,54 @@ function WeatherDial() {
     needsAnimation ? 60 : false,
   );
 
-  // ── Dial interactions ──────────────────────────────────────────
+  // ── TouchBar interactions ──────────────────────────────────────
 
-  useDialHint({
-    rotate: "Navigate",
-    press: "Expand details",
-  });
-
-  useDialRotate(({ ticks }) => {
+  useTouchBarDialRotate(({ ticks }) => {
     const store = useWeatherStore.getState();
-    if (store.expandedColumn !== null) {
+    if (store.expandedSegment !== null) {
       store.closeExpanded();
       return;
     }
     store.moveCursor(ticks);
   });
 
-  useDialDown(() => {
+  useTouchBarDialDown(() => {
     const store = useWeatherStore.getState();
 
     // If any panel is expanded, close it
-    if (store.expandedColumn !== null) {
+    if (store.expandedSegment !== null) {
       store.closeExpanded();
       return;
     }
 
-    // Open the detail panel on the dial that has the cursor
-    const cursorDialCol = Math.floor((store.cursor - store.scrollOffset) / COLS_PER_DIAL);
-    store.toggleExpanded(cursorDialCol);
+    // Toggle detail panel for the cursor's segment
+    store.toggleExpanded();
   });
 
-  useDialUp(() => {
-    // No-op: toggle on press, not release
-  });
-
-  useTouchTap(({ tapPos }) => {
+  useTouchBarTap(({ tapPos }) => {
     const store = useWeatherStore.getState();
 
-    // If detail is open on this dial, close it
-    if (store.expandedColumn === dialColumn) {
+    // If detail is open, close it
+    if (store.expandedSegment !== null) {
       store.closeExpanded();
       return;
     }
 
-    // If detail is open on another dial, close it
-    if (store.expandedColumn !== null) {
-      store.closeExpanded();
-      return;
-    }
-
-    // Determine which sub-column was tapped
+    // Determine which segment and sub-column was tapped
     const x = tapPos[0];
-    const subCol = Math.min(COLS_PER_DIAL - 1, Math.floor(x / (DIAL_W / COLS_PER_DIAL)));
-    const forecastIdx = getForecastIndex(scrollOffset, dialColumn, subCol);
+    const tappedSegment = Math.min(NUM_SEGMENTS - 1, Math.floor(x / SEGMENT_W));
+    const localX = x - tappedSegment * SEGMENT_W;
+    const subCol = Math.min(
+      COLS_PER_SEGMENT - 1,
+      Math.floor(localX / (SEGMENT_W / COLS_PER_SEGMENT)),
+    );
+    const forecastIdx = getForecastIndex(store.scrollOffset, tappedSegment, subCol);
 
-    if (forecastIdx < forecast.length) {
+    if (forecastIdx < store.forecast.length) {
       if (store.cursor !== forecastIdx) {
         useWeatherStore.setState({ cursor: forecastIdx });
       }
-      store.toggleExpanded(dialColumn);
+      store.toggleExpanded();
     }
   });
 
@@ -288,8 +318,8 @@ function WeatherDial() {
   if (isLoading) {
     return (
       <div
-        className={tw("flex h-full w-full items-center justify-center")}
-        style={{ backgroundColor: DIAL_BACKGROUND }}
+        className={tw("flex items-center justify-center")}
+        style={{ width, height, backgroundColor: DIAL_BACKGROUND }}
       >
         <span className="text-[13px] text-white/50">Loading...</span>
       </div>
@@ -299,75 +329,82 @@ function WeatherDial() {
   if (forecast.length === 0) {
     return (
       <div
-        className={tw("flex h-full w-full items-center justify-center")}
-        style={{ backgroundColor: DIAL_BACKGROUND }}
+        className={tw("flex items-center justify-center")}
+        style={{ width, height, backgroundColor: DIAL_BACKGROUND }}
       >
         <span className="text-[13px] text-white/30">No data</span>
       </div>
     );
   }
 
-  // ── Detail entry for this dial ─────────────────────────────────
+  // ── Detail entry ───────────────────────────────────────────────
 
-  const cursorSubCol = cursor - (scrollOffset + dialColumn * COLS_PER_DIAL);
-  const cursorIsOnThisDial = cursorSubCol >= 0 && cursorSubCol < COLS_PER_DIAL;
-  const detailEntry = cursorIsOnThisDial ? entries[cursorSubCol] : undefined;
+  const detailSubCol = cursor - (scrollOffset + cursorSegment * COLS_PER_SEGMENT);
+  const detailEntries = getSegmentEntries(forecast, scrollOffset, cursorSegment);
+  const detailEntry =
+    detailSubCol >= 0 && detailSubCol < COLS_PER_SEGMENT
+      ? detailEntries[detailSubCol]
+      : undefined;
 
   const showPanel = progress > 0.005 && detailEntry;
+
+  // Center the 200px panel on the selected card, clamped to the strip edges
+  const activeSegment = expandedSegment ?? cursorSegment;
+  const activeSubCol = cursor - (scrollOffset + activeSegment * COLS_PER_SEGMENT);
+  const cardCenterX =
+    activeSegment * SEGMENT_W +
+    EDGE_PAD +
+    activeSubCol * (CARD_W + GAP + 0.5) +
+    CARD_W / 2;
+  const panelLeft = Math.max(0, Math.min(width - SEGMENT_W, cardCenterX - SEGMENT_W / 2));
 
   // ── Render ─────────────────────────────────────────────────────
 
   return (
     <div
       style={{
-        width: "100%",
-        height: DIAL_H,
+        width,
+        height,
         backgroundColor: DIAL_BACKGROUND,
         position: "relative",
         overflow: "hidden",
+        display: "flex",
       }}
     >
-      {/* Sub-columns row */}
-      <div
-        className={tw("flex items-center h-full w-full")}
-        style={{
-          paddingLeft: EDGE_PAD,
-          paddingRight: EDGE_PAD,
-          paddingTop: GAP / 2,
-          paddingBottom: GAP / 2,
-          gap: GAP + 0.5,
-        }}
-      >
-        {entries.map((entry, i) => {
-          const forecastIdx = getForecastIndex(scrollOffset, dialColumn, i);
-          const isFocused = forecastIdx === cursor;
+      {/* All segments side by side */}
+      {Array.from({ length: NUM_SEGMENTS }, (_, seg) => (
+        <Segment
+          key={seg}
+          segment={seg}
+          forecast={forecast}
+          scrollOffset={scrollOffset}
+          cursor={cursor}
+        />
+      ))}
 
-          if (!entry) {
-            return <EmptyCard key={i} width={CARD_W} />;
-          }
-
-          return <MiniCard key={forecastIdx} entry={entry} isFocused={isFocused} width={CARD_W} />;
-        })}
-      </div>
-
-      {/* Dark backdrop when another dial has the detail panel open */}
-      {anotherIsExpanded && (
+      {/* Dark backdrop behind the detail panel */}
+      {expandedSegment !== null && (
         <div
           style={{
             position: "absolute",
             left: 0,
             top: 0,
-            width: DIAL_W,
-            height: DIAL_H,
+            width,
+            height: STRIP_H,
             backgroundColor: "rgba(0,0,0,0.5)",
-            backdropFilter: "blur(3px)",
             zIndex: 5,
           }}
         />
       )}
 
       {/* Detail overlay (animated from bottom) */}
-      {showPanel && <DetailPanel entry={detailEntry} progress={progress} />}
+      {showPanel && (
+        <DetailPanel
+          entry={detailEntry}
+          progress={progress}
+          segmentLeft={panelLeft}
+        />
+      )}
     </div>
   );
 }
@@ -376,5 +413,6 @@ function WeatherDial() {
 
 export const weatherAction = defineAction({
   uuid: "com.example.react-weather.forecast",
-  dial: WeatherDial,
+  touchBar: WeatherTouchBar,
+  touchBarFPS: 60,
 });

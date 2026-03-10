@@ -1,7 +1,8 @@
 // ── Weather Store ──────────────────────────────────────────────────
-// Zustand singleton shared across all 4 independent dial React roots.
-// Each dial shows 3 sub-columns. 4 dials × 3 = 12 visible entries.
-// A global cursor selects which entry is focused. Dial rotation moves it.
+// Zustand singleton for the weather touchbar.
+// A single React root renders all 12 visible forecast cards on the
+// full-width touch strip (800×100). A global cursor selects which
+// entry is focused. Dial rotation moves it.
 
 import { create } from "zustand";
 import { fetchWeatherData, normalizeForecast } from "./api";
@@ -13,11 +14,14 @@ const DEFAULT_LAT = 41.9028;
 const DEFAULT_LON = 12.4964;
 const POLL_INTERVAL = 15 * 60 * 1000; // 15 minutes
 
-/** Number of sub-columns rendered per dial */
-export const COLS_PER_DIAL = 3;
+/** Number of sub-columns rendered per dial segment */
+export const COLS_PER_SEGMENT = 3;
 
-/** Total visible entries across all 4 dials */
-const TOTAL_VISIBLE = 4 * COLS_PER_DIAL; // 12
+/** Number of dial segments on the touch strip */
+export const NUM_SEGMENTS = 4;
+
+/** Total visible entries across the touch strip */
+const TOTAL_VISIBLE = NUM_SEGMENTS * COLS_PER_SEGMENT; // 12
 
 // ── Store type ─────────────────────────────────────────────────────
 
@@ -30,24 +34,19 @@ interface WeatherStore {
   /** Global cursor index into forecast[]. Dial rotation moves this. */
   cursor: number;
 
-  /** Scroll offset — first forecast index shown on dial 0, sub-col 0. */
+  /** Scroll offset — first forecast index shown at the left edge. */
   scrollOffset: number;
 
   /**
-   * Which encoder column (0-3) has the detail panel expanded.
+   * Which segment (0-3) has the detail panel expanded.
    * null = no detail panel open.
    */
-  expandedColumn: number | null;
-
-  /** Set of encoder columns that have an active weather dial. */
-  activeColumns: number[];
+  expandedSegment: number | null;
 
   fetchForecast: (lat?: number, lon?: number) => Promise<void>;
   moveCursor: (ticks: number) => void;
-  toggleExpanded: (column: number) => void;
+  toggleExpanded: () => void;
   closeExpanded: () => void;
-  registerColumn: (column: number) => void;
-  unregisterColumn: (column: number) => void;
 }
 
 // ── Helpers ────────────────────────────────────────────────────────
@@ -74,8 +73,7 @@ export const useWeatherStore = create<WeatherStore>((set, get) => ({
   lastFetched: null,
   cursor: 0,
   scrollOffset: 0,
-  expandedColumn: null,
-  activeColumns: [],
+  expandedSegment: null,
 
   fetchForecast: async (lat = DEFAULT_LAT, lon = DEFAULT_LON) => {
     if (get().isLoading) return;
@@ -115,44 +113,34 @@ export const useWeatherStore = create<WeatherStore>((set, get) => ({
     });
   },
 
-  toggleExpanded: (column: number) => {
-    const { expandedColumn } = get();
-    // Toggle: if same column → close, otherwise open new one
-    set({ expandedColumn: expandedColumn === column ? null : column });
+  toggleExpanded: () => {
+    const { expandedSegment, cursor, scrollOffset } = get();
+    const cursorSegment = Math.floor((cursor - scrollOffset) / COLS_PER_SEGMENT);
+    set({
+      expandedSegment: expandedSegment === cursorSegment ? null : cursorSegment,
+    });
   },
 
   closeExpanded: () => {
-    set({ expandedColumn: null });
-  },
-
-  registerColumn: (column: number) => {
-    const { activeColumns } = get();
-    if (!activeColumns.includes(column)) {
-      set({ activeColumns: [...activeColumns, column].sort() });
-    }
-  },
-
-  unregisterColumn: (column: number) => {
-    const { activeColumns } = get();
-    set({ activeColumns: activeColumns.filter((c) => c !== column) });
+    set({ expandedSegment: null });
   },
 }));
 
 // ── Derived helpers (pure functions) ───────────────────────────────
 
-/** Get the 3 forecast entries visible on a given dial column. */
-export function getDialEntries(
+/** Get the 3 forecast entries visible on a given segment. */
+export function getSegmentEntries(
   forecast: ForecastEntry[],
   scrollOffset: number,
-  dialColumn: number,
+  segment: number,
 ): (ForecastEntry | undefined)[] {
-  const start = scrollOffset + dialColumn * COLS_PER_DIAL;
+  const start = scrollOffset + segment * COLS_PER_SEGMENT;
   return [forecast[start], forecast[start + 1], forecast[start + 2]];
 }
 
-/** Get the forecast index for a sub-column within a dial. */
-export function getForecastIndex(scrollOffset: number, dialColumn: number, subCol: number): number {
-  return scrollOffset + dialColumn * COLS_PER_DIAL + subCol;
+/** Get the forecast index for a sub-column within a segment. */
+export function getForecastIndex(scrollOffset: number, segment: number, subCol: number): number {
+  return scrollOffset + segment * COLS_PER_SEGMENT + subCol;
 }
 
 // ── Auto-polling ───────────────────────────────────────────────────
