@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 72" fill="none">
+  <circle cx="28" cy="28" r="12" fill="#FFD93D" opacity="0.9"/>
+  <path d="M40 36c0-7.2 5.8-13 13-13s13 5.8 13 13-5.8 13-13 13H26a10.5 10.5 0 010-21c1 0 2 .13 2.9.4A15.5 15.5 0 0140 36z" fill="white" opacity="0.85"/>
+  <text x="36" y="62" text-anchor="middle" font-size="10" font-weight="bold" fill="white" font-family="sans-serif">28°</text>
+</svg>

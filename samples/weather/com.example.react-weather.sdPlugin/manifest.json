@@ -1,0 +1,51 @@
+{
+  "$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
+  "Actions": [
+    {
+      "Icon": "imgs/actions/weather",
+      "Name": "Weather Forecast",
+      "States": [
+        {
+          "Image": "imgs/actions/weather"
+        }
+      ],
+      "UUID": "com.example.react-weather.forecast",
+      "Controllers": ["Encoder"],
+      "Encoder": {
+        "layout": "$A0",
+        "TriggerDescription": {
+          "Rotate": "Scroll forecast",
+          "Push": "Focus"
+        }
+      },
+      "Tooltip": "Shows weather forecast on the encoder display. Rotate to scroll through the timeline."
+    }
+  ],
+  "Author": "Francesco Saverio Cannizzaro",
+  "Category": "React Weather Sample",
+  "CategoryIcon": "imgs/plugin-icon",
+  "CodePath": "bin/plugin.mjs",
+  "Description": "Sample plugin demonstrating @fcannizzaro/streamdeck-react with a weather forecast dial action using Open-Meteo API.",
+  "Icon": "imgs/plugin-icon",
+  "Name": "React Weather Sample",
+  "Nodejs": {
+    "Version": "24",
+    "Debug": "--inspect=127.0.0.1:8095"
+  },
+  "OS": [
+    {
+      "Platform": "mac",
+      "MinimumVersion": "13"
+    },
+    {
+      "Platform": "windows",
+      "MinimumVersion": "10"
+    }
+  ],
+  "UUID": "com.example.react-weather",
+  "Version": "0.0.0.1",
+  "SDKVersion": 2,
+  "Software": {
+    "MinimumVersion": "6.9"
+  }
+}
