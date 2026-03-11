@@ -6,6 +6,7 @@ import { NetworkPanel } from "../panels/NetworkPanel";
 import { ElementsPanel } from "../panels/ElementsPanel";
 import { PreviewPanel } from "../panels/PreviewPanel";
 import { EventsPanel } from "../panels/EventsPanel";
+import { PerformancePanel } from "../panels/PerformancePanel";
 
 // ── Panel registry ──────────────────────────────────────────────────
 
@@ -15,6 +16,7 @@ const PANEL_COMPONENTS: Record<TabId, () => ReactNode> = {
   elements: () => <ElementsPanel />,
   preview: () => <PreviewPanel />,
   events: () => <EventsPanel />,
+  performance: () => <PerformancePanel />,
 };
 
 const PANEL_LABELS: Record<TabId, string> = {
@@ -23,6 +25,7 @@ const PANEL_LABELS: Record<TabId, string> = {
   elements: "Elements",
   preview: "Preview",
   events: "Events",
+  performance: "Performance",
 };
 
 // ── Panel Icons (14x14 SVGs) ────────────────────────────────────────
@@ -81,6 +84,15 @@ const PANEL_ICONS: Record<TabId, ReactNode> = {
         strokeLinecap="round"
         strokeLinejoin="round"
       />
+    </svg>
+  ),
+  performance: (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+      <path d="M1 12V6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+      <path d="M4 12V4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+      <path d="M7 12V7" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+      <path d="M10 12V2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+      <path d="M13 12V5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
     </svg>
   ),
 };

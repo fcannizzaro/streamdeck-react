@@ -17,6 +17,7 @@ const TABS: readonly { id: TabId; label: string; shortcut: string }[] = [
   { id: "elements", label: "Elements", shortcut: "3" },
   { id: "preview", label: "Preview", shortcut: "4" },
   { id: "events", label: "Events", shortcut: "5" },
+  { id: "performance", label: "Performance", shortcut: "6" },
 ];
 
 // ── Grid constants ──────────────────────────────────────────────────

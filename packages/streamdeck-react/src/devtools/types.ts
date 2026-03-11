@@ -5,7 +5,7 @@
 // Direction:
 //   Server → Client (via SSE /events stream):
 //     server:info, snapshot, console, network:*, render, render:touchbar,
-//     event, lifecycle, highlight:render
+//     event, lifecycle, highlight:render, metrics
 //
 //   Client → Server (via POST /message or GET /message?d=<json>):
 //     request:snapshot, highlight:action
@@ -95,6 +95,7 @@ export interface SnapshotMessage extends BaseMessage {
   recentConsole: ConsoleMessage[];
   recentNetwork: (NetworkRequestMessage | NetworkResponseMessage | NetworkErrorMessage)[];
   recentEvents: EventBusMessage[];
+  metrics?: MetricsData;
 }
 
 export interface ConsoleMessage extends BaseMessage {
@@ -140,6 +141,8 @@ export interface RenderMessage extends BaseMessage {
   tree: SerializedVNode;
   dataUri: string;
   renderMs: number;
+  /** Per-render pipeline timing profile, when available. */
+  profile?: ProfileData;
 }
 
 export interface TouchBarRenderMessage extends BaseMessage {
@@ -183,6 +186,50 @@ export interface HighlightRenderMessage extends BaseMessage {
   dataUri: string | null;
 }
 
+// ── Performance Data ────────────────────────────────────────────────
+
+/** Per-render pipeline timing data, embedded in RenderMessage. */
+export interface ProfileData {
+  vnodeToElementMs: number;
+  fromJsxMs: number;
+  takumiRenderMs: number;
+  hashMs: number;
+  base64Ms: number;
+  totalMs: number;
+  skipped: boolean;
+  /** Whether this render was served from the image cache. */
+  cacheHit: boolean;
+  treeDepth: number;
+  nodeCount: number;
+}
+
+/** Aggregate render metrics snapshot. */
+export interface MetricsData {
+  /** Total flush() calls (render attempts). */
+  flushCount: number;
+  /** Flushes that reached the Takumi renderer. */
+  renderCount: number;
+  /** Tree hash cache hits. */
+  cacheHitCount: number;
+  /** Skipped due to clean tree (dirty flag check). */
+  dirtySkipCount: number;
+  /** Skipped due to identical output (post-render FNV-1a dedup). */
+  hashDedupCount: number;
+  /** Average Takumi render time in milliseconds. */
+  avgRenderMs: number;
+  /** Peak (worst-case) render time in milliseconds. */
+  peakRenderMs: number;
+  /** Image cache memory usage in bytes. */
+  imageCacheBytes: number;
+  /** TouchBar cache memory usage in bytes. */
+  touchbarCacheBytes: number;
+}
+
+export interface MetricsMessage extends BaseMessage {
+  type: "metrics";
+  metrics: MetricsData;
+}
+
 // ── Client → Server Messages (Browser → Plugin Server) ──────────────
 
 export interface RequestSnapshotMessage extends BaseMessage {
@@ -211,7 +258,8 @@ export type ServerMessage =
   | TouchBarRenderMessage
   | EventBusMessage
   | LifecycleMessage
-  | HighlightRenderMessage;
+  | HighlightRenderMessage
+  | MetricsMessage;
 
 /** Messages browser clients send to the plugin server (via POST /message). */
 export type ClientMessage = RequestSnapshotMessage | HighlightActionMessage;

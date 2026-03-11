@@ -75,6 +75,7 @@ export interface SnapshotMessage extends BaseMessage {
   recentConsole: ConsoleMessage[];
   recentNetwork: (NetworkRequestMessage | NetworkResponseMessage | NetworkErrorMessage)[];
   recentEvents: EventBusMessage[];
+  metrics?: MetricsData;
 }
 
 export interface ConsoleMessage extends BaseMessage {
@@ -120,6 +121,7 @@ export interface RenderMessage extends BaseMessage {
   tree: SerializedVNode;
   dataUri: string;
   renderMs: number;
+  profile?: ProfileData;
 }
 
 export interface TouchBarRenderMessage extends BaseMessage {
@@ -161,6 +163,40 @@ export interface HighlightRenderMessage extends BaseMessage {
   dataUri: string | null;
 }
 
+// ── Performance Data ────────────────────────────────────────────────
+
+/** Per-render pipeline timing data, embedded in RenderMessage. */
+export interface ProfileData {
+  vnodeToElementMs: number;
+  fromJsxMs: number;
+  takumiRenderMs: number;
+  hashMs: number;
+  base64Ms: number;
+  totalMs: number;
+  skipped: boolean;
+  cacheHit: boolean;
+  treeDepth: number;
+  nodeCount: number;
+}
+
+/** Aggregate render metrics snapshot. */
+export interface MetricsData {
+  flushCount: number;
+  renderCount: number;
+  cacheHitCount: number;
+  dirtySkipCount: number;
+  hashDedupCount: number;
+  avgRenderMs: number;
+  peakRenderMs: number;
+  imageCacheBytes: number;
+  touchbarCacheBytes: number;
+}
+
+export interface MetricsMessage extends BaseMessage {
+  type: "metrics";
+  metrics: MetricsData;
+}
+
 // ── Client → Server Messages (Browser → Plugin Server) ──────────────
 
 export interface RequestSnapshotMessage extends BaseMessage {
@@ -187,7 +223,8 @@ export type ServerMessage =
   | TouchBarRenderMessage
   | EventBusMessage
   | LifecycleMessage
-  | HighlightRenderMessage;
+  | HighlightRenderMessage
+  | MetricsMessage;
 
 /** Messages browser clients send to the plugin server (via POST /message). */
 export type ClientMessage = RequestSnapshotMessage | HighlightActionMessage;
@@ -226,4 +263,12 @@ export interface DiscoveredPlugin {
   version: string;
   library: string;
   connectedAt: number;
+}
+
+/** Per-render profile entry stored in the UI, with action context. */
+export interface ProfileEntry extends ProfileData {
+  id: string;
+  actionId: string;
+  actionUuid: string;
+  ts: number;
 }

@@ -22,6 +22,7 @@ const plugin = createPlugin({
       style: "normal",
     },
   ],
+  devtools: true,
   actions: [counterAction, timerAction, volumeAction, toggleAction, equalizerAction],
 });
 

@@ -9,15 +9,16 @@ import { patchFetch } from "./intercepts/fetch";
 // ── Start DevTools Server ──────────────────────────────────────────────
 //
 // Called from plugin.ts when devtools: true.  Wires all data sources
-// into the SSE transport in 7 steps:
+// into the SSE transport in 8 steps:
 //
 //   1. Create HTTP+SSE server + bridge
 //   2. Attach bridge as registry observer (lifecycle/dispatch events)
-//   3. Hook into render pipeline (onRender callback)
+//   3. Hook into render pipeline (onRender + onProfile callbacks)
 //   4. Install static EventBus observer (bus-level events)
 //   5. Patch console.log/warn/error/info/debug
 //   6. Patch globalThis.fetch
-//   7. Start listening (async, fire-and-forget)
+//   7. Start listening + metrics emitter (async, fire-and-forget)
+//   8. Register cleanup
 //
 // server.start() is not awaited — the plugin continues connecting to
 // the SDK while the HTTP server binds.  If port binding fails, devtools
@@ -45,6 +46,11 @@ export function startDevtoolsServer(config: {
     bridge.onRender(container, dataUri);
   };
 
+  // 3b. Attach profile hook (fires synchronously before onRender in the pipeline)
+  config.renderConfig.onProfile = (profile) => {
+    bridge.onProfile(profile);
+  };
+
   // 4. Attach EventBus static observer
   EventBus.devtoolsObserver = (bus, event, payload) => {
     bridge.onEventBusEmit(bus, event, payload);
@@ -62,16 +68,21 @@ export function startDevtoolsServer(config: {
     onError: (id, error, dur) => bridge.onFetchError(id, error, dur),
   });
 
-  // 6. Start listening (async, but we don't await — fire and forget)
+  // 7. Start listening (async, but we don't await — fire and forget)
   server.start();
 
-  // 7. Register cleanup
+  // 7b. Start periodic metrics emission to devtools clients
+  bridge.startMetricsEmitter();
+
+  // 8. Register cleanup
   process.on("exit", () => {
+    bridge.stopMetricsEmitter();
     restoreConsole();
     restoreFetch();
     EventBus.devtoolsObserver = null;
     config.registry.observer = null;
     config.renderConfig.onRender = undefined;
+    config.renderConfig.onProfile = undefined;
     server.stop();
   });
 }

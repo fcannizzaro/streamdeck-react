@@ -2,7 +2,8 @@ import type { ReactRoot } from "@/roots/root";
 import type { TouchBarRoot } from "@/roots/touchbar-root";
 import type { CanvasInfo, DeviceInfo } from "@/types";
 import type { VContainer } from "@/reconciler/vnode";
-import type { RenderConfig } from "@/render/pipeline";
+import type { RenderConfig, RenderProfile } from "@/render/pipeline";
+import { metrics } from "@/render/metrics";
 import type { RegistryObserver } from "./observers/lifecycle";
 import type { DevtoolsServer } from "./server";
 import type {
@@ -10,9 +11,11 @@ import type {
   EventBusMessage,
   HighlightRenderMessage,
   LifecycleMessage,
+  MetricsMessage,
   NetworkErrorMessage,
   NetworkRequestMessage,
   NetworkResponseMessage,
+  ProfileData,
   RenderMessage,
   ServerInfoMessage,
   SnapshotAction,
@@ -139,6 +142,12 @@ export class DevtoolsBridge implements RegistryObserver {
   // Highlight state
   private highlightedActionId: string | null = null;
   private highlightedNodeId: number | null = null;
+
+  // Profile stashing (onProfile fires synchronously before onRender)
+  private _lastProfile: RenderProfile | null = null;
+
+  // Metrics emission timer
+  private _metricsTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor(server: DevtoolsServer, devtoolsName: string, renderConfig: RenderConfig) {
     this.server = server;
@@ -365,6 +374,48 @@ export class DevtoolsBridge implements RegistryObserver {
     this.server.broadcast(msg);
   }
 
+  // ── Profile Callback ──────────────────────────────────────────
+
+  /**
+   * Stash the render profile for the next onRender call.
+   * In the pipeline, onProfile fires synchronously before onRender,
+   * so the stash is always consumed immediately.
+   */
+  onProfile(profile: RenderProfile): void {
+    this._lastProfile = profile;
+  }
+
+  // ── Metrics Emission ──────────────────────────────────────────
+
+  private static readonly METRICS_INTERVAL_MS = 3_000;
+
+  /** Start periodic metrics emission to connected devtools clients. */
+  startMetricsEmitter(): void {
+    if (this._metricsTimer) return;
+    this._metricsTimer = setInterval(() => {
+      if (!this.server.hasClients()) return;
+      const snapshot = metrics.snapshot();
+      const msg: MetricsMessage = {
+        type: "metrics",
+        ts: Date.now(),
+        metrics: snapshot,
+      };
+      this.server.broadcast(msg);
+    }, DevtoolsBridge.METRICS_INTERVAL_MS);
+    // Don't prevent process exit
+    if (typeof this._metricsTimer === "object" && "unref" in this._metricsTimer) {
+      this._metricsTimer.unref();
+    }
+  }
+
+  /** Stop periodic metrics emission. */
+  stopMetricsEmitter(): void {
+    if (this._metricsTimer) {
+      clearInterval(this._metricsTimer);
+      this._metricsTimer = null;
+    }
+  }
+
   // ── Fetch Callbacks ───────────────────────────────────────────
 
   onFetchRequest(
@@ -503,6 +554,11 @@ export class DevtoolsBridge implements RegistryObserver {
     ts: number,
   ): void {
     const tree = serializeVNode(container);
+
+    // Consume stashed profile (set by onProfile, which fires synchronously before onRender)
+    const profile = this._lastProfile;
+    this._lastProfile = null;
+
     const msg: RenderMessage = {
       type: "render",
       ts,
@@ -512,9 +568,26 @@ export class DevtoolsBridge implements RegistryObserver {
       canvas: { width: meta.canvas.width, height: meta.canvas.height },
       tree,
       dataUri,
-      renderMs: 0,
+      renderMs: profile?.totalMs ?? 0,
+      ...(profile ? { profile: this.toProfileData(profile) } : {}),
     };
     this.server.broadcast(msg);
+  }
+
+  /** Convert internal RenderProfile to wire-protocol ProfileData. */
+  private toProfileData(profile: RenderProfile): ProfileData {
+    return {
+      vnodeToElementMs: profile.vnodeToElementMs,
+      fromJsxMs: profile.fromJsxMs,
+      takumiRenderMs: profile.takumiRenderMs,
+      hashMs: profile.hashMs,
+      base64Ms: profile.base64Ms,
+      totalMs: profile.totalMs,
+      skipped: profile.skipped,
+      cacheHit: profile.cacheHit,
+      treeDepth: profile.treeDepth,
+      nodeCount: profile.nodeCount,
+    };
   }
 
   private emitTouchBarRender(deviceId: string, tb: TouchBarMeta): void {
@@ -691,6 +764,7 @@ export class DevtoolsBridge implements RegistryObserver {
       recentConsole: this.consoleRing.toArray(),
       recentNetwork: this.networkRing.toArray(),
       recentEvents: this.eventRing.toArray(),
+      metrics: metrics.snapshot(),
     };
   }
 }
