@@ -45,7 +45,7 @@ interface PluginConfig {
 | `wrapper`               | No       | Component that wraps ALL action roots. Use for global providers.                                |
 | `renderDebounceMs`      | No       | Coalesces renders. Increase for dial-heavy UIs.                                                 |
 | `imageFormat`           | No       | Output format. PNG is default and most compatible.                                              |
-| `caching`               | No       | Output hash caching (xxHash-wasm) to skip duplicate `setImage()` calls.                          |
+| `caching`               | No       | Output hash caching (xxHash-wasm) to skip duplicate `setImage()` calls.                         |
 | `devicePixelRatio`      | No       | Device pixel ratio used by the Takumi renderer. Default: `1`.                                   |
 | `onActionError`         | No       | Called when a component throws in any action root.                                              |
 | `devtools`              | No       | Enable the devtools server. Port derived from plugin UUID (39400-39499).                        |

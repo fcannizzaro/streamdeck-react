@@ -41,7 +41,7 @@
     },
     "packages/create-streamdeck-react": {
       "name": "create-streamdeck-react",
-      "version": "0.1.7",
+      "version": "0.1.8",
       "bin": {
         "create-streamdeck-react": "./dist/index.js",
       },
@@ -55,7 +55,7 @@
     },
     "packages/devtools": {
       "name": "@fcannizzaro/streamdeck-react-devtools",
-      "version": "0.1.11",
+      "version": "0.1.12",
       "bin": {
         "streamdeck-react-devtools": "./bin/cli.mjs",
       },
@@ -79,7 +79,7 @@
     },
     "packages/streamdeck-react": {
       "name": "@fcannizzaro/streamdeck-react",
-      "version": "0.1.10",
+      "version": "0.1.11",
       "dependencies": {
         "@elgato/streamdeck": "^2.0.2",
         "@takumi-rs/core": "^0.71.7",

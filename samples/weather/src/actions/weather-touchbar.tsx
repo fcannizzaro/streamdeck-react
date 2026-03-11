@@ -4,14 +4,15 @@
 // Pressing a dial or tapping a card expands a detail overlay
 // centered on the selected card.
 
-import { useState, useRef } from "react";
+import { useEffect, useRef } from "react";
 import {
   defineAction,
   useTouchBar,
   useTouchBarTap,
   useTouchBarDialRotate,
   useTouchBarDialDown,
-  useTick,
+  useSpring,
+  SpringPresets,
   Icon,
   tw,
 } from "@fcannizzaro/streamdeck-react";
@@ -27,7 +28,6 @@ const CARD_GAP = 5;
 const EDGE_PAD = 3;
 const CARD_V_PAD = 3; // top/bottom padding
 const DETAIL_PANEL_W = 200;
-const ANIM_SPEED = 5; // progress units per second
 
 /** Compute card width from the available strip width. */
 function computeCardWidth(stripWidth: number): number {
@@ -52,6 +52,20 @@ function MiniCard({
   width: number;
   height: number;
 }) {
+  // Bounce on focus: instantly dip the card down, then let the wobbly
+  // spring pull it back to 0. The overshoot makes the card briefly
+  // overshoot upward before settling — a satisfying little bounce.
+  const { value: offsetY, jump, set } = useSpring<number>(0, SpringPresets.wobbly);
+
+  const wasFocused = useRef(isFocused);
+  useEffect(() => {
+    if (isFocused && !wasFocused.current) {
+      jump(12);
+      set(0);
+    }
+    wasFocused.current = isFocused;
+  }, [isFocused, jump, set]);
+
   const bg = getSubColBackground(entry.isDay);
   const shadow = getSubColShadow(isFocused);
   const icon = getWeatherIcon(entry.weatherCode, entry.isDay);
@@ -62,6 +76,7 @@ function MiniCard({
       style={{
         width,
         height,
+        marginTop: Math.round(offsetY),
         backgroundColor: bg,
         borderRadius: 10,
         boxShadow: shadow,
@@ -200,26 +215,9 @@ function WeatherTouchBar() {
   const cardW = computeCardWidth(width);
   const cardH = STRIP_H - CARD_V_PAD * 2;
 
-  // ── Local animation state ──────────────────────────────────────
+  // ── Spring-animated detail panel progress ───────────────────────
 
-  const [progress, setProgress] = useState(0);
-  const targetRef = useRef(0);
-  targetRef.current = expanded ? 1 : 0;
-
-  const needsAnimation = Math.abs(progress - targetRef.current) > 0.005;
-
-  useTick(
-    (deltaMs) => {
-      const target = targetRef.current;
-      setProgress((current) => {
-        const step = (deltaMs / 1000) * ANIM_SPEED;
-        if (target > current) return Math.min(target, current + step);
-        if (target < current) return Math.max(target, current - step);
-        return current;
-      });
-    },
-    needsAnimation ? 60 : false,
-  );
+  const { value: progress } = useSpring(expanded ? 1 : 0, SpringPresets.stiff);
 
   // ── TouchBar interactions ──────────────────────────────────────
 
