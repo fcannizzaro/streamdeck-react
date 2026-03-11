@@ -20,7 +20,7 @@ Rendered UI is not a browser DOM. Keep layouts simple and explicit.
 
 ## No Animated GIF/Video
 
-Stream Deck hardware does not support animated images. Each `setImage` call is a static frame. Animation is achieved through rapid `setImage` calls (see `useTick`), limited by render throughput.
+Stream Deck hardware does not support animated images. Each `setImage` call is a static frame. Animation is achieved through rapid `setImage` calls using `useTick` for manual frame loops, or the higher-level `useSpring` and `useTween` hooks for physics-based and easing-based value animation. All approaches are limited by render throughput.
 
 ## One React Root Per Visible Instance
 

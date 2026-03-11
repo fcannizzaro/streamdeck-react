@@ -7,8 +7,24 @@ import { patchConsole } from "./intercepts/console";
 import { patchFetch } from "./intercepts/fetch";
 
 // ── Start DevTools Server ──────────────────────────────────────────────
-// Called from plugin.ts when devtools: true. Creates an HTTP + SSE server
-// using Node.js built-in `http` module.
+//
+// Called from plugin.ts when devtools: true.  Wires all data sources
+// into the SSE transport in 7 steps:
+//
+//   1. Create HTTP+SSE server + bridge
+//   2. Attach bridge as registry observer (lifecycle/dispatch events)
+//   3. Hook into render pipeline (onRender callback)
+//   4. Install static EventBus observer (bus-level events)
+//   5. Patch console.log/warn/error/info/debug
+//   6. Patch globalThis.fetch
+//   7. Start listening (async, fire-and-forget)
+//
+// server.start() is not awaited — the plugin continues connecting to
+// the SDK while the HTTP server binds.  If port binding fails, devtools
+// simply won't be available (no impact on plugin functionality).
+//
+// Cleanup: process "exit" handler restores console, fetch, and
+// disconnects all hooks to prevent post-exit errors.
 
 export function startDevtoolsServer(config: {
   devtoolsName: string;

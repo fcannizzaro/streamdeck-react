@@ -1,0 +1,76 @@
+{
+  "$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
+  "Actions": [
+    {
+      "Icon": "imgs/actions/spring",
+      "Name": "Spring Bounce",
+      "States": [
+        {
+          "Image": "imgs/actions/spring"
+        }
+      ],
+      "UUID": "com.example.react-animation.spring-bounce",
+      "Controllers": ["Keypad"],
+      "Tooltip": "Spring physics: wobbly scale on press with hue shift."
+    },
+    {
+      "Icon": "imgs/actions/fade",
+      "Name": "Fade Slide",
+      "States": [
+        {
+          "Image": "imgs/actions/fade"
+        }
+      ],
+      "UUID": "com.example.react-animation.fade-slide",
+      "Controllers": ["Keypad"],
+      "Tooltip": "Tween animation: cycles through labels with eased transitions."
+    },
+    {
+      "Icon": "imgs/actions/spring",
+      "Name": "Spring Dial",
+      "States": [
+        {
+          "Image": "imgs/actions/spring"
+        }
+      ],
+      "UUID": "com.example.react-animation.spring-dial",
+      "Controllers": ["Encoder"],
+      "Encoder": {
+        "layout": "layouts/touchbar.json",
+        "TriggerDescription": {
+          "Rotate": "Move ball",
+          "Push": "Toggle size",
+          "Touch": "Set position"
+        }
+      },
+      "Tooltip": "Spring-animated ball on the touch strip controlled by dial."
+    }
+  ],
+  "Author": "Francesco Saverio Cannizzaro",
+  "Category": "React Animation Sample",
+  "CategoryIcon": "imgs/plugin-icon",
+  "CodePath": "bin/plugin.mjs",
+  "Description": "Sample plugin demonstrating useSpring and useTween animation hooks from @fcannizzaro/streamdeck-react.",
+  "Icon": "imgs/plugin-icon",
+  "Name": "React Animation Sample",
+  "Nodejs": {
+    "Version": "24",
+    "Debug": "--inspect=127.0.0.1:8092"
+  },
+  "OS": [
+    {
+      "Platform": "mac",
+      "MinimumVersion": "13"
+    },
+    {
+      "Platform": "windows",
+      "MinimumVersion": "10"
+    }
+  ],
+  "UUID": "com.example.react-animation",
+  "Version": "0.0.0.1",
+  "SDKVersion": 2,
+  "Software": {
+    "MinimumVersion": "7.1"
+  }
+}

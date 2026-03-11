@@ -1,7 +1,19 @@
 // ── Fetch Interceptor ───────────────────────────────────────────────
+//
 // Wraps globalThis.fetch to capture request/response data for the
-// devtools server. The original fetch is always called with the original
-// arguments; clones are used for body reads.
+// devtools network panel.
+//
+// Key design constraints:
+//   - The ORIGINAL fetch is always called with the ORIGINAL arguments
+//     (no mutation of input/init).
+//   - Response body is read from a CLONE — the original Response is
+//     returned untouched to the caller.
+//   - Binary content types (image/*, audio/*, etc.) are skipped to
+//     avoid serializing large binary payloads.
+//   - Body size is capped at MAX_BODY_BYTES (256KB) to prevent
+//     memory bloat from large API responses.
+//   - Errors are caught and forwarded — fetch failures are still
+//     thrown to the original caller.
 
 const MAX_BODY_BYTES = 256 * 1024; // 256KB
 

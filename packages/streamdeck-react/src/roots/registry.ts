@@ -22,12 +22,18 @@ import type {
 } from "@/types";
 import type { RenderConfig } from "@/render/pipeline";
 import type { RegistryObserver } from "@/devtools/observers/lifecycle";
+import { FlushCoordinator } from "./flush-coordinator";
 
 // ── Constants ───────────────────────────────────────────────────────
+// Each encoder segment on the touch strip is 200px wide.
+// Used for coordinate remapping when routing touch events.
 
 const SEGMENT_WIDTH = 200;
 
 // ── Device key size lookup ──────────────────────────────────────────
+// Maps Elgato DeviceType enum values to key pixel dimensions.
+// Each Stream Deck model renders keys at a specific resolution.
+// Dial size (200×100) is constant across all encoder-capable devices.
 
 const KEY_SIZES: Record<number, { width: number; height: number }> = {
   0: { width: 72, height: 72 }, // StreamDeck
@@ -57,6 +63,26 @@ function getCanvasInfo(deviceType: DeviceType, surfaceType: "key" | "dial"): Can
 }
 
 // ── Root Registry ───────────────────────────────────────────────────
+//
+// Central hub that maps Stream Deck action instances to React roots
+// and routes SDK events to the correct root.
+//
+//   SDK Event (onKeyDown, onWillAppear, etc.)
+//     ↓
+//   plugin.ts → SingletonAction handler
+//     ↓
+//   registry.dispatch(actionId, event, payload)
+//     ↓
+//   ┌─ Per-action ReactRoot?  → root.eventBus.emit(event, payload)
+//   └─ TouchBar action?       → dispatchToTouchBar() with coordinate remap
+//
+// Owns three Maps:
+//   roots:           actionId → ReactRoot (per-key/dial instances)
+//   touchBarRoots:   deviceId → TouchBarRoot (shared per-device)
+//   touchBarActions: actionId → deviceId (reverse lookup for routing)
+//
+// The observer (RegistryObserver) is set by the devtools system when
+// devtools mode is enabled, providing lifecycle and event visibility.
 
 export class RootRegistry {
   private roots = new Map<string, ReactRoot>();
@@ -68,6 +94,7 @@ export class RootRegistry {
   private globalSettings: JsonObject = {};
   private onGlobalSettingsChange: (settings: JsonObject) => Promise<void>;
   private wrapper?: WrapperComponent;
+  private flushCoordinator = new FlushCoordinator();
 
   /** DevTools observer. Set externally by startDevtoolsServer(). null when devtools is off. */
   observer: RegistryObserver | null = null;
@@ -162,6 +189,7 @@ export class RootRegistry {
       },
       // onGlobalSettingsChange
       this.onGlobalSettingsChange,
+      this.flushCoordinator,
       this.wrapper,
       definition.wrapper,
       definition.dialLayout,
@@ -226,6 +254,7 @@ export class RootRegistry {
         this.onGlobalSettingsChange,
         this.wrapper,
         definition.touchBarFPS,
+        this.flushCoordinator,
       );
 
       this.touchBarRoots.set(deviceId, tbRoot);
@@ -285,11 +314,30 @@ export class RootRegistry {
   }
 
   // ── Dispatch an event to a root ───────────────────────────────
+  // Routes SDK events to the correct ReactRoot or TouchBarRoot.
+  // For touchbar actions, events are remapped:
+  //   touchTap → touchBarTap (per-encoder tap coordinates mapped to absolute strip position)
+  //   dialRotate/Down/Up → touchBarDialRotate/Down/Up (with column number)
+
+  // ── Events that count as user interaction for adaptive debounce ─
+  // These trigger a shorter debounce window on the target root,
+  // ensuring fast visual feedback for user input.
+  private static readonly INTERACTION_EVENTS: ReadonlySet<string> = new Set([
+    "keyDown",
+    "keyUp",
+    "dialRotate",
+    "dialDown",
+    "dialUp",
+    "touchTap",
+  ]);
 
   dispatch<K extends keyof EventMap>(contextId: string, event: K, payload: EventMap[K]): void {
     // ── Try per-action root first ──
     const root = this.roots.get(contextId);
     if (root) {
+      if (RootRegistry.INTERACTION_EVENTS.has(event)) {
+        root.markInteraction();
+      }
       root.eventBus.emit(event, payload);
       this.observer?.onDispatch(contextId, event, payload);
       return;
@@ -300,6 +348,9 @@ export class RootRegistry {
     if (deviceId) {
       const tbRoot = this.touchBarRoots.get(deviceId);
       if (tbRoot) {
+        if (RootRegistry.INTERACTION_EVENTS.has(event)) {
+          tbRoot.markInteraction();
+        }
         this.dispatchToTouchBar(tbRoot, contextId, event, payload);
         this.observer?.onDispatch(contextId, event, payload);
       }

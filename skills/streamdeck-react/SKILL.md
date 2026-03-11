@@ -308,7 +308,7 @@ For production builds, pass explicit `targets`. In watch mode, `streamDeckReact(
   "UUID": "com.example.my-plugin",
   "Version": "0.0.0.1",
   "SDKVersion": 2,
-  "Software": { "MinimumVersion": "6.9" }
+  "Software": { "MinimumVersion": "7.1" }
 }
 ```
 
@@ -344,6 +344,8 @@ If your `package.json` has a `dev` script configured, you can also just run `bun
 | SDK       | `useShowAlert`, `useShowOk`, `useTitle`     | Key overlays                                              |
 | Utility   | `useInterval`, `useTimeout`, `usePrevious`  | Timers and helpers                                        |
 | Utility   | `useTick`                                   | Animation frame loop                                      |
+| Animation | `useSpring`, `useTween`                     | Physics and easing-based value animation                  |
+| Animation | `SpringPresets`, `Easings`                  | Built-in spring presets and easing functions              |
 
 See [references/hooks.md](references/hooks.md) for full signatures and usage.
 
@@ -431,7 +433,7 @@ For touch interaction on Stream Deck+, use `useTouchTap()` inside the mounted ac
 3. **UUID mismatch** -- the `uuid` in `defineAction()` must exactly match the `UUID` in `manifest.json`.
 4. **`streamDeckReact({ targets })` is required for production builds** -- it copies the Takumi `.node` binaries into output. Without them, the plugin crashes on startup.
 5. **Install `ws` and matching `@takumi-rs/core-*` packages** -- they must line up with the targets passed to `streamDeckReact({ targets })`.
-6. **No animated images** -- each `setImage` call is a static frame. Use `useTick` for animation loops.
+6. **No animated images** -- each `setImage` call is a static frame. Use `useTick` for manual animation loops, or the higher-level `useSpring` and `useTween` hooks for physics-based and easing-based animation.
 7. **Design for 72x72 minimum** -- smallest key size. Use `useCanvas()` to adapt to larger devices.
 8. **Use simple layouts** -- this is not a browser DOM. Stick to flex layouts, fixed sizes, and simple elements (`div`, `span`, `img`, `svg`, `p`).
 9. **`renderDebounceMs`** -- default 16ms (~60fps ceiling). Increase for dial-heavy UIs to reduce render load.

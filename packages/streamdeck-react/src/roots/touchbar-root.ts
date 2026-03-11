@@ -1,7 +1,12 @@
 import { createElement, type ComponentType, type ReactElement } from "react";
 import { reconciler } from "@/reconciler/renderer";
 import { createVContainer, type VContainer } from "@/reconciler/vnode";
-import { renderToRaw, sliceToDataUri, type RenderConfig } from "@/render/pipeline";
+import {
+  renderToRaw,
+  sliceToDataUriAsync,
+  renderSegmentToDataUri,
+  type RenderConfig,
+} from "@/render/pipeline";
 import { EventBus } from "@/context/event-bus";
 import {
   DeviceContext,
@@ -11,10 +16,14 @@ import {
 } from "@/context/providers";
 import { TouchBarContext } from "@/context/touchbar-context";
 import type { DeviceInfo, EncoderLayout, TouchBarInfo, WrapperComponent } from "@/types";
+import type { FlushCoordinator, FlushableRoot } from "./flush-coordinator";
 import type { DialAction } from "@elgato/streamdeck";
 import type { JsonObject } from "@elgato/utils";
 
 // ── Constants ───────────────────────────────────────────────────────
+// Stream Deck Plus encoders: each segment is 200×100 pixels.
+// A full 4-encoder strip is 800×100.  Columns may not be contiguous
+// (e.g. columns [0, 1, 3] if encoder 2 is used by a different action).
 
 const SEGMENT_WIDTH = 200;
 const SEGMENT_HEIGHT = 100;
@@ -39,11 +48,44 @@ interface ColumnEntry {
 }
 
 // ── Touch Bar Root ──────────────────────────────────────────────────
-// A shared React fiber root that renders ONE component tree for the
-// full-width touch strip. The rendered image is sliced and distributed
-// to individual encoder actions via setFeedback.
+//
+// Shared React fiber root that renders ONE component tree spanning
+// the full touch strip width.  Unlike ReactRoot (one per key/dial),
+// there is one TouchBarRoot per device, shared by all encoder actions
+// on that device.
+//
+// Architecture:
+//
+//   TouchBarRoot (one per device, e.g. Stream Deck Plus)
+//   ┌──────────────────────────────────────────────────┐
+//   │ Single React tree renders at full width (800×100) │
+//   │                                                  │
+//   │  col 0      col 1      col 2      col 3          │
+//   │ ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐     │
+//   │ │ 200×100│ │ 200×100│ │ 200×100│ │ 200×100│     │
+//   │ └───┬────┘ └───┬────┘ └───┬────┘ └───┬────┘     │
+//   │     │          │          │          │           │
+//   │     ▼          ▼          ▼          ▼           │
+//   │  setFeedback per encoder (sliced segments)       │
+//   └──────────────────────────────────────────────────┘
+//
+// Two rendering paths (selected by touchbarImageFormat config):
+//
+//   Path A: Native format (WebP/PNG via Takumi)
+//     Each segment rendered independently with CSS viewport offset.
+//     Faster when Takumi's native encoder (WebP) is available.
+//     See renderSegmentToDataUri() in pipeline.ts.
+//
+//   Path B: Raw → crop → PNG encode
+//     Single full-width render → raw RGBA → cropSlice per segment
+//     → encodePngAsync (parallel deflate via libuv thread pool).
+//     Used when touchbarImageFormat is "png".
+//
+// Columns are dynamic — encoders appear/disappear as the user drags
+// actions onto the Stream Deck.  The geometry is recomputed via
+// updateTouchBarInfo() whenever a column is added or removed.
 
-export class TouchBarRoot {
+export class TouchBarRoot implements FlushableRoot {
   readonly eventBus = new EventBus();
   private container: VContainer;
   private fiberRoot: ReturnType<typeof reconciler.createContainer>;
@@ -56,6 +98,45 @@ export class TouchBarRoot {
   private disposed = false;
   private fps: number;
   private pluginWrapper?: WrapperComponent;
+
+  // ── Performance diagnostics ───────────────────────────────────
+  private _renderCount = 0;
+  private _lastRenderReport = 0;
+  private static readonly RENDER_WARN_THRESHOLD = 65;
+
+  // ── Frame skipping ────────────────────────────────────────────
+  private _rendering = false;
+  private _pendingFlush = false;
+
+  // ── Adaptive debounce ─────────────────────────────────────────
+  private _recentRenders: number[] = [];
+  private _lastInteraction = 0;
+  private static readonly ANIMATION_WINDOW_MS = 100;
+  private static readonly ANIMATION_THRESHOLD = 2;
+  private static readonly INTERACTION_COOLDOWN_MS = 500;
+
+  // ── Render Priority ───────────────────────────────────────────
+  private static readonly IDLE_THRESHOLD_MS = 2000;
+  private _lastFlushTime = 0;
+
+  /** Current render priority (lower = higher priority). Used by flush coordinator. */
+  get priority(): number {
+    const now = Date.now();
+    const cutoff = now - TouchBarRoot.ANIMATION_WINDOW_MS;
+    while (this._recentRenders.length > 0 && this._recentRenders[0]! < cutoff) {
+      this._recentRenders.shift();
+    }
+    if (this._recentRenders.length > TouchBarRoot.ANIMATION_THRESHOLD) {
+      return 0;
+    }
+    if (now - this._lastInteraction < TouchBarRoot.INTERACTION_COOLDOWN_MS) {
+      return 1;
+    }
+    if (this._lastFlushTime > 0 && now - this._lastFlushTime > TouchBarRoot.IDLE_THRESHOLD_MS) {
+      return 3;
+    }
+    return 2;
+  }
 
   /** Last rendered per-column data URIs. Used by devtools snapshots. */
   lastSegmentUris = new Map<number, string>();
@@ -92,6 +173,7 @@ export class TouchBarRoot {
     onGlobalSettingsChange: (settings: JsonObject) => Promise<void>,
     pluginWrapper?: WrapperComponent,
     touchBarFPS?: number,
+    private flushCoordinator?: FlushCoordinator,
   ) {
     this.deviceInfo = deviceInfo;
     this.globalSettings = { ...initialGlobalSettings };
@@ -246,52 +328,155 @@ export class TouchBarRoot {
 
   // ── Flush: VNode → raw RGBA → buffer crop → setFeedback ────────
 
+  /** Record a user interaction for adaptive debounce. */
+  markInteraction(): void {
+    this._lastInteraction = Date.now();
+  }
+
+  private get effectiveDebounceMs(): number {
+    const now = Date.now();
+    const cutoff = now - TouchBarRoot.ANIMATION_WINDOW_MS;
+    while (this._recentRenders.length > 0 && this._recentRenders[0]! < cutoff) {
+      this._recentRenders.shift();
+    }
+    if (this._recentRenders.length > TouchBarRoot.ANIMATION_THRESHOLD) {
+      return 0;
+    }
+    if (now - this._lastInteraction < TouchBarRoot.INTERACTION_COOLDOWN_MS) {
+      return Math.min(this.renderDebounceMs, 16);
+    }
+    return this.renderDebounceMs;
+  }
+
   private async flush(): Promise<void> {
     if (this.disposed) return;
 
-    if (this.renderDebounceMs > 0 && this.container.renderTimer !== null) {
+    // Frame skipping: if a render is in progress, just mark pending
+    if (this._rendering) {
+      this._pendingFlush = true;
+      return;
+    }
+
+    this._recentRenders.push(Date.now());
+    const debounce = this.effectiveDebounceMs;
+
+    if (debounce > 0 && this.container.renderTimer !== null) {
       clearTimeout(this.container.renderTimer);
     }
 
-    if (this.renderDebounceMs > 0) {
-      this.container.renderTimer = setTimeout(async () => {
+    if (debounce > 0) {
+      this.container.renderTimer = setTimeout(() => {
         this.container.renderTimer = null;
-        await this.doFlush();
-      }, this.renderDebounceMs);
+        this.submitFlush();
+      }, debounce);
     } else {
-      await this.doFlush();
+      this.submitFlush();
     }
+  }
+
+  /**
+   * Submit this root for flushing. Routes through the coordinator
+   * (priority-ordered) when available, or flushes directly.
+   */
+  private submitFlush(): void {
+    if (this.disposed) return;
+    if (this.flushCoordinator) {
+      this.flushCoordinator.requestFlush(this);
+    } else {
+      this.doFlush();
+    }
+  }
+
+  /**
+   * Execute the flush. Called by FlushCoordinator in priority order,
+   * or directly when no coordinator is present.
+   */
+  async executeFlush(): Promise<void> {
+    await this.doFlush();
   }
 
   private async doFlush(): Promise<void> {
     if (this.disposed || this.columns.size === 0) return;
 
+    this._rendering = true;
+    this._pendingFlush = false;
+    this._lastFlushTime = Date.now();
+
+    // Performance diagnostics: render frequency counter
+    if (this.renderConfig.debug) {
+      this._renderCount++;
+      const now = Date.now();
+      if (now - this._lastRenderReport > 1000) {
+        if (this._renderCount > TouchBarRoot.RENDER_WARN_THRESHOLD) {
+          console.warn(
+            `[@fcannizzaro/streamdeck-react] TouchBar rendered ${this._renderCount}x in 1s (FPS target: ${this.fps})`,
+          );
+        }
+        this._renderCount = 0;
+        this._lastRenderReport = now;
+      }
+    }
+
     try {
       const width = this.touchBarValue.width;
       if (width === 0) return;
 
-      // Single Takumi render → raw RGBA pixels
-      const result = await renderToRaw(this.container, width, SEGMENT_HEIGHT, this.renderConfig);
+      const useNativeFormat = this.renderConfig.touchbarImageFormat !== "png";
 
-      if (result === null || this.disposed) return;
+      if (useNativeFormat) {
+        // ── Direct per-segment rendering via Takumi (WebP/PNG) ──────
+        // Each segment is rendered independently using Takumi's native
+        // format output. Eliminates the raw→crop→deflate path entirely.
+        const feedbackPromises = [...this.columns.entries()].map(async ([column, entry]) => {
+          const sliceUri = await renderSegmentToDataUri(
+            this.container,
+            width,
+            SEGMENT_HEIGHT,
+            column,
+            SEGMENT_WIDTH,
+            this.renderConfig.touchbarImageFormat,
+            this.renderConfig,
+          );
+          if (sliceUri != null) {
+            this.lastSegmentUris.set(column, sliceUri);
+            // Double buffering: fire-and-forget hardware push
+            entry.sdkAction.setFeedback({ canvas: sliceUri }).catch(() => {});
+          }
+        });
+        await Promise.all(feedbackPromises);
+      } else {
+        // ── Raw render + crop + PNG encode path ─────────────────────
+        // Single Takumi render → raw RGBA pixels → crop → PNG encode
+        const result = await renderToRaw(this.container, width, SEGMENT_HEIGHT, this.renderConfig);
 
-      // Crop each segment directly from the raw buffer (no re-rendering)
-      const feedbackPromises: Promise<void>[] = [];
-      for (const [column, entry] of this.columns) {
-        const sliceUri = sliceToDataUri(
-          result.buffer,
-          result.width,
-          result.height,
-          column,
-          SEGMENT_WIDTH,
-          SEGMENT_HEIGHT,
-        );
-        this.lastSegmentUris.set(column, sliceUri);
-        feedbackPromises.push(entry.sdkAction.setFeedback({ canvas: sliceUri }));
+        if (result === null || this.disposed) return;
+
+        // Crop and encode each segment in parallel (async deflate via libuv thread pool)
+        const feedbackPromises = [...this.columns.entries()].map(async ([column, entry]) => {
+          const sliceUri = await sliceToDataUriAsync(
+            result.buffer,
+            result.width,
+            result.height,
+            column,
+            SEGMENT_WIDTH,
+            SEGMENT_HEIGHT,
+          );
+          this.lastSegmentUris.set(column, sliceUri);
+          // Double buffering: fire-and-forget hardware push
+          entry.sdkAction.setFeedback({ canvas: sliceUri }).catch(() => {});
+        });
+        await Promise.all(feedbackPromises);
       }
-      await Promise.all(feedbackPromises);
     } catch (err) {
       console.error("[@fcannizzaro/streamdeck-react] TouchBar render error:", err);
+    } finally {
+      this._rendering = false;
+
+      // If a flush was requested while we were rendering, drain it now
+      if (this._pendingFlush && !this.disposed) {
+        this._pendingFlush = false;
+        await this.doFlush();
+      }
     }
   }
 

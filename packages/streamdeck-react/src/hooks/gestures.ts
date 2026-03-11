@@ -4,6 +4,38 @@ import { useCallbackRef } from "./internal/useCallbackRef";
 import type { EventBus } from "@/context/event-bus";
 import type { KeyDownPayload, KeyUpPayload } from "@/types";
 
+// ── Gesture Recognition Hooks ───────────────────────────────────────
+//
+// Three gesture hooks that compose together automatically:
+//
+//   useTap        — single keyUp event
+//   useLongPress  — keyDown held for N ms (keyUp cancels timer)
+//   useDoubleTap  — two keyUp events within N ms
+//
+// Tap / DoubleTap interaction (TapGate):
+//
+//   When useTap and useDoubleTap are both active on the same action,
+//   they need implicit coordination — a single tap must be delayed
+//   until the double-tap window expires, and cancelled if a second
+//   tap arrives:
+//
+//     keyUp #1                   keyUp #2 (within timeout)
+//       │                          │
+//       ▼                          ▼
+//     TapGate.schedule()         useDoubleTap detects pair
+//       │                          │
+//       │ timeout fires            │ TapGate.cancel()
+//       ▼                          ▼
+//     useTap callback            useDoubleTap callback
+//     (delayed by timeout)       (immediate, cancels pending tap)
+//
+//   If only useTap is used (no useDoubleTap), the gate timeout is 0
+//   and taps fire immediately with no delay.
+//
+//   The TapGate is scoped per-action using a WeakMap keyed on the
+//   EventBus instance.  This avoids adding another React context
+//   and automatically garbage-collects when the action is destroyed.
+
 // ── Options ─────────────────────────────────────────────────────────
 
 export interface TapOptions {
@@ -29,6 +61,11 @@ const DEFAULT_DOUBLE_TAP_TIMEOUT = 250;
 // ── TapGate — implicit coordination between useTap & useDoubleTap ──
 // Each action has its own EventBus, so keying on the bus gives us
 // per-action scoping without an additional React context.
+//
+// When useDoubleTap mounts, it registers its timeout on the gate.
+// useTap checks the gate's timeout on each keyUp — if >0, it delays
+// the callback via gate.schedule().  useDoubleTap can then cancel()
+// the pending tap if a double-tap is detected.
 
 class TapGate {
   /** Double-tap timeout in ms. 0 means no gate (useTap fires immediately). */

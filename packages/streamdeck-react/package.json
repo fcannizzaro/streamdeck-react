@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/fcannizzaro/streamdeck-react/issues"
   },
-  "license": "MIT",
+  "license": "Apache-2.0",
   "author": {
     "name": "Francesco Saverio Cannizzaro",
     "url": "https://github.com/fcannizzaro"
@@ -56,7 +56,7 @@
   },
   "scripts": {
     "build": "vite build",
-    "check-types": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
     "test": "bun test ./src"
   },
   "dependencies": {

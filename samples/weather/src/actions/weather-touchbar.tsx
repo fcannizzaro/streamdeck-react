@@ -1,8 +1,8 @@
 // ── Weather TouchBar ───────────────────────────────────────────────
-// Full-width touch strip component (800×100). Renders 12 mini weather
-// cards (4 segments × 3 cards). Dial rotation moves a cursor highlight.
-// Pressing a dial or tapping a card expands a detail overlay on the
-// segment containing the selected card.
+// Full-width touch strip component (800×100). Renders a flat row of
+// mini weather cards. Dial rotation moves a cursor highlight.
+// Pressing a dial or tapping a card expands a detail overlay
+// centered on the selected card.
 
 import { useState, useRef } from "react";
 import {
@@ -15,28 +15,29 @@ import {
   Icon,
   tw,
 } from "@fcannizzaro/streamdeck-react";
-import {
-  useWeatherStore,
-  getSegmentEntries,
-  getForecastIndex,
-  COLS_PER_SEGMENT,
-  NUM_SEGMENTS,
-} from "../store";
-import { getWeatherIcon, ICON_THERMO_HIGH, ICON_THERMO_LOW } from "../icons";
+import { useWeatherStore, TOTAL_VISIBLE } from "../store";
+import { getWeatherIcon, WeatherIcon, ICON_THERMO_HIGH, ICON_THERMO_LOW } from "../icons";
 import { getSubColBackground, getSubColShadow, DIAL_BACKGROUND } from "../theme";
 import type { ForecastEntry } from "../types";
 
 // ── Layout constants ───────────────────────────────────────────────
 
 const STRIP_H = 100;
-const SEGMENT_W = 200;
-const GAP = 6;
-const EDGE_PAD = GAP / 2; // 3px at each segment edge
-const CARD_W = Math.floor(
-  (SEGMENT_W - EDGE_PAD * 2 - GAP * (COLS_PER_SEGMENT - 1)) / COLS_PER_SEGMENT,
-);
-const CARD_H = STRIP_H - GAP; // top/bottom padding
+const CARD_GAP = 5;
+const EDGE_PAD = 3;
+const CARD_V_PAD = 3; // top/bottom padding
+const DETAIL_PANEL_W = 200;
 const ANIM_SPEED = 5; // progress units per second
+
+/** Compute card width from the available strip width. */
+function computeCardWidth(stripWidth: number): number {
+  return Math.floor((stripWidth - EDGE_PAD * 2 - CARD_GAP * (TOTAL_VISIBLE - 1)) / TOTAL_VISIBLE);
+}
+
+/** Compute the x-center of a card at the given visible index. */
+function cardCenterX(visibleIndex: number, cardW: number): number {
+  return EDGE_PAD + visibleIndex * (cardW + CARD_GAP) + cardW / 2;
+}
 
 // ── Mini weather card ──────────────────────────────────────────────
 
@@ -44,28 +45,32 @@ function MiniCard({
   entry,
   isFocused,
   width,
+  height,
 }: {
   entry: ForecastEntry;
   isFocused: boolean;
   width: number;
+  height: number;
 }) {
   const bg = getSubColBackground(entry.isDay);
   const shadow = getSubColShadow(isFocused);
-  const iconPath = getWeatherIcon(entry.weatherCode, entry.isDay);
+  const icon = getWeatherIcon(entry.weatherCode, entry.isDay);
 
   return (
     <div
       className={tw("flex flex-col items-center justify-center")}
       style={{
         width,
-        height: CARD_H,
+        height,
         backgroundColor: bg,
         borderRadius: 10,
         boxShadow: shadow,
         boxSizing: "border-box",
+        flexShrink: 0,
+        gap: 2,
       }}
     >
-      <Icon path={iconPath} size={20} color="rgba(255,255,255,0.9)" />
+      <WeatherIcon icon={icon} size={28} />
       <span className="text-[20px] font-bold text-white">{entry.temp}&deg;</span>
       <span className="text-[9px] font-medium text-white/80">{entry.label}</span>
     </div>
@@ -74,16 +79,16 @@ function MiniCard({
 
 // ── Empty card placeholder ─────────────────────────────────────────
 
-function EmptyCard({ width }: { width: number }) {
+function EmptyCard({ width, height }: { width: number; height: number }) {
   return (
     <div
       className={tw("flex flex-col items-center justify-center")}
       style={{
         width,
-        height: CARD_H,
+        height,
         backgroundColor: "rgba(255,255,255,0.05)",
         borderRadius: 10,
-        border: "2px solid transparent",
+        flexShrink: 0,
       }}
     >
       <span className="text-[14px] text-white/20">--</span>
@@ -92,17 +97,16 @@ function EmptyCard({ width }: { width: number }) {
 }
 
 // ── Detail overlay panel ───────────────────────────────────────────
-// Positioned on a single segment (200×100). Shows a big label watermark
-// and two rows: MAX and MIN with icon + label on left, value on right.
+// Shows a big label watermark and MAX/MIN rows, animated from the bottom.
 
 function DetailPanel({
   entry,
   progress,
-  segmentLeft,
+  left,
 }: {
   entry: ForecastEntry;
   progress: number;
-  segmentLeft: number;
+  left: number;
 }) {
   const panelH = Math.round(STRIP_H * progress);
   const contentOpacity = Math.min(1, Math.max(0, (progress - 0.3) / 0.5));
@@ -112,9 +116,9 @@ function DetailPanel({
     <div
       style={{
         position: "absolute",
-        left: segmentLeft,
+        left,
         top: STRIP_H - panelH,
-        width: SEGMENT_W,
+        width: DETAIL_PANEL_W,
         height: panelH,
         backgroundColor: bg,
         borderRadius: 10,
@@ -125,7 +129,7 @@ function DetailPanel({
       {progress > 0.3 && (
         <div
           style={{
-            width: SEGMENT_W,
+            width: DETAIL_PANEL_W,
             height: STRIP_H,
             position: "relative",
             opacity: contentOpacity,
@@ -146,7 +150,7 @@ function DetailPanel({
             {entry.label}
           </span>
 
-          {/* MAX / MIN rows — pushed toward bottom */}
+          {/* MAX / MIN rows */}
           <div
             style={{
               position: "absolute",
@@ -158,7 +162,6 @@ function DetailPanel({
               gap: 4,
             }}
           >
-            {/* MAX row */}
             <div className={tw("flex items-center justify-between")}>
               <div className={tw("flex items-center gap-2")}>
                 <Icon path={ICON_THERMO_HIGH} size={18} color="rgba(255,255,255,0.8)" />
@@ -167,7 +170,6 @@ function DetailPanel({
               <span className="text-[20px] font-bold text-white">{entry.tempMax}&deg;</span>
             </div>
 
-            {/* MIN row */}
             <div className={tw("flex items-center justify-between")}>
               <div className={tw("flex items-center gap-2")}>
                 <Icon path={ICON_THERMO_LOW} size={18} color="rgba(255,255,255,0.8)" />
@@ -182,50 +184,6 @@ function DetailPanel({
   );
 }
 
-// ── Segment renderer ───────────────────────────────────────────────
-// Renders 3 cards for a single 200px segment of the touch strip.
-
-function Segment({
-  segment,
-  forecast,
-  scrollOffset,
-  cursor,
-}: {
-  segment: number;
-  forecast: ForecastEntry[];
-  scrollOffset: number;
-  cursor: number;
-}) {
-  const entries = getSegmentEntries(forecast, scrollOffset, segment);
-
-  return (
-    <div
-      className={tw("flex items-center")}
-      style={{
-        width: SEGMENT_W,
-        height: STRIP_H,
-        paddingLeft: EDGE_PAD,
-        paddingRight: EDGE_PAD,
-        paddingTop: GAP / 2,
-        paddingBottom: GAP / 2,
-        gap: GAP + 0.5,
-        flexShrink: 0,
-      }}
-    >
-      {entries.map((entry, i) => {
-        const forecastIdx = getForecastIndex(scrollOffset, segment, i);
-        const isFocused = forecastIdx === cursor;
-
-        if (!entry) {
-          return <EmptyCard key={`empty-${segment}-${i}`} width={CARD_W} />;
-        }
-
-        return <MiniCard key={forecastIdx} entry={entry} isFocused={isFocused} width={CARD_W} />;
-      })}
-    </div>
-  );
-}
-
 // ── Main component ─────────────────────────────────────────────────
 
 function WeatherTouchBar() {
@@ -235,17 +193,18 @@ function WeatherTouchBar() {
   const forecast = useWeatherStore((s) => s.forecast);
   const scrollOffset = useWeatherStore((s) => s.scrollOffset);
   const cursor = useWeatherStore((s) => s.cursor);
-  const expandedSegment = useWeatherStore((s) => s.expandedSegment);
+  const expanded = useWeatherStore((s) => s.expanded);
   const isLoading = useWeatherStore((s) => s.isLoading && s.forecast.length === 0);
 
-  // Which segment has the cursor
-  const cursorSegment = Math.floor((cursor - scrollOffset) / COLS_PER_SEGMENT);
+  // Layout
+  const cardW = computeCardWidth(width);
+  const cardH = STRIP_H - CARD_V_PAD * 2;
 
   // ── Local animation state ──────────────────────────────────────
 
   const [progress, setProgress] = useState(0);
   const targetRef = useRef(0);
-  targetRef.current = expandedSegment !== null ? 1 : 0;
+  targetRef.current = expanded ? 1 : 0;
 
   const needsAnimation = Math.abs(progress - targetRef.current) > 0.005;
 
@@ -266,7 +225,7 @@ function WeatherTouchBar() {
 
   useTouchBarDialRotate(({ ticks }) => {
     const store = useWeatherStore.getState();
-    if (store.expandedSegment !== null) {
+    if (store.expanded) {
       store.closeExpanded();
       return;
     }
@@ -275,39 +234,29 @@ function WeatherTouchBar() {
 
   useTouchBarDialDown(() => {
     const store = useWeatherStore.getState();
-
-    // If any panel is expanded, close it
-    if (store.expandedSegment !== null) {
+    if (store.expanded) {
       store.closeExpanded();
       return;
     }
-
-    // Toggle detail panel for the cursor's segment
     store.toggleExpanded();
   });
 
   useTouchBarTap(({ tapPos }) => {
     const store = useWeatherStore.getState();
 
-    // If detail is open, close it
-    if (store.expandedSegment !== null) {
+    if (store.expanded) {
       store.closeExpanded();
       return;
     }
 
-    // Determine which segment and sub-column was tapped
+    // Determine which card was tapped
     const x = tapPos[0];
-    const tappedSegment = Math.min(NUM_SEGMENTS - 1, Math.floor(x / SEGMENT_W));
-    const localX = x - tappedSegment * SEGMENT_W;
-    const subCol = Math.min(
-      COLS_PER_SEGMENT - 1,
-      Math.floor(localX / (SEGMENT_W / COLS_PER_SEGMENT)),
-    );
-    const forecastIdx = getForecastIndex(store.scrollOffset, tappedSegment, subCol);
+    const tappedCol = Math.floor((x - EDGE_PAD) / (cardW + CARD_GAP));
+    const tappedIdx = store.scrollOffset + Math.min(TOTAL_VISIBLE - 1, Math.max(0, tappedCol));
 
-    if (forecastIdx < store.forecast.length) {
-      if (store.cursor !== forecastIdx) {
-        useWeatherStore.setState({ cursor: forecastIdx });
+    if (tappedIdx < store.forecast.length) {
+      if (store.cursor !== tappedIdx) {
+        useWeatherStore.setState({ cursor: tappedIdx });
       }
       store.toggleExpanded();
     }
@@ -337,26 +286,17 @@ function WeatherTouchBar() {
     );
   }
 
-  // ── Detail entry ───────────────────────────────────────────────
+  // ── Detail panel position ─────────────────────────────────────
 
-  const detailSubCol = cursor - (scrollOffset + cursorSegment * COLS_PER_SEGMENT);
-  const detailEntries = getSegmentEntries(forecast, scrollOffset, cursorSegment);
-  const detailEntry =
-    detailSubCol >= 0 && detailSubCol < COLS_PER_SEGMENT
-      ? detailEntries[detailSubCol]
-      : undefined;
-
+  const cursorLocalIdx = cursor - scrollOffset;
+  const detailEntry = forecast[cursor];
   const showPanel = progress > 0.005 && detailEntry;
 
-  // Center the 200px panel on the selected card, clamped to the strip edges
-  const activeSegment = expandedSegment ?? cursorSegment;
-  const activeSubCol = cursor - (scrollOffset + activeSegment * COLS_PER_SEGMENT);
-  const cardCenterX =
-    activeSegment * SEGMENT_W +
-    EDGE_PAD +
-    activeSubCol * (CARD_W + GAP + 0.5) +
-    CARD_W / 2;
-  const panelLeft = Math.max(0, Math.min(width - SEGMENT_W, cardCenterX - SEGMENT_W / 2));
+  const panelCenterX = cardCenterX(cursorLocalIdx, cardW);
+  const panelLeft = Math.max(
+    0,
+    Math.min(width - DETAIL_PANEL_W, panelCenterX - DETAIL_PANEL_W / 2),
+  );
 
   // ── Render ─────────────────────────────────────────────────────
 
@@ -369,21 +309,29 @@ function WeatherTouchBar() {
         position: "relative",
         overflow: "hidden",
         display: "flex",
+        alignItems: "center",
+        paddingLeft: EDGE_PAD,
+        paddingRight: EDGE_PAD,
+        gap: CARD_GAP,
       }}
     >
-      {/* All segments side by side */}
-      {Array.from({ length: NUM_SEGMENTS }, (_, seg) => (
-        <Segment
-          key={seg}
-          segment={seg}
-          forecast={forecast}
-          scrollOffset={scrollOffset}
-          cursor={cursor}
-        />
-      ))}
+      {/* Flat row of cards */}
+      {Array.from({ length: TOTAL_VISIBLE }, (_, i) => {
+        const idx = scrollOffset + i;
+        const entry = forecast[idx];
+        const isFocused = idx === cursor;
+
+        if (!entry) {
+          return <EmptyCard key={`empty-${i}`} width={cardW} height={cardH} />;
+        }
+
+        return (
+          <MiniCard key={idx} entry={entry} isFocused={isFocused} width={cardW} height={cardH} />
+        );
+      })}
 
       {/* Dark backdrop behind the detail panel */}
-      {expandedSegment !== null && (
+      {expanded && (
         <div
           style={{
             position: "absolute",
@@ -398,13 +346,7 @@ function WeatherTouchBar() {
       )}
 
       {/* Detail overlay (animated from bottom) */}
-      {showPanel && (
-        <DetailPanel
-          entry={detailEntry}
-          progress={progress}
-          segmentLeft={panelLeft}
-        />
-      )}
+      {showPanel && <DetailPanel entry={detailEntry} progress={progress} left={panelLeft} />}
     </div>
   );
 }

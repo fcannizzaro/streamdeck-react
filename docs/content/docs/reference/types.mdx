@@ -337,3 +337,68 @@ type JsonPrimitive = boolean | number | string | null | undefined;
 type JsonValue = JsonObject | JsonPrimitive | JsonValue[];
 type JsonObject = { [key: string]: JsonValue };
 ```
+
+## Animation Types
+
+```ts
+/** A single number or a flat object of named numbers. */
+type AnimationTarget = number | Record<string, number>;
+
+/** Maps an AnimationTarget shape to its animated output shape. */
+type AnimatedValue<T extends AnimationTarget> = T extends number
+  ? number
+  : { [K in keyof T]: number };
+
+interface SpringConfig {
+  /** Stiffness coefficient (force per unit displacement). @default 170 */
+  tension: number;
+  /** Damping coefficient (force per unit velocity). @default 26 */
+  friction: number;
+  /** Mass of the simulated object. @default 1 */
+  mass: number;
+  /** Absolute velocity threshold below which the spring settles. @default 0.01 */
+  velocityThreshold: number;
+  /** Absolute displacement threshold below which the spring settles. @default 0.005 */
+  displacementThreshold: number;
+  /** Clamp output to target (no overshoot). @default false */
+  clamp: boolean;
+}
+
+interface SpringResult<T extends AnimationTarget> {
+  value: AnimatedValue<T>;
+  isAnimating: boolean;
+  set: (target: T) => void;
+  jump: (target: T) => void;
+}
+
+type EasingName =
+  | "linear"
+  | "easeIn"
+  | "easeOut"
+  | "easeInOut"
+  | "easeInCubic"
+  | "easeOutCubic"
+  | "easeInOutCubic"
+  | "easeInBack"
+  | "easeOutBack"
+  | "easeOutBounce";
+
+type EasingFn = (t: number) => number;
+
+interface TweenConfig {
+  /** Duration in milliseconds. @default 300 */
+  duration: number;
+  /** Easing function name or custom function. @default "easeOut" */
+  easing: EasingName | EasingFn;
+  /** Target FPS for the animation tick loop. @default 60 */
+  fps: number;
+}
+
+interface TweenResult<T extends AnimationTarget> {
+  value: AnimatedValue<T>;
+  progress: number;
+  isAnimating: boolean;
+  set: (target: T) => void;
+  jump: (target: T) => void;
+}
+```

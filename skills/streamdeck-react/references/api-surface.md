@@ -61,6 +61,15 @@ Complete public API exported from `@fcannizzaro/streamdeck-react`.
 | `usePrevious` | `<T>(value: T) => T \| undefined`                                          | Returns the value from the previous render.                                |
 | `useTick`     | `(cb: (deltaMs: number) => void, fpsOrActive?: number \| boolean) => void` | Animation frame loop. Default 60fps. Pass `false` to pause.                |
 
+## Animation Hooks
+
+| Export          | Signature                                                                                                      | Description                                                                                           |
+| --------------- | -------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `useSpring`     | `<T extends AnimationTarget>(target: T, config?: Partial<SpringConfig> & { fps?: number }) => SpringResult<T>` | Spring physics animation. Returns animated value(s) following the target with damped harmonic motion. |
+| `useTween`      | `<T extends AnimationTarget>(target: T, config?: Partial<TweenConfig>) => TweenResult<T>`                      | Duration + easing animation. Smoothly transitions to the target over a specified duration.            |
+| `SpringPresets` | `Record<string, Partial<SpringConfig>>`                                                                        | Built-in spring configs: `default`, `stiff`, `wobbly`, `gentle`, `molasses`, `snap`, `heavy`.         |
+| `Easings`       | `Record<EasingName, EasingFn>`                                                                                 | Built-in easing functions: `linear`, `easeIn`, `easeOut`, `easeInOut`, cubics, back, bounce.          |
+
 ## SDK Hooks
 
 | Export                 | Signature                                                     | Description                                          |
@@ -145,6 +154,14 @@ Complete public API exported from `@fcannizzaro/streamdeck-react`.
 | `TapOptions`                | Interface | `{ timeout?: number }`.                                                                           |
 | `LongPressOptions`          | Interface | `{ timeout?: number }`. Default: 500ms.                                                           |
 | `DoubleTapOptions`          | Interface | `{ timeout?: number }`. Default: 250ms.                                                           |
+| `AnimationTarget`           | Type      | `number \| Record<string, number>`.                                                               |
+| `AnimatedValue<T>`          | Type      | Maps `AnimationTarget` shape to output: `number` stays `number`, objects map keys.                |
+| `SpringConfig`              | Interface | Spring physics config: `tension`, `friction`, `mass`, thresholds, `clamp`.                        |
+| `SpringResult<T>`           | Interface | `{ value, isAnimating, set, jump }`.                                                              |
+| `EasingName`                | Type      | Union of 10 easing name strings.                                                                  |
+| `EasingFn`                  | Type      | `(t: number) => number`.                                                                          |
+| `TweenConfig`               | Interface | `{ duration, easing, fps }`.                                                                      |
+| `TweenResult<T>`            | Interface | `{ value, progress, isAnimating, set, jump }`.                                                    |
 
 ## Component Props Types
 

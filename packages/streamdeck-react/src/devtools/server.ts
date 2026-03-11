@@ -3,10 +3,32 @@ import type { BaseMessage, ClientMessage } from "./types";
 import { origConsole } from "./intercepts/console";
 
 // ── DevTools HTTP + SSE Server ─────────────────────────────────────
-// Runs an HTTP server inside the plugin.
-//   GET  /health  → quick probe endpoint for port scanning
-//   GET  /events  → SSE stream (server → browser)
-//   POST /message → client → server messages (JSON body)
+//
+// Transport layer for the devtools protocol.  Runs inside the Stream
+// Deck plugin process using Node.js built-in `http` module (no
+// external dependencies like ws/socket.io).
+//
+// Endpoints:
+//   GET  /health   → lightweight probe for port scanning (browser
+//                    devtools UI discovers plugins by scanning the
+//                    port range 39400-39499)
+//   GET  /events   → SSE stream (server → browser, real-time)
+//   POST /message  → client → server messages (JSON body)
+//   GET  /message?d=<json> → fire-and-forget via Image().src trick
+//                    (bypasses CORS/PNA preflight entirely)
+//
+// Port assignment:
+//   hashToPort() maps the plugin UUID to a deterministic port in
+//   [39400, 39499] via djb2 hash.  If that port is in use (another
+//   plugin), it tries sequential ports up to MAX_RETRIES.  This
+//   gives the browser a small, predictable range to scan.
+//
+// Why SSE instead of WebSocket:
+//   - No additional npm dependency (ws)
+//   - SSE works over standard HTTP (simpler CORS handling)
+//   - Server→client is the primary data direction (renders, events)
+//   - Client→server is low-frequency (snapshot requests, highlights)
+//     and works fine via POST or GET with query params
 
 const PORT_MIN = 39400;
 const PORT_MAX = 39499;
@@ -221,7 +243,12 @@ export class DevtoolsServer {
   /**
    * GET /message?d=<json> — fire-and-forget client→server messages.
    * Used via `new Image().src` to bypass CORS/PNA preflight entirely.
-   * Returns a 1x1 transparent GIF.
+   * Returns a 1x1 transparent GIF (smallest valid image response).
+   *
+   * Why: browsers enforce Private Network Access (PNA) restrictions
+   * on fetch/XHR to localhost from public origins.  Image loading
+   * is exempt from PNA preflight, so `new Image().src = url` works
+   * without triggering CORS errors.
    */
   private handleGetMessage(req: IncomingMessage, res: ServerResponse): void {
     const qs = (req.url ?? "").split("?")[1] ?? "";

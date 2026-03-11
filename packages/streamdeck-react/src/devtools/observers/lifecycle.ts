@@ -3,9 +3,16 @@ import type { TouchBarRoot } from "@/roots/touchbar-root";
 import type { CanvasInfo, DeviceInfo } from "@/types";
 
 // ── Registry Observer Interface ─────────────────────────────────────
-// Implemented by the DevtoolsBridge. Set on RootRegistry.observer when
-// devtools mode is on. All methods are called synchronously from the
-// registry's existing code paths.
+//
+// Implemented by DevtoolsBridge.  Set on RootRegistry.observer when
+// devtools mode is enabled.  All methods are called synchronously
+// from the registry's existing code paths (create, destroy, dispatch).
+//
+// This observer pattern decouples the registry from the devtools
+// system — when devtools is off, observer is null and the registry
+// pays zero cost (no conditional checks, no serialization).  When
+// devtools is on, the bridge receives lifecycle events without the
+// registry needing to know anything about the devtools protocol.
 
 export interface RegistryObserver {
   onRootCreated(

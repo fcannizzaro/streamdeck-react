@@ -1,43 +1,132 @@
 // ── Weather Icons ───────────────────────────────────────────────────
-// SVG path data for weather conditions (Material Design Icons, 24x24 viewBox).
-// Used with the <Icon> component from @fcannizzaro/streamdeck-react.
+// Multi-color SVG icon system for weather conditions.
+// Icons are composed of colored layers rendered by WeatherIcon.
+// Style inspired by Elgato's Stream Deck adaptive design icons:
+// rounded white clouds, gold sun with pill-shaped rays, colored rain.
 
-// ── Base shapes ────────────────────────────────────────────────────
+import { createElement } from "react";
 
-const SUN =
-  "M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58a.996.996 0 00-1.41 0 .996.996 0 000 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37a.996.996 0 00-1.41 0 .996.996 0 000 1.41l1.06 1.06c.39.39 1.03.39 1.41 0a.996.996 0 000-1.41l-1.06-1.06zm1.06-10.96a.996.996 0 000-1.41.996.996 0 00-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06zM7.05 18.36a.996.996 0 000-1.41.996.996 0 00-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06z";
+// ── Types ──────────────────────────────────────────────────────────
 
-const MOON =
+export interface IconLayer {
+  d: string;
+  fill: string;
+  opacity?: number;
+  transform?: string;
+}
+
+export type WeatherIconData = IconLayer[];
+
+// ── WeatherIcon Component ──────────────────────────────────────────
+
+export function WeatherIcon({ icon, size = 24 }: { icon: WeatherIconData; size?: number }) {
+  return createElement(
+    "svg",
+    { width: size, height: size, viewBox: "0 0 24 24" },
+    ...icon.map((layer, i) =>
+      createElement("path", {
+        key: i,
+        d: layer.d,
+        fill: layer.fill,
+        opacity: layer.opacity,
+        transform: layer.transform,
+      }),
+    ),
+  );
+}
+
+// ── Colors ─────────────────────────────────────────────────────────
+
+const SUN = "#FFD93D";
+const MOON = "#C4C9D4";
+const CLOUD = "white";
+const RAIN = "#7CB4D9";
+const LIGHTNING = "#FFD93D";
+const FOG_COLOR = "rgba(255,255,255,0.6)";
+
+// ── SVG Paths ──────────────────────────────────────────────────────
+
+// Full sun — circle r=4.2 at (12, 12) + 12 pill-shaped rays
+const SUN_CIRCLE = "M12 7.8a4.2 4.2 0 100 8.4 4.2 4.2 0 000-8.4z";
+// Single ray capsule (vertical, at top) — rotated 12× at 30° intervals around (12, 12)
+// Capsule: hw=0.85, body y=3→6, caps extend to y=2.15/6.85. Gap from circle = 0.95
+const SUN_RAY = "M11.15 3a0.85 0.85 0 011.7 0v3a0.85 0.85 0 01-1.7 0z";
+
+function sunRays(cx: number, cy: number, ray: string): IconLayer[] {
+  return Array.from({ length: 12 }, (_, i) => ({
+    d: ray,
+    fill: SUN,
+    transform: `rotate(${i * 30}, ${cx}, ${cy})`,
+  }));
+}
+
+// Small sun — circle r=2.2 at (18, 5), peeks behind cloud upper-right
+const SUN_SMALL_CIRCLE = "M18 2.8a2.2 2.2 0 100 4.4 2.2 2.2 0 000-4.4z";
+// Capsule: hw=0.45, body y=0→2, caps extend to y=-0.45/2.45. Gap from circle = 0.35
+const SUN_SMALL_RAY = "M17.55 0a0.45 0.45 0 01.9 0v2a0.45 0.45 0 01-.9 0z";
+
+// Crescent moon
+const MOON_PATH =
   "M12 3a9 9 0 109 9c0-.46-.04-.92-.1-1.36a5.389 5.389 0 01-4.4 2.26 5.403 5.403 0 01-3.14-9.8c-.44-.06-.9-.1-1.36-.1z";
 
-const CLOUD =
+// Solid filled cloud (Material Design)
+const CLOUD_PATH =
   "M19.35 10.04A7.49 7.49 0 0012 4C9.11 4 6.6 5.64 5.35 8.04A5.994 5.994 0 000 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z";
 
-const CLOUD_SUN =
-  "M19.35 10.04A7.49 7.49 0 0012 4c-1.48 0-2.85.43-4.01 1.17l1.46 1.46a5.497 5.497 0 018.05 4.87A5 5 0 0119 16H6a4 4 0 01-.49-7.97l.81-.09.36-.73A5.497 5.497 0 0112 4c.69 0 1.34.13 1.95.36l1.45-1.45A7.485 7.485 0 0012 2C8.8 2 6.07 3.95 4.93 6.72A5.99 5.99 0 000 12.5C0 15.54 2.46 18 5.5 18H19c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z";
+// Fog horizontal bars
+const FOG_PATH = "M3 15h18v-2H3v2zm0 4h18v-2H3v2zm0-8h18V9H3v2zm0-6v2h18V5H3z";
 
-const FOG = "M3 15h18v-2H3v2zm0 4h18v-2H3v2zm0-8h18V9H3v2zm0-6v2h18V5H3z";
+// Rain streaks — 3 angled parallelograms below the cloud
+const RAIN_PATH =
+  "M7.8 19L6.5 23.5h1L8.8 19zM12.3 19.5L11 23.5h1L13.3 19.5zM16.8 19L15.5 23.5h1L17.8 19z";
 
-const RAINDROP =
-  "M12 2c-5.33 4.55-8 8.48-8 11.8 0 4.98 3.8 8.2 8 8.2s8-3.22 8-8.2C20 10.48 17.33 6.55 12 2z";
+// Snow dots — 3 circles below the cloud
+const SNOW_PATH =
+  "M7.5 20.5a1 1 0 100 2 1 1 0 000-2zM12 21a1 1 0 100 2 1 1 0 000-2zM16.5 20.5a1 1 0 100 2 1 1 0 000-2z";
 
-const SNOWFLAKE =
-  "M22 11h-4.17l3.24-3.24-1.41-1.42L15 11h-2V9l4.66-4.66-1.42-1.41L13 6.17V2h-2v4.17L7.76 2.93 6.34 4.34 11 9v2H9L4.34 6.34 2.93 7.76 6.17 11H2v2h4.17l-3.24 3.24 1.41 1.42L9 13h2v2l-4.66 4.66 1.42 1.41L11 17.83V22h2v-4.17l3.24 3.24 1.42-1.41L13 15v-2h2l4.66 4.66 1.41-1.42L17.83 13H22z";
+// Lightning bolt — extends from inside the cloud downward
+const LIGHTNING_PATH = "M13 15L11.5 18H13.5L12 21 16 17H14L16 15Z";
 
-const LIGHTNING = "M7 2v11h3v9l7-12h-4l4-8z";
+// ── Icon Compositions ──────────────────────────────────────────────
 
-// ── Composite icon paths ───────────────────────────────────────────
+const ICON_SUN: WeatherIconData = [{ d: SUN_CIRCLE, fill: SUN }, ...sunRays(12, 12, SUN_RAY)];
 
-const CLOUD_RAIN =
-  "M19.35 10.04A7.49 7.49 0 0012 4C9.11 4 6.6 5.64 5.35 8.04A5.994 5.994 0 000 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM19 18H6a4 4 0 010-8h.25l.73-1.46A5.505 5.505 0 0112 6c2.63 0 4.87 1.86 5.39 4.43l.3 1.5 1.53.11A2.98 2.98 0 0122 15c0 1.66-1.34 3-3 3zM8 17.5l-1.5 2.5h1l-1 2 3-3h-1.5l1-1.5zm5 0l-1.5 2.5h1l-1 2 3-3h-1.5l1-1.5z";
+const ICON_MOON: WeatherIconData = [{ d: MOON_PATH, fill: MOON }];
 
-const CLOUD_SNOW =
-  "M19.35 10.04A7.49 7.49 0 0012 4C9.11 4 6.6 5.64 5.35 8.04A5.994 5.994 0 000 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM19 18H6a4 4 0 010-8h.25l.73-1.46A5.505 5.505 0 0112 6c2.63 0 4.87 1.86 5.39 4.43l.3 1.5 1.53.11A2.98 2.98 0 0122 15c0 1.66-1.34 3-3 3zM8 18a1.5 1.5 0 100 3 1.5 1.5 0 000-3zm4 0a1.5 1.5 0 100 3 1.5 1.5 0 000-3zm4 0a1.5 1.5 0 100 3 1.5 1.5 0 000-3z";
+const ICON_CLOUD_SUN: WeatherIconData = [
+  { d: SUN_SMALL_CIRCLE, fill: SUN },
+  ...sunRays(18, 5, SUN_SMALL_RAY),
+  { d: CLOUD_PATH, fill: CLOUD },
+];
 
-const CLOUD_THUNDER =
-  "M19.35 10.04A7.49 7.49 0 0012 4C9.11 4 6.6 5.64 5.35 8.04A5.994 5.994 0 000 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM19 18H6a4 4 0 010-8h.25l.73-1.46A5.505 5.505 0 0112 6c2.63 0 4.87 1.86 5.39 4.43l.3 1.5 1.53.11A2.98 2.98 0 0122 15c0 1.66-1.34 3-3 3zm-6-3l-1.5 3h2l-1.5 3 4-4h-2l2-2h-3z";
+const ICON_CLOUD_MOON: WeatherIconData = [
+  { d: MOON_PATH, fill: MOON },
+  { d: CLOUD_PATH, fill: CLOUD },
+];
 
-// ── Detail panel metric icons ──────────────────────────────────────
+const ICON_CLOUD: WeatherIconData = [{ d: CLOUD_PATH, fill: CLOUD }];
+
+const ICON_FOG: WeatherIconData = [{ d: FOG_PATH, fill: FOG_COLOR }];
+
+// Rain: drops behind, cloud on top — creates "rain from cloud" effect
+const ICON_RAIN: WeatherIconData = [
+  { d: RAIN_PATH, fill: RAIN },
+  { d: CLOUD_PATH, fill: CLOUD },
+];
+
+// Snow: dots behind, cloud on top
+const ICON_SNOW: WeatherIconData = [
+  { d: SNOW_PATH, fill: CLOUD, opacity: 0.85 },
+  { d: CLOUD_PATH, fill: CLOUD },
+];
+
+// Thunder: cloud first, bolt on top (visible over + below cloud)
+const ICON_THUNDER: WeatherIconData = [
+  { d: CLOUD_PATH, fill: CLOUD },
+  { d: LIGHTNING_PATH, fill: LIGHTNING },
+];
+
+// ── Detail panel metric icons (single-path, used with <Icon>) ─────
 
 /** Thermometer high (MAX) */
 export const ICON_THERMO_HIGH =
@@ -47,49 +136,41 @@ export const ICON_THERMO_HIGH =
 export const ICON_THERMO_LOW =
   "M15 13V5c0-1.66-1.34-3-3-3S9 3.34 9 5v8c-1.21.91-2 2.37-2 4 0 2.76 2.24 5 5 5s5-2.24 5-5c0-1.63-.79-3.09-2-4z";
 
-/** Water droplet (humidity) */
-export const ICON_HUMIDITY =
-  "M12 2c-5.33 4.55-8 8.48-8 11.8 0 4.98 3.8 8.2 8 8.2s8-3.22 8-8.2C20 10.48 17.33 6.55 12 2zm0 18c-3.35 0-6-2.57-6-6.2 0-2.34 1.95-5.44 6-9.14 4.05 3.7 6 6.79 6 9.14 0 3.63-2.65 6.2-6 6.2z";
-
-/** Wind */
-export const ICON_WIND =
-  "M14.5 17c0 1.65-1.35 3-3 3s-3-1.35-3-3h2c0 .55.45 1 1 1s1-.45 1-1-.45-1-1-1H2v-2h9.5c1.65 0 3 1.35 3 3zM19 6.5C19 4.57 17.43 3 15.5 3S12 4.57 12 6.5h2c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5S16.33 8 15.5 8H2v2h13.5C17.43 10 19 8.43 19 6.5zm-2.5 6c-1.65 0-3 1.35-3 3h2c0-.55.45-1 1-1s1 .45 1 1-.45 1-1 1H2v2h14.5c1.65 0 3-1.35 3-3s-1.35-3-3-3z";
-
-// ── Icon resolver ──────────────────────────────────────────────────
-// Maps WMO weather codes to SVG paths.
+// ── Icon Resolver ──────────────────────────────────────────────────
+// Maps WMO weather codes to multi-color icon compositions.
 // See: https://open-meteo.com/en/docs — WMO Weather interpretation codes (WW)
 
-export function getWeatherIcon(weatherCode: number, isDay: boolean): string {
+export function getWeatherIcon(weatherCode: number, isDay: boolean): WeatherIconData {
   // Clear sky
-  if (weatherCode === 0) return isDay ? SUN : MOON;
+  if (weatherCode === 0) return isDay ? ICON_SUN : ICON_MOON;
 
   // Mainly clear, partly cloudy
-  if (weatherCode <= 2) return isDay ? CLOUD_SUN : CLOUD;
+  if (weatherCode <= 2) return isDay ? ICON_CLOUD_SUN : ICON_CLOUD_MOON;
 
   // Overcast
-  if (weatherCode === 3) return CLOUD;
+  if (weatherCode === 3) return ICON_CLOUD;
 
   // Fog
-  if (weatherCode === 45 || weatherCode === 48) return FOG;
+  if (weatherCode === 45 || weatherCode === 48) return ICON_FOG;
 
   // Drizzle (51, 53, 55, 56, 57)
-  if (weatherCode >= 51 && weatherCode <= 57) return CLOUD_RAIN;
+  if (weatherCode >= 51 && weatherCode <= 57) return ICON_RAIN;
 
   // Rain (61, 63, 65, 66, 67)
-  if (weatherCode >= 61 && weatherCode <= 67) return CLOUD_RAIN;
+  if (weatherCode >= 61 && weatherCode <= 67) return ICON_RAIN;
 
   // Snow (71, 73, 75, 77)
-  if (weatherCode >= 71 && weatherCode <= 77) return CLOUD_SNOW;
+  if (weatherCode >= 71 && weatherCode <= 77) return ICON_SNOW;
 
   // Rain showers (80, 81, 82)
-  if (weatherCode >= 80 && weatherCode <= 82) return CLOUD_RAIN;
+  if (weatherCode >= 80 && weatherCode <= 82) return ICON_RAIN;
 
   // Snow showers (85, 86)
-  if (weatherCode >= 85 && weatherCode <= 86) return CLOUD_SNOW;
+  if (weatherCode >= 85 && weatherCode <= 86) return ICON_SNOW;
 
   // Thunderstorm (95, 96, 99)
-  if (weatherCode >= 95) return CLOUD_THUNDER;
+  if (weatherCode >= 95) return ICON_THUNDER;
 
   // Fallback
-  return CLOUD;
+  return ICON_CLOUD;
 }

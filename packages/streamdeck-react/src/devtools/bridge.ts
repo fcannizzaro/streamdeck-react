@@ -24,7 +24,40 @@ import { serializeValue } from "./serialization/value";
 import { serializeVNode } from "./serialization/vnode";
 import { renderWithHighlight } from "./highlight";
 
+// ── DevTools Bridge ─────────────────────────────────────────────────
+//
+// Central intelligence layer that connects all data sources to the
+// SSE stream consumed by the browser-based devtools UI.
+//
+//   Data sources:                    Bridge                  Transport
+//   ──────────────                  ──────                  ─────────
+//   RootRegistry observer  ─┐
+//   Render pipeline hook   ─┤
+//   EventBus static hook   ─┼──→  DevtoolsBridge  ──→  DevtoolsServer (SSE)
+//   Console interceptor    ─┤     (throttle, ring     ──→  Browser UI
+//   Fetch interceptor      ─┘      buffers, snapshot)
+//
+// Key design decisions:
+//
+//   Ring buffers: bounded-capacity circular buffers for console,
+//   network, and event history.  New clients receive the last N
+//   messages via snapshot, not unbounded history.
+//
+//   Render throttling: leading+trailing-edge throttle at 100ms
+//   (max 10 render messages/sec per action).  Prevents the SSE
+//   stream from being overwhelmed during 60fps animation.
+//
+//   Highlight overlay: when the devtools UI hovers over a VNode,
+//   the bridge renders a Chrome-DevTools-style highlight overlay
+//   onto the hardware.  suppressHardwarePush on the root prevents
+//   normal renders from overwriting the highlight.
+
 // ── Ring Buffer ─────────────────────────────────────────────────────
+// Fixed-capacity circular buffer.  When full, new items overwrite the
+// oldest.  Used for bounded history of console/network/event messages
+// so the snapshot sent to new clients has recent context without
+// unbounded memory growth.  CONSOLE_RING=200, NETWORK_RING=100,
+// EVENT_RING=200.
 
 class RingBuffer<T> {
   private items: T[];

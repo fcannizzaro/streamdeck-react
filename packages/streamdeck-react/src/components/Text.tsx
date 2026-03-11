@@ -1,3 +1,10 @@
+// ── Text Component ──────────────────────────────────────────────────
+//
+// Renders a `<span>` with typography props mapped to inline styles.
+// Same conditional spread pattern as Box — only explicitly-set props
+// are included in the style object, keeping the VNode props minimal
+// for efficient Merkle hashing (cache.ts skips undefined values).
+
 import { createElement, type CSSProperties, type ReactElement, type ReactNode } from "react";
 
 export interface TextProps {

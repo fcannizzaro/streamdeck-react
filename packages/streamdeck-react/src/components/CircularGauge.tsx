@@ -1,5 +1,16 @@
 import { createElement, type CSSProperties } from "react";
 
+// ── Circular Gauge Component ────────────────────────────────────────
+//
+// SVG-based circular progress indicator.  Renders as an <svg> element,
+// which Takumi serializes to a markup string and rasterizes as an
+// ImageNode (see svg.ts for the serialization path).
+//
+// The arc is drawn using strokeDasharray/strokeDashoffset on a circle:
+//   circumference = 2π × radius
+//   dashoffset = circumference × (1 - percent/100)
+// The circle is rotated -90° so the arc starts at 12 o'clock.
+
 export interface CircularGaugeProps {
   className?: string;
   value: number;

@@ -12,6 +12,22 @@ import { StreamDeckContext } from "@/context/providers";
 import type { DialAction } from "@elgato/streamdeck";
 import { useCallbackRef } from "./internal/useCallbackRef";
 
+// ── Hardware Event Hooks ────────────────────────────────────────────
+//
+// Thin wrappers around the EventBus that subscribe to Stream Deck
+// hardware events.  All hooks use the same internal pattern:
+//
+//   useEvent(eventName, callback)
+//     1. Get EventBus from context
+//     2. Wrap callback in useCallbackRef (prevents stale closures)
+//     3. useEffect: bus.on(event, handler) + cleanup bus.off()
+//
+// The useCallbackRef pattern is critical here:
+//   Without it, every re-render with a new callback function would
+//   cause useEffect to re-run (unsubscribe + resubscribe).  With
+//   useCallbackRef, the ref is updated on every render but the
+//   effect only runs once (stable ref identity in deps).
+
 // ── Internal hook pattern: subscribe to event bus ───────────────────
 
 function useEvent<T>(event: string, callback: (payload: T) => void): void {

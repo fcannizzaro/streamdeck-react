@@ -1,6 +1,21 @@
 // ── Protocol Message Types ───────────────────────────────────────────
-// Shared type definitions for the devtools HTTP + SSE protocol.
-// Plugin runs an HTTP server; browser connects via SSE + fetch POST.
+//
+// Wire protocol for the devtools HTTP + SSE transport.
+//
+// Direction:
+//   Server → Client (via SSE /events stream):
+//     server:info, snapshot, console, network:*, render, render:touchbar,
+//     event, lifecycle, highlight:render
+//
+//   Client → Server (via POST /message or GET /message?d=<json>):
+//     request:snapshot, highlight:action
+//
+// SerializedValue:
+//   Discriminated union for safe cross-boundary value transfer.
+//   Handles types that JSON.stringify can't: circular references,
+//   functions, Symbols, BigInts, Buffers, Error objects, and
+//   depth/size truncation.  Each variant uses a short `t` tag
+//   for compact wire representation.
 
 // ── Serialized Value ────────────────────────────────────────────────
 

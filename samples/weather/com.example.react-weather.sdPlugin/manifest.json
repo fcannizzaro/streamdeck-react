@@ -47,6 +47,6 @@
   "Version": "0.0.0.1",
   "SDKVersion": 2,
   "Software": {
-    "MinimumVersion": "6.9"
+    "MinimumVersion": "7.1"
   }
 }

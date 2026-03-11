@@ -2,6 +2,24 @@ import { createRequire } from "node:module";
 import { readFileSync, realpathSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
+// ── Build-time Font Inlining ────────────────────────────────────────
+//
+// Converts font file imports (.ttf, .otf, .woff, .woff2) into
+// synthetic ES modules at build time:
+//
+//   import font from "./Inter-Regular.ttf";
+//       ↓ becomes at runtime ↓
+//   const font = Buffer.from("AAEAAAA...", "base64");
+//
+// Why: Stream Deck plugins run in a sandboxed Node.js environment
+// where the working directory and node_modules layout are controlled
+// by the Stream Deck application.  Font files in node_modules aren't
+// guaranteed to be accessible at runtime.  Inlining them as base64
+// into the bundle makes the plugin self-contained.
+//
+// Bun compatibility: bun's node_modules/.bun/ uses symlinks
+// internally.  realpathSync follows these to the actual font file.
+
 const FONT_RE = /\.(ttf|otf|woff2?)$/;
 
 /**

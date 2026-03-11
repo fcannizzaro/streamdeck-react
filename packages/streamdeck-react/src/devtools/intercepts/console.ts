@@ -1,6 +1,19 @@
 // ── Console Interceptor ─────────────────────────────────────────────
+//
 // Monkey-patches console.log/warn/error/info/debug to capture output
-// for the devtools server. Always calls the original method first.
+// for the devtools server.  Always calls the original method first
+// (output still appears in the terminal).
+//
+// Recursion prevention:
+//   The `forwarding` flag prevents infinite loops when the devtools
+//   bridge itself logs (e.g. server.ts using origConsole.log).
+//   Without this guard, a log inside the callback would trigger
+//   another callback invocation.
+//
+// origConsole:
+//   Stores references to the original console methods BEFORE patching.
+//   Used by DevtoolsServer for its own logging so those messages
+//   don't get intercepted and sent back to the browser in a loop.
 
 export type ConsoleCallback = (level: string, args: unknown[], stack: string | undefined) => void;
 

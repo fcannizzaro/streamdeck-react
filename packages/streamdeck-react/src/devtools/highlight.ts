@@ -5,14 +5,31 @@ import { vnodeToElement, type VContainer, type VNode } from "@/reconciler/vnode"
 import { bufferToDataUri, type RenderConfig } from "@/render/pipeline";
 
 // ── Highlight Overlay Renderer ──────────────────────────────────────
-// Re-renders a VNode tree with a Chrome DevTools-style highlight on a
-// specific node (matched by its serialization nid). Intentionally
-// skips caching and the onRender callback to avoid feedback loops.
 //
-// The highlight is an absolutely-positioned overlay placed at the root
-// level, sized and positioned via renderer.measure().  This renders on
-// top of all content (including images) without modifying any existing
-// element's style or positioning context.
+// Re-renders a VNode tree with a Chrome DevTools-style highlight on a
+// specific node (matched by its serialization nid).
+//
+// How it works:
+//   1. Build the normal React element tree (vnodeToElement)
+//   2. Convert to Takumi nodes and measure layout (renderer.measure)
+//   3. Walk VNode and MeasuredNode trees in parallel to find the
+//      target node's absolute pixel bounds
+//   4. Rebuild the tree with an absolutely-positioned overlay div
+//      at the measured bounds
+//   5. Render the final image with the overlay
+//
+// The overlay is placed at the root level with `position: absolute`,
+// so it renders on top of all content (including images) without
+// modifying any existing element's style or positioning context.
+//
+// Intentionally skips caching and the onRender callback to avoid
+// feedback loops (the bridge would see the highlight as a new render,
+// which would trigger another highlight, etc.).
+//
+// #text node handling:
+//   Text nodes can't carry styles in the renderer.  When the devtools
+//   UI targets a #text node, resolveTargetNid promotes the highlight
+//   to its parent element node instead.
 
 const HIGHLIGHT_BORDER_COLOR = "rgba(111, 168, 220, 0.85)";
 const HIGHLIGHT_BORDER_WIDTH = 2;
@@ -119,9 +136,12 @@ export async function renderWithHighlight(
 }
 
 // ── Find target bounds via parallel VNode / MeasuredNode walk ────────
+// Walks VNode children and MeasuredNode children in lockstep.
 // Text VNodes (#text) don't produce MeasuredNode children — they are
-// absorbed into the parent's text runs.  The measured child index only
-// advances for element VNodes.
+// absorbed into the parent's text runs.  So the measured child index
+// only advances for element VNodes, while the nid counter advances
+// for every VNode (including text).  This mismatch is why the walk
+// must track both indices independently.
 
 function findTargetBounds(
   vnodes: VNode[],
