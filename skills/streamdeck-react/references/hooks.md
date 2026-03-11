@@ -402,3 +402,169 @@ function useTick(
 ```
 
 Actual frame rate is capped by `renderDebounceMs` (default 16ms). In practice, real throughput is roughly 10-30fps depending on component complexity.
+
+## Animation Hooks
+
+Higher-level animation primitives built on top of `useTick`. Both hooks animate single numbers or objects of named numbers, automatically starting and stopping the tick loop when the animation is in motion or settled.
+
+### useSpring
+
+Spring physics-based animation. Returns animated value(s) that follow the target with damped harmonic oscillator dynamics (semi-implicit Euler integration).
+
+```ts
+function useSpring<T extends AnimationTarget>(
+  target: T,
+  config?: Partial<SpringConfig> & { fps?: number },
+): SpringResult<T>;
+
+type AnimationTarget = number | Record<string, number>;
+
+type AnimatedValue<T extends AnimationTarget> = T extends number
+  ? number
+  : { [K in keyof T]: number };
+
+interface SpringConfig {
+  tension: number; // Stiffness. Default 170
+  friction: number; // Damping. Default 26
+  mass: number; // Mass. Default 1
+  velocityThreshold: number; // Settle threshold. Default 0.01
+  displacementThreshold: number; // Settle threshold. Default 0.005
+  clamp: boolean; // No overshoot. Default false
+}
+
+interface SpringResult<T extends AnimationTarget> {
+  value: AnimatedValue<T>; // Current interpolated value(s)
+  isAnimating: boolean; // Whether the spring is still in motion
+  set: (target: T) => void; // Imperatively update the target
+  jump: (target: T) => void; // Jump immediately (no animation)
+}
+```
+
+Built-in presets via `SpringPresets`:
+
+| Preset     | Tension | Friction | Mass | Clamp | Use case             |
+| ---------- | ------- | -------- | ---- | ----- | -------------------- |
+| `default`  | 170     | 26       | 1    | no    | Balanced default     |
+| `stiff`    | 400     | 28       | 1    | no    | Quick, responsive    |
+| `wobbly`   | 180     | 12       | 1    | no    | Bouncy oscillation   |
+| `gentle`   | 120     | 14       | 1    | no    | Slow and smooth      |
+| `molasses` | 80      | 30       | 1    | no    | Very slow, ambient   |
+| `snap`     | 300     | 36       | 1    | yes   | Snappy, no overshoot |
+| `heavy`    | 200     | 20       | 3    | no    | Heavy object feel    |
+
+Example:
+
+```tsx
+function SpringBounce() {
+  const [pressed, setPressed] = useState(false);
+  const [count, setCount] = useState(0);
+
+  useKeyDown(() => {
+    setPressed(true);
+    setCount((c) => c + 1);
+  });
+  useKeyUp(() => setPressed(false));
+
+  const { value: scale } = useSpring(pressed ? 0.8 : 1, {
+    ...SpringPresets.wobbly,
+    tension: 300,
+  });
+
+  const { value: hue } = useSpring((count * 40) % 360, SpringPresets.gentle);
+  const size = Math.round(scale * 100);
+
+  return (
+    <div
+      className={tw("flex items-center justify-center w-full h-full")}
+      style={{ backgroundColor: `hsl(${Math.round(hue)}, 60%, 25%)` }}
+    >
+      <div
+        className={tw("flex flex-col items-center justify-center")}
+        style={{ width: `${size}%`, height: `${size}%` }}
+      >
+        <span className="text-white text-[48px] font-bold">{count}</span>
+      </div>
+    </div>
+  );
+}
+```
+
+Object targets animate each channel independently:
+
+```tsx
+const { value } = useSpring({ x: targetX, opacity: show ? 1 : 0 }, SpringPresets.gentle);
+// value.x and value.opacity are plain numbers
+```
+
+### useTween
+
+Duration + easing-based animation. Smoothly transitions to the target over a specified duration. When the target changes mid-tween, a new tween starts from the current interpolated position (no discontinuity).
+
+```ts
+function useTween<T extends AnimationTarget>(
+  target: T,
+  config?: Partial<TweenConfig>,
+): TweenResult<T>;
+
+interface TweenConfig {
+  duration: number; // Milliseconds. Default 300
+  easing: EasingName | EasingFn; // Default "easeOut"
+  fps: number; // Default 60
+}
+
+interface TweenResult<T extends AnimationTarget> {
+  value: AnimatedValue<T>; // Current interpolated value(s)
+  progress: number; // 0..1 normalized progress
+  isAnimating: boolean; // Whether the tween is still running
+  set: (target: T) => void; // Imperatively start a new tween
+  jump: (target: T) => void; // Jump immediately (no animation)
+}
+
+type EasingName =
+  | "linear"
+  | "easeIn"
+  | "easeOut"
+  | "easeInOut"
+  | "easeInCubic"
+  | "easeOutCubic"
+  | "easeInOutCubic"
+  | "easeInBack"
+  | "easeOutBack"
+  | "easeOutBounce";
+
+type EasingFn = (t: number) => number;
+```
+
+Built-in easings available via the `Easings` object: `linear`, `easeIn`, `easeOut`, `easeInOut`, `easeInCubic`, `easeOutCubic`, `easeInOutCubic`, `easeInBack`, `easeOutBack`, `easeOutBounce`.
+
+Example:
+
+```tsx
+function FadeSlide() {
+  const [index, setIndex] = useState(0);
+  useKeyDown(() => setIndex((i) => (i + 1) % 4));
+
+  const { value: bg } = useTween(index * 90, {
+    duration: 400,
+    easing: "easeOutCubic",
+  });
+
+  return (
+    <div
+      className={tw("flex items-center justify-center w-full h-full")}
+      style={{ backgroundColor: `hsl(${Math.round(bg) % 360}, 50%, 25%)` }}
+    >
+      <span className="text-white text-[28px] font-bold">ITEM {index}</span>
+    </div>
+  );
+}
+```
+
+Custom easing function:
+
+```tsx
+const { value } = useTween(target, {
+  duration: 600,
+  easing: (t) => 1 - Math.pow(1 - t, 4), // ease-out quartic
+});
+```

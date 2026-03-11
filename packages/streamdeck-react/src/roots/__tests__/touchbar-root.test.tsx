@@ -446,6 +446,49 @@ describe("TouchBarRoot integration", () => {
     });
   });
 
+  test("identical global settings do not rerender touchbar consumers", async () => {
+    const fakeSdk = createFakeSdk();
+    let renderCount = 0;
+
+    function MyTouchBar() {
+      useGlobalSettings();
+      renderCount++;
+      return null;
+    }
+
+    const definition: ActionDefinition = {
+      uuid: "com.example.touchbar-global-stable",
+      touchBar: MyTouchBar,
+      defaultSettings: {},
+    };
+
+    const registry = createRegistry(fakeSdk);
+    const { ev } = createEncoderEvent({ actionId: "enc-0", column: 0 });
+
+    await act(async () => {
+      registry.create(ev, MyTouchBar, definition);
+      await sleep(20);
+    });
+
+    await act(async () => {
+      registry.setGlobalSettings({ theme: "dark" });
+      await sleep(20);
+    });
+
+    const afterFirstUpdate = renderCount;
+
+    await act(async () => {
+      registry.setGlobalSettings({ theme: "dark" });
+      await sleep(20);
+    });
+
+    expect(renderCount).toBe(afterFirstUpdate);
+
+    act(() => {
+      registry.destroyAll();
+    });
+  });
+
   test("duplicate create for same action ID is a no-op", async () => {
     const fakeSdk = createFakeSdk();
 

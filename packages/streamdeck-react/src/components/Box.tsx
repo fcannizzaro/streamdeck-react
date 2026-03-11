@@ -1,3 +1,15 @@
+// ── Box Component ───────────────────────────────────────────────────
+//
+// Convenience flex container for Stream Deck layouts.  Uses the
+// conditional spread pattern (`...(prop !== undefined && { cssProp: prop })`)
+// to build a style object that only includes properties the caller
+// explicitly set — omitted props fall through to Takumi's defaults
+// or can be overridden via `className` (Tailwind) or `style`.
+//
+// Why createElement instead of JSX:
+//   The library ships as compiled JS — using createElement directly
+//   avoids requiring a JSX transform in the build pipeline.
+
 import { createElement, type CSSProperties, type ReactElement, type ReactNode } from "react";
 
 export interface BoxProps {

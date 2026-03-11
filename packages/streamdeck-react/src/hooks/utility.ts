@@ -1,6 +1,18 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useCallbackRef } from "./internal/useCallbackRef";
 
+// ── Timer & Utility Hooks ───────────────────────────────────────────
+//
+// setInterval/setTimeout-based timing hooks.  Stream Deck plugins run
+// in a headless Node.js environment — there is no requestAnimationFrame.
+// All animation and periodic tasks use setInterval-driven tick loops.
+//
+// useTick is the core animation driver:
+//   - Calculates delta time between ticks
+//   - Accepts FPS target or `false` to pause
+//   - Used by useSpring and useTween for frame stepping
+//   - Also available to users for custom animation logic
+
 const DEFAULT_TICK_FPS = 60;
 
 export type IntervalControls = {
@@ -126,8 +138,15 @@ export function usePrevious<T>(value: T): T | undefined {
 }
 
 // ── useTick ──────────────────────────────────────────────────────────
-// Calls the callback repeatedly with delta time using timer-driven ticks.
-// Pass a number to set target FPS, or false to pause.
+// Calls the callback repeatedly with delta time (ms since last tick).
+// Built on useInterval — pass a number to set target FPS, or false to
+// pause.  The tick loop automatically starts/stops when the parameter
+// changes, enabling patterns like:
+//
+//   useTick(onFrame, isAnimating ? 60 : false);
+//
+// Delta time is computed from Date.now() difference (not interval timing)
+// to account for timer drift and GC pauses.
 
 export function useTick(
   callback: (deltaMs: number) => void,

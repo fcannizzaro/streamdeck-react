@@ -3,6 +3,16 @@ import { EventBusContext } from "@/context/providers";
 import type { WillAppearPayload } from "@/types";
 import { useCallbackRef } from "./internal/useCallbackRef";
 
+// ── Lifecycle Hooks ─────────────────────────────────────────────────
+//
+// willAppear is emitted as a STICKY event — if the component mounts
+// after the event has already fired (e.g. lazy loading, conditional
+// rendering), the callback receives the stored payload immediately.
+//
+// willDisappear fires when the root is about to unmount (the action
+// is being removed from the Stream Deck layout).  This is the
+// Stream Deck equivalent of useEffect cleanup.
+
 // ── useWillAppear ───────────────────────────────────────────────────
 // Fires once when the action instance appears and the root is mounted.
 

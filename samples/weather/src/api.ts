@@ -4,8 +4,34 @@
 import type { ForecastEntry, OpenMeteoResponse } from "./types";
 
 const BASE_URL = "https://api.open-meteo.com/v1/forecast";
+const GEOIP_URL = "http://ip-api.com/json/?fields=lat,lon";
 
 const DAY_NAMES = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"] as const;
+
+// ── IP Geolocation ────────────────────────────────────────────────
+
+interface GeoIpResponse {
+  lat: number;
+  lon: number;
+}
+
+/**
+ * Detect approximate coordinates from the machine's public IP.
+ * Returns `null` on failure (network error, rate-limited, etc.).
+ */
+export async function fetchGeoIp(): Promise<{ lat: number; lon: number } | null> {
+  try {
+    const res = await fetch(GEOIP_URL);
+    if (!res.ok) return null;
+    const data = (await res.json()) as GeoIpResponse;
+    if (typeof data.lat === "number" && typeof data.lon === "number") {
+      return { lat: data.lat, lon: data.lon };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Fetch weather data from Open-Meteo.

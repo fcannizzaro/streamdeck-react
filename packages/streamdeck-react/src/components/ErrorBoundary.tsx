@@ -1,5 +1,17 @@
 import { Component, createElement, type ErrorInfo, type ReactNode } from "react";
 
+// ── Error Boundary ──────────────────────────────────────────────────
+//
+// Class component (required by React for error boundaries — hooks
+// can't catch render errors).
+//
+// When a component inside this boundary throws during render, the
+// default fallback renders a red "Error" screen on the Stream Deck
+// key.  This prevents a single broken action from crashing the
+// entire plugin — other keys continue rendering normally.
+//
+// The optional onError callback allows plugin-level error reporting.
+
 export interface ErrorBoundaryProps {
   fallback?: ReactNode;
   onError?: (error: Error, errorInfo: ErrorInfo) => void;

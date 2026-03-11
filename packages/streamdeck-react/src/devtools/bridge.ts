@@ -2,7 +2,8 @@ import type { ReactRoot } from "@/roots/root";
 import type { TouchBarRoot } from "@/roots/touchbar-root";
 import type { CanvasInfo, DeviceInfo } from "@/types";
 import type { VContainer } from "@/reconciler/vnode";
-import type { RenderConfig } from "@/render/pipeline";
+import type { RenderConfig, RenderProfile } from "@/render/pipeline";
+import { metrics } from "@/render/metrics";
 import type { RegistryObserver } from "./observers/lifecycle";
 import type { DevtoolsServer } from "./server";
 import type {
@@ -10,9 +11,11 @@ import type {
   EventBusMessage,
   HighlightRenderMessage,
   LifecycleMessage,
+  MetricsMessage,
   NetworkErrorMessage,
   NetworkRequestMessage,
   NetworkResponseMessage,
+  ProfileData,
   RenderMessage,
   ServerInfoMessage,
   SnapshotAction,
@@ -22,9 +25,42 @@ import type {
 } from "./types";
 import { serializeValue } from "./serialization/value";
 import { serializeVNode } from "./serialization/vnode";
-import { renderWithHighlight } from "./highlight";
+import { renderWithHighlight, renderTouchBarWithHighlight } from "./highlight";
+
+// ── DevTools Bridge ─────────────────────────────────────────────────
+//
+// Central intelligence layer that connects all data sources to the
+// SSE stream consumed by the browser-based devtools UI.
+//
+//   Data sources:                    Bridge                  Transport
+//   ──────────────                  ──────                  ─────────
+//   RootRegistry observer  ─┐
+//   Render pipeline hook   ─┤
+//   EventBus static hook   ─┼──→  DevtoolsBridge  ──→  DevtoolsServer (SSE)
+//   Console interceptor    ─┤     (throttle, ring     ──→  Browser UI
+//   Fetch interceptor      ─┘      buffers, snapshot)
+//
+// Key design decisions:
+//
+//   Ring buffers: bounded-capacity circular buffers for console,
+//   network, and event history.  New clients receive the last N
+//   messages via snapshot, not unbounded history.
+//
+//   Render throttling: leading+trailing-edge throttle at 100ms
+//   (max 10 render messages/sec per action).  Prevents the SSE
+//   stream from being overwhelmed during 60fps animation.
+//
+//   Highlight overlay: when the devtools UI hovers over a VNode,
+//   the bridge renders a Chrome-DevTools-style highlight overlay
+//   onto the hardware.  suppressHardwarePush on the root prevents
+//   normal renders from overwriting the highlight.
 
 // ── Ring Buffer ─────────────────────────────────────────────────────
+// Fixed-capacity circular buffer.  When full, new items overwrite the
+// oldest.  Used for bounded history of console/network/event messages
+// so the snapshot sent to new clients has recent context without
+// unbounded memory growth.  CONSOLE_RING=200, NETWORK_RING=100,
+// EVENT_RING=200.
 
 class RingBuffer<T> {
   private items: T[];
@@ -106,6 +142,12 @@ export class DevtoolsBridge implements RegistryObserver {
   // Highlight state
   private highlightedActionId: string | null = null;
   private highlightedNodeId: number | null = null;
+
+  // Profile stashing (onProfile fires synchronously before onRender)
+  private _lastProfile: RenderProfile | null = null;
+
+  // Metrics emission timer
+  private _metricsTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor(server: DevtoolsServer, devtoolsName: string, renderConfig: RenderConfig) {
     this.server = server;
@@ -332,6 +374,48 @@ export class DevtoolsBridge implements RegistryObserver {
     this.server.broadcast(msg);
   }
 
+  // ── Profile Callback ──────────────────────────────────────────
+
+  /**
+   * Stash the render profile for the next onRender call.
+   * In the pipeline, onProfile fires synchronously before onRender,
+   * so the stash is always consumed immediately.
+   */
+  onProfile(profile: RenderProfile): void {
+    this._lastProfile = profile;
+  }
+
+  // ── Metrics Emission ──────────────────────────────────────────
+
+  private static readonly METRICS_INTERVAL_MS = 3_000;
+
+  /** Start periodic metrics emission to connected devtools clients. */
+  startMetricsEmitter(): void {
+    if (this._metricsTimer) return;
+    this._metricsTimer = setInterval(() => {
+      if (!this.server.hasClients()) return;
+      const snapshot = metrics.snapshot();
+      const msg: MetricsMessage = {
+        type: "metrics",
+        ts: Date.now(),
+        metrics: snapshot,
+      };
+      this.server.broadcast(msg);
+    }, DevtoolsBridge.METRICS_INTERVAL_MS);
+    // Don't prevent process exit
+    if (typeof this._metricsTimer === "object" && "unref" in this._metricsTimer) {
+      this._metricsTimer.unref();
+    }
+  }
+
+  /** Stop periodic metrics emission. */
+  stopMetricsEmitter(): void {
+    if (this._metricsTimer) {
+      clearInterval(this._metricsTimer);
+      this._metricsTimer = null;
+    }
+  }
+
   // ── Fetch Callbacks ───────────────────────────────────────────
 
   onFetchRequest(
@@ -392,9 +476,47 @@ export class DevtoolsBridge implements RegistryObserver {
   }
 
   // ── Render Pipeline Callback ──────────────────────────────────
+  //
+  // Called by the render pipeline's config.onRender hook after a
+  // successful render (key/dial) or after touchbar flush completes.
+  //
+  // Profile capture strategy:
+  //
+  //   The pipeline calls onProfile() synchronously BEFORE onRender(),
+  //   stashing the RenderProfile in _lastProfile.  We MUST consume it
+  //   eagerly at the top of onRender — before any async throttle
+  //   delays — because:
+  //
+  //     1. A trailing-edge setTimeout would fire AFTER _lastProfile
+  //        has been overwritten by a subsequent render's profile.
+  //     2. A different action's render could interleave and consume
+  //        the wrong profile.
+  //
+  //   By capturing immediately, we bind the profile to the correct
+  //   container/action and pass it through the throttle/emit chain:
+  //
+  //     onProfile(p)    onRender(container, dataUri)
+  //       │                │
+  //       ▼                ▼
+  //     _lastProfile ──→ captured here (consumed, _lastProfile = null)
+  //                        │
+  //                        ├─ action? → throttledRender(…, profile)
+  //                        │              │
+  //                        │              ├─ leading edge → emitRender(…, profile)
+  //                        │              └─ trailing edge → setTimeout → emitRender(…, profile)
+  //                        │                    (profile was captured before the delay)
+  //                        │
+  //                        └─ touchbar? → emitTouchBarRender(…, profile)
+  //
 
   onRender(container: VContainer, dataUri: string): void {
     if (!this.server.hasClients()) return;
+
+    // ── Eagerly consume the stashed profile ─────────────────────
+    // Must happen BEFORE any async work (throttle setTimeout) to
+    // avoid the profile being overwritten by a later render cycle.
+    const profile = this._lastProfile;
+    this._lastProfile = null;
 
     // Find which action this container belongs to
     let actionId: string | null = null;
@@ -411,7 +533,7 @@ export class DevtoolsBridge implements RegistryObserver {
     if (actionId && meta) {
       // Store the last data URI on the root
       meta.root.lastDataUri = dataUri;
-      this.throttledRender(actionId, container, dataUri, meta);
+      this.throttledRender(actionId, container, dataUri, meta, profile);
 
       // Re-apply highlight overlay after normal render completes.
       // With suppressHardwarePush active, doFlush won't push the normal
@@ -426,17 +548,53 @@ export class DevtoolsBridge implements RegistryObserver {
     // Check touchbar roots
     for (const [deviceId, tb] of this.touchBars) {
       if (tb.root.vcontainer === container) {
-        this.emitTouchBarRender(deviceId, tb);
+        this.emitTouchBarRender(deviceId, tb, profile);
+
+        // Re-apply highlight overlay after touchbar render completes.
+        // Same pattern as the key/dial re-apply above — when a
+        // highlight is active, the normal render updated lastSegmentUris
+        // but skipped hardware push (suppressHardwarePush is true),
+        // so we need to re-render the highlight with the new tree.
+        const tbActionId = `${DevtoolsBridge.TB_PREFIX}${deviceId}`;
+        if (this.highlightedActionId === tbActionId && this.highlightedNodeId !== null) {
+          this.applyTouchBarHighlight(tbActionId, deviceId, this.highlightedNodeId, tb).catch(
+            () => {},
+          );
+        }
+
         return;
       }
     }
   }
+
+  // ── Render Throttle ───────────────────────────────────────────
+  //
+  // Leading + trailing edge throttle at RENDER_THROTTLE_MS (100ms).
+  // Prevents the SSE stream from being overwhelmed during 60fps
+  // animation while ensuring the latest frame is always delivered.
+  //
+  // The `profile` parameter is captured eagerly in onRender() and
+  // passed through to emitRender().  On the trailing edge, the
+  // profile is captured in the setTimeout closure — it's the
+  // profile that was active when the throttle was triggered, not
+  // when the timeout fires.  This preserves the correct
+  // profile ↔ render association.
+  //
+  //   time ─────────────────────────────────────────────────→
+  //
+  //   render₁ (leading)    render₂ (throttled)     trailing fires
+  //      │                     │                       │
+  //      ├─ emit immediately   ├─ profile captured     ├─ emit with
+  //      │  with profile₁      │  as profile₂          │  profile₂
+  //      │                     │  in closure            │  (not stale)
+  //      ▼                     └─ setTimeout ───────────┘
 
   private throttledRender(
     actionId: string,
     container: VContainer,
     dataUri: string,
     meta: ActionMeta,
+    profile: RenderProfile | null,
   ): void {
     const now = Date.now();
     const last = this.lastRenderSent.get(actionId) ?? 0;
@@ -447,14 +605,15 @@ export class DevtoolsBridge implements RegistryObserver {
     if (pending) clearTimeout(pending);
 
     if (elapsed >= RENDER_THROTTLE_MS) {
-      this.emitRender(actionId, container, dataUri, meta, now);
+      this.emitRender(actionId, container, dataUri, meta, now, profile);
       this.lastRenderSent.set(actionId, now);
     } else {
-      // Schedule trailing-edge send
+      // Schedule trailing-edge send.
+      // `profile` is captured in this closure — safe from overwrite.
       this.pendingTrailing.set(
         actionId,
         setTimeout(() => {
-          this.emitRender(actionId, container, dataUri, meta, Date.now());
+          this.emitRender(actionId, container, dataUri, meta, Date.now(), profile);
           this.lastRenderSent.set(actionId, Date.now());
           this.pendingTrailing.delete(actionId);
         }, RENDER_THROTTLE_MS - elapsed),
@@ -468,8 +627,10 @@ export class DevtoolsBridge implements RegistryObserver {
     dataUri: string,
     meta: ActionMeta,
     ts: number,
+    profile: RenderProfile | null,
   ): void {
     const tree = serializeVNode(container);
+
     const msg: RenderMessage = {
       type: "render",
       ts,
@@ -479,12 +640,53 @@ export class DevtoolsBridge implements RegistryObserver {
       canvas: { width: meta.canvas.width, height: meta.canvas.height },
       tree,
       dataUri,
-      renderMs: 0,
+      renderMs: profile?.totalMs ?? 0,
+      ...(profile ? { profile: this.toProfileData(profile) } : {}),
     };
     this.server.broadcast(msg);
   }
 
-  private emitTouchBarRender(deviceId: string, tb: TouchBarMeta): void {
+  /** Convert internal RenderProfile to wire-protocol ProfileData. */
+  private toProfileData(profile: RenderProfile): ProfileData {
+    return {
+      vnodeToElementMs: profile.vnodeToElementMs,
+      fromJsxMs: profile.fromJsxMs,
+      takumiRenderMs: profile.takumiRenderMs,
+      hashMs: profile.hashMs,
+      base64Ms: profile.base64Ms,
+      totalMs: profile.totalMs,
+      skipped: profile.skipped,
+      cacheHit: profile.cacheHit,
+      treeDepth: profile.treeDepth,
+      nodeCount: profile.nodeCount,
+    };
+  }
+
+  // ── TouchBar Render Emission ────────────────────────────────────
+  //
+  // Emits a "render:touchbar" SSE message with the serialized VNode
+  // tree, per-segment data URIs, and the pipeline timing profile.
+  //
+  // Unlike key/dial renders (which have one data URI), touchbar
+  // renders produce per-column segment URIs stored in
+  // tb.root.lastSegmentUris.  The profile covers the full-width
+  // Takumi render (renderToRaw) that produced the raw RGBA buffer
+  // which was then sliced into segments.
+  //
+  //   emitTouchBarRender(deviceId, tb, profile)
+  //     │
+  //     ├─ serializeVNode(container)     → tree snapshot
+  //     ├─ tb.root.lastSegmentUris       → per-column data URIs
+  //     ├─ toProfileData(profile)        → wire-format timing
+  //     │
+  //     └─ broadcast "render:touchbar" message
+  //          → SSE stream → devtools Performance Panel
+
+  private emitTouchBarRender(
+    deviceId: string,
+    tb: TouchBarMeta,
+    profile: RenderProfile | null,
+  ): void {
     const tree = serializeVNode(tb.root.vcontainer);
     const segments: TouchBarRenderMessage["segments"] = [];
     for (const [column, actionId] of tb.columns) {
@@ -501,12 +703,38 @@ export class DevtoolsBridge implements RegistryObserver {
       canvas: { width: tb.root.vcontainer.children.length * 200, height: 100 },
       tree,
       segments,
-      renderMs: 0,
+      renderMs: profile?.totalMs ?? 0,
+      ...(profile ? { profile: this.toProfileData(profile) } : {}),
     };
     this.server.broadcast(msg);
   }
 
   // ── Highlight Handling ──────────────────────────────────────────
+  //
+  // When the user hovers a node in the Elements panel, the devtools
+  // UI sends a "highlight:action" message with (actionId, nodeId).
+  // The bridge re-renders the image with a translucent blue overlay
+  // on the target node and pushes it to both:
+  //   - The physical hardware (suppress normal renders + pushImage)
+  //   - The devtools browser preview (SSE "highlight:render" message)
+  //
+  // Two paths:
+  //   - Key/dial: actionId is a plain string, looked up in this.actions
+  //   - TouchBar: actionId is "touchbar:<deviceId>", looked up in
+  //     this.touchBars.  Requires per-segment slicing since the
+  //     touchbar pushes 200×100 segments, not a single image.
+  //
+  //   handleHighlight(actionId, nodeId)
+  //     │
+  //     ├─ restore previous highlight (un-suppress, push original)
+  //     │
+  //     ├─ actionId starts with "touchbar:" ?
+  //     │    ├─ YES → lookup this.touchBars → applyTouchBarHighlight()
+  //     │    └─ NO  → lookup this.actions   → applyHighlight()
+  //     │
+  //     └─ broadcast "highlight:render" → devtools UI preview
+
+  private static readonly TB_PREFIX = "touchbar:";
 
   private async handleHighlight(actionId: string | null, nodeId: number | null): Promise<void> {
     try {
@@ -514,49 +742,70 @@ export class DevtoolsBridge implements RegistryObserver {
       this.highlightedActionId = actionId;
       this.highlightedNodeId = nodeId;
 
-      // Restore previous action to its normal image and re-enable normal pushes
+      // Restore previous action/touchbar to its normal state
       if (prevId && prevId !== actionId) {
-        const prevMeta = this.actions.get(prevId);
-        if (prevMeta) {
-          prevMeta.root.suppressHardwarePush = false;
-          if (prevMeta.root.lastDataUri) {
-            await prevMeta.root.pushImage(prevMeta.root.lastDataUri).catch(() => {});
-          }
-        }
-        // Tell browser to clear highlight preview for previous action
-        this.broadcastHighlightRender(prevId, null);
+        await this.restoreHighlight(prevId);
+        this.broadcastHighlightClear(prevId);
       }
 
       if (!actionId || nodeId === null) {
-        // Clear highlight — restore current action too if it was highlighted
+        // Clear highlight — restore current target if it was highlighted
         if (actionId && prevId === actionId) {
-          const meta = this.actions.get(actionId);
-          if (meta) {
-            meta.root.suppressHardwarePush = false;
-            if (meta.root.lastDataUri) {
-              await meta.root.pushImage(meta.root.lastDataUri).catch(() => {});
-            }
-          }
-          // Tell browser to clear highlight preview
-          this.broadcastHighlightRender(actionId, null);
+          await this.restoreHighlight(actionId);
+          this.broadcastHighlightClear(actionId);
         }
         this.highlightedActionId = null;
         this.highlightedNodeId = null;
         return;
       }
 
-      const meta = this.actions.get(actionId);
-      if (!meta) {
-        this.highlightedActionId = null;
-        this.highlightedNodeId = null;
-        return;
+      // Route to the correct highlight path
+      if (actionId.startsWith(DevtoolsBridge.TB_PREFIX)) {
+        const deviceId = actionId.slice(DevtoolsBridge.TB_PREFIX.length);
+        const tb = this.touchBars.get(deviceId);
+        if (!tb) {
+          this.highlightedActionId = null;
+          this.highlightedNodeId = null;
+          return;
+        }
+        tb.root.suppressHardwarePush = true;
+        await this.applyTouchBarHighlight(actionId, deviceId, nodeId, tb);
+      } else {
+        const meta = this.actions.get(actionId);
+        if (!meta) {
+          this.highlightedActionId = null;
+          this.highlightedNodeId = null;
+          return;
+        }
+        meta.root.suppressHardwarePush = true;
+        await this.applyHighlight(actionId, nodeId, meta);
       }
-
-      // Suppress normal hardware pushes while highlight is active
-      meta.root.suppressHardwarePush = true;
-      await this.applyHighlight(actionId, nodeId, meta);
     } catch {
       // Never crash the plugin for a devtools feature
+    }
+  }
+
+  /**
+   * Restore a highlighted action or touchbar to its normal state.
+   * Un-suppresses hardware pushes and restores the original image(s).
+   */
+  private async restoreHighlight(id: string): Promise<void> {
+    if (id.startsWith(DevtoolsBridge.TB_PREFIX)) {
+      const deviceId = id.slice(DevtoolsBridge.TB_PREFIX.length);
+      const tb = this.touchBars.get(deviceId);
+      if (tb) {
+        tb.root.suppressHardwarePush = false;
+        // Restore the original per-segment images to hardware
+        await tb.root.pushSegmentImages(tb.root.lastSegmentUris);
+      }
+    } else {
+      const prevMeta = this.actions.get(id);
+      if (prevMeta) {
+        prevMeta.root.suppressHardwarePush = false;
+        if (prevMeta.root.lastDataUri) {
+          await prevMeta.root.pushImage(prevMeta.root.lastDataUri).catch(() => {});
+        }
+      }
     }
   }
 
@@ -581,6 +830,70 @@ export class DevtoolsBridge implements RegistryObserver {
     }
   }
 
+  // ── TouchBar Highlight ──────────────────────────────────────────
+  //
+  // Renders the full touchbar tree with a highlight overlay, then:
+  //   - Pushes per-column segments to the physical hardware
+  //   - Sends per-segment highlight URIs to the devtools browser
+  //     preview (one "highlight:render" message per column, keyed
+  //     as "touchbar:<deviceId>:seg:<col>")
+  //
+  // Why per-segment instead of a single full-width image?
+  //   The touchbar preview renders each segment as a separate 200×100
+  //   <img>.  A single full-width image (e.g. 800×100) displayed via
+  //   the canvas width/height attributes gets squished when the
+  //   dimensions don't match.  Per-segment URIs avoid this entirely.
+  //
+  //   applyTouchBarHighlight(actionId, deviceId, nodeId, tb)
+  //     │
+  //     ├─ renderTouchBarWithHighlight(container, fullWidth, ...)
+  //     │    └─ returns segmentUris (Map<col, uri>)
+  //     │
+  //     ├─ tb.root.pushSegmentImages(segmentUris) → physical device
+  //     │
+  //     └─ for each (col, uri):
+  //          broadcastHighlightRender("touchbar:<deviceId>:seg:<col>", uri)
+
+  private async applyTouchBarHighlight(
+    actionId: string,
+    deviceId: string,
+    nodeId: number,
+    tb: TouchBarMeta,
+  ): Promise<void> {
+    try {
+      // Compute touchbar geometry from active columns.
+      // Each column is 200×100 pixels; full width = max column span.
+      const columns = tb.root.columnNumbers;
+      if (columns.length === 0) return;
+
+      const segmentWidth = 200;
+      const segmentHeight = 100;
+      const fullWidth = (Math.max(...columns) + 1) * segmentWidth;
+
+      const result = await renderTouchBarWithHighlight(
+        tb.root.vcontainer,
+        fullWidth,
+        segmentHeight,
+        columns,
+        segmentWidth,
+        this.renderConfig.touchbarImageFormat,
+        this.renderConfig,
+        nodeId,
+      );
+
+      // Guard: highlight may have changed while rendering
+      if (result && this.highlightedActionId === actionId && this.highlightedNodeId === nodeId) {
+        await tb.root.pushSegmentImages(result.segmentUris);
+        // Broadcast per-segment highlight URIs to devtools preview.
+        for (const [col, uri] of result.segmentUris) {
+          this.broadcastHighlightRender(`${actionId}:seg:${col}`, uri);
+        }
+      }
+    } catch {
+      // Silently ignore touchbar highlight render failures
+    }
+  }
+
   /** Broadcast highlight render image (or null to clear) to devtools UI. */
   private broadcastHighlightRender(actionId: string, dataUri: string | null): void {
     const msg: HighlightRenderMessage = {
@@ -590,6 +903,25 @@ export class DevtoolsBridge implements RegistryObserver {
       dataUri,
     };
     this.server.broadcast(msg);
+  }
+
+  /**
+   * Clear highlight URIs for the given actionId.
+   * For touchbar IDs, clears all per-segment keys (touchbar:*:seg:N).
+   * For regular actions, clears the single actionId key.
+   */
+  private broadcastHighlightClear(id: string): void {
+    if (id.startsWith(DevtoolsBridge.TB_PREFIX)) {
+      const deviceId = id.slice(DevtoolsBridge.TB_PREFIX.length);
+      const tb = this.touchBars.get(deviceId);
+      if (tb) {
+        for (const col of tb.root.columnNumbers) {
+          this.broadcastHighlightRender(`${id}:seg:${col}`, null);
+        }
+      }
+    } else {
+      this.broadcastHighlightRender(id, null);
+    }
   }
 
   // ── Snapshot Builder ──────────────────────────────────────────
@@ -658,6 +990,7 @@ export class DevtoolsBridge implements RegistryObserver {
       recentConsole: this.consoleRing.toArray(),
       recentNetwork: this.networkRing.toArray(),
       recentEvents: this.eventRing.toArray(),
+      metrics: metrics.snapshot(),
     };
   }
 }

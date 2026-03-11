@@ -1,5 +1,11 @@
 # @fcannizzaro/streamdeck-react-devtools
 
+## 0.1.12
+
+### Patch Changes
+
+- update caching, hashing, performance and devtools interaction
+
 ## 0.1.11
 
 ### Patch Changes

@@ -1,3 +1,14 @@
+// ── ProgressBar Component ───────────────────────────────────────────
+//
+// Horizontal progress bar rendered as two nested `<div>` elements.
+// The outer div provides the track (background color, border radius,
+// overflow: hidden to clip the fill).  The inner div's width is set
+// as a percentage of value/max, clamped to [0, 100].
+//
+// Both `satisfies CSSProperties` assertions provide compile-time
+// type checking without widening the runtime object type — this
+// catches typos in CSS property names at build time.
+
 import { createElement, type CSSProperties, type ReactElement } from "react";
 
 export interface ProgressBarProps {

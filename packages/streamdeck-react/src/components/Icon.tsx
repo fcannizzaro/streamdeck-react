@@ -1,3 +1,14 @@
+// ── Icon Component ──────────────────────────────────────────────────
+//
+// Renders a single SVG `<path>` inside an `<svg>` element.  Designed
+// for Material Design Icons (MDI) and similar icon sets that expose
+// icons as SVG path data strings.
+//
+// In the render pipeline (pipeline.ts vnodeToTakumiNode), the `<svg>`
+// VNode subtree is serialized to SVG markup via serializeSvgTree()
+// and wrapped in a Takumi ImageNode — so the SVG is rasterized by
+// Takumi's native renderer, not a browser engine.
+
 import { createElement, type CSSProperties } from "react";
 
 export interface IconProps {

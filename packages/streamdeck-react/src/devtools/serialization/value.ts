@@ -1,8 +1,23 @@
 import type { SerializedValue } from "../types";
 
 // ── Safe Value Serialization ────────────────────────────────────────
-// Converts arbitrary JS values into a JSON-safe SerializedValue format.
-// Handles circular references, depth limits, large strings, etc.
+//
+// Converts arbitrary JS values into a JSON-safe SerializedValue format
+// for transport over the SSE wire protocol.
+//
+// Why not JSON.stringify:
+//   - Circular references → crash
+//   - Functions → silently dropped
+//   - undefined → silently dropped
+//   - Symbols → silently dropped
+//   - BigInt → throws TypeError
+//   - Buffer/ArrayBuffer → serialized as empty object
+//   - Error objects → lose name/message/stack
+//
+// This serializer handles all of the above with explicit type tags,
+// depth limits, size limits, and circular reference detection (WeakSet).
+// Each limit (MAX_STRING_LENGTH, MAX_ARRAY_ITEMS, MAX_OBJECT_KEYS)
+// emits a { t: "trunc" } marker so the devtools UI can show "[...]".
 
 const MAX_STRING_LENGTH = 10_000;
 const MAX_ARRAY_ITEMS = 100;

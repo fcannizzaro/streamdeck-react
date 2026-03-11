@@ -19,9 +19,31 @@ import type { JsonObject, JsonValue } from "@elgato/utils";
 import { RootRegistry } from "@/roots/registry";
 import type { PluginConfig, Plugin, ActionDefinition } from "./types";
 import type { RenderConfig } from "@/render/pipeline";
+import { RenderPool } from "@/render/render-pool";
+import { metrics } from "@/render/metrics";
 import { startDevtoolsServer } from "./devtools/index.js";
 
 // ── createPlugin ────────────────────────────────────────────────────
+//
+// Main entry point that wires the entire runtime together.
+//
+// Initialization sequence:
+//
+//   createPlugin(config)
+//     │
+//     ├─ 1. Create Takumi Renderer (native Rust rasterizer) with fonts
+//     ├─ 2. Create RenderPool (optional worker thread for offloading)
+//     ├─ 3. Build RenderConfig (format, DPR, cache budgets, debug flags)
+//     ├─ 4. Create RootRegistry (central action→root mapping)
+//     ├─ 5. Load initial global settings from SDK
+//     ├─ 6. Subscribe to global settings changes
+//     ├─ 7. Register each action definition as a SingletonAction
+//     ├─ 8. Enable render metrics (debug mode)
+//     ├─ 9. Start devtools server (if configured)
+//     └─ Return { connect() } → starts the SDK connection
+//
+// The returned Plugin.connect() initializes the worker pool (non-blocking,
+// falls back on failure) and connects to the Stream Deck SDK.
 
 export function createPlugin(config: PluginConfig): Plugin {
   // Create a shared Takumi Renderer instance with the provided fonts
@@ -34,11 +56,19 @@ export function createPlugin(config: PluginConfig): Plugin {
     })),
   });
 
+  // ── Render Pool (optional worker thread) ───────────────────────
+  const renderPool = config.useWorker !== false ? new RenderPool(config.fonts) : null;
+
   const renderConfig: RenderConfig = {
     renderer,
     imageFormat: config.imageFormat ?? "png",
     caching: config.caching ?? true,
     devicePixelRatio: config.devicePixelRatio ?? 1,
+    debug: config.debug ?? process.env.NODE_ENV !== "production",
+    imageCacheMaxBytes: config.imageCacheMaxBytes ?? 16 * 1024 * 1024,
+    touchbarCacheMaxBytes: config.touchbarCacheMaxBytes ?? 8 * 1024 * 1024,
+    renderPool,
+    touchbarImageFormat: config.touchbarImageFormat ?? "webp",
   };
 
   const renderDebounceMs = config.renderDebounceMs ?? 16;
@@ -75,6 +105,11 @@ export function createPlugin(config: PluginConfig): Plugin {
     streamDeck.actions.registerAction(singletonAction);
   }
 
+  // ── Metrics (debug mode) ───────────────────────────────────────────
+  if (renderConfig.debug) {
+    metrics.enable();
+  }
+
   // ── DevTools server (conditional) ──────────────────────────────────────
   if (config.devtools) {
     startDevtoolsServer({
@@ -86,12 +121,32 @@ export function createPlugin(config: PluginConfig): Plugin {
 
   return {
     async connect() {
+      // Initialize the render worker (non-blocking, falls back to main thread on failure)
+      if (renderPool != null) {
+        renderPool.initialize().catch(() => {
+          // Failure is handled inside RenderPool — it logs a warning and sets failed=true
+        });
+      }
       await streamDeck.connect();
     },
   };
 }
 
 // ── Internal: Generate a SingletonAction from an ActionDefinition ───
+//
+// Creates an anonymous SingletonAction subclass for each action UUID.
+// This bridges the Elgato SDK's event-driven model to our React-based
+// rendering system:
+//
+//   Elgato SDK event (e.g. onKeyDown)
+//     → SingletonAction handler
+//       → registry.dispatch(actionId, "keyDown", payload)
+//         → ReactRoot.eventBus.emit("keyDown", payload)
+//           → useKeyDown() hook fires in user component
+//
+// Each handler is wrapped in try/catch with error isolation — a crash
+// in one action's handler doesn't affect other actions.  Errors are
+// forwarded to the optional onError callback for user-level handling.
 
 function createSingletonAction(
   definition: ActionDefinition,

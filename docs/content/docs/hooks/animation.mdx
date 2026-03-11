@@ -1,0 +1,283 @@
+---
+title: Animation Hooks
+description: Physics-based and easing-based animation hooks for smooth value transitions.
+---
+
+## useSpring
+
+Spring physics-based animation hook. Returns animated value(s) that follow the target with natural spring dynamics (damped harmonic oscillator). Supports single numbers and objects of numbers.
+
+```ts
+function useSpring<T extends AnimationTarget>(
+  target: T,
+  config?: Partial<SpringConfig> & { fps?: number },
+): SpringResult<T>;
+```
+
+```ts
+type AnimationTarget = number | Record<string, number>;
+
+type AnimatedValue<T extends AnimationTarget> = T extends number
+  ? number
+  : { [K in keyof T]: number };
+```
+
+```ts
+interface SpringConfig {
+  /** Stiffness coefficient (force per unit displacement). @default 170 */
+  tension: number;
+  /** Damping coefficient (force per unit velocity). @default 26 */
+  friction: number;
+  /** Mass of the simulated object. @default 1 */
+  mass: number;
+  /** Absolute velocity threshold below which the spring settles. @default 0.01 */
+  velocityThreshold: number;
+  /** Absolute displacement threshold below which the spring settles. @default 0.005 */
+  displacementThreshold: number;
+  /** Clamp output to target (no overshoot). @default false */
+  clamp: boolean;
+}
+```
+
+```ts
+interface SpringResult<T extends AnimationTarget> {
+  /** Current interpolated value(s). */
+  value: AnimatedValue<T>;
+  /** Whether the spring is still in motion. */
+  isAnimating: boolean;
+  /** Imperatively update the target (starts animating from current position). */
+  set: (target: T) => void;
+  /** Jump immediately to a value with zero velocity (no animation). */
+  jump: (target: T) => void;
+}
+```
+
+### Scalar example
+
+```tsx
+function SpringBounce() {
+  const [pressed, setPressed] = useState(false);
+  const [count, setCount] = useState(0);
+
+  useKeyDown(() => {
+    setPressed(true);
+    setCount((c) => c + 1);
+  });
+
+  useKeyUp(() => setPressed(false));
+
+  // Wobbly scale spring -- bounces on press
+  const { value: scale } = useSpring(pressed ? 0.8 : 1, {
+    ...SpringPresets.wobbly,
+    tension: 300,
+  });
+
+  // Gentle background hue shift based on count
+  const { value: hue } = useSpring((count * 40) % 360, SpringPresets.gentle);
+
+  const size = Math.round(scale * 100);
+
+  return (
+    <div
+      className={tw("flex items-center justify-center w-full h-full")}
+      style={{ backgroundColor: `hsl(${Math.round(hue)}, 60%, 25%)` }}
+    >
+      <div
+        className={tw("flex flex-col items-center justify-center")}
+        style={{ width: `${size}%`, height: `${size}%` }}
+      >
+        <span className="text-white/50 text-[10px] font-medium">SPRING</span>
+        <span className="text-white text-[48px] font-bold">{count}</span>
+      </div>
+    </div>
+  );
+}
+```
+
+### Object example
+
+Pass an object of named numbers to animate multiple channels independently:
+
+```tsx
+const { value } = useSpring({ x: targetX, opacity: show ? 1 : 0 }, SpringPresets.gentle);
+// value.x and value.opacity are plain numbers
+```
+
+### Imperative API
+
+Use `set()` to start a new animation from the current position toward a new target. Use `jump()` to snap immediately with zero velocity (no animation).
+
+```tsx
+const { value, set, jump } = useSpring(0);
+
+useKeyDown(() => set(100)); // animate to 100
+useLongPress(() => jump(0)); // snap back instantly
+```
+
+### Implementation notes
+
+- Uses semi-implicit Euler integration of a damped harmonic oscillator.
+- Internally drives re-renders via `useTick` -- the tick loop starts when the target changes and stops once all channels settle below the velocity and displacement thresholds.
+- The `fps` option (default 60) controls the tick rate. Actual frame rate is still capped by `renderDebounceMs`.
+
+## SpringPresets
+
+Built-in spring configurations for common animation feels. Pass directly as the config argument or spread and override individual properties.
+
+```ts
+import { SpringPresets } from "@fcannizzaro/streamdeck-react";
+```
+
+| Preset     | Tension | Friction | Mass | Clamp | Use case                             |
+| ---------- | ------- | -------- | ---- | ----- | ------------------------------------ |
+| `default`  | 170     | 26       | 1    | --    | Balanced default                     |
+| `stiff`    | 400     | 28       | 1    | --    | Quick and responsive, press feedback |
+| `wobbly`   | 180     | 12       | 1    | --    | Bouncy with visible oscillation      |
+| `gentle`   | 120     | 14       | 1    | --    | Slow and smooth, background shifts   |
+| `molasses` | 80      | 30       | 1    | --    | Very slow, ambient drift             |
+| `snap`     | 300     | 36       | 1    | yes   | Snappy with no overshoot             |
+| `heavy`    | 200     | 20       | 3    | --    | Heavy object feel                    |
+
+```tsx
+// Use a preset directly
+const { value } = useSpring(target, SpringPresets.wobbly);
+
+// Override a single property
+const { value } = useSpring(target, { ...SpringPresets.stiff, friction: 20 });
+```
+
+## useTween
+
+Duration and easing-based animation hook. Returns animated value(s) that smoothly transition to the target over a specified duration using an easing curve. Supports single numbers and objects of numbers.
+
+When the target changes mid-tween, a new tween starts from the current interpolated position (no discontinuity).
+
+```ts
+function useTween<T extends AnimationTarget>(
+  target: T,
+  config?: Partial<TweenConfig>,
+): TweenResult<T>;
+```
+
+```ts
+interface TweenConfig {
+  /** Duration in milliseconds. @default 300 */
+  duration: number;
+  /** Easing function name or custom (t: number) => number. @default "easeOut" */
+  easing: EasingName | EasingFn;
+  /** Target FPS for the animation tick loop. @default 60 */
+  fps: number;
+}
+```
+
+```ts
+interface TweenResult<T extends AnimationTarget> {
+  /** Current interpolated value(s). */
+  value: AnimatedValue<T>;
+  /** 0..1 normalized progress of the current transition. */
+  progress: number;
+  /** Whether the tween is still running. */
+  isAnimating: boolean;
+  /** Imperatively start a new tween from the current position. */
+  set: (target: T) => void;
+  /** Jump immediately to a value (no animation). */
+  jump: (target: T) => void;
+}
+```
+
+### Scalar example
+
+```tsx
+const LABELS = ["HELLO", "WORLD", "REACT", "DECK"];
+
+function FadeSlide() {
+  const [index, setIndex] = useState(0);
+
+  useKeyDown(() => {
+    setIndex((i) => (i + 1) % LABELS.length);
+  });
+
+  // Tween background hue when cycling
+  const { value: bg } = useTween(index * 90, {
+    duration: 400,
+    easing: "easeOutCubic",
+  });
+
+  return (
+    <div
+      className={tw("flex flex-col items-center justify-center w-full h-full")}
+      style={{ backgroundColor: `hsl(${Math.round(bg) % 360}, 50%, 25%)` }}
+    >
+      <span className="text-white text-[28px] font-bold">{LABELS[index]}</span>
+    </div>
+  );
+}
+```
+
+### Object example
+
+```tsx
+const { value } = useTween(
+  { y: expanded ? 0 : -50, opacity: expanded ? 1 : 0 },
+  { duration: 500, easing: "easeInOut" },
+);
+// value.y and value.opacity are plain numbers
+```
+
+### Custom easing function
+
+Pass a `(t: number) => number` function instead of a named easing:
+
+```tsx
+const { value } = useTween(target, {
+  duration: 600,
+  easing: (t) => 1 - Math.pow(1 - t, 4), // custom ease-out quartic
+});
+```
+
+### Implementation notes
+
+- Classic duration + easing interpolation. On each tick, elapsed time advances, progress is computed as `elapsed / duration`, the easing function is applied, and channels are linearly interpolated.
+- When the target changes mid-tween, the current interpolated position becomes the new start and a fresh tween begins -- no visual discontinuity.
+- Like `useSpring`, the tick loop only runs while `isAnimating` is true.
+
+## Easings
+
+Built-in easing functions. Use by name in `TweenConfig.easing` or access the functions directly via the `Easings` object.
+
+```ts
+import { Easings } from "@fcannizzaro/streamdeck-react";
+
+type EasingName =
+  | "linear"
+  | "easeIn"
+  | "easeOut"
+  | "easeInOut"
+  | "easeInCubic"
+  | "easeOutCubic"
+  | "easeInOutCubic"
+  | "easeInBack"
+  | "easeOutBack"
+  | "easeOutBounce";
+
+type EasingFn = (t: number) => number;
+```
+
+| Name             | Description                    |
+| ---------------- | ------------------------------ |
+| `linear`         | No easing, constant speed      |
+| `easeIn`         | Quadratic ease-in (slow start) |
+| `easeOut`        | Quadratic ease-out (slow end)  |
+| `easeInOut`      | Quadratic ease-in-out          |
+| `easeInCubic`    | Cubic ease-in                  |
+| `easeOutCubic`   | Cubic ease-out                 |
+| `easeInOutCubic` | Cubic ease-in-out              |
+| `easeInBack`     | Slight overshoot at the start  |
+| `easeOutBack`    | Slight overshoot at the end    |
+| `easeOutBounce`  | Bounce effect at the end       |
+
+## Note on Animation Performance
+
+Both hooks use `useTick` internally and accept an `fps` option (default 60). The actual frame rate is capped by the render debounce (default 16ms = ~60fps theoretical max). In practice, rendering time limits real throughput to roughly 10-30fps depending on component complexity.
+
+The tick loop is only active while the animation is in motion. Once the spring settles or the tween completes, `useTick` is paused automatically -- no CPU cost when idle.

@@ -1,11 +1,11 @@
 // ── Weather Store ──────────────────────────────────────────────────
 // Zustand singleton for the weather touchbar.
-// A single React root renders all 12 visible forecast cards on the
+// A single React root renders visible forecast cards on the
 // full-width touch strip (800×100). A global cursor selects which
-// entry is focused. Dial rotation moves it.
+// entry is focused. Dial rotation scrolls through the forecast.
 
 import { create } from "zustand";
-import { fetchWeatherData, normalizeForecast } from "./api";
+import { fetchGeoIp, fetchWeatherData, normalizeForecast } from "./api";
 import type { ForecastEntry } from "./types";
 
 // ── Constants ─────────────────────────────────────────────────────
@@ -14,14 +14,8 @@ const DEFAULT_LAT = 41.9028;
 const DEFAULT_LON = 12.4964;
 const POLL_INTERVAL = 15 * 60 * 1000; // 15 minutes
 
-/** Number of sub-columns rendered per dial segment */
-export const COLS_PER_SEGMENT = 3;
-
-/** Number of dial segments on the touch strip */
-export const NUM_SEGMENTS = 4;
-
-/** Total visible entries across the touch strip */
-const TOTAL_VISIBLE = NUM_SEGMENTS * COLS_PER_SEGMENT; // 12
+/** Total visible cards across the touch strip */
+export const TOTAL_VISIBLE = 12;
 
 // ── Store type ─────────────────────────────────────────────────────
 
@@ -31,19 +25,22 @@ interface WeatherStore {
   error: string | null;
   lastFetched: number | null;
 
+  /** User-configured latitude. Falls back to DEFAULT_LAT when unset. */
+  lat: number | null;
+  /** User-configured longitude. Falls back to DEFAULT_LON when unset. */
+  lon: number | null;
+
   /** Global cursor index into forecast[]. Dial rotation moves this. */
   cursor: number;
 
   /** Scroll offset — first forecast index shown at the left edge. */
   scrollOffset: number;
 
-  /**
-   * Which segment (0-3) has the detail panel expanded.
-   * null = no detail panel open.
-   */
-  expandedSegment: number | null;
+  /** Whether the detail panel is expanded for the focused card. */
+  expanded: boolean;
 
-  fetchForecast: (lat?: number, lon?: number) => Promise<void>;
+  setCoordinates: (lat: number | null, lon: number | null) => void;
+  fetchForecast: () => Promise<void>;
   moveCursor: (ticks: number) => void;
   toggleExpanded: () => void;
   closeExpanded: () => void;
@@ -71,16 +68,28 @@ export const useWeatherStore = create<WeatherStore>((set, get) => ({
   isLoading: false,
   error: null,
   lastFetched: null,
+  lat: null,
+  lon: null,
   cursor: 0,
   scrollOffset: 0,
-  expandedSegment: null,
+  expanded: false,
 
-  fetchForecast: async (lat = DEFAULT_LAT, lon = DEFAULT_LON) => {
+  setCoordinates: (lat, lon) => {
+    const state = get();
+    if (state.lat === lat && state.lon === lon) return;
+    set({ lat, lon });
+    // Re-fetch immediately with the new coordinates
+    state.fetchForecast();
+  },
+
+  fetchForecast: async () => {
     if (get().isLoading) return;
+
+    const { lat, lon } = get();
 
     set({ isLoading: true, error: null });
     try {
-      const data = await fetchWeatherData(lat, lon);
+      const data = await fetchWeatherData(lat ?? DEFAULT_LAT, lon ?? DEFAULT_LON);
       const forecast = normalizeForecast(data);
       const maxIdx = Math.max(0, forecast.length - 1);
       const cursor = clamp(get().cursor, 0, maxIdx);
@@ -114,39 +123,26 @@ export const useWeatherStore = create<WeatherStore>((set, get) => ({
   },
 
   toggleExpanded: () => {
-    const { expandedSegment, cursor, scrollOffset } = get();
-    const cursorSegment = Math.floor((cursor - scrollOffset) / COLS_PER_SEGMENT);
-    set({
-      expandedSegment: expandedSegment === cursorSegment ? null : cursorSegment,
-    });
+    set({ expanded: !get().expanded });
   },
 
   closeExpanded: () => {
-    set({ expandedSegment: null });
+    set({ expanded: false });
   },
 }));
 
-// ── Derived helpers (pure functions) ───────────────────────────────
-
-/** Get the 3 forecast entries visible on a given segment. */
-export function getSegmentEntries(
-  forecast: ForecastEntry[],
-  scrollOffset: number,
-  segment: number,
-): (ForecastEntry | undefined)[] {
-  const start = scrollOffset + segment * COLS_PER_SEGMENT;
-  return [forecast[start], forecast[start + 1], forecast[start + 2]];
-}
-
-/** Get the forecast index for a sub-column within a segment. */
-export function getForecastIndex(scrollOffset: number, segment: number, subCol: number): number {
-  return scrollOffset + segment * COLS_PER_SEGMENT + subCol;
-}
-
 // ── Auto-polling ───────────────────────────────────────────────────
 
-function startPolling() {
-  useWeatherStore.getState().fetchForecast();
+async function startPolling() {
+  // Detect location from IP, then fetch immediately
+  const geo = await fetchGeoIp();
+  if (geo) {
+    useWeatherStore.getState().setCoordinates(geo.lat, geo.lon);
+  } else {
+    // Fall back to defaults (Rome)
+    useWeatherStore.getState().fetchForecast();
+  }
+
   setInterval(() => {
     useWeatherStore.getState().fetchForecast();
   }, POLL_INTERVAL);

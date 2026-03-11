@@ -1,4 +1,14 @@
 {
   "title": "Hooks",
-  "pages": ["events", "gestures", "touchbar", "settings", "context", "lifecycle", "sdk", "utility"]
+  "pages": [
+    "events",
+    "gestures",
+    "touchbar",
+    "settings",
+    "context",
+    "lifecycle",
+    "sdk",
+    "utility",
+    "animation"
+  ]
 }

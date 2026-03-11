@@ -1,3 +1,18 @@
+// ── Vite Plugin for Stream Deck React ───────────────────────────────
+//
+// Wraps the shared build infrastructure (bundler-shared.ts) into Vite's
+// plugin lifecycle.  Compared to the Rollup plugin (rollup.ts):
+//
+//   - Uses `configResolved` to detect watch/dev mode (Rollup uses
+//     `this.meta.watchMode`)
+//   - Adds `closeBundle` hook to auto-restart the Stream Deck plugin
+//     via `streamdeck restart <uuid>` after each build
+//   - `apply: "build"` ensures this plugin is excluded from Vite's
+//     dev server (HMR is not applicable — Stream Deck plugins are
+//     standalone Node.js processes, not browser tabs)
+//   - `enforce: "pre"` ensures font resolution and devtools stripping
+//     run before other plugins that might resolve the same imports
+
 import { exec } from "node:child_process";
 import { resolve } from "node:path";
 import type { Plugin, ResolvedConfig } from "vite";
@@ -9,6 +24,7 @@ import {
   NOOP_DEVTOOLS_CODE,
 } from "./bundler-shared";
 import { resolveFontId, loadFont } from "./font-inline";
+import { generateManifestTypes } from "./manifest-codegen";
 import type { StreamDeckTarget, StreamDeckTargetOptions } from "./bundler-shared";
 
 export type {
@@ -27,19 +43,34 @@ export interface StreamDeckReactOptions extends StreamDeckTargetOptions {
    * each successful build.
    */
   uuid?: string;
+
+  /**
+   * Path to the plugin `manifest.json`. When omitted, the plugin
+   * auto-detects by scanning the project root for a `*.sdPlugin/manifest.json`.
+   *
+   * Set to `false` to disable manifest type generation entirely.
+   */
+  manifest?: string | false;
 }
 
 /**
  * Vite plugin for Stream Deck React projects.
  *
- * - Inlines font files (`.ttf`, `.otf`, `.woff`, `.woff2`) imported by the
- *   project into the bundle as `Buffer` instances so no runtime filesystem
- *   access is needed.
- * - Copies platform-specific `@takumi-rs/core` native bindings (`.node` files)
- *   into the bundle output directory.
- * - Strips devtools code in production builds (non-watch mode).
- * - Optionally restarts the Stream Deck plugin after each build when
- *   {@link StreamDeckReactOptions.uuid} is provided.
+ * Responsibilities mapped to Vite lifecycle hooks:
+ *
+ *   configResolved  → detect dev/production mode, set strip flags
+ *   buildStart      → generate streamdeck-env.d.ts from manifest.json
+ *   resolveId       → redirect devtools imports (production) + font imports
+ *   load            → return noop devtools stub + inline font as base64 Buffer
+ *   writeBundle     → copy native .node bindings to output directory
+ *   closeBundle     → restart Stream Deck plugin (optional, via CLI)
+ *
+ * Font inlining:
+ *   `.ttf`, `.otf`, `.woff`, `.woff2` imports are resolved to absolute
+ *   paths and loaded as synthetic ES modules:
+ *     `export default Buffer.from("<base64>", "base64");`
+ *   This eliminates runtime filesystem access in the sandboxed
+ *   Stream Deck Node.js environment.
  */
 export function streamDeckReact(options: StreamDeckReactOptions = {}): Plugin {
   let resolvedConfig: ResolvedConfig;
@@ -56,6 +87,22 @@ export function streamDeckReact(options: StreamDeckReactOptions = {}): Plugin {
       const isWatch = config.build.watch !== null;
       isDevelopment = isWatch || process.env.NODE_ENV === "development";
       stripDevtools = shouldStripDevtools(isWatch);
+    },
+
+    buildStart() {
+      const warn = (msg: string) => resolvedConfig.logger.warn(msg);
+      const result = generateManifestTypes(resolvedConfig.root, options.manifest, warn);
+
+      if (result) {
+        // Watch manifest.json so changes trigger a rebuild in watch mode
+        this.addWatchFile(result.manifestPath);
+
+        if (result.written) {
+          resolvedConfig.logger.info(
+            "[@fcannizzaro/streamdeck-react] Generated src/streamdeck-env.d.ts",
+          );
+        }
+      }
     },
 
     resolveId(source, importer) {

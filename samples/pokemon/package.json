@@ -22,6 +22,9 @@
     "@types/react": "^19.2.14",
     "@vitejs/plugin-react": "6.0.0-beta.0",
     "babel-plugin-react-compiler": "^1.0.0",
-    "vite": "8.0.0-beta.16"
+    "vite": "8.0.0-beta.18"
+  },
+  "overrides": {
+    "rolldown": "1.0.0-rc.9"
   }
 }

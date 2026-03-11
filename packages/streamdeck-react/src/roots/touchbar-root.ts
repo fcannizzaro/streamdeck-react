@@ -1,7 +1,23 @@
 import { createElement, type ComponentType, type ReactElement } from "react";
 import { reconciler } from "@/reconciler/renderer";
-import { createVContainer, type VContainer } from "@/reconciler/vnode";
-import { renderToRaw, sliceToDataUri, type RenderConfig } from "@/render/pipeline";
+import {
+  createVContainer,
+  isContainerDirty,
+  clearDirtyFlags,
+  type VContainer,
+} from "@/reconciler/vnode";
+import {
+  renderToRaw,
+  sliceToDataUriAsync,
+  renderSegmentToDataUri,
+  buildTakumiChildren,
+  measureTree,
+  type RenderConfig,
+  type RenderProfile,
+} from "@/render/pipeline";
+import { metrics } from "@/render/metrics";
+import { getTouchbarNativeCache } from "@/render/image-cache";
+import { fnv1a, computeTreeHash, computeNativeTouchbarCacheKey } from "@/render/cache";
 import { EventBus } from "@/context/event-bus";
 import {
   DeviceContext,
@@ -11,10 +27,15 @@ import {
 } from "@/context/providers";
 import { TouchBarContext } from "@/context/touchbar-context";
 import type { DeviceInfo, EncoderLayout, TouchBarInfo, WrapperComponent } from "@/types";
+import type { FlushCoordinator, FlushableRoot } from "./flush-coordinator";
+import { partialHasChanges, shallowEqualSettings } from "./settings-equality";
 import type { DialAction } from "@elgato/streamdeck";
 import type { JsonObject } from "@elgato/utils";
 
 // ── Constants ───────────────────────────────────────────────────────
+// Stream Deck Plus encoders: each segment is 200×100 pixels.
+// A full 4-encoder strip is 800×100.  Columns may not be contiguous
+// (e.g. columns [0, 1, 3] if encoder 2 is used by a different action).
 
 const SEGMENT_WIDTH = 200;
 const SEGMENT_HEIGHT = 100;
@@ -39,11 +60,44 @@ interface ColumnEntry {
 }
 
 // ── Touch Bar Root ──────────────────────────────────────────────────
-// A shared React fiber root that renders ONE component tree for the
-// full-width touch strip. The rendered image is sliced and distributed
-// to individual encoder actions via setFeedback.
+//
+// Shared React fiber root that renders ONE component tree spanning
+// the full touch strip width.  Unlike ReactRoot (one per key/dial),
+// there is one TouchBarRoot per device, shared by all encoder actions
+// on that device.
+//
+// Architecture:
+//
+//   TouchBarRoot (one per device, e.g. Stream Deck Plus)
+//   ┌──────────────────────────────────────────────────┐
+//   │ Single React tree renders at full width (800×100) │
+//   │                                                  │
+//   │  col 0      col 1      col 2      col 3          │
+//   │ ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐     │
+//   │ │ 200×100│ │ 200×100│ │ 200×100│ │ 200×100│     │
+//   │ └───┬────┘ └───┬────┘ └───┬────┘ └───┬────┘     │
+//   │     │          │          │          │           │
+//   │     ▼          ▼          ▼          ▼           │
+//   │  setFeedback per encoder (sliced segments)       │
+//   └──────────────────────────────────────────────────┘
+//
+// Two rendering paths (selected by touchbarImageFormat config):
+//
+//   Path A: Native format (WebP/PNG via Takumi)
+//     Each segment rendered independently with CSS viewport offset.
+//     Faster when Takumi's native encoder (WebP) is available.
+//     See renderSegmentToDataUri() in pipeline.ts.
+//
+//   Path B: Raw → crop → PNG encode
+//     Single full-width render → raw RGBA → cropSlice per segment
+//     → encodePngAsync (parallel deflate via libuv thread pool).
+//     Used when touchbarImageFormat is "png".
+//
+// Columns are dynamic — encoders appear/disappear as the user drags
+// actions onto the Stream Deck.  The geometry is recomputed via
+// updateTouchBarInfo() whenever a column is added or removed.
 
-export class TouchBarRoot {
+export class TouchBarRoot implements FlushableRoot {
   readonly eventBus = new EventBus();
   private container: VContainer;
   private fiberRoot: ReturnType<typeof reconciler.createContainer>;
@@ -57,8 +111,78 @@ export class TouchBarRoot {
   private fps: number;
   private pluginWrapper?: WrapperComponent;
 
+  // ── Performance diagnostics ───────────────────────────────────
+  private _renderCount = 0;
+  private _lastRenderReport = 0;
+  private static readonly RENDER_WARN_THRESHOLD = 65;
+
+  // ── Frame skipping ────────────────────────────────────────────
+  private _rendering = false;
+  private _pendingFlush = false;
+
+  // ── Adaptive debounce ─────────────────────────────────────────
+  private _recentRenders: number[] = [];
+  private _lastInteraction = 0;
+  private static readonly ANIMATION_WINDOW_MS = 100;
+  private static readonly ANIMATION_THRESHOLD = 2;
+  private static readonly INTERACTION_COOLDOWN_MS = 500;
+
+  // ── Render Priority ───────────────────────────────────────────
+  private static readonly IDLE_THRESHOLD_MS = 2000;
+  private _lastFlushTime = 0;
+
+  /** Current render priority (lower = higher priority). Used by flush coordinator. */
+  get priority(): number {
+    const now = Date.now();
+    const cutoff = now - TouchBarRoot.ANIMATION_WINDOW_MS;
+    while (this._recentRenders.length > 0 && this._recentRenders[0]! < cutoff) {
+      this._recentRenders.shift();
+    }
+    if (this._recentRenders.length > TouchBarRoot.ANIMATION_THRESHOLD) {
+      return 0;
+    }
+    if (now - this._lastInteraction < TouchBarRoot.INTERACTION_COOLDOWN_MS) {
+      return 1;
+    }
+    if (this._lastFlushTime > 0 && now - this._lastFlushTime > TouchBarRoot.IDLE_THRESHOLD_MS) {
+      return 3;
+    }
+    return 2;
+  }
+
   /** Last rendered per-column data URIs. Used by devtools snapshots. */
   lastSegmentUris = new Map<number, string>();
+
+  /**
+   * When true, doFlush skips pushing rendered segments to hardware.
+   * Set by the devtools bridge while a highlight overlay is active so
+   * that rapid re-renders don't overwrite the highlight on the device.
+   * The highlight path calls pushSegmentImages() directly (bypassing
+   * this flag).
+   *
+   * Mirrors ReactRoot.suppressHardwarePush — same pattern, different
+   * granularity (per-segment instead of single image).
+   */
+  suppressHardwarePush = false;
+
+  /**
+   * Push per-column data URIs to the physical Stream Deck touch strip.
+   * Used by the devtools highlight overlay to bypass suppressHardwarePush.
+   *
+   * @param uris  Map of column → data URI to push to hardware.
+   *              Columns not present in the map are left unchanged.
+   */
+  async pushSegmentImages(uris: Map<number, string>): Promise<void> {
+    if (this.disposed) return;
+    const promises: Promise<void>[] = [];
+    for (const [column, uri] of uris) {
+      const entry = this.columns.get(column);
+      if (entry) {
+        promises.push(entry.sdkAction.setFeedback({ canvas: uri }).catch(() => {}));
+      }
+    }
+    await Promise.all(promises);
+  }
 
   /** Exposes the VContainer for devtools inspection. */
   get vcontainer(): VContainer {
@@ -92,6 +216,7 @@ export class TouchBarRoot {
     onGlobalSettingsChange: (settings: JsonObject) => Promise<void>,
     pluginWrapper?: WrapperComponent,
     touchBarFPS?: number,
+    private flushCoordinator?: FlushCoordinator,
   ) {
     this.deviceInfo = deviceInfo;
     this.globalSettings = { ...initialGlobalSettings };
@@ -105,12 +230,17 @@ export class TouchBarRoot {
 
     // Global settings mutator
     this.setGlobalSettingsFn = (partial: JsonObject) => {
-      this.globalSettings = { ...this.globalSettings, ...partial };
+      const hasChanges = partialHasChanges(this.globalSettings, partial);
+      const nextSettings = hasChanges
+        ? { ...this.globalSettings, ...partial }
+        : this.globalSettings;
+      onGlobalSettingsChange(nextSettings);
+      if (!hasChanges) return;
+      this.globalSettings = nextSettings;
       this.globalSettingsValue = {
         settings: this.globalSettings,
         setSettings: this.setGlobalSettingsFn,
       };
-      onGlobalSettingsChange(this.globalSettings);
       this.scheduleRerender();
     };
 
@@ -246,58 +376,383 @@ export class TouchBarRoot {
 
   // ── Flush: VNode → raw RGBA → buffer crop → setFeedback ────────
 
+  /** Record a user interaction for adaptive debounce. */
+  markInteraction(): void {
+    this._lastInteraction = Date.now();
+  }
+
+  private get effectiveDebounceMs(): number {
+    const now = Date.now();
+    const cutoff = now - TouchBarRoot.ANIMATION_WINDOW_MS;
+    while (this._recentRenders.length > 0 && this._recentRenders[0]! < cutoff) {
+      this._recentRenders.shift();
+    }
+    if (this._recentRenders.length > TouchBarRoot.ANIMATION_THRESHOLD) {
+      return 0;
+    }
+    if (now - this._lastInteraction < TouchBarRoot.INTERACTION_COOLDOWN_MS) {
+      return Math.min(this.renderDebounceMs, 16);
+    }
+    return this.renderDebounceMs;
+  }
+
   private async flush(): Promise<void> {
     if (this.disposed) return;
 
-    if (this.renderDebounceMs > 0 && this.container.renderTimer !== null) {
+    // Frame skipping: if a render is in progress, just mark pending
+    if (this._rendering) {
+      this._pendingFlush = true;
+      return;
+    }
+
+    this._recentRenders.push(Date.now());
+    const debounce = this.effectiveDebounceMs;
+
+    if (debounce > 0 && this.container.renderTimer !== null) {
       clearTimeout(this.container.renderTimer);
     }
 
-    if (this.renderDebounceMs > 0) {
-      this.container.renderTimer = setTimeout(async () => {
+    if (debounce > 0) {
+      this.container.renderTimer = setTimeout(() => {
         this.container.renderTimer = null;
-        await this.doFlush();
-      }, this.renderDebounceMs);
+        this.submitFlush();
+      }, debounce);
     } else {
-      await this.doFlush();
+      this.submitFlush();
     }
+  }
+
+  /**
+   * Submit this root for flushing. Routes through the coordinator
+   * (priority-ordered) when available, or flushes directly.
+   */
+  private submitFlush(): void {
+    if (this.disposed) return;
+    if (this.flushCoordinator) {
+      this.flushCoordinator.requestFlush(this);
+    } else {
+      this.doFlush();
+    }
+  }
+
+  /**
+   * Execute the flush. Called by FlushCoordinator in priority order,
+   * or directly when no coordinator is present.
+   */
+  async executeFlush(): Promise<void> {
+    await this.doFlush();
   }
 
   private async doFlush(): Promise<void> {
     if (this.disposed || this.columns.size === 0) return;
 
+    this._rendering = true;
+    this._pendingFlush = false;
+    this._lastFlushTime = Date.now();
+
+    // Performance diagnostics: render frequency counter
+    if (this.renderConfig.debug) {
+      this._renderCount++;
+      const now = Date.now();
+      if (now - this._lastRenderReport > 1000) {
+        if (this._renderCount > TouchBarRoot.RENDER_WARN_THRESHOLD) {
+          console.warn(
+            `[@fcannizzaro/streamdeck-react] TouchBar rendered ${this._renderCount}x in 1s (FPS target: ${this.fps})`,
+          );
+        }
+        this._renderCount = 0;
+        this._lastRenderReport = now;
+      }
+    }
+
     try {
       const width = this.touchBarValue.width;
       if (width === 0) return;
 
-      // Single Takumi render → raw RGBA pixels
-      const result = await renderToRaw(this.container, width, SEGMENT_HEIGHT, this.renderConfig);
+      const useNativeFormat = this.renderConfig.touchbarImageFormat !== "png";
 
-      if (result === null || this.disposed) return;
+      if (useNativeFormat) {
+        // ── Native-format path with full 4-phase skip hierarchy ──────
+        //
+        //   doFlush() ── useNativeFormat path
+        //     │
+        //     ├─ Phase 1: Dirty-flag check (O(1))
+        //     │    └─ skip if no VNode mutated since last flush
+        //     │
+        //     ├─ Phase 2: Merkle hash + native cache lookup
+        //     │    └─ skip render if tree hash + column config cached
+        //     │
+        //     ├─ Phase 3: Per-segment Takumi render (WebP/PNG)
+        //     │    └─ buildTakumiChildren once, renderSegmentToDataUri ×N
+        //     │
+        //     ├─ Phase 4: FNV-1a output dedup
+        //     │    └─ skip hardware push if segment URIs identical to last frame
+        //     │
+        //     ├─ Store in native cache
+        //     ├─ config.onProfile(aggregate)  ← stashes in bridge
+        //     └─ config.onRender(container, "")  ← bridge consumes profile
 
-      // Crop each segment directly from the raw buffer (no re-rendering)
-      const feedbackPromises: Promise<void>[] = [];
-      for (const [column, entry] of this.columns) {
-        const sliceUri = sliceToDataUri(
-          result.buffer,
-          result.width,
-          result.height,
-          column,
-          SEGMENT_WIDTH,
-          SEGMENT_HEIGHT,
-        );
-        this.lastSegmentUris.set(column, sliceUri);
-        feedbackPromises.push(entry.sdkAction.setFeedback({ canvas: sliceUri }));
+        metrics.recordFlush();
+
+        // ── Phase 1: Dirty-flag check ───────────────────────────────
+        // If no VNode was mutated since last flush, skip entirely.
+        // Cost: O(1) — just a boolean check on the container.
+        // No clearDirtyFlags needed — tree is already clean.
+        if (this.renderConfig.caching && !isContainerDirty(this.container)) {
+          metrics.recordDirtySkip();
+          return;
+        }
+
+        const profiling = this.renderConfig.onProfile != null;
+        const t0 = profiling ? performance.now() : 0;
+        const sortedColumns = [...this.columns.keys()].sort((a, b) => a - b);
+
+        // ── Phase 2: Native Cache Lookup ────────────────────────────
+        // Compute Merkle hash of the VNode tree + render config params
+        // + column layout. If found in the native-format LRU cache,
+        // skip the Takumi render and push cached segment URIs directly.
+        //
+        // Hoisted so the same values can be reused at cache-store time
+        // after rendering (avoids recomputing computeTreeHash twice).
+        let treeHash: number | undefined;
+        let cacheKey: number | undefined;
+        let cacheHit = false;
+
+        if (this.renderConfig.caching && this.renderConfig.touchbarCacheMaxBytes > 0) {
+          treeHash = computeTreeHash(this.container);
+          cacheKey = computeNativeTouchbarCacheKey(
+            treeHash,
+            width,
+            SEGMENT_HEIGHT,
+            this.renderConfig.devicePixelRatio,
+            this.renderConfig.touchbarImageFormat,
+            sortedColumns,
+          );
+          const cache = getTouchbarNativeCache(this.renderConfig.touchbarCacheMaxBytes);
+          const cached = cache.get(cacheKey);
+
+          if (cached !== undefined) {
+            metrics.recordCacheHit();
+            cacheHit = true;
+
+            for (const [column, uri] of cached) {
+              this.lastSegmentUris.set(column, uri);
+              if (!this.suppressHardwarePush) {
+                const entry = this.columns.get(column);
+                entry?.sdkAction.setFeedback({ canvas: uri }).catch(() => {});
+              }
+            }
+
+            if (profiling) {
+              const tNow = performance.now();
+              const stats = measureTree(this.container.children);
+              this.renderConfig.onProfile!({
+                vnodeToElementMs: 0,
+                fromJsxMs: 0,
+                takumiRenderMs: tNow - t0,
+                hashMs: 0,
+                base64Ms: 0,
+                totalMs: tNow - t0,
+                skipped: false,
+                cacheHit: true,
+                treeDepth: stats.depth,
+                nodeCount: stats.count,
+                cacheStats: cache.stats,
+              });
+            }
+
+            clearDirtyFlags(this.container);
+          }
+        }
+
+        if (!cacheHit) {
+          // ── Phase 3: Per-segment Takumi render ──────────────────
+          // Build the Takumi node tree ONCE for all segments.
+          // Each segment is rendered independently using Takumi's native
+          // format output with a CSS viewport offset to extract the
+          // correct portion.
+          const takumiChildren = buildTakumiChildren(this.container);
+
+          const segmentResults: Array<[number, string]> = [];
+          const renderPromises = [...this.columns.entries()].map(async ([column]) => {
+            const sliceUri = await renderSegmentToDataUri(
+              this.container,
+              width,
+              SEGMENT_HEIGHT,
+              column,
+              SEGMENT_WIDTH,
+              this.renderConfig.touchbarImageFormat,
+              this.renderConfig,
+              takumiChildren,
+            );
+            if (sliceUri != null) {
+              segmentResults.push([column, sliceUri]);
+              this.lastSegmentUris.set(column, sliceUri);
+            }
+          });
+          await Promise.all(renderPromises);
+
+          // Sort for deterministic hashing and cache storage
+          segmentResults.sort((a, b) => a[0] - b[0]);
+
+          // ── Phase 4: FNV-1a output dedup ────────────────────────
+          // Hash the concatenated segment URIs. If identical to the
+          // previous frame, skip hardware push — the component re-rendered
+          // but produced no visual change.
+          let skipped = false;
+          if (this.renderConfig.caching) {
+            const dedupInput = segmentResults.map(([col, uri]) => `${col}:${uri}`).join("\0");
+            const uriHash = fnv1a(dedupInput);
+
+            if (uriHash === this.container.lastSvgHash) {
+              metrics.recordHashDedup();
+              skipped = true;
+            } else {
+              this.container.lastSvgHash = uriHash;
+            }
+          }
+
+          // Push to hardware (skipped if Phase 4 detected identical output)
+          if (!skipped && !this.suppressHardwarePush) {
+            for (const [column, uri] of segmentResults) {
+              const entry = this.columns.get(column);
+              entry?.sdkAction.setFeedback({ canvas: uri }).catch(() => {});
+            }
+          }
+
+          const tEnd = profiling ? performance.now() : 0;
+          const elapsedMs = tEnd - t0;
+          metrics.recordRender(elapsedMs);
+
+          // ── Store in native cache ─────────────────────────────────
+          // Cache the sorted segment URI tuples for future Merkle-hash hits.
+          // Reuse hoisted treeHash/cacheKey from Phase 2 lookup above.
+          if (this.renderConfig.caching && this.renderConfig.touchbarCacheMaxBytes > 0) {
+            if (treeHash === undefined || cacheKey === undefined) {
+              treeHash = computeTreeHash(this.container);
+              cacheKey = computeNativeTouchbarCacheKey(
+                treeHash,
+                width,
+                SEGMENT_HEIGHT,
+                this.renderConfig.devicePixelRatio,
+                this.renderConfig.touchbarImageFormat,
+                sortedColumns,
+              );
+            }
+            const cache = getTouchbarNativeCache(this.renderConfig.touchbarCacheMaxBytes);
+            // Byte size: sum of URI string lengths × 2 (UTF-16) + per-entry overhead
+            let byteSize = 64;
+            for (const [, uri] of segmentResults) {
+              byteSize += uri.length * 2 + 16;
+            }
+            cache.set(cacheKey, segmentResults, byteSize);
+          }
+
+          // Emit an aggregate profile covering all segments.
+          // The native-format path bypasses JSX→fromJsx conversion
+          // and manual base64 encoding (Takumi handles format encoding
+          // internally), so those stage timings are zero.  The entire
+          // elapsed time is attributed to takumiRenderMs.
+          if (profiling) {
+            const stats = measureTree(this.container.children);
+            const nativeCache =
+              this.renderConfig.touchbarCacheMaxBytes > 0
+                ? getTouchbarNativeCache(this.renderConfig.touchbarCacheMaxBytes)
+                : null;
+            this.renderConfig.onProfile!({
+              vnodeToElementMs: 0,
+              fromJsxMs: 0,
+              takumiRenderMs: elapsedMs,
+              hashMs: 0,
+              base64Ms: 0,
+              totalMs: elapsedMs,
+              skipped,
+              cacheHit: false,
+              treeDepth: stats.depth,
+              nodeCount: stats.count,
+              cacheStats: nativeCache?.stats ?? null,
+            });
+          }
+
+          clearDirtyFlags(this.container);
+        }
+      } else {
+        // ── Raw render + crop + PNG encode path ─────────────────────
+        // Single Takumi render → raw RGBA pixels → crop → PNG encode
+        const result = await renderToRaw(this.container, width, SEGMENT_HEIGHT, this.renderConfig);
+
+        if (result === null || this.disposed) return;
+
+        // Crop and encode each segment in parallel (async deflate via libuv thread pool)
+        const feedbackPromises = [...this.columns.entries()].map(async ([column, entry]) => {
+          const sliceUri = await sliceToDataUriAsync(
+            result.buffer,
+            result.width,
+            result.height,
+            column,
+            SEGMENT_WIDTH,
+            SEGMENT_HEIGHT,
+          );
+          this.lastSegmentUris.set(column, sliceUri);
+          // Double buffering: fire-and-forget hardware push.
+          // Guarded by suppressHardwarePush — see WebP path above.
+          if (!this.suppressHardwarePush) {
+            entry.sdkAction.setFeedback({ canvas: sliceUri }).catch(() => {});
+          }
+        });
+        await Promise.all(feedbackPromises);
       }
-      await Promise.all(feedbackPromises);
+
+      // ── Notify devtools of the touchbar render ──────────────────
+      //
+      // The devtools bridge hooks into config.onRender to receive
+      // render notifications.  For key/dial actions, renderToDataUri()
+      // calls onRender internally with the data URI.  For touchbar,
+      // there is no single data URI (the output is per-segment), so
+      // we call onRender here after all segments are processed.
+      //
+      // The bridge's onRender handler detects touchbar containers by
+      // matching `container === tb.root.vcontainer` and delegates to
+      // emitTouchBarRender(), which reads lastSegmentUris directly.
+      // The empty-string dataUri is intentional — it's unused for
+      // touchbar; the bridge reads segment URIs from the root.
+      //
+      //   doFlush() ──onRender(container, "")──→  bridge.onRender()
+      //                                              │
+      //                    matches touchbar root ◄───┘
+      //                                              │
+      //                                              ▼
+      //                                   emitTouchBarRender()
+      //                                      reads lastSegmentUris
+      //                                              │
+      //                                              ▼
+      //                                   SSE "render:touchbar"
+      //                                      → Performance Panel
+      //
+      // onProfile fires synchronously inside renderToRaw() /
+      // renderSegmentToDataUri() BEFORE we reach this point, so
+      // the bridge's _lastProfile stash is populated and will be
+      // consumed by emitTouchBarRender().
+      this.renderConfig.onRender?.(this.container, "");
     } catch (err) {
       console.error("[@fcannizzaro/streamdeck-react] TouchBar render error:", err);
+    } finally {
+      this._rendering = false;
+
+      // If a flush was requested while we were rendering, drain it now
+      if (this._pendingFlush && !this.disposed) {
+        this._pendingFlush = false;
+        await this.doFlush();
+      }
     }
   }
 
   // ── External Updates ──────────────────────────────────────────
 
   updateGlobalSettings(settings: JsonObject): void {
+    if (shallowEqualSettings(this.globalSettings, settings)) {
+      return;
+    }
     this.globalSettings = { ...settings };
     this.globalSettingsValue = {
       settings: this.globalSettings,

@@ -1,6 +1,9 @@
 // ── Plugin Setup ────────────────────────────────────────────────────
 export { createPlugin } from "@/plugin";
 export { defineAction } from "@/action";
+export type { RenderProfile } from "@/render/pipeline";
+export type { CacheStats } from "@/render/image-cache";
+export type { RenderMetrics } from "@/render/metrics";
 
 // ── Hooks — Events ──────────────────────────────────────────────────
 export {
@@ -27,6 +30,19 @@ export { useWillAppear, useWillDisappear } from "@/hooks/lifecycle";
 
 // ── Hooks — Utility ─────────────────────────────────────────────────
 export { useInterval, useTimeout, usePrevious, useTick } from "@/hooks/utility";
+
+// ── Hooks — Animation ───────────────────────────────────────────────
+export { useSpring, useTween, SpringPresets, Easings } from "@/hooks/animation";
+export type {
+  SpringConfig,
+  SpringResult,
+  TweenConfig,
+  TweenResult,
+  EasingName,
+  EasingFn,
+  AnimationTarget,
+  AnimatedValue,
+} from "@/hooks/animation";
 
 // ── Hooks — SDK ─────────────────────────────────────────────────────
 export {
@@ -65,7 +81,10 @@ export type {
   PluginConfig,
   FontConfig,
   ActionConfig,
+  ActionConfigInput,
   ActionDefinition,
+  ActionUUID,
+  ManifestActions,
   EncoderLayout,
   WrapperComponent,
   DeviceInfo,

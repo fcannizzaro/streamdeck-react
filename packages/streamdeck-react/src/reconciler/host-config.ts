@@ -1,6 +1,50 @@
 import { createContext } from "react";
 import { DefaultEventPriority } from "react-reconciler/constants.js";
-import { createVNode, createTextVNode, type VNode, type VContainer } from "./vnode";
+import {
+  createVNode,
+  createTextVNode,
+  markDirty,
+  markContainerDirty,
+  setParent,
+  clearParent,
+  type VNode,
+  type VContainer,
+} from "./vnode";
+
+// ── react-reconciler Host Config ────────────────────────────────────
+//
+// This module implements the contract required by `react-reconciler` to
+// drive a custom rendering target.  The reconciler operates in MUTATION
+// MODE (not persistent): React diffs the fiber tree, then calls our
+// mutation methods (appendChild, removeChild, commitUpdate, etc.) to
+// patch the VNode tree in place.
+//
+// Data flow per React commit:
+//
+//   React setState / props change
+//     ↓
+//   Reconciler diffs fiber tree
+//     ↓
+//   Mutation methods called on VNode tree
+//   (appendChild, commitUpdate, commitTextUpdate, etc.)
+//     ↓
+//   Each mutation calls markDirty() → propagates up _parent chain
+//     ↓
+//   resetAfterCommit() fires → schedules microtask
+//     ↓
+//   Microtask runs container.renderCallback()
+//     ↓
+//   ReactRoot.flush() → render pipeline (pipeline.ts)
+//
+// Why microtask (not setTimeout):
+//   React may produce multiple commits in a single event loop tick
+//   (e.g. batched state updates).  A microtask fires after all
+//   synchronous commits complete but before the next macrotask,
+//   coalescing multiple commits into one render pass.
+//
+// No-op stubs: React's reconciler requires many methods that don't
+// apply to this renderer (hydration, portals, transitions, suspense).
+// They are stubbed to satisfy the type contract.
 
 // ── No-op / Stub values ────────────────────────────────────────────
 
@@ -70,8 +114,12 @@ export const hostConfig = {
   },
 
   // ── Initial Tree Building ─────────────────────────────────────
+  // Called during the render phase for the initial mount.
+  // Sets _parent directly (no markDirty needed — the container
+  // starts dirty and the initial render hasn't flushed yet).
 
   appendInitialChild(parent: VNode, child: VNode): void {
+    child._parent = parent;
     parent.children.push(child);
   },
 
@@ -106,6 +154,10 @@ export const hostConfig = {
   },
 
   // ── Update Detection ──────────────────────────────────────────
+  // Shallow prop comparison — returns true (needs update) or null
+  // (no change).  Skips 'children' prop (handled by tree structure).
+  // This is called during the render phase to determine if
+  // commitUpdate needs to run during the commit phase.
 
   prepareUpdate(
     _instance: VNode,
@@ -127,31 +179,42 @@ export const hostConfig = {
   },
 
   // ── Mutation Methods ──────────────────────────────────────────
+  // Called during the commit phase to apply changes to the VNode
+  // tree.  Every mutation sets the parent back-pointer and calls
+  // markDirty() to propagate dirty flags up to the container.
 
   appendChild(parent: VNode, child: VNode): void {
+    setParent(child, parent);
     parent.children.push(child);
+    markDirty(parent);
   },
 
   appendChildToContainer(container: VContainer, child: VNode): void {
+    setParent(child, container);
     container.children.push(child);
+    markContainerDirty(container);
   },
 
   insertBefore(parent: VNode, child: VNode, beforeChild: VNode): void {
+    setParent(child, parent);
     const index = parent.children.indexOf(beforeChild);
     if (index >= 0) {
       parent.children.splice(index, 0, child);
     } else {
       parent.children.push(child);
     }
+    markDirty(parent);
   },
 
   insertInContainerBefore(container: VContainer, child: VNode, beforeChild: VNode): void {
+    setParent(child, container);
     const index = container.children.indexOf(beforeChild);
     if (index >= 0) {
       container.children.splice(index, 0, child);
     } else {
       container.children.push(child);
     }
+    markContainerDirty(container);
   },
 
   removeChild(parent: VNode, child: VNode): void {
@@ -159,6 +222,8 @@ export const hostConfig = {
     if (index >= 0) {
       parent.children.splice(index, 1);
     }
+    clearParent(child);
+    markDirty(parent);
   },
 
   removeChildFromContainer(container: VContainer, child: VNode): void {
@@ -166,6 +231,8 @@ export const hostConfig = {
     if (index >= 0) {
       container.children.splice(index, 1);
     }
+    clearParent(child);
+    markContainerDirty(container);
   },
 
   commitUpdate(
@@ -176,10 +243,16 @@ export const hostConfig = {
   ): void {
     const { children: _, ...cleanProps } = newProps;
     instance.props = cleanProps;
+    // Invalidate cached sorted-key array — the new props may have
+    // different keys (added/removed).  Will be re-populated lazily
+    // in computeHash() on the next Merkle hash pass.
+    instance._sortedPropKeys = undefined;
+    markDirty(instance);
   },
 
   commitTextUpdate(textInstance: VNode, _oldText: string, newText: string): void {
     textInstance.text = newText;
+    markDirty(textInstance);
   },
 
   hideInstance(): void {},
@@ -188,7 +261,11 @@ export const hostConfig = {
   unhideTextInstance(): void {},
 
   clearContainer(container: VContainer): void {
+    for (const child of container.children) {
+      clearParent(child);
+    }
     container.children = [];
+    markContainerDirty(container);
   },
 
   // ── Scheduling Primitives ─────────────────────────────────────

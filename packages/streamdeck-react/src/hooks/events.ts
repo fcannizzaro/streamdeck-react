@@ -1,4 +1,4 @@
-import { useContext, useEffect, useRef } from "react";
+import { useContext, useEffect } from "react";
 import { EventBusContext } from "@/context/providers";
 import type {
   KeyDownPayload,
@@ -11,6 +11,22 @@ import type {
 import { StreamDeckContext } from "@/context/providers";
 import type { DialAction } from "@elgato/streamdeck";
 import { useCallbackRef } from "./internal/useCallbackRef";
+
+// ── Hardware Event Hooks ────────────────────────────────────────────
+//
+// Thin wrappers around the EventBus that subscribe to Stream Deck
+// hardware events.  All hooks use the same internal pattern:
+//
+//   useEvent(eventName, callback)
+//     1. Get EventBus from context
+//     2. Wrap callback in useCallbackRef (prevents stale closures)
+//     3. useEffect: bus.on(event, handler) + cleanup bus.off()
+//
+// The useCallbackRef pattern is critical here:
+//   Without it, every re-render with a new callback function would
+//   cause useEffect to re-run (unsubscribe + resubscribe).  With
+//   useCallbackRef, the ref is updated on every render but the
+//   effect only runs once (stable ref identity in deps).
 
 // ── Internal hook pattern: subscribe to event bus ───────────────────
 
@@ -61,13 +77,8 @@ export function useTouchTap(callback: (payload: TouchTapPayload) => void): void 
 
 export function useDialHint(hints: DialHints): void {
   const { action } = useContext(StreamDeckContext);
-  const prevHints = useRef<string>("");
 
   useEffect(() => {
-    const serialized = JSON.stringify(hints);
-    if (serialized === prevHints.current) return;
-    prevHints.current = serialized;
-
     if ("setTriggerDescription" in action) {
       (action as DialAction).setTriggerDescription({
         rotate: hints.rotate,

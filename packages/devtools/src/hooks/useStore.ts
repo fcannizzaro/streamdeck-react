@@ -9,6 +9,8 @@ import type {
   ServerMessage,
   SerializedVNode,
   DiscoveredPlugin,
+  MetricsData,
+  ProfileEntry,
 } from "../types";
 
 // ── Max stored items ────────────────────────────────────────────────
@@ -16,6 +18,7 @@ import type {
 const MAX_CONSOLE = 1000;
 const MAX_NETWORK = 500;
 const MAX_EVENTS = 1000;
+const MAX_PROFILES = 200;
 
 // ── Persist selected plugin name ────────────────────────────────────
 
@@ -63,6 +66,8 @@ function persistPluginPorts(plugins: DiscoveredPlugin[]) {
 
 // ── Store Interface ─────────────────────────────────────────────────
 
+let profileIdCounter = 0;
+
 export interface DevtoolsState {
   // Scanning
   scanning: boolean;
@@ -103,6 +108,10 @@ export interface DevtoolsState {
   events: EventBusMessage[];
   eventFilter: { types: Set<string>; search: string };
 
+  // Performance
+  metrics: MetricsData | null;
+  profileHistory: ProfileEntry[];
+
   // Actions
   setScanning: (scanning: boolean) => void;
   addPlugin: (plugin: DiscoveredPlugin) => void;
@@ -112,6 +121,7 @@ export interface DevtoolsState {
   clearConsole: () => void;
   clearNetwork: () => void;
   clearEvents: () => void;
+  clearProfiles: () => void;
   setConsoleFilter: (filter: Partial<{ levels: Set<string>; search: string }>) => void;
   setEventFilter: (filter: Partial<{ types: Set<string>; search: string }>) => void;
   setSelectedAction: (id: string | null) => void;
@@ -137,6 +147,8 @@ function emptyDataState() {
     selectedNodeId: null,
     hoveredNodeId: null,
     highlightDataUri: new Map<string, string>(),
+    metrics: null as MetricsData | null,
+    profileHistory: [] as ProfileEntry[],
   };
 }
 
@@ -181,6 +193,10 @@ export const useStore = create<DevtoolsState>((set, get) => ({
   // Events
   events: [],
   eventFilter: { types: new Set<string>(), search: "" },
+
+  // Performance
+  metrics: null,
+  profileHistory: [],
 
   // Actions
   setScanning: (scanning) => set({ scanning, ...(scanning ? { blocked: false } : {}) }),
@@ -307,12 +323,22 @@ export const useStore = create<DevtoolsState>((set, get) => ({
           }
         }
 
-        // Auto-select first action if none selected
-        const selectedActionId =
-          state.selectedActionId && actions.has(state.selectedActionId)
-            ? state.selectedActionId
-            : actions.size > 0
-              ? (actions.keys().next().value ?? null)
+        // Auto-select first action (or touchbar) if none selected.
+        // The selectedActionId can be either a plain actionId or a
+        // "touchbar:<deviceId>" string — check both maps.
+        const TB_PREFIX = "touchbar:";
+        const prevId = state.selectedActionId;
+        const prevStillValid =
+          prevId != null &&
+          (actions.has(prevId) ||
+            (prevId.startsWith(TB_PREFIX) && touchBars.has(prevId.slice(TB_PREFIX.length))));
+
+        const selectedActionId = prevStillValid
+          ? prevId
+          : actions.size > 0
+            ? (actions.keys().next().value ?? null)
+            : touchBars.size > 0
+              ? `${TB_PREFIX}${touchBars.keys().next().value ?? ""}`
               : null;
 
         set({
@@ -323,6 +349,8 @@ export const useStore = create<DevtoolsState>((set, get) => ({
           networkOrder,
           events: msg.recentEvents.slice(-MAX_EVENTS),
           selectedActionId,
+          metrics: msg.metrics ?? null,
+          profileHistory: [],
         });
         break;
       }
@@ -386,7 +414,22 @@ export const useStore = create<DevtoolsState>((set, get) => ({
             dataUri: msg.dataUri,
           });
         }
-        set({ actions });
+
+        // Append profile to history if present
+        const updates: Partial<DevtoolsState> = { actions };
+        if (msg.profile) {
+          const entry: ProfileEntry = {
+            ...msg.profile,
+            id: `p:${profileIdCounter++}`,
+            actionId: msg.actionId,
+            actionUuid: msg.actionUuid,
+            ts: msg.ts,
+          };
+          const profiles = [...state.profileHistory, entry];
+          if (profiles.length > MAX_PROFILES) profiles.splice(0, profiles.length - MAX_PROFILES);
+          updates.profileHistory = profiles;
+        }
+        set(updates);
         break;
       }
 
@@ -407,7 +450,28 @@ export const useStore = create<DevtoolsState>((set, get) => ({
           tree: msg.tree,
           segments,
         });
-        set({ touchBars });
+
+        // ── Append touchbar profile to history ──────────────────
+        // Same pattern as the "render" case: if the message
+        // includes a pipeline timing profile, create a ProfileEntry
+        // and append it to the rolling profileHistory buffer.
+        // Uses `touchbar:<deviceId>` as the actionId to distinguish
+        // touchbar profiles from key/dial profiles in the
+        // Performance panel.
+        const updates: Partial<DevtoolsState> = { touchBars };
+        if (msg.profile) {
+          const entry: ProfileEntry = {
+            ...msg.profile,
+            id: `p:${profileIdCounter++}`,
+            actionId: `touchbar:${msg.deviceId}`,
+            actionUuid: "",
+            ts: msg.ts,
+          };
+          const profiles = [...state.profileHistory, entry];
+          if (profiles.length > MAX_PROFILES) profiles.splice(0, profiles.length - MAX_PROFILES);
+          updates.profileHistory = profiles;
+        }
+        set(updates);
         break;
       }
 
@@ -457,6 +521,11 @@ export const useStore = create<DevtoolsState>((set, get) => ({
         }
         break;
       }
+
+      case "metrics": {
+        set({ metrics: msg.metrics });
+        break;
+      }
     }
   },
 
@@ -468,6 +537,7 @@ export const useStore = create<DevtoolsState>((set, get) => ({
       selectedRequestId: null,
     }),
   clearEvents: () => set({ events: [] }),
+  clearProfiles: () => set({ profileHistory: [] }),
 
   setConsoleFilter: (filter) => set((s) => ({ consoleFilter: { ...s.consoleFilter, ...filter } })),
   setEventFilter: (filter) => set((s) => ({ eventFilter: { ...s.eventFilter, ...filter } })),

@@ -17,6 +17,7 @@ const plugin = createPlugin({
       style: "normal",
     },
   ],
+  devtools: true,
   actions: [weatherAction],
 });
 

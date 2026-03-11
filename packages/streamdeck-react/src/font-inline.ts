@@ -1,6 +1,25 @@
 import { createRequire } from "node:module";
-import { readFileSync, realpathSync } from "node:fs";
+import { realpathSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
+
+// ── Build-time Font Inlining ────────────────────────────────────────
+//
+// Converts font file imports (.ttf, .otf, .woff, .woff2) into
+// synthetic ES modules at build time:
+//
+//   import font from "./Inter-Regular.ttf";
+//       ↓ becomes at runtime ↓
+//   const font = Buffer.from("AAEAAAA...", "base64");
+//
+// Why: Stream Deck plugins run in a sandboxed Node.js environment
+// where the working directory and node_modules layout are controlled
+// by the Stream Deck application.  Font files in node_modules aren't
+// guaranteed to be accessible at runtime.  Inlining them as base64
+// into the bundle makes the plugin self-contained.
+//
+// Bun compatibility: bun's node_modules/.bun/ uses symlinks
+// internally.  realpathSync follows these to the actual font file.
 
 const FONT_RE = /\.(ttf|otf|woff2?)$/;
 
@@ -44,13 +63,17 @@ export function resolveFontId(source: string, importer: string | undefined): str
  *
  * Follows symlinks before reading so that bun's internal
  * `node_modules/.bun/` layout resolves to the real file.
+ *
+ * Async: uses `fs.promises.readFile()` to avoid blocking the bundler
+ * event loop for large fonts (1-2 MB).  Both Vite and Rollup `load`
+ * hooks support async return values.
  */
-export function loadFont(id: string): string | null {
+export async function loadFont(id: string): Promise<string | null> {
   if (!isFontFile(id)) return null;
   // The id may point into bun's .bun/ directory via symlinks;
   // resolve to the real path before reading.
   const realId = safeRealpath(id) ?? id;
-  const data = readFileSync(realId);
+  const data = await readFile(realId);
   const base64 = data.toString("base64");
   return `export default Buffer.from("${base64}", "base64");`;
 }

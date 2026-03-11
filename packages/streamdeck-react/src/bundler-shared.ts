@@ -2,6 +2,30 @@ import { createRequire } from "node:module";
 import { copyFileSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 
+// ── Shared Build Infrastructure ─────────────────────────────────────
+//
+// Common logic shared between the Vite and Rollup bundler plugins.
+//
+// Problem: Takumi (@takumi-rs/core) is a Rust/NAPI native addon
+// compiled per-platform.  The bundler produces a single JS file, but
+// the native `.node` binary must be copied alongside it for the
+// Stream Deck's Node.js runtime to load via require().
+//
+// This module handles:
+//
+//   1. Native binding resolution and copying
+//      @takumi-rs/core → platform-specific package (e.g. core-darwin-arm64)
+//      → locate the .node file → copy to output directory
+//
+//   2. DevTools stripping in production builds
+//      Replace the devtools module with a noop stub so the entire
+//      devtools tree (HTTP server, SSE, bridge, intercepts) is
+//      eliminated by the bundler's tree shaker.
+//
+//   3. Target platform configuration
+//      Dev mode: auto-detect current platform
+//      Production: requires explicit targets array (cross-compilation)
+
 export type StreamDeckPlatform = "darwin" | "win32";
 export type StreamDeckArch = "arm64" | "x64";
 
@@ -59,8 +83,12 @@ export function isDevelopmentMode(watchMode: boolean | undefined): boolean {
 }
 
 // ── DevTools stripping constants ────────────────────────────────────
-// Used by both Vite and Rollup plugins to replace the devtools module
-// with a noop stub in production builds.
+// In production builds, the devtools module import is redirected to a
+// virtual module (NOOP_DEVTOOLS_ID) that exports a no-op function.
+// The bundler's tree shaker then eliminates the entire devtools tree
+// (server.ts, bridge.ts, intercepts, serialization) since nothing
+// references it.  This removes ~2000 lines of debug-only code and
+// the HTTP server dependency from production bundles.
 
 export const NOOP_DEVTOOLS_ID = "\0streamdeck-react:noop-devtools";
 export const NOOP_DEVTOOLS_CODE = "export function startDevtoolsServer() {}";
@@ -135,6 +163,17 @@ export function expandTargets(targets: StreamDeckTarget[]): ResolvedTarget[] {
 /**
  * Core logic for copying native bindings to the output directory.
  * Shared between the Rollup and Vite plugins.
+ *
+ * Resolution chain:
+ *   1. Resolve @takumi-rs/core entry point via createRequire
+ *   2. From core's directory, resolve each platform-specific package
+ *      (e.g. @takumi-rs/core-darwin-arm64)
+ *   3. Locate the .node file within the platform package
+ *   4. Copy to the bundler's output directory
+ *
+ * In development: missing bindings emit a warning (the current platform
+ * might not have a binding, which is fine during cross-platform dev).
+ * In production: missing bindings throw an error (the plugin won't work).
  */
 export function copyNativeBindings(
   outDir: string,

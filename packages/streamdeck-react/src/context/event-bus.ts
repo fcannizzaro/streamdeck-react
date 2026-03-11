@@ -1,6 +1,32 @@
 import type { EventMap } from "@/types";
 
 // ── Typed Event Bus ─────────────────────────────────────────────────
+//
+// Per-root event bus for routing Stream Deck hardware events to React
+// hooks.  Each ReactRoot and TouchBarRoot gets its own EventBus
+// instance, providing isolation between action instances.
+//
+// Key features:
+//
+//   Typed events:
+//     Event names and payloads are constrained by the EventMap type,
+//     preventing typos and payload mismatches at compile time.
+//
+//   Sticky events:
+//     emitSticky() stores the payload.  When a listener subscribes
+//     to a sticky event that has already fired, it receives the stored
+//     payload immediately.  Used for willAppear — components that mount
+//     after the event still get the initial payload.
+//
+//   DevTools observer:
+//     A static class-level hook (devtoolsObserver) intercepts all
+//     emit() calls across all EventBus instances.  This single entry
+//     point feeds the devtools bridge without modifying individual
+//     bus instances.  Set to null when devtools is off.
+//
+//   Error isolation:
+//     Each listener is called in a try/catch.  A crash in one event
+//     handler doesn't prevent other handlers from running.
 
 type Listener<T> = (payload: T) => void;
 

@@ -76,15 +76,18 @@ The port is derived deterministically from the plugin UUID (range **39400 -- 394
 
 ## Panels
 
-The devtools UI provides five panels for inspecting different aspects of your plugin:
+The devtools UI provides six panels for inspecting different aspects of your plugin:
 
-| Panel        | Description                                                                                                                         |
-| ------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
-| **Console**  | Intercepted `console.log`, `console.warn`, `console.error`, `console.info`, and `console.debug` output from your plugin.            |
-| **Network**  | Intercepted `fetch` requests and responses, including method, URL, status, headers, and body.                                       |
-| **Elements** | A tree view of the VNode component hierarchy for each action. Hover over a node to highlight it on the physical Stream Deck device. |
-| **Preview**  | Live rendered images for every active action and touch bar surface.                                                                 |
-| **Events**   | EventBus emissions such as `keyDown`, `keyUp`, `dialRotate`, `touchTap`, and more.                                                  |
+| Panel           | Description                                                                                                                         |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| **Console**     | Intercepted `console.log`, `console.warn`, `console.error`, `console.info`, and `console.debug` output from your plugin.            |
+| **Network**     | Intercepted `fetch` requests and responses, including method, URL, status, headers, and body.                                       |
+| **Elements**    | A tree view of the VNode component hierarchy for each action. Hover over a node to highlight it on the physical Stream Deck device. |
+| **Preview**     | Live rendered images for every active action and touch bar surface.                                                                 |
+| **Events**      | EventBus emissions such as `keyDown`, `keyUp`, `dialRotate`, `touchTap`, and more.                                                  |
+| **Performance** | Render pipeline metrics: flush counts, skip rates per phase, cache hit ratios, average and peak render times, and memory usage.     |
+
+The Performance panel displays data from the [render metrics collector](/concepts/rendering-pipeline#render-metrics) -- cumulative counters for each phase of the [4-phase skip hierarchy](/concepts/rendering-pipeline#4-phase-skip-hierarchy), plus cache statistics and timing breakdowns. Render updates are throttled to a maximum of 10 renders per second per action over the SSE stream (100ms leading + trailing) to avoid overwhelming the browser.
 
 ## Features
 

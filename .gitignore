@@ -41,6 +41,7 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 *.sdPlugin/logs/
 **/bin/plugin.mjs
 **/plugin.mjs.map
+streamdeck-env.d.ts
 
 # Native modules
 *.node
