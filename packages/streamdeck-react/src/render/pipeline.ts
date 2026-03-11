@@ -188,7 +188,7 @@ function vnodeToTakumiNode(node: VNode, depth = 0): TakumiNode {
 }
 
 /** Build the root Takumi container wrapping the VNode children. */
-function buildTakumiRoot(container: VContainer): TakumiNode {
+export function buildTakumiRoot(container: VContainer): TakumiNode {
   const children = container.children.map(vnodeToTakumiNode);
   return {
     type: "container",

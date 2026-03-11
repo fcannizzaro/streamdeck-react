@@ -25,7 +25,7 @@ import type {
 } from "./types";
 import { serializeValue } from "./serialization/value";
 import { serializeVNode } from "./serialization/vnode";
-import { renderWithHighlight } from "./highlight";
+import { renderWithHighlight, renderTouchBarWithHighlight } from "./highlight";
 
 // ── DevTools Bridge ─────────────────────────────────────────────────
 //
@@ -549,6 +549,19 @@ export class DevtoolsBridge implements RegistryObserver {
     for (const [deviceId, tb] of this.touchBars) {
       if (tb.root.vcontainer === container) {
         this.emitTouchBarRender(deviceId, tb, profile);
+
+        // Re-apply highlight overlay after touchbar render completes.
+        // Same pattern as the key/dial re-apply above — when a
+        // highlight is active, the normal render updated lastSegmentUris
+        // but skipped hardware push (suppressHardwarePush is true),
+        // so we need to re-render the highlight with the new tree.
+        const tbActionId = `${DevtoolsBridge.TB_PREFIX}${deviceId}`;
+        if (this.highlightedActionId === tbActionId && this.highlightedNodeId !== null) {
+          this.applyTouchBarHighlight(tbActionId, deviceId, this.highlightedNodeId, tb).catch(
+            () => {},
+          );
+        }
+
         return;
       }
     }
@@ -669,7 +682,11 @@ export class DevtoolsBridge implements RegistryObserver {
   //     └─ broadcast "render:touchbar" message
   //          → SSE stream → devtools Performance Panel
 
-  private emitTouchBarRender(deviceId: string, tb: TouchBarMeta, profile: RenderProfile | null): void {
+  private emitTouchBarRender(
+    deviceId: string,
+    tb: TouchBarMeta,
+    profile: RenderProfile | null,
+  ): void {
     const tree = serializeVNode(tb.root.vcontainer);
     const segments: TouchBarRenderMessage["segments"] = [];
     for (const [column, actionId] of tb.columns) {
@@ -693,6 +710,31 @@ export class DevtoolsBridge implements RegistryObserver {
   }
 
   // ── Highlight Handling ──────────────────────────────────────────
+  //
+  // When the user hovers a node in the Elements panel, the devtools
+  // UI sends a "highlight:action" message with (actionId, nodeId).
+  // The bridge re-renders the image with a translucent blue overlay
+  // on the target node and pushes it to both:
+  //   - The physical hardware (suppress normal renders + pushImage)
+  //   - The devtools browser preview (SSE "highlight:render" message)
+  //
+  // Two paths:
+  //   - Key/dial: actionId is a plain string, looked up in this.actions
+  //   - TouchBar: actionId is "touchbar:<deviceId>", looked up in
+  //     this.touchBars.  Requires per-segment slicing since the
+  //     touchbar pushes 200×100 segments, not a single image.
+  //
+  //   handleHighlight(actionId, nodeId)
+  //     │
+  //     ├─ restore previous highlight (un-suppress, push original)
+  //     │
+  //     ├─ actionId starts with "touchbar:" ?
+  //     │    ├─ YES → lookup this.touchBars → applyTouchBarHighlight()
+  //     │    └─ NO  → lookup this.actions   → applyHighlight()
+  //     │
+  //     └─ broadcast "highlight:render" → devtools UI preview
+
+  private static readonly TB_PREFIX = "touchbar:";
 
   private async handleHighlight(actionId: string | null, nodeId: number | null): Promise<void> {
     try {
@@ -700,49 +742,70 @@ export class DevtoolsBridge implements RegistryObserver {
       this.highlightedActionId = actionId;
       this.highlightedNodeId = nodeId;
 
-      // Restore previous action to its normal image and re-enable normal pushes
+      // Restore previous action/touchbar to its normal state
       if (prevId && prevId !== actionId) {
-        const prevMeta = this.actions.get(prevId);
-        if (prevMeta) {
-          prevMeta.root.suppressHardwarePush = false;
-          if (prevMeta.root.lastDataUri) {
-            await prevMeta.root.pushImage(prevMeta.root.lastDataUri).catch(() => {});
-          }
-        }
-        // Tell browser to clear highlight preview for previous action
-        this.broadcastHighlightRender(prevId, null);
+        await this.restoreHighlight(prevId);
+        this.broadcastHighlightClear(prevId);
       }
 
       if (!actionId || nodeId === null) {
-        // Clear highlight — restore current action too if it was highlighted
+        // Clear highlight — restore current target if it was highlighted
         if (actionId && prevId === actionId) {
-          const meta = this.actions.get(actionId);
-          if (meta) {
-            meta.root.suppressHardwarePush = false;
-            if (meta.root.lastDataUri) {
-              await meta.root.pushImage(meta.root.lastDataUri).catch(() => {});
-            }
-          }
-          // Tell browser to clear highlight preview
-          this.broadcastHighlightRender(actionId, null);
+          await this.restoreHighlight(actionId);
+          this.broadcastHighlightClear(actionId);
         }
         this.highlightedActionId = null;
         this.highlightedNodeId = null;
         return;
       }
 
-      const meta = this.actions.get(actionId);
-      if (!meta) {
-        this.highlightedActionId = null;
-        this.highlightedNodeId = null;
-        return;
+      // Route to the correct highlight path
+      if (actionId.startsWith(DevtoolsBridge.TB_PREFIX)) {
+        const deviceId = actionId.slice(DevtoolsBridge.TB_PREFIX.length);
+        const tb = this.touchBars.get(deviceId);
+        if (!tb) {
+          this.highlightedActionId = null;
+          this.highlightedNodeId = null;
+          return;
+        }
+        tb.root.suppressHardwarePush = true;
+        await this.applyTouchBarHighlight(actionId, deviceId, nodeId, tb);
+      } else {
+        const meta = this.actions.get(actionId);
+        if (!meta) {
+          this.highlightedActionId = null;
+          this.highlightedNodeId = null;
+          return;
+        }
+        meta.root.suppressHardwarePush = true;
+        await this.applyHighlight(actionId, nodeId, meta);
       }
-
-      // Suppress normal hardware pushes while highlight is active
-      meta.root.suppressHardwarePush = true;
-      await this.applyHighlight(actionId, nodeId, meta);
     } catch {
       // Never crash the plugin for a devtools feature
+    }
+  }
+
+  /**
+   * Restore a highlighted action or touchbar to its normal state.
+   * Un-suppresses hardware pushes and restores the original image(s).
+   */
+  private async restoreHighlight(id: string): Promise<void> {
+    if (id.startsWith(DevtoolsBridge.TB_PREFIX)) {
+      const deviceId = id.slice(DevtoolsBridge.TB_PREFIX.length);
+      const tb = this.touchBars.get(deviceId);
+      if (tb) {
+        tb.root.suppressHardwarePush = false;
+        // Restore the original per-segment images to hardware
+        await tb.root.pushSegmentImages(tb.root.lastSegmentUris);
+      }
+    } else {
+      const prevMeta = this.actions.get(id);
+      if (prevMeta) {
+        prevMeta.root.suppressHardwarePush = false;
+        if (prevMeta.root.lastDataUri) {
+          await prevMeta.root.pushImage(prevMeta.root.lastDataUri).catch(() => {});
+        }
+      }
     }
   }
 
@@ -767,6 +830,70 @@ export class DevtoolsBridge implements RegistryObserver {
     }
   }
 
+  // ── TouchBar Highlight ──────────────────────────────────────────
+  //
+  // Renders the full touchbar tree with a highlight overlay, then:
+  //   - Pushes per-column segments to the physical hardware
+  //   - Sends per-segment highlight URIs to the devtools browser
+  //     preview (one "highlight:render" message per column, keyed
+  //     as "touchbar:<deviceId>:seg:<col>")
+  //
+  // Why per-segment instead of a single full-width image?
+  //   The touchbar preview renders each segment as a separate 200×100
+  //   <img>.  A single full-width image (e.g. 800×100) displayed via
+  //   the canvas width/height attributes gets squished when the
+  //   dimensions don't match.  Per-segment URIs avoid this entirely.
+  //
+  //   applyTouchBarHighlight(actionId, deviceId, nodeId, tb)
+  //     │
+  //     ├─ renderTouchBarWithHighlight(container, fullWidth, ...)
+  //     │    └─ returns segmentUris (Map<col, uri>)
+  //     │
+  //     ├─ tb.root.pushSegmentImages(segmentUris) → physical device
+  //     │
+  //     └─ for each (col, uri):
+  //          broadcastHighlightRender("touchbar:<deviceId>:seg:<col>", uri)
+
+  private async applyTouchBarHighlight(
+    actionId: string,
+    deviceId: string,
+    nodeId: number,
+    tb: TouchBarMeta,
+  ): Promise<void> {
+    try {
+      // Compute touchbar geometry from active columns.
+      // Each column is 200×100 pixels; full width = max column span.
+      const columns = tb.root.columnNumbers;
+      if (columns.length === 0) return;
+
+      const segmentWidth = 200;
+      const segmentHeight = 100;
+      const fullWidth = (Math.max(...columns) + 1) * segmentWidth;
+
+      const result = await renderTouchBarWithHighlight(
+        tb.root.vcontainer,
+        fullWidth,
+        segmentHeight,
+        columns,
+        segmentWidth,
+        this.renderConfig.touchbarImageFormat,
+        this.renderConfig,
+        nodeId,
+      );
+
+      // Guard: highlight may have changed while rendering
+      if (result && this.highlightedActionId === actionId && this.highlightedNodeId === nodeId) {
+        await tb.root.pushSegmentImages(result.segmentUris);
+        // Broadcast per-segment highlight URIs to devtools preview.
+        for (const [col, uri] of result.segmentUris) {
+          this.broadcastHighlightRender(`${actionId}:seg:${col}`, uri);
+        }
+      }
+    } catch {
+      // Silently ignore touchbar highlight render failures
+    }
+  }
+
   /** Broadcast highlight render image (or null to clear) to devtools UI. */
   private broadcastHighlightRender(actionId: string, dataUri: string | null): void {
     const msg: HighlightRenderMessage = {
@@ -776,6 +903,25 @@ export class DevtoolsBridge implements RegistryObserver {
       dataUri,
     };
     this.server.broadcast(msg);
+  }
+
+  /**
+   * Clear highlight URIs for the given actionId.
+   * For touchbar IDs, clears all per-segment keys (touchbar:*:seg:N).
+   * For regular actions, clears the single actionId key.
+   */
+  private broadcastHighlightClear(id: string): void {
+    if (id.startsWith(DevtoolsBridge.TB_PREFIX)) {
+      const deviceId = id.slice(DevtoolsBridge.TB_PREFIX.length);
+      const tb = this.touchBars.get(deviceId);
+      if (tb) {
+        for (const col of tb.root.columnNumbers) {
+          this.broadcastHighlightRender(`${id}:seg:${col}`, null);
+        }
+      }
+    } else {
+      this.broadcastHighlightRender(id, null);
+    }
   }
 
   // ── Snapshot Builder ──────────────────────────────────────────

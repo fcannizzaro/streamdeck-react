@@ -4,16 +4,11 @@
     "oxfmt": {
       "initialization_options": {
         "settings": {
-          "fmt.configPath": null,
-        },
-      },
-    },
+          "fmt.configPath": null
+        }
+      }
+    }
   },
   "formatter": "language_server",
-  "file_scan_exclusions": [
-    "samples/**/bin",
-    "plugin.mjs",
-    "plugin.mjs.map",
-    "node_modules",
-  ],
+  "file_scan_exclusions": ["samples/**/bin", "plugin.mjs", "plugin.mjs.map", "node_modules"]
 }

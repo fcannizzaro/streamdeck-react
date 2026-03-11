@@ -323,12 +323,22 @@ export const useStore = create<DevtoolsState>((set, get) => ({
           }
         }
 
-        // Auto-select first action if none selected
-        const selectedActionId =
-          state.selectedActionId && actions.has(state.selectedActionId)
-            ? state.selectedActionId
-            : actions.size > 0
-              ? (actions.keys().next().value ?? null)
+        // Auto-select first action (or touchbar) if none selected.
+        // The selectedActionId can be either a plain actionId or a
+        // "touchbar:<deviceId>" string — check both maps.
+        const TB_PREFIX = "touchbar:";
+        const prevId = state.selectedActionId;
+        const prevStillValid =
+          prevId != null &&
+          (actions.has(prevId) ||
+            (prevId.startsWith(TB_PREFIX) && touchBars.has(prevId.slice(TB_PREFIX.length))));
+
+        const selectedActionId = prevStillValid
+          ? prevId
+          : actions.size > 0
+            ? (actions.keys().next().value ?? null)
+            : touchBars.size > 0
+              ? `${TB_PREFIX}${touchBars.keys().next().value ?? ""}`
               : null;
 
         set({

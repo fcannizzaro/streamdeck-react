@@ -145,6 +145,37 @@ export class TouchBarRoot implements FlushableRoot {
   /** Last rendered per-column data URIs. Used by devtools snapshots. */
   lastSegmentUris = new Map<number, string>();
 
+  /**
+   * When true, doFlush skips pushing rendered segments to hardware.
+   * Set by the devtools bridge while a highlight overlay is active so
+   * that rapid re-renders don't overwrite the highlight on the device.
+   * The highlight path calls pushSegmentImages() directly (bypassing
+   * this flag).
+   *
+   * Mirrors ReactRoot.suppressHardwarePush — same pattern, different
+   * granularity (per-segment instead of single image).
+   */
+  suppressHardwarePush = false;
+
+  /**
+   * Push per-column data URIs to the physical Stream Deck touch strip.
+   * Used by the devtools highlight overlay to bypass suppressHardwarePush.
+   *
+   * @param uris  Map of column → data URI to push to hardware.
+   *              Columns not present in the map are left unchanged.
+   */
+  async pushSegmentImages(uris: Map<number, string>): Promise<void> {
+    if (this.disposed) return;
+    const promises: Promise<void>[] = [];
+    for (const [column, uri] of uris) {
+      const entry = this.columns.get(column);
+      if (entry) {
+        promises.push(entry.sdkAction.setFeedback({ canvas: uri }).catch(() => {}));
+      }
+    }
+    await Promise.all(promises);
+  }
+
   /** Exposes the VContainer for devtools inspection. */
   get vcontainer(): VContainer {
     return this.container;
@@ -472,8 +503,13 @@ export class TouchBarRoot implements FlushableRoot {
           );
           if (sliceUri != null) {
             this.lastSegmentUris.set(column, sliceUri);
-            // Double buffering: fire-and-forget hardware push
-            entry.sdkAction.setFeedback({ canvas: sliceUri }).catch(() => {});
+            // Double buffering: fire-and-forget hardware push.
+            // Guarded by suppressHardwarePush — when a devtools
+            // highlight is active, normal renders must not
+            // overwrite the overlay on the physical device.
+            if (!this.suppressHardwarePush) {
+              entry.sdkAction.setFeedback({ canvas: sliceUri }).catch(() => {});
+            }
           }
         });
         await Promise.all(feedbackPromises);
@@ -490,9 +526,10 @@ export class TouchBarRoot implements FlushableRoot {
         // to takumiRenderMs since that's where the work happens.
         if (this.renderConfig.onProfile) {
           const stats = measureTree(this.container.children);
-          const cache = this.renderConfig.imageCacheMaxBytes > 0
-            ? getImageCache(this.renderConfig.imageCacheMaxBytes)
-            : null;
+          const cache =
+            this.renderConfig.imageCacheMaxBytes > 0
+              ? getImageCache(this.renderConfig.imageCacheMaxBytes)
+              : null;
           const profile: RenderProfile = {
             vnodeToElementMs: 0,
             fromJsxMs: 0,
@@ -526,8 +563,11 @@ export class TouchBarRoot implements FlushableRoot {
             SEGMENT_HEIGHT,
           );
           this.lastSegmentUris.set(column, sliceUri);
-          // Double buffering: fire-and-forget hardware push
-          entry.sdkAction.setFeedback({ canvas: sliceUri }).catch(() => {});
+          // Double buffering: fire-and-forget hardware push.
+          // Guarded by suppressHardwarePush — see WebP path above.
+          if (!this.suppressHardwarePush) {
+            entry.sdkAction.setFeedback({ canvas: sliceUri }).catch(() => {});
+          }
         });
         await Promise.all(feedbackPromises);
       }

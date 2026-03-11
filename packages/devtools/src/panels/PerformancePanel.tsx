@@ -95,22 +95,18 @@ function MetricsOverview({ metrics }: { metrics: MetricsData | null }) {
         <StatCard label="Dirty Skips" value={String(metrics.dirtySkipCount)} />
         <StatCard label="Hash Dedups" value={String(metrics.hashDedupCount)} />
         <StatCard label="Avg Render" value={fmtMs(metrics.avgRenderMs)} />
-        <StatCard label="Peak Render" value={fmtMs(metrics.peakRenderMs)} accent="text-orange-400" />
+        <StatCard
+          label="Peak Render"
+          value={fmtMs(metrics.peakRenderMs)}
+          accent="text-orange-400"
+        />
         <StatCard label="Img Cache" value={fmtBytes(metrics.imageCacheBytes)} />
       </div>
     </div>
   );
 }
 
-function StatCard({
-  label,
-  value,
-  accent,
-}: {
-  label: string;
-  value: string;
-  accent?: string;
-}) {
+function StatCard({ label, value, accent }: { label: string; value: string; accent?: string }) {
   return (
     <div className="bg-neutral-800/50 rounded p-2">
       <div className="text-[10px] text-neutral-500 mb-0.5">{label}</div>
@@ -179,10 +175,7 @@ function ProfileRow({ entry }: { entry: ProfileEntry }) {
       <span className="text-neutral-600 shrink-0 w-20 select-none">{fmtTime(entry.ts)}</span>
 
       {/* Action ID */}
-      <span
-        className="text-neutral-500 shrink-0 w-16 truncate"
-        title={entry.actionId}
-      >
+      <span className="text-neutral-500 shrink-0 w-16 truncate" title={entry.actionId}>
         {entry.actionId.slice(0, 8)}
       </span>
 
@@ -224,10 +217,7 @@ function StageBar({ profile }: { profile: ProfileData }) {
   }
 
   return (
-    <div
-      className="flex h-3 rounded overflow-hidden flex-1"
-      title={`${total.toFixed(1)}ms total`}
-    >
+    <div className="flex h-3 rounded overflow-hidden flex-1" title={`${total.toFixed(1)}ms total`}>
       {STAGES.map(({ key, color, label }) => {
         const ms = profile[key];
         const pct = (ms / total) * 100;

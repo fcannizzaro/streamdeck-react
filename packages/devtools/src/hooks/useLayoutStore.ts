@@ -6,7 +6,14 @@ import type { LayoutItem } from "react-grid-layout";
 
 export type TabId = "console" | "network" | "elements" | "preview" | "events" | "performance";
 
-const VALID_TAB_IDS = new Set<TabId>(["console", "network", "elements", "preview", "events", "performance"]);
+const VALID_TAB_IDS = new Set<TabId>([
+  "console",
+  "network",
+  "elements",
+  "preview",
+  "events",
+  "performance",
+]);
 
 const DEFAULT_LAYOUT: LayoutItem[] = [{ i: "preview", x: 0, y: 0, w: 12, h: 12 }];
 

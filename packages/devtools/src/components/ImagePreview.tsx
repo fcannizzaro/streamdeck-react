@@ -69,6 +69,11 @@ export function ImagePreview({ action }: { action: ActionEntry }) {
 export function TouchBarPreview({ touchBar }: { touchBar: TouchBarEntry }) {
   const segments = [...touchBar.segments.entries()].sort(([a], [b]) => a - b);
 
+  // Per-segment highlight URIs are keyed as "touchbar:<deviceId>:seg:<col>"
+  // in the highlight store.  Each segment checks for its own highlight URI
+  // and uses it instead of the normal segment image when present.
+  const highlightMap = useStore((s) => s.highlightDataUri);
+
   return (
     <div className="bg-neutral-800 rounded-lg p-3 flex flex-col gap-2">
       <div className="text-[10px] text-neutral-400 flex items-center gap-2">
@@ -79,26 +84,31 @@ export function TouchBarPreview({ touchBar }: { touchBar: TouchBarEntry }) {
         </span>
       </div>
       <div className="flex">
-        {segments.map(([col, seg]) => (
-          <div key={col} className="relative">
-            {seg.dataUri ? (
-              <img
-                src={seg.dataUri}
-                width={200}
-                height={100}
-                className="block"
-                style={{ imageRendering: "pixelated" }}
-              />
-            ) : (
-              <div className="bg-neutral-900 rounded w-[200px] h-[100px] flex items-center justify-center text-neutral-700 text-xs">
-                Col {col}
-              </div>
-            )}
-            <span className="absolute bottom-0 left-0 text-[8px] text-neutral-500 px-1">
-              col {col}
-            </span>
-          </div>
-        ))}
+        {segments.map(([col, seg]) => {
+          const highlightUri = highlightMap.get(`touchbar:${touchBar.deviceId}:seg:${col}`) ?? null;
+          const displayUri = highlightUri ?? seg.dataUri;
+
+          return (
+            <div key={col} className="relative">
+              {displayUri ? (
+                <img
+                  src={displayUri}
+                  width={200}
+                  height={100}
+                  className="block"
+                  style={{ imageRendering: "pixelated" }}
+                />
+              ) : (
+                <div className="bg-neutral-900 rounded w-[200px] h-[100px] flex items-center justify-center text-neutral-700 text-xs">
+                  Col {col}
+                </div>
+              )}
+              <span className="absolute bottom-0 left-0 text-[8px] text-neutral-500 px-1">
+                col {col}
+              </span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

@@ -72,11 +72,15 @@ Use constrained generics with sensible defaults. Prefer `<S extends JsonObject =
 export function useSettings<S extends JsonObject = JsonObject>(): [
   S,
   (partial: Partial<S>) => void,
-] { /* ... */ }
+] {
+  /* ... */
+}
 
 export function defineAction<S extends JsonObject = JsonObject>(
   config: ActionConfigInput<S>,
-): ActionDefinition<S> { /* ... */ }
+): ActionDefinition<S> {
+  /* ... */
+}
 
 // Generic class
 export class ImageCache<V = string> {
@@ -91,27 +95,28 @@ Use conditional types for manifest-driven type narrowing. Document the type-leve
 
 ```ts
 // Conditional: inspect manifest controllers tuple at the type level
-type HasController<UUID extends string, C extends string> =
-  UUID extends keyof ManifestActions
-    ? ManifestActions[UUID] extends { controllers: readonly (infer Item)[] }
-      ? C extends Item
-        ? true
-        : false
+type HasController<UUID extends string, C extends string> = UUID extends keyof ManifestActions
+  ? ManifestActions[UUID] extends { controllers: readonly (infer Item)[] }
+    ? C extends Item
+      ? true
       : false
-    : false;
+    : false
+  : false;
 
 // Mapped: produce a discriminated union from manifest entries
-export type ActionConfigInput<S extends JsonObject = JsonObject> =
-  [keyof ManifestActions] extends [never]
-    ? ActionConfig<S>
-    : {
-        [UUID in ActionUUID]: {
-          uuid: UUID;
-          touchBarFPS?: number;
-          wrapper?: WrapperComponent;
-          defaultSettings?: Partial<S>;
-        } & KeySurface<UUID> & EncoderSurface<UUID>;
-      }[ActionUUID];
+export type ActionConfigInput<S extends JsonObject = JsonObject> = [keyof ManifestActions] extends [
+  never,
+]
+  ? ActionConfig<S>
+  : {
+      [UUID in ActionUUID]: {
+        uuid: UUID;
+        touchBarFPS?: number;
+        wrapper?: WrapperComponent;
+        defaultSettings?: Partial<S>;
+      } & KeySurface<UUID> &
+        EncoderSurface<UUID>;
+    }[ActionUUID];
 ```
 
 ### `satisfies` and `as const`
@@ -164,7 +169,9 @@ function useEvent<T>(event: string, callback: (payload: T) => void): void {
   const callbackRef = useCallbackRef(callback);
 
   useEffect(() => {
-    const handler = (payload: T) => { callbackRef.current(payload); };
+    const handler = (payload: T) => {
+      callbackRef.current(payload);
+    };
     bus.on(event as never, handler as never);
     return () => bus.off(event as never, handler as never);
   }, [bus, callbackRef, event]);
@@ -298,15 +305,19 @@ Use the conditional spread pattern for optional CSS shorthands. Omitted props fa
 
 ```ts
 export function Box({ center, padding, background, style, children }: BoxProps): ReactElement {
-  return createElement("div", {
-    style: {
-      display: "flex",
-      ...(center && { alignItems: "center", justifyContent: "center" }),
-      ...(padding !== undefined && { padding }),
-      ...(background !== undefined && { backgroundColor: background }),
-      ...style,
-    } satisfies CSSProperties,
-  }, children);
+  return createElement(
+    "div",
+    {
+      style: {
+        display: "flex",
+        ...(center && { alignItems: "center", justifyContent: "center" }),
+        ...(padding !== undefined && { padding }),
+        ...(background !== undefined && { backgroundColor: background }),
+        ...style,
+      } satisfies CSSProperties,
+    },
+    children,
+  );
 }
 ```
 
@@ -318,14 +329,14 @@ When implementing a new feature, **always check for existing utilities first**. 
 
 ### Existing Performance Utilities
 
-| Module | Exports | Use For |
-|---|---|---|
-| `render/cache.ts` | `fnv1a`, `fnv1aString`, `hashValue`, `computeHash`, `computeTreeHash`, `computeCacheKey` | Hashing buffers, values, VNode trees, cache keys |
-| `render/image-cache.ts` | `ImageCache`, `getImageCache()`, `getTouchbarCache()`, `resetCaches()` | Byte-bounded LRU caching for rendered images |
-| `render/buffer-pool.ts` | `BufferPool`, `getBufferPool()`, `resetBufferPool()` | Reusable buffer allocation (reduces GC) |
-| `render/metrics.ts` | `RenderMetrics`, `getMetrics()` | Rolling-window render performance tracking |
-| `render/render-pool.ts` | `RenderPool` | Worker thread pool for offloading Takumi |
-| `roots/flush-coordinator.ts` | `FlushCoordinator`, `FlushableRoot` | Priority-ordered microtask batching |
+| Module                       | Exports                                                                                  | Use For                                          |
+| ---------------------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| `render/cache.ts`            | `fnv1a`, `fnv1aString`, `hashValue`, `computeHash`, `computeTreeHash`, `computeCacheKey` | Hashing buffers, values, VNode trees, cache keys |
+| `render/image-cache.ts`      | `ImageCache`, `getImageCache()`, `getTouchbarCache()`, `resetCaches()`                   | Byte-bounded LRU caching for rendered images     |
+| `render/buffer-pool.ts`      | `BufferPool`, `getBufferPool()`, `resetBufferPool()`                                     | Reusable buffer allocation (reduces GC)          |
+| `render/metrics.ts`          | `RenderMetrics`, `getMetrics()`                                                          | Rolling-window render performance tracking       |
+| `render/render-pool.ts`      | `RenderPool`                                                                             | Worker thread pool for offloading Takumi         |
+| `roots/flush-coordinator.ts` | `FlushCoordinator`, `FlushableRoot`                                                      | Priority-ordered microtask batching              |
 
 ### 4-Phase Skip Hierarchy
 
