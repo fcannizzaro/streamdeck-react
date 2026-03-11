@@ -156,6 +156,8 @@ export interface TouchBarRenderMessage extends BaseMessage {
     dataUri: string;
   }>;
   renderMs: number;
+  /** Per-render pipeline timing profile, when available. */
+  profile?: ProfileData;
 }
 
 export interface EventBusMessage extends BaseMessage {

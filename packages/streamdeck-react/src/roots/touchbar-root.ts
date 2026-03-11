@@ -5,8 +5,12 @@ import {
   renderToRaw,
   sliceToDataUriAsync,
   renderSegmentToDataUri,
+  measureTree,
   type RenderConfig,
+  type RenderProfile,
 } from "@/render/pipeline";
+import { metrics } from "@/render/metrics";
+import { getImageCache } from "@/render/image-cache";
 import { EventBus } from "@/context/event-bus";
 import {
   DeviceContext,
@@ -427,6 +431,35 @@ export class TouchBarRoot implements FlushableRoot {
         // ── Direct per-segment rendering via Takumi (WebP/PNG) ──────
         // Each segment is rendered independently using Takumi's native
         // format output. Eliminates the raw→crop→deflate path entirely.
+        //
+        // Profiling: we wrap the entire segment batch with timing and
+        // emit a single aggregate RenderProfile + metrics.  Individual
+        // segment renders inside renderSegmentToDataUri() are not
+        // profiled separately — the overhead of N profile emissions
+        // (one per segment per frame) is not worth the granularity for
+        // a 200×100 strip that renders as a unit.
+        //
+        //   doFlush() ── useNativeFormat path
+        //     │
+        //     ├─ metrics.recordFlush()
+        //     ├─ t0 = performance.now()
+        //     │
+        //     ├─ Promise.all([
+        //     │    renderSegmentToDataUri(col 0),
+        //     │    renderSegmentToDataUri(col 1),
+        //     │    ...
+        //     │  ])
+        //     │
+        //     ├─ tEnd = performance.now()
+        //     ├─ metrics.recordRender(elapsed)
+        //     ├─ config.onProfile(aggregate)  ← stashes in bridge
+        //     │
+        //     └─ config.onRender(container, "")  ← bridge consumes profile
+
+        metrics.recordFlush();
+
+        const t0 = performance.now();
+
         const feedbackPromises = [...this.columns.entries()].map(async ([column, entry]) => {
           const sliceUri = await renderSegmentToDataUri(
             this.container,
@@ -444,6 +477,37 @@ export class TouchBarRoot implements FlushableRoot {
           }
         });
         await Promise.all(feedbackPromises);
+
+        const tEnd = performance.now();
+        const elapsedMs = tEnd - t0;
+        metrics.recordRender(elapsedMs);
+
+        // Emit an aggregate profile covering all segments.
+        // The native-format path bypasses JSX→fromJsx conversion,
+        // hash-based caching, and manual base64 encoding (Takumi
+        // handles format encoding internally), so those stage
+        // timings are zero.  The entire elapsed time is attributed
+        // to takumiRenderMs since that's where the work happens.
+        if (this.renderConfig.onProfile) {
+          const stats = measureTree(this.container.children);
+          const cache = this.renderConfig.imageCacheMaxBytes > 0
+            ? getImageCache(this.renderConfig.imageCacheMaxBytes)
+            : null;
+          const profile: RenderProfile = {
+            vnodeToElementMs: 0,
+            fromJsxMs: 0,
+            takumiRenderMs: elapsedMs,
+            hashMs: 0,
+            base64Ms: 0,
+            totalMs: elapsedMs,
+            skipped: false,
+            cacheHit: false,
+            treeDepth: stats.depth,
+            nodeCount: stats.count,
+            cacheStats: cache?.stats ?? null,
+          };
+          this.renderConfig.onProfile(profile);
+        }
       } else {
         // ── Raw render + crop + PNG encode path ─────────────────────
         // Single Takumi render → raw RGBA pixels → crop → PNG encode
@@ -467,6 +531,38 @@ export class TouchBarRoot implements FlushableRoot {
         });
         await Promise.all(feedbackPromises);
       }
+
+      // ── Notify devtools of the touchbar render ──────────────────
+      //
+      // The devtools bridge hooks into config.onRender to receive
+      // render notifications.  For key/dial actions, renderToDataUri()
+      // calls onRender internally with the data URI.  For touchbar,
+      // there is no single data URI (the output is per-segment), so
+      // we call onRender here after all segments are processed.
+      //
+      // The bridge's onRender handler detects touchbar containers by
+      // matching `container === tb.root.vcontainer` and delegates to
+      // emitTouchBarRender(), which reads lastSegmentUris directly.
+      // The empty-string dataUri is intentional — it's unused for
+      // touchbar; the bridge reads segment URIs from the root.
+      //
+      //   doFlush() ──onRender(container, "")──→  bridge.onRender()
+      //                                              │
+      //                    matches touchbar root ◄───┘
+      //                                              │
+      //                                              ▼
+      //                                   emitTouchBarRender()
+      //                                      reads lastSegmentUris
+      //                                              │
+      //                                              ▼
+      //                                   SSE "render:touchbar"
+      //                                      → Performance Panel
+      //
+      // onProfile fires synchronously inside renderToRaw() /
+      // renderSegmentToDataUri() BEFORE we reach this point, so
+      // the bridge's _lastProfile stash is populated and will be
+      // consumed by emitTouchBarRender().
+      this.renderConfig.onRender?.(this.container, "");
     } catch (err) {
       console.error("[@fcannizzaro/streamdeck-react] TouchBar render error:", err);
     } finally {

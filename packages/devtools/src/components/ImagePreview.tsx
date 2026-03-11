@@ -78,7 +78,7 @@ export function TouchBarPreview({ touchBar }: { touchBar: TouchBarEntry }) {
           {touchBar.canvas.width}x{touchBar.canvas.height}
         </span>
       </div>
-      <div className="flex gap-0.5">
+      <div className="flex">
         {segments.map(([col, seg]) => (
           <div key={col} className="relative">
             {seg.dataUri ? (
@@ -86,7 +86,7 @@ export function TouchBarPreview({ touchBar }: { touchBar: TouchBarEntry }) {
                 src={seg.dataUri}
                 width={200}
                 height={100}
-                className="rounded block"
+                className="block"
                 style={{ imageRendering: "pixelated" }}
               />
             ) : (

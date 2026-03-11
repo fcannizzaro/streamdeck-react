@@ -47,6 +47,7 @@ export interface RenderMetrics {
 const REPORT_INTERVAL_MS = 10_000; // Log every 10s in debug mode
 
 class MetricsCollector {
+  // ── Windowed counters (reset every 10s by report() for console log) ──
   private _flushCount = 0;
   private _renderCount = 0;
   private _cacheHitCount = 0;
@@ -54,6 +55,33 @@ class MetricsCollector {
   private _hashDedupCount = 0;
   private _totalRenderMs = 0;
   private _peakRenderMs = 0;
+
+  // ── Cumulative counters (never reset, for devtools snapshot()) ────────
+  //
+  // The devtools bridge reads metrics via snapshot() every 3 seconds.
+  // The console reporter calls report() every 10 seconds and resets the
+  // windowed counters.  Without separate cumulative counters, the bridge
+  // would periodically see near-zero values right after a report() cycle.
+  //
+  // By maintaining a second set of counters that are never reset, the
+  // devtools always receives monotonically increasing totals.  The UI
+  // can compute deltas if it needs per-interval rates.
+  //
+  //   ┌──────────────────────────────────────────────────────────┐
+  //   │  record*()  ──→  _windowed++   (reset by report())      │
+  //   │              ──→  _cumulative++ (never reset)            │
+  //   │                                                         │
+  //   │  report()   ──→  logs _windowed, resets _windowed       │
+  //   │  snapshot() ──→  returns _cumulative (stable for UI)    │
+  //   └──────────────────────────────────────────────────────────┘
+  private _cumFlushCount = 0;
+  private _cumRenderCount = 0;
+  private _cumCacheHitCount = 0;
+  private _cumDirtySkipCount = 0;
+  private _cumHashDedupCount = 0;
+  private _cumTotalRenderMs = 0;
+  private _cumPeakRenderMs = 0;
+
   private _reportTimer: ReturnType<typeof setInterval> | null = null;
   private _enabled = false;
 
@@ -82,44 +110,53 @@ class MetricsCollector {
   /** Record a flush attempt (before any skip checks). */
   recordFlush(): void {
     this._flushCount++;
+    this._cumFlushCount++;
   }
 
   /** Record a dirty-skip (container was clean). */
   recordDirtySkip(): void {
     this._dirtySkipCount++;
+    this._cumDirtySkipCount++;
   }
 
   /** Record an image cache hit. */
   recordCacheHit(): void {
     this._cacheHitCount++;
+    this._cumCacheHitCount++;
   }
 
   /** Record a post-render hash dedup (identical output). */
   recordHashDedup(): void {
     this._hashDedupCount++;
+    this._cumHashDedupCount++;
   }
 
   /** Record a completed render with its duration in milliseconds. */
   recordRender(renderMs: number): void {
     this._renderCount++;
+    this._cumRenderCount++;
     this._totalRenderMs += renderMs;
+    this._cumTotalRenderMs += renderMs;
     if (renderMs > this._peakRenderMs) {
       this._peakRenderMs = renderMs;
     }
+    if (renderMs > this._cumPeakRenderMs) {
+      this._cumPeakRenderMs = renderMs;
+    }
   }
 
-  /** Get current snapshot of all metrics. */
+  /** Get current snapshot of all metrics (cumulative, never reset). */
   snapshot(): RenderMetrics {
     const imageStats = getImageCache().stats;
     const touchbarStats = getTouchbarCache().stats;
     return {
-      flushCount: this._flushCount,
-      renderCount: this._renderCount,
-      cacheHitCount: this._cacheHitCount,
-      dirtySkipCount: this._dirtySkipCount,
-      hashDedupCount: this._hashDedupCount,
-      avgRenderMs: this._renderCount > 0 ? this._totalRenderMs / this._renderCount : 0,
-      peakRenderMs: this._peakRenderMs,
+      flushCount: this._cumFlushCount,
+      renderCount: this._cumRenderCount,
+      cacheHitCount: this._cumCacheHitCount,
+      dirtySkipCount: this._cumDirtySkipCount,
+      hashDedupCount: this._cumHashDedupCount,
+      avgRenderMs: this._cumRenderCount > 0 ? this._cumTotalRenderMs / this._cumRenderCount : 0,
+      peakRenderMs: this._cumPeakRenderMs,
       imageCacheBytes: imageStats.bytes,
       touchbarCacheBytes: touchbarStats.bytes,
     };

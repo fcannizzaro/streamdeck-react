@@ -440,7 +440,28 @@ export const useStore = create<DevtoolsState>((set, get) => ({
           tree: msg.tree,
           segments,
         });
-        set({ touchBars });
+
+        // ── Append touchbar profile to history ──────────────────
+        // Same pattern as the "render" case: if the message
+        // includes a pipeline timing profile, create a ProfileEntry
+        // and append it to the rolling profileHistory buffer.
+        // Uses `touchbar:<deviceId>` as the actionId to distinguish
+        // touchbar profiles from key/dial profiles in the
+        // Performance panel.
+        const updates: Partial<DevtoolsState> = { touchBars };
+        if (msg.profile) {
+          const entry: ProfileEntry = {
+            ...msg.profile,
+            id: `p:${profileIdCounter++}`,
+            actionId: `touchbar:${msg.deviceId}`,
+            actionUuid: "",
+            ts: msg.ts,
+          };
+          const profiles = [...state.profileHistory, entry];
+          if (profiles.length > MAX_PROFILES) profiles.splice(0, profiles.length - MAX_PROFILES);
+          updates.profileHistory = profiles;
+        }
+        set(updates);
         break;
       }
 

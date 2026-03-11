@@ -476,9 +476,47 @@ export class DevtoolsBridge implements RegistryObserver {
   }
 
   // ── Render Pipeline Callback ──────────────────────────────────
+  //
+  // Called by the render pipeline's config.onRender hook after a
+  // successful render (key/dial) or after touchbar flush completes.
+  //
+  // Profile capture strategy:
+  //
+  //   The pipeline calls onProfile() synchronously BEFORE onRender(),
+  //   stashing the RenderProfile in _lastProfile.  We MUST consume it
+  //   eagerly at the top of onRender — before any async throttle
+  //   delays — because:
+  //
+  //     1. A trailing-edge setTimeout would fire AFTER _lastProfile
+  //        has been overwritten by a subsequent render's profile.
+  //     2. A different action's render could interleave and consume
+  //        the wrong profile.
+  //
+  //   By capturing immediately, we bind the profile to the correct
+  //   container/action and pass it through the throttle/emit chain:
+  //
+  //     onProfile(p)    onRender(container, dataUri)
+  //       │                │
+  //       ▼                ▼
+  //     _lastProfile ──→ captured here (consumed, _lastProfile = null)
+  //                        │
+  //                        ├─ action? → throttledRender(…, profile)
+  //                        │              │
+  //                        │              ├─ leading edge → emitRender(…, profile)
+  //                        │              └─ trailing edge → setTimeout → emitRender(…, profile)
+  //                        │                    (profile was captured before the delay)
+  //                        │
+  //                        └─ touchbar? → emitTouchBarRender(…, profile)
+  //
 
   onRender(container: VContainer, dataUri: string): void {
     if (!this.server.hasClients()) return;
+
+    // ── Eagerly consume the stashed profile ─────────────────────
+    // Must happen BEFORE any async work (throttle setTimeout) to
+    // avoid the profile being overwritten by a later render cycle.
+    const profile = this._lastProfile;
+    this._lastProfile = null;
 
     // Find which action this container belongs to
     let actionId: string | null = null;
@@ -495,7 +533,7 @@ export class DevtoolsBridge implements RegistryObserver {
     if (actionId && meta) {
       // Store the last data URI on the root
       meta.root.lastDataUri = dataUri;
-      this.throttledRender(actionId, container, dataUri, meta);
+      this.throttledRender(actionId, container, dataUri, meta, profile);
 
       // Re-apply highlight overlay after normal render completes.
       // With suppressHardwarePush active, doFlush won't push the normal
@@ -510,17 +548,40 @@ export class DevtoolsBridge implements RegistryObserver {
     // Check touchbar roots
     for (const [deviceId, tb] of this.touchBars) {
       if (tb.root.vcontainer === container) {
-        this.emitTouchBarRender(deviceId, tb);
+        this.emitTouchBarRender(deviceId, tb, profile);
         return;
       }
     }
   }
+
+  // ── Render Throttle ───────────────────────────────────────────
+  //
+  // Leading + trailing edge throttle at RENDER_THROTTLE_MS (100ms).
+  // Prevents the SSE stream from being overwhelmed during 60fps
+  // animation while ensuring the latest frame is always delivered.
+  //
+  // The `profile` parameter is captured eagerly in onRender() and
+  // passed through to emitRender().  On the trailing edge, the
+  // profile is captured in the setTimeout closure — it's the
+  // profile that was active when the throttle was triggered, not
+  // when the timeout fires.  This preserves the correct
+  // profile ↔ render association.
+  //
+  //   time ─────────────────────────────────────────────────→
+  //
+  //   render₁ (leading)    render₂ (throttled)     trailing fires
+  //      │                     │                       │
+  //      ├─ emit immediately   ├─ profile captured     ├─ emit with
+  //      │  with profile₁      │  as profile₂          │  profile₂
+  //      │                     │  in closure            │  (not stale)
+  //      ▼                     └─ setTimeout ───────────┘
 
   private throttledRender(
     actionId: string,
     container: VContainer,
     dataUri: string,
     meta: ActionMeta,
+    profile: RenderProfile | null,
   ): void {
     const now = Date.now();
     const last = this.lastRenderSent.get(actionId) ?? 0;
@@ -531,14 +592,15 @@ export class DevtoolsBridge implements RegistryObserver {
     if (pending) clearTimeout(pending);
 
     if (elapsed >= RENDER_THROTTLE_MS) {
-      this.emitRender(actionId, container, dataUri, meta, now);
+      this.emitRender(actionId, container, dataUri, meta, now, profile);
       this.lastRenderSent.set(actionId, now);
     } else {
-      // Schedule trailing-edge send
+      // Schedule trailing-edge send.
+      // `profile` is captured in this closure — safe from overwrite.
       this.pendingTrailing.set(
         actionId,
         setTimeout(() => {
-          this.emitRender(actionId, container, dataUri, meta, Date.now());
+          this.emitRender(actionId, container, dataUri, meta, Date.now(), profile);
           this.lastRenderSent.set(actionId, Date.now());
           this.pendingTrailing.delete(actionId);
         }, RENDER_THROTTLE_MS - elapsed),
@@ -552,12 +614,9 @@ export class DevtoolsBridge implements RegistryObserver {
     dataUri: string,
     meta: ActionMeta,
     ts: number,
+    profile: RenderProfile | null,
   ): void {
     const tree = serializeVNode(container);
-
-    // Consume stashed profile (set by onProfile, which fires synchronously before onRender)
-    const profile = this._lastProfile;
-    this._lastProfile = null;
 
     const msg: RenderMessage = {
       type: "render",
@@ -590,7 +649,27 @@ export class DevtoolsBridge implements RegistryObserver {
     };
   }
 
-  private emitTouchBarRender(deviceId: string, tb: TouchBarMeta): void {
+  // ── TouchBar Render Emission ────────────────────────────────────
+  //
+  // Emits a "render:touchbar" SSE message with the serialized VNode
+  // tree, per-segment data URIs, and the pipeline timing profile.
+  //
+  // Unlike key/dial renders (which have one data URI), touchbar
+  // renders produce per-column segment URIs stored in
+  // tb.root.lastSegmentUris.  The profile covers the full-width
+  // Takumi render (renderToRaw) that produced the raw RGBA buffer
+  // which was then sliced into segments.
+  //
+  //   emitTouchBarRender(deviceId, tb, profile)
+  //     │
+  //     ├─ serializeVNode(container)     → tree snapshot
+  //     ├─ tb.root.lastSegmentUris       → per-column data URIs
+  //     ├─ toProfileData(profile)        → wire-format timing
+  //     │
+  //     └─ broadcast "render:touchbar" message
+  //          → SSE stream → devtools Performance Panel
+
+  private emitTouchBarRender(deviceId: string, tb: TouchBarMeta, profile: RenderProfile | null): void {
     const tree = serializeVNode(tb.root.vcontainer);
     const segments: TouchBarRenderMessage["segments"] = [];
     for (const [column, actionId] of tb.columns) {
@@ -607,7 +686,8 @@ export class DevtoolsBridge implements RegistryObserver {
       canvas: { width: tb.root.vcontainer.children.length * 200, height: 100 },
       tree,
       segments,
-      renderMs: 0,
+      renderMs: profile?.totalMs ?? 0,
+      ...(profile ? { profile: this.toProfileData(profile) } : {}),
     };
     this.server.broadcast(msg);
   }

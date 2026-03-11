@@ -199,7 +199,7 @@ function buildTakumiRoot(container: VContainer): TakumiNode {
 
 // ── Tree Stats ──────────────────────────────────────────────────────
 
-function measureTree(nodes: VNode[]): { depth: number; count: number } {
+export function measureTree(nodes: VNode[]): { depth: number; count: number } {
   let maxDepth = 0;
   let count = 0;
 
@@ -421,11 +421,55 @@ export async function renderToDataUri(
   clearDirtyFlags(container);
   return dataUri;
 }
-// Renders the component tree to raw RGBA pixels (no encoding overhead).
-// Used by the touchbar pipeline: a single full-width render is produced,
-// then cropSlice() extracts per-encoder segments from the raw buffer.
-// Follows the same skip tiers as renderToDataUri but uses a separate
-// touchbar-specific LRU cache (different size budget).
+// ── Render to Raw RGBA ──────────────────────────────────────────────
+//
+// TouchBar-specific entry point.  Produces raw RGBA pixels (no PNG/WebP
+// encoding overhead) for a single full-width render of the component
+// tree.  The caller (TouchBarRoot.doFlush) then crops per-encoder
+// segments via cropSlice() and encodes each independently.
+//
+// Follows the same multi-tier skip hierarchy as renderToDataUri():
+//
+//   flush()
+//     │
+//     ├─ Phase 1: Dirty-flag check        → return null (metrics: dirtySkip)
+//     │
+//     ├─ Phase 2: Merkle hash → TB cache  → return cached buffer (metrics: cacheHit)
+//     │
+//     ├─ Phase 3: Takumi render (raw RGBA) ── worker or main thread
+//     │
+//     ├─ Phase 4: FNV-1a output dedup     → return null (metrics: hashDedup)
+//     │
+//     └─ Store in TB cache → return { buffer, width, height }
+//
+// Differences from renderToDataUri():
+//
+//   - Uses the touchbar LRU cache (separate size budget)
+//   - No base64 encoding step — raw RGBA is returned directly
+//   - Profile timing: t2 (fromJsx) is aliased to t1 (no fromJsx step
+//     in the VNode→Takumi bypass), and t4/t5 (hash+base64) collapse
+//     to a single endpoint since there's no base64 encoding.
+//
+// Profiling integration:
+//
+//   config.onProfile fires at every exit point (cache hit, hash dedup,
+//   and normal render), consistent with renderToDataUri().  This data
+//   flows through the devtools bridge → SSE → Performance panel.
+//
+//     renderToRaw()                     DevTools Bridge
+//     ─────────────                     ───────────────
+//     emitProfile() ──onProfile()──→    bridge.onProfile()
+//                                         │
+//     (caller calls onRender) ────→    bridge.onRender()
+//                                         │ consumes stashed profile
+//                                         ▼
+//                                       emitTouchBarRender()
+//                                         │ SSE "render:touchbar"
+//                                         ▼
+//                                       Performance Panel
+//
+//   Zero-cost when disabled: all performance.now() calls are gated
+//   behind `profiling` (set to false when config.onProfile is null).
 
 export interface RawRenderResult {
   buffer: Buffer;
@@ -443,12 +487,34 @@ export async function renderToRaw(
     return null;
   }
 
-  // Pre-render skip: if no VNode was mutated since last flush, skip entirely
+  metrics.recordFlush();
+
+  // ── Phase 1: Dirty-flag check ─────────────────────────────────
+  // If no VNode was mutated since last flush, skip entirely.
+  // Cost: O(1) — just a boolean check on the container.
   if (config.caching && !isContainerDirty(container)) {
+    metrics.recordDirtySkip();
     return null;
   }
 
-  // ── TouchBar Cache Lookup (Phase 3d) ──────────────────────────
+  // ── Profiling setup ───────────────────────────────────────────
+  // Timing variables mirror renderToDataUri() for consistency:
+  //
+  //   t0 ── start
+  //   t1 ── after VNode→Takumi node conversion (vnodeToElementMs)
+  //   t2 ── after fromJsx (aliased to t1; no fromJsx in bypass mode)
+  //   t3 ── after Takumi renderer.render() (takumiRenderMs)
+  //   t4 ── after hash check (hashMs; aliased to t5 for raw — no base64)
+  //   t5 ── end (base64Ms = 0 for raw renders)
+  const profiling = config.onProfile != null;
+  const t0 = profiling ? performance.now() : 0;
+  let t1 = t0;
+  let t3 = t0;
+
+  // ── Phase 2: TouchBar Cache Lookup ────────────────────────────
+  // Compute Merkle hash of the VNode tree + render config params.
+  // If found in the touchbar-specific LRU cache, skip the Takumi
+  // render and return the cached raw RGBA buffer directly.
   if (config.caching && config.touchbarCacheMaxBytes > 0) {
     const treeHash = computeTreeHash(container);
     const cacheKey = computeCacheKey(treeHash, width, height, config.devicePixelRatio, "raw");
@@ -456,15 +522,30 @@ export async function renderToRaw(
     const cached = cache.get(cacheKey);
 
     if (cached !== undefined) {
+      metrics.recordCacheHit();
+      if (profiling) {
+        // All stages collapsed to a single instant — render was skipped.
+        const tNow = performance.now();
+        emitProfile(
+          config,
+          { t0, t1: tNow, t2: tNow, t3: tNow, t4: tNow, t5: tNow },
+          { skipped: false, cacheHit: true, container },
+        );
+      }
       clearDirtyFlags(container);
       return { buffer: cached, width, height };
     }
   }
 
-  // ── Render (worker or main thread) ─────────────────────────────
+  // ── Phase 3: Takumi Render (raw RGBA) ─────────────────────────
+  // Either offloaded to a worker thread or run on the main thread
+  // using the VNode→Takumi node bypass (skips createElement + fromJsx).
   let buffer: Buffer | Uint8Array;
 
   if (config.renderPool?.isAvailable) {
+    // Worker path: all conversion + render happens in the worker.
+    // Sub-stage timing (vnodeToElement vs takumiRender) is not
+    // available — the worker reports only total render time.
     buffer = await config.renderPool.render(
       container.children,
       width,
@@ -472,21 +553,41 @@ export async function renderToRaw(
       "raw",
       config.devicePixelRatio,
     );
+    t3 = profiling ? performance.now() : 0;
+    t1 = t0; // no sub-stage data in worker mode
   } else {
-    // Direct VNode → Takumi node bypass
+    // Main-thread path: VNode → Takumi node (direct bypass)
     const rootNode = buildTakumiRoot(container);
+
+    t1 = profiling ? performance.now() : 0;
+
     buffer = await config.renderer.render(rootNode, {
       width,
       height,
       format: "raw" as OutputFormat,
       devicePixelRatio: config.devicePixelRatio,
     });
+
+    t3 = profiling ? performance.now() : 0;
   }
 
-  // 4. Cache check — skip if identical to last render
+  // ── Phase 4: FNV-1a Output Dedup ──────────────────────────────
+  // Hash the raw raster buffer.  If identical to the previous frame,
+  // skip — the component re-rendered but produced no visual change.
   if (config.caching) {
     const hash = fnv1a(buffer);
     if (hash === container.lastSvgHash) {
+      metrics.recordHashDedup();
+      if (profiling) {
+        // Render ran but output was identical — skipped: true.
+        // No base64 step for raw renders, so t4 == t5.
+        const t4 = performance.now();
+        emitProfile(
+          config,
+          { t0, t1, t2: t1, t3, t4, t5: t4 },
+          { skipped: true, cacheHit: false, container },
+        );
+      }
       clearDirtyFlags(container);
       return null; // No change
     }
@@ -496,11 +597,28 @@ export async function renderToRaw(
   const buf = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer);
 
   // ── Store in touchbar cache ───────────────────────────────────
+  // Cache the raw RGBA buffer for future Merkle-hash hits.
+  // byteLength + 64 accounts for Map/LRU overhead.
   if (config.caching && config.touchbarCacheMaxBytes > 0) {
     const treeHash = computeTreeHash(container);
     const cacheKey = computeCacheKey(treeHash, width, height, config.devicePixelRatio, "raw");
     const cache = getTouchbarCache(config.touchbarCacheMaxBytes);
     cache.set(cacheKey, buf, buf.byteLength + 64);
+  }
+
+  // Record render for metrics.
+  // Duration covers VNode conversion + Takumi render (t3 - t0).
+  // No base64 step for raw renders.
+  metrics.recordRender(t3 - t0);
+
+  if (profiling) {
+    // Emit profile with t2=t1 (no fromJsx) and t4=t5=tEnd (no base64).
+    const tEnd = performance.now();
+    emitProfile(
+      config,
+      { t0, t1, t2: t1, t3, t4: tEnd, t5: tEnd },
+      { skipped: false, cacheHit: false, container },
+    );
   }
 
   clearDirtyFlags(container);
