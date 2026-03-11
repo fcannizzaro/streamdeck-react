@@ -22,7 +22,8 @@
 //
 // Generic over value type `V`:
 //   ImageCache<string>  — data URI cache for keys/dials (Phase 2)
-//   ImageCache<Buffer>  — raw RGBA cache for touchbar (Phase 2)
+//   ImageCache<Buffer>  — raw RGBA cache for touchbar raw path (Phase 2)
+//   ImageCache<Array<[number, string]>>  — segment URI cache for touchbar native-format path (Phase 2)
 //
 // Shared as singletons (one per cache type) across all ReactRoots so
 // the global memory budget is enforced regardless of how many actions
@@ -194,6 +195,9 @@ let imageCache: ImageCache<string> | null = null;
 /** Shared raw buffer cache for touchbar RGBA data. */
 let touchbarCache: ImageCache<Buffer> | null = null;
 
+/** Shared segment URI cache for touchbar native-format (WebP/PNG) renders. */
+let touchbarNativeCache: ImageCache<Array<[number, string]>> | null = null;
+
 /** Get or create the shared image cache for data URIs. */
 export function getImageCache(maxBytes?: number): ImageCache<string> {
   if (imageCache == null) {
@@ -210,10 +214,27 @@ export function getTouchbarCache(maxBytes?: number): ImageCache<Buffer> {
   return touchbarCache;
 }
 
-/** Reset both caches (for testing or config changes). */
+/**
+ * Get or create the shared touchbar native-format segment cache.
+ * Stores sorted `[column, dataUri]` tuples per tree hash + column config.
+ * Uses the same default budget as the raw touchbar cache since only one
+ * touchbar rendering path is active at a time.
+ */
+export function getTouchbarNativeCache(maxBytes?: number): ImageCache<Array<[number, string]>> {
+  if (touchbarNativeCache == null) {
+    touchbarNativeCache = new ImageCache<Array<[number, string]>>(
+      maxBytes ?? DEFAULT_TOUCHBAR_CACHE_MAX_BYTES,
+    );
+  }
+  return touchbarNativeCache;
+}
+
+/** Reset all caches (for testing or config changes). */
 export function resetCaches(): void {
   imageCache?.clear();
   imageCache = null;
   touchbarCache?.clear();
   touchbarCache = null;
+  touchbarNativeCache?.clear();
+  touchbarNativeCache = null;
 }

@@ -1,6 +1,11 @@
 import { createElement, type ComponentType, type ReactElement } from "react";
 import { reconciler } from "@/reconciler/renderer";
-import { createVContainer, type VContainer } from "@/reconciler/vnode";
+import {
+  createVContainer,
+  isContainerDirty,
+  clearDirtyFlags,
+  type VContainer,
+} from "@/reconciler/vnode";
 import {
   renderToRaw,
   sliceToDataUriAsync,
@@ -11,7 +16,8 @@ import {
   type RenderProfile,
 } from "@/render/pipeline";
 import { metrics } from "@/render/metrics";
-import { getImageCache } from "@/render/image-cache";
+import { getTouchbarNativeCache } from "@/render/image-cache";
+import { fnv1a, computeTreeHash, computeNativeTouchbarCacheKey } from "@/render/cache";
 import { EventBus } from "@/context/event-bus";
 import {
   DeviceContext,
@@ -466,98 +472,209 @@ export class TouchBarRoot implements FlushableRoot {
       const useNativeFormat = this.renderConfig.touchbarImageFormat !== "png";
 
       if (useNativeFormat) {
-        // ── Direct per-segment rendering via Takumi (WebP/PNG) ──────
-        // Each segment is rendered independently using Takumi's native
-        // format output. Eliminates the raw→crop→deflate path entirely.
-        //
-        // Profiling: we wrap the entire segment batch with timing and
-        // emit a single aggregate RenderProfile + metrics.  Individual
-        // segment renders inside renderSegmentToDataUri() are not
-        // profiled separately — the overhead of N profile emissions
-        // (one per segment per frame) is not worth the granularity for
-        // a 200×100 strip that renders as a unit.
+        // ── Native-format path with full 4-phase skip hierarchy ──────
         //
         //   doFlush() ── useNativeFormat path
         //     │
-        //     ├─ metrics.recordFlush()
-        //     ├─ t0 = performance.now()
+        //     ├─ Phase 1: Dirty-flag check (O(1))
+        //     │    └─ skip if no VNode mutated since last flush
         //     │
-        //     ├─ Promise.all([
-        //     │    renderSegmentToDataUri(col 0),
-        //     │    renderSegmentToDataUri(col 1),
-        //     │    ...
-        //     │  ])
+        //     ├─ Phase 2: Merkle hash + native cache lookup
+        //     │    └─ skip render if tree hash + column config cached
         //     │
-        //     ├─ tEnd = performance.now()
-        //     ├─ metrics.recordRender(elapsed)
+        //     ├─ Phase 3: Per-segment Takumi render (WebP/PNG)
+        //     │    └─ buildTakumiChildren once, renderSegmentToDataUri ×N
+        //     │
+        //     ├─ Phase 4: FNV-1a output dedup
+        //     │    └─ skip hardware push if segment URIs identical to last frame
+        //     │
+        //     ├─ Store in native cache
         //     ├─ config.onProfile(aggregate)  ← stashes in bridge
-        //     │
         //     └─ config.onRender(container, "")  ← bridge consumes profile
 
         metrics.recordFlush();
 
-        const t0 = performance.now();
+        // ── Phase 1: Dirty-flag check ───────────────────────────────
+        // If no VNode was mutated since last flush, skip entirely.
+        // Cost: O(1) — just a boolean check on the container.
+        // No clearDirtyFlags needed — tree is already clean.
+        if (this.renderConfig.caching && !isContainerDirty(this.container)) {
+          metrics.recordDirtySkip();
+          return;
+        }
 
-        // Build the Takumi node tree ONCE for all segments.
-        // Previously, each renderSegmentToDataUri() call independently
-        // walked container.children → vnodeToTakumiNode(), repeating
-        // the same O(n) tree conversion N times per flush.
-        const takumiChildren = buildTakumiChildren(this.container);
+        const profiling = this.renderConfig.onProfile != null;
+        const t0 = profiling ? performance.now() : 0;
+        const sortedColumns = [...this.columns.keys()].sort((a, b) => a - b);
 
-        const feedbackPromises = [...this.columns.entries()].map(async ([column, entry]) => {
-          const sliceUri = await renderSegmentToDataUri(
-            this.container,
+        // ── Phase 2: Native Cache Lookup ────────────────────────────
+        // Compute Merkle hash of the VNode tree + render config params
+        // + column layout. If found in the native-format LRU cache,
+        // skip the Takumi render and push cached segment URIs directly.
+        //
+        // Hoisted so the same values can be reused at cache-store time
+        // after rendering (avoids recomputing computeTreeHash twice).
+        let treeHash: number | undefined;
+        let cacheKey: number | undefined;
+        let cacheHit = false;
+
+        if (this.renderConfig.caching && this.renderConfig.touchbarCacheMaxBytes > 0) {
+          treeHash = computeTreeHash(this.container);
+          cacheKey = computeNativeTouchbarCacheKey(
+            treeHash,
             width,
             SEGMENT_HEIGHT,
-            column,
-            SEGMENT_WIDTH,
+            this.renderConfig.devicePixelRatio,
             this.renderConfig.touchbarImageFormat,
-            this.renderConfig,
-            takumiChildren,
+            sortedColumns,
           );
-          if (sliceUri != null) {
-            this.lastSegmentUris.set(column, sliceUri);
-            // Double buffering: fire-and-forget hardware push.
-            // Guarded by suppressHardwarePush — when a devtools
-            // highlight is active, normal renders must not
-            // overwrite the overlay on the physical device.
-            if (!this.suppressHardwarePush) {
-              entry.sdkAction.setFeedback({ canvas: sliceUri }).catch(() => {});
+          const cache = getTouchbarNativeCache(this.renderConfig.touchbarCacheMaxBytes);
+          const cached = cache.get(cacheKey);
+
+          if (cached !== undefined) {
+            metrics.recordCacheHit();
+            cacheHit = true;
+
+            for (const [column, uri] of cached) {
+              this.lastSegmentUris.set(column, uri);
+              if (!this.suppressHardwarePush) {
+                const entry = this.columns.get(column);
+                entry?.sdkAction.setFeedback({ canvas: uri }).catch(() => {});
+              }
+            }
+
+            if (profiling) {
+              const tNow = performance.now();
+              const stats = measureTree(this.container.children);
+              this.renderConfig.onProfile!({
+                vnodeToElementMs: 0,
+                fromJsxMs: 0,
+                takumiRenderMs: tNow - t0,
+                hashMs: 0,
+                base64Ms: 0,
+                totalMs: tNow - t0,
+                skipped: false,
+                cacheHit: true,
+                treeDepth: stats.depth,
+                nodeCount: stats.count,
+                cacheStats: cache.stats,
+              });
+            }
+
+            clearDirtyFlags(this.container);
+          }
+        }
+
+        if (!cacheHit) {
+          // ── Phase 3: Per-segment Takumi render ──────────────────
+          // Build the Takumi node tree ONCE for all segments.
+          // Each segment is rendered independently using Takumi's native
+          // format output with a CSS viewport offset to extract the
+          // correct portion.
+          const takumiChildren = buildTakumiChildren(this.container);
+
+          const segmentResults: Array<[number, string]> = [];
+          const renderPromises = [...this.columns.entries()].map(async ([column]) => {
+            const sliceUri = await renderSegmentToDataUri(
+              this.container,
+              width,
+              SEGMENT_HEIGHT,
+              column,
+              SEGMENT_WIDTH,
+              this.renderConfig.touchbarImageFormat,
+              this.renderConfig,
+              takumiChildren,
+            );
+            if (sliceUri != null) {
+              segmentResults.push([column, sliceUri]);
+              this.lastSegmentUris.set(column, sliceUri);
+            }
+          });
+          await Promise.all(renderPromises);
+
+          // Sort for deterministic hashing and cache storage
+          segmentResults.sort((a, b) => a[0] - b[0]);
+
+          // ── Phase 4: FNV-1a output dedup ────────────────────────
+          // Hash the concatenated segment URIs. If identical to the
+          // previous frame, skip hardware push — the component re-rendered
+          // but produced no visual change.
+          let skipped = false;
+          if (this.renderConfig.caching) {
+            const dedupInput = segmentResults.map(([col, uri]) => `${col}:${uri}`).join("\0");
+            const uriHash = fnv1a(dedupInput);
+
+            if (uriHash === this.container.lastSvgHash) {
+              metrics.recordHashDedup();
+              skipped = true;
+            } else {
+              this.container.lastSvgHash = uriHash;
             }
           }
-        });
-        await Promise.all(feedbackPromises);
 
-        const tEnd = performance.now();
-        const elapsedMs = tEnd - t0;
-        metrics.recordRender(elapsedMs);
+          // Push to hardware (skipped if Phase 4 detected identical output)
+          if (!skipped && !this.suppressHardwarePush) {
+            for (const [column, uri] of segmentResults) {
+              const entry = this.columns.get(column);
+              entry?.sdkAction.setFeedback({ canvas: uri }).catch(() => {});
+            }
+          }
 
-        // Emit an aggregate profile covering all segments.
-        // The native-format path bypasses JSX→fromJsx conversion,
-        // hash-based caching, and manual base64 encoding (Takumi
-        // handles format encoding internally), so those stage
-        // timings are zero.  The entire elapsed time is attributed
-        // to takumiRenderMs since that's where the work happens.
-        if (this.renderConfig.onProfile) {
-          const stats = measureTree(this.container.children);
-          const cache =
-            this.renderConfig.imageCacheMaxBytes > 0
-              ? getImageCache(this.renderConfig.imageCacheMaxBytes)
-              : null;
-          const profile: RenderProfile = {
-            vnodeToElementMs: 0,
-            fromJsxMs: 0,
-            takumiRenderMs: elapsedMs,
-            hashMs: 0,
-            base64Ms: 0,
-            totalMs: elapsedMs,
-            skipped: false,
-            cacheHit: false,
-            treeDepth: stats.depth,
-            nodeCount: stats.count,
-            cacheStats: cache?.stats ?? null,
-          };
-          this.renderConfig.onProfile(profile);
+          const tEnd = profiling ? performance.now() : 0;
+          const elapsedMs = tEnd - t0;
+          metrics.recordRender(elapsedMs);
+
+          // ── Store in native cache ─────────────────────────────────
+          // Cache the sorted segment URI tuples for future Merkle-hash hits.
+          // Reuse hoisted treeHash/cacheKey from Phase 2 lookup above.
+          if (this.renderConfig.caching && this.renderConfig.touchbarCacheMaxBytes > 0) {
+            if (treeHash === undefined || cacheKey === undefined) {
+              treeHash = computeTreeHash(this.container);
+              cacheKey = computeNativeTouchbarCacheKey(
+                treeHash,
+                width,
+                SEGMENT_HEIGHT,
+                this.renderConfig.devicePixelRatio,
+                this.renderConfig.touchbarImageFormat,
+                sortedColumns,
+              );
+            }
+            const cache = getTouchbarNativeCache(this.renderConfig.touchbarCacheMaxBytes);
+            // Byte size: sum of URI string lengths × 2 (UTF-16) + per-entry overhead
+            let byteSize = 64;
+            for (const [, uri] of segmentResults) {
+              byteSize += uri.length * 2 + 16;
+            }
+            cache.set(cacheKey, segmentResults, byteSize);
+          }
+
+          // Emit an aggregate profile covering all segments.
+          // The native-format path bypasses JSX→fromJsx conversion
+          // and manual base64 encoding (Takumi handles format encoding
+          // internally), so those stage timings are zero.  The entire
+          // elapsed time is attributed to takumiRenderMs.
+          if (profiling) {
+            const stats = measureTree(this.container.children);
+            const nativeCache =
+              this.renderConfig.touchbarCacheMaxBytes > 0
+                ? getTouchbarNativeCache(this.renderConfig.touchbarCacheMaxBytes)
+                : null;
+            this.renderConfig.onProfile!({
+              vnodeToElementMs: 0,
+              fromJsxMs: 0,
+              takumiRenderMs: elapsedMs,
+              hashMs: 0,
+              base64Ms: 0,
+              totalMs: elapsedMs,
+              skipped,
+              cacheHit: false,
+              treeDepth: stats.depth,
+              nodeCount: stats.count,
+              cacheStats: nativeCache?.stats ?? null,
+            });
+          }
+
+          clearDirtyFlags(this.container);
         }
       } else {
         // ── Raw render + crop + PNG encode path ─────────────────────

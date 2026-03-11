@@ -17,7 +17,7 @@
 // rather than cumulative totals.  The report timer uses unref() to
 // avoid preventing Node.js process exit.
 
-import { getImageCache, getTouchbarCache } from "./image-cache";
+import { getImageCache, getTouchbarCache, getTouchbarNativeCache } from "./image-cache";
 
 // ── Types ───────────────────────────────────────────────────────────
 
@@ -149,6 +149,7 @@ class MetricsCollector {
   snapshot(): RenderMetrics {
     const imageStats = getImageCache().stats;
     const touchbarStats = getTouchbarCache().stats;
+    const nativeStats = getTouchbarNativeCache().stats;
     return {
       flushCount: this._cumFlushCount,
       renderCount: this._cumRenderCount,
@@ -158,7 +159,10 @@ class MetricsCollector {
       avgRenderMs: this._cumRenderCount > 0 ? this._cumTotalRenderMs / this._cumRenderCount : 0,
       peakRenderMs: this._cumPeakRenderMs,
       imageCacheBytes: imageStats.bytes,
-      touchbarCacheBytes: touchbarStats.bytes,
+      // Sum raw buffer cache + native-format segment cache.
+      // Only one is active at a time (determined by touchbarImageFormat),
+      // but both are reported for accurate memory accounting.
+      touchbarCacheBytes: touchbarStats.bytes + nativeStats.bytes,
     };
   }
 

@@ -280,3 +280,26 @@ export function computeCacheKey(
   key = fnv1aString(format, key);
   return key >>> 0;
 }
+
+// ── Native Touchbar Cache Key ───────────────────────────────────────
+// Extends the standard cache key with the sorted column list.
+// Different column configurations at the same total width can produce
+// different segment URI sets (e.g. columns [0,1,2,3] vs [0,1,3] both
+// yield width=800 but different active segments), so the column layout
+// must be part of the cache key.
+
+export function computeNativeTouchbarCacheKey(
+  treeHash: number,
+  width: number,
+  height: number,
+  dpr: number,
+  format: string,
+  columns: number[],
+): number {
+  let key = computeCacheKey(treeHash, width, height, dpr, format);
+  key = fnv1aU32(columns.length, key);
+  for (const col of columns) {
+    key = fnv1aU32(col, key);
+  }
+  return key >>> 0;
+}
