@@ -2,14 +2,23 @@
 //
 // Two-level caching system for the render pipeline:
 //
-// 1. FNV-1a (Fowler–Noll–Vo variant 1a)
+// 1. Buffer hashing (Phase 4 output dedup)
+//    - Primary: xxHash-wasm — WASM-accelerated 32-bit xxHash
+//      Hashes the full raster buffer (~320 KB for touchbar) in native
+//      code, significantly faster than any JS loop with better
+//      avalanche/distribution than FNV-1a.
+//    - Fallback: FNV-1a with strided sampling (every 16th byte)
+//      Used during startup before WASM has compiled (~1ms), or if
+//      WASM is unavailable in the runtime.
+//
+// 2. FNV-1a (Fowler–Noll–Vo variant 1a)
 //    - Fast, non-cryptographic 32-bit hash
-//    - Used for: raw raster buffer dedup (Phase 4), cache key mixing
+//    - Used for: Merkle tree hashing, cache key mixing, small buffers
 //    - XOR-then-multiply ordering gives better avalanche than FNV-1
 //    - Math.imul() ensures correct 32-bit multiplication in JS
 //    - `>>> 0` converts to unsigned 32-bit at the end
 //
-// 2. Merkle tree (per-VNode cached hashes)
+// 3. Merkle tree (per-VNode cached hashes)
 //    - Each VNode caches its subtree hash in `_hash` / `_hashValid`
 //    - When a node is mutated, `markDirty` invalidates `_hashValid`
 //      up to the root — only the dirty path is re-hashed
@@ -25,6 +34,7 @@
 // forms the image cache key.  Two trees with identical structure but
 // different render configs produce different cache keys.
 
+import xxhashInit from "xxhash-wasm";
 import type { VNode, VContainer } from "@/reconciler/vnode";
 
 // ── Constants ───────────────────────────────────────────────────────
@@ -46,26 +56,80 @@ const SENTINEL_FALSE = 0x46414c53; // "FALS" as u32
 const SENTINEL_ARRAY = 0x41525259; // "ARRY" as u32
 const SENTINEL_OBJECT = 0x4f424a54; // "OBJT" as u32
 
+// ── xxHash-wasm Accelerator ─────────────────────────────────────────
+//
+// xxHash-wasm provides a WASM-compiled xxHash implementation that hashes
+// full raster buffers (~320 KB for touchbar, ~83 KB for keys) faster
+// than any JS loop — even a strided one.  The WASM module compiles
+// asynchronously (~1ms on Node.js) so there's a brief window at startup
+// where the JS FNV-1a fallback is used.
+//
+//   Module imported → initBufferHasher() fires (async)
+//     ↓ ~1ms
+//   WASM compiled → bufferHashFn set → fnv1a() uses xxHash
+//
+// The `h32Raw()` function is a synchronous, zero-allocation hash of a
+// Uint8Array that returns a u32.  Since Buffer extends Uint8Array, it
+// works directly without conversion.
+
+/** @internal WASM-accelerated buffer hash function, null before init. */
+let bufferHashFn: ((input: Uint8Array, seed?: number) => number) | null = null;
+let xxHashInitPromise: Promise<void> | null = null;
+
+/**
+ * Initialize the xxHash-wasm module.  Call is idempotent — subsequent
+ * calls return the same promise.  Resolves once `fnv1a()` will use the
+ * WASM fast path for large buffers.
+ */
+export function initBufferHasher(): Promise<void> {
+  if (xxHashInitPromise != null) return xxHashInitPromise;
+  xxHashInitPromise = xxhashInit()
+    .then((api) => {
+      bufferHashFn = api.h32Raw;
+    })
+    .catch(() => {
+      // WASM unavailable — fnv1a() will continue using JS strided sampling.
+    });
+  return xxHashInitPromise;
+}
+
+/** Reset the xxHash singleton — for testing only. */
+export function resetBufferHasher(): void {
+  bufferHashFn = null;
+  xxHashInitPromise = null;
+}
+
+// Fire-and-forget: start WASM compilation when module is first imported.
+// By the time the first render cycle calls fnv1a() for a large buffer,
+// WASM will have compiled.
+void initBufferHasher();
+
 // ── Low-Level Hash Primitives ───────────────────────────────────────
 
-// Buffers larger than this threshold use strided sampling instead of
-// hashing every byte.  4 KB is well below the smallest useful raster
-// (144×144×4 = 83 KB for a key image), so the fast path only activates
-// for actual raster data, never for short strings or small props.
+// Buffers larger than this threshold use the xxHash-wasm fast path
+// (or JS strided FNV-1a fallback).  4 KB is well below the smallest
+// useful raster (144×144×4 = 83 KB for a key image), so the fast path
+// only activates for actual raster data, never for short strings or
+// small props.
 const STRIDE_THRESHOLD = 4096;
 
+// Fallback constants for JS FNV-1a strided sampling (used before WASM
+// is ready or if WASM fails to compile).
 // Sample one full RGBA pixel out of every 4 pixels for large buffers.
-// This reduces the loop count by ~4x while still hashing all channels
-// (R, G, B, A) for each sampled pixel.
 const STRIDE = 16;
 
 /**
- * Hash a raw byte buffer (Uint8Array or Buffer) or string via FNV-1a.
+ * Hash a raw byte buffer (Uint8Array or Buffer) or string.
  *
- * For buffers larger than {@link STRIDE_THRESHOLD} bytes, uses strided
- * sampling (every {@link STRIDE}th byte) to avoid iterating all 320 KB
- * of a touchbar raster frame.  The buffer length is mixed into the hash
- * to differentiate same-sample-pattern buffers of different sizes.
+ * For buffers larger than {@link STRIDE_THRESHOLD} bytes:
+ * - **Primary path**: xxHash-wasm `h32Raw()` — hashes the entire buffer
+ *   in native WASM code.  Faster than JS strided sampling even for
+ *   320 KB touchbar frames, with superior hash distribution.
+ * - **Fallback path**: FNV-1a with strided sampling (every 16th byte)
+ *   when WASM hasn't compiled yet (startup) or is unavailable.
+ *
+ * Strings and small buffers always use JS FNV-1a (fast enough at those
+ * sizes, and avoids the overhead of calling into WASM for tiny inputs).
  */
 export function fnv1a(input: string | Uint8Array | Buffer): number {
   let hash = FNV_OFFSET_BASIS;
@@ -76,7 +140,13 @@ export function fnv1a(input: string | Uint8Array | Buffer): number {
       hash = Math.imul(hash, FNV_PRIME);
     }
   } else if (input.length > STRIDE_THRESHOLD) {
-    // Strided sampling path: hash one full pixel out of every 4 pixels.
+    // Fast path: xxHash-wasm hashes the full buffer in native WASM —
+    // faster than JS strided FNV-1a even for 320 KB touchbar frames,
+    // with better hash distribution (no sampling artifacts).
+    if (bufferHashFn != null) {
+      return bufferHashFn(input);
+    }
+    // Fallback: strided FNV-1a when WASM hasn't initialized yet.
     // Mix in the total byte length first so buffers of different sizes
     // that happen to share sampled bytes still produce different hashes.
     hash = fnv1aU32(input.length, hash);
