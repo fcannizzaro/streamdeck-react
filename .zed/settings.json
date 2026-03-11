@@ -1,3 +1,19 @@
 {
-  "file_scan_exclusions": ["samples/**/bin", "plugin.mjs", "plugin.mjs.map", "node_modules"]
+  "format_on_save": "on",
+  "lsp": {
+    "oxfmt": {
+      "initialization_options": {
+        "settings": {
+          "fmt.configPath": null,
+        },
+      },
+    },
+  },
+  "formatter": "language_server",
+  "file_scan_exclusions": [
+    "samples/**/bin",
+    "plugin.mjs",
+    "plugin.mjs.map",
+    "node_modules",
+  ],
 }
