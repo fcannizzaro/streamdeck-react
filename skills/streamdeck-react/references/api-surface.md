@@ -125,43 +125,65 @@ Complete public API exported from `@fcannizzaro/streamdeck-react`.
 | `StreamDeckPlatform`      | `'darwin' \| 'win32'`.                        |
 | `StreamDeckArch`          | `'arm64' \| 'x64'`.                           |
 
+## Vite Helpers (from `@fcannizzaro/streamdeck-react/vite`)
+
+| Export                      | Description                                                                                                                                |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `streamDeckReact(options?)` | Vite plugin. Same native binary copying as Rollup, plus optional `uuid` for auto-restart via `streamdeck restart <uuid>` after each build. |
+
+### Vite Types
+
+| Export                    | Description                                                                              |
+| ------------------------- | ---------------------------------------------------------------------------------------- |
+| `StreamDeckReactOptions`  | Extends `StreamDeckTargetOptions` with `uuid?: string` and `manifest?: string \| false`. |
+| `StreamDeckTargetOptions` | Shared options with a `targets` array.                                                   |
+| `StreamDeckTarget`        | One native copy target: `{ platform, arch }`.                                            |
+| `StreamDeckPlatform`      | `'darwin' \| 'win32'`.                                                                   |
+| `StreamDeckArch`          | `'arm64' \| 'x64'`.                                                                      |
+
 ## Types
 
-| Export                      | Kind      | Description                                                                                       |
-| --------------------------- | --------- | ------------------------------------------------------------------------------------------------- |
-| `PluginConfig`              | Interface | Configuration for `createPlugin()`.                                                               |
-| `FontConfig`                | Interface | Font file descriptor: `name`, `data`, `weight`, `style`.                                          |
-| `ActionConfig`              | Interface | Configuration for `defineAction()`.                                                               |
-| `ActionDefinition`          | Interface | Resolved action definition (output of `defineAction`).                                            |
-| `EncoderLayout`             | Type      | `string \| TouchStripLayout`.                                                                     |
-| `WrapperComponent`          | Type      | `ComponentType<{ children?: ReactNode }>`.                                                        |
-| `DeviceInfo`                | Interface | Device metadata: `id`, `type`, `size`, `name`.                                                    |
-| `ActionInfo`                | Interface | Action instance metadata: `id`, `uuid`, `controller`, `coordinates`, `isInMultiAction`.           |
-| `CanvasInfo`                | Interface | Render target: `width`, `height`, `type` (`'key' \| 'dial' \| 'touch'`).                          |
-| `KeyDownPayload`            | Interface | `{ settings, isInMultiAction, state?, userDesiredState? }`.                                       |
-| `KeyUpPayload`              | Interface | Same shape as `KeyDownPayload`.                                                                   |
-| `DialRotatePayload`         | Interface | `{ ticks, pressed, settings }`.                                                                   |
-| `DialPressPayload`          | Interface | `{ settings, controller: 'Encoder' }`.                                                            |
-| `TouchTapPayload`           | Interface | `{ tapPos: [x, y], hold, settings }`.                                                             |
-| `DialHints`                 | Interface | `{ rotate?, press?, touch?, longTouch? }`.                                                        |
-| `StreamDeckAccess`          | Interface | `{ action: Action \| DialAction \| KeyAction, sdk }`.                                             |
-| `TouchBarInfo`              | Interface | `{ width, height, columns, segmentWidth, fps }`.                                                  |
-| `TouchBarTapPayload`        | Interface | `{ tapPos: [x, y], hold, column }`.                                                               |
-| `TouchBarDialRotatePayload` | Interface | `{ column, ticks, pressed }`.                                                                     |
-| `TouchBarDialPressPayload`  | Interface | `{ column }`.                                                                                     |
-| `TouchStripLayout`          | Interface | `{ $schema?, id, items: TouchStripLayoutItem[] }`.                                                |
-| `TouchStripLayoutItem`      | Type      | Union of `TouchStripBarItem \| TouchStripGBarItem \| TouchStripPixmapItem \| TouchStripTextItem`. |
-| `TapOptions`                | Interface | `{ timeout?: number }`.                                                                           |
-| `LongPressOptions`          | Interface | `{ timeout?: number }`. Default: 500ms.                                                           |
-| `DoubleTapOptions`          | Interface | `{ timeout?: number }`. Default: 250ms.                                                           |
-| `AnimationTarget`           | Type      | `number \| Record<string, number>`.                                                               |
-| `AnimatedValue<T>`          | Type      | Maps `AnimationTarget` shape to output: `number` stays `number`, objects map keys.                |
-| `SpringConfig`              | Interface | Spring physics config: `tension`, `friction`, `mass`, thresholds, `clamp`.                        |
-| `SpringResult<T>`           | Interface | `{ value, isAnimating, set, jump }`.                                                              |
-| `EasingName`                | Type      | Union of 10 easing name strings.                                                                  |
-| `EasingFn`                  | Type      | `(t: number) => number`.                                                                          |
-| `TweenConfig`               | Interface | `{ duration, easing, fps }`.                                                                      |
-| `TweenResult<T>`            | Interface | `{ value, progress, isAnimating, set, jump }`.                                                    |
+| Export                      | Kind      | Description                                                                                                          |
+| --------------------------- | --------- | -------------------------------------------------------------------------------------------------------------------- |
+| `PluginConfig`              | Interface | Configuration for `createPlugin()`.                                                                                  |
+| `FontConfig`                | Interface | Font file descriptor: `name`, `data`, `weight`, `style`.                                                             |
+| `ActionConfig`              | Interface | Configuration for `defineAction()`.                                                                                  |
+| `ActionDefinition`          | Interface | Resolved action definition (output of `defineAction`).                                                               |
+| `EncoderLayout`             | Type      | `string \| TouchStripLayout`.                                                                                        |
+| `WrapperComponent`          | Type      | `ComponentType<{ children?: ReactNode }>`.                                                                           |
+| `DeviceInfo`                | Interface | Device metadata: `id`, `type`, `size`, `name`.                                                                       |
+| `ActionInfo`                | Interface | Action instance metadata: `id`, `uuid`, `controller`, `coordinates`, `isInMultiAction`.                              |
+| `CanvasInfo`                | Interface | Render target: `width`, `height`, `type` (`'key' \| 'dial' \| 'touch'`).                                             |
+| `KeyDownPayload`            | Interface | `{ settings, isInMultiAction, state?, userDesiredState? }`.                                                          |
+| `KeyUpPayload`              | Interface | Same shape as `KeyDownPayload`.                                                                                      |
+| `DialRotatePayload`         | Interface | `{ ticks, pressed, settings }`.                                                                                      |
+| `DialPressPayload`          | Interface | `{ settings, controller: 'Encoder' }`.                                                                               |
+| `TouchTapPayload`           | Interface | `{ tapPos: [x, y], hold, settings }`.                                                                                |
+| `DialHints`                 | Interface | `{ rotate?, press?, touch?, longTouch? }`.                                                                           |
+| `StreamDeckAccess`          | Interface | `{ action: Action \| DialAction \| KeyAction, sdk }`.                                                                |
+| `TouchBarInfo`              | Interface | `{ width, height, columns, segmentWidth, fps }`.                                                                     |
+| `TouchBarTapPayload`        | Interface | `{ tapPos: [x, y], hold, column }`.                                                                                  |
+| `TouchBarDialRotatePayload` | Interface | `{ column, ticks, pressed }`.                                                                                        |
+| `TouchBarDialPressPayload`  | Interface | `{ column }`.                                                                                                        |
+| `TouchStripLayout`          | Interface | `{ $schema?, id, items: TouchStripLayoutItem[] }`.                                                                   |
+| `TouchStripLayoutItem`      | Type      | Union of `TouchStripBarItem \| TouchStripGBarItem \| TouchStripPixmapItem \| TouchStripTextItem`.                    |
+| `TapOptions`                | Interface | `{ timeout?: number }`.                                                                                              |
+| `LongPressOptions`          | Interface | `{ timeout?: number }`. Default: 500ms.                                                                              |
+| `DoubleTapOptions`          | Interface | `{ timeout?: number }`. Default: 250ms.                                                                              |
+| `AnimationTarget`           | Type      | `number \| Record<string, number>`.                                                                                  |
+| `AnimatedValue<T>`          | Type      | Maps `AnimationTarget` shape to output: `number` stays `number`, objects map keys.                                   |
+| `SpringConfig`              | Interface | Spring physics config: `tension`, `friction`, `mass`, thresholds, `clamp`.                                           |
+| `SpringResult<T>`           | Interface | `{ value, isAnimating, set, jump }`.                                                                                 |
+| `EasingName`                | Type      | Union of 10 easing name strings.                                                                                     |
+| `EasingFn`                  | Type      | `(t: number) => number`.                                                                                             |
+| `TweenConfig`               | Interface | `{ duration, easing, fps }`.                                                                                         |
+| `TweenResult<T>`            | Interface | `{ value, progress, isAnimating, set, jump }`.                                                                       |
+| `RenderProfile`             | Interface | Per-render timing and diagnostic data: timing breakdowns, skipped, cacheHit, treeDepth, nodeCount.                   |
+| `CacheStats`                | Interface | Image cache statistics: entries, bytes, maxBytes, hits, misses.                                                      |
+| `RenderMetrics`             | Interface | Rolling-window render pipeline statistics: flush/skip counts, avg/peak render time, cache bytes.                     |
+| `ActionConfigInput<S>`      | Type      | Manifest-derived discriminated union for `defineAction()`. Falls back to `ActionConfig<S>` when no manifest codegen. |
+| `ActionUUID`                | Type      | Union of all manifest action UUIDs when available, plain `string` otherwise.                                         |
+| `ManifestActions`           | Interface | Augmented by auto-generated `streamdeck-env.d.ts`. Empty by default.                                                 |
 
 ## Component Props Types
 

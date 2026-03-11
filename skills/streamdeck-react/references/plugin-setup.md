@@ -30,20 +30,30 @@ interface PluginConfig {
   devicePixelRatio?: number; // Default: 1
   onActionError?: (uuid: string, actionId: string, error: Error) => void;
   devtools?: boolean; // Default: false
+  debug?: boolean; // Default: NODE_ENV !== 'production'
+  imageCacheMaxBytes?: number; // Default: 16777216 (16 MB)
+  touchbarCacheMaxBytes?: number; // Default: 8388608 (8 MB)
+  useWorker?: boolean; // Default: true
+  touchbarImageFormat?: "webp" | "png"; // Default: 'webp'
 }
 ```
 
-| Field              | Required | Description                                                              |
-| ------------------ | -------- | ------------------------------------------------------------------------ |
-| `fonts`            | Yes      | At least one font file. See FontConfig below.                            |
-| `actions`          | Yes      | Array of action definitions from `defineAction()`.                       |
-| `wrapper`          | No       | Component that wraps ALL action roots. Use for global providers.         |
-| `renderDebounceMs` | No       | Coalesces renders. Increase for dial-heavy UIs.                          |
-| `imageFormat`      | No       | Output format. PNG is default and most compatible.                       |
-| `caching`          | No       | FNV-1a hash caching to skip duplicate `setImage()` calls.                |
-| `devicePixelRatio` | No       | Device pixel ratio used by the Takumi renderer. Default: `1`.            |
-| `onActionError`    | No       | Called when a component throws in any action root.                       |
-| `devtools`         | No       | Enable the devtools server. Port derived from plugin UUID (39400-39499). |
+| Field                   | Required | Description                                                                                     |
+| ----------------------- | -------- | ----------------------------------------------------------------------------------------------- |
+| `fonts`                 | Yes      | At least one font file. See FontConfig below.                                                   |
+| `actions`               | Yes      | Array of action definitions from `defineAction()`.                                              |
+| `wrapper`               | No       | Component that wraps ALL action roots. Use for global providers.                                |
+| `renderDebounceMs`      | No       | Coalesces renders. Increase for dial-heavy UIs.                                                 |
+| `imageFormat`           | No       | Output format. PNG is default and most compatible.                                              |
+| `caching`               | No       | Output hash caching (xxHash-wasm) to skip duplicate `setImage()` calls.                          |
+| `devicePixelRatio`      | No       | Device pixel ratio used by the Takumi renderer. Default: `1`.                                   |
+| `onActionError`         | No       | Called when a component throws in any action root.                                              |
+| `devtools`              | No       | Enable the devtools server. Port derived from plugin UUID (39400-39499).                        |
+| `debug`                 | No       | Enable render counters, duplicate detection, and depth warnings. Defaults to non-production.    |
+| `imageCacheMaxBytes`    | No       | Max bytes for the key/dial image cache (LRU). Set to 0 to disable. Default: 16 MB.              |
+| `touchbarCacheMaxBytes` | No       | Max bytes for the touchbar raw buffer cache (LRU). Set to 0 to disable. Default: 8 MB.          |
+| `useWorker`             | No       | Offload Takumi rendering to a worker thread. Transparent fallback if worker fails.              |
+| `touchbarImageFormat`   | No       | Touchbar segment encoding format. `"webp"` is faster (native Takumi encode). Default: `"webp"`. |
 
 ### Plugin-Level Wrapper
 

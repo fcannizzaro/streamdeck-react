@@ -18,6 +18,16 @@ interface PluginConfig {
   devicePixelRatio?: number;
   onActionError?: (uuid: string, actionId: string, error: Error) => void;
   devtools?: boolean;
+  /** Enable performance diagnostics (render counters, duplicate detection, depth warnings). @default NODE_ENV !== 'production' */
+  debug?: boolean;
+  /** Maximum image cache size in bytes for key/dial renders. Set to 0 to disable. @default 16777216 (16 MB) */
+  imageCacheMaxBytes?: number;
+  /** Maximum touchbar raw buffer cache size in bytes. Set to 0 to disable. @default 8388608 (8 MB) */
+  touchbarCacheMaxBytes?: number;
+  /** Offload Takumi rendering to a worker thread. @default true */
+  useWorker?: boolean;
+  /** Image format for touchbar segment encoding. @default "webp" */
+  touchbarImageFormat?: "webp" | "png";
 }
 
 interface FontConfig {
@@ -127,6 +137,93 @@ interface TouchStripTextItem {
 type TouchStripOpacity = 0 | 0.1 | 0.2 | 0.3 | 0.4 | 0.5 | 0.6 | 0.7 | 0.8 | 0.9 | 1;
 
 type WrapperComponent = ComponentType<{ children?: ReactNode }>;
+```
+
+## Render Pipeline Types
+
+```ts
+/** Per-render timing and diagnostic data exposed via the onProfile callback. */
+interface RenderProfile {
+  vnodeToElementMs: number;
+  fromJsxMs: number;
+  takumiRenderMs: number;
+  hashMs: number;
+  base64Ms: number;
+  totalMs: number;
+  skipped: boolean;
+  /** Whether this render was served from the image cache. */
+  cacheHit: boolean;
+  treeDepth: number;
+  nodeCount: number;
+  /** Image cache statistics at the time of this render. */
+  cacheStats: CacheStats | null;
+}
+
+/** Image cache statistics. */
+interface CacheStats {
+  /** Number of entries currently in the cache. */
+  entries: number;
+  /** Current memory usage in bytes. */
+  bytes: number;
+  /** Maximum memory budget in bytes. */
+  maxBytes: number;
+  /** Total cache hits since creation or last reset. */
+  hits: number;
+  /** Total cache misses since creation or last reset. */
+  misses: number;
+}
+
+/** Rolling-window render pipeline statistics. */
+interface RenderMetrics {
+  /** Total flush() calls (render attempts). */
+  flushCount: number;
+  /** Flushes that reached the Takumi renderer. */
+  renderCount: number;
+  /** Tree hash cache hits (Phase 2). */
+  cacheHitCount: number;
+  /** Skipped due to clean tree — dirty flag check (Phase 1). */
+  dirtySkipCount: number;
+  /** Skipped due to identical output — post-render xxHash output dedup (Phase 4). */
+  hashDedupCount: number;
+  /** Average Takumi render time in milliseconds. */
+  avgRenderMs: number;
+  /** Peak (worst-case) render time in milliseconds. */
+  peakRenderMs: number;
+  /** Image cache memory usage in bytes. */
+  imageCacheBytes: number;
+  /** TouchBar cache memory usage in bytes. */
+  touchbarCacheBytes: number;
+}
+```
+
+## Manifest Types
+
+These types support the [manifest codegen](/concepts/architecture#manifest-codegen) system for compile-time UUID validation.
+
+```ts
+/**
+ * Augmented by the auto-generated streamdeck-env.d.ts file.
+ * Empty by default — when populated, it enables type-safe defineAction() calls.
+ */
+interface ManifestActions {}
+
+/** Union of all manifest action UUIDs when available, plain `string` otherwise. */
+type ActionUUID = [keyof ManifestActions] extends [never]
+  ? string
+  : Extract<keyof ManifestActions, string>;
+
+/**
+ * Manifest-derived discriminated union for defineAction().
+ * When ManifestActions is populated, each member enforces controller-specific
+ * requirements (e.g., Keypad actions must provide `key`, Encoder actions must
+ * provide `dial` or `touchBar`). Falls back to the permissive ActionConfig
+ * when no manifest codegen is active.
+ */
+type ActionConfigInput<S extends JsonObject = JsonObject> = [keyof ManifestActions] extends [never]
+  ? ActionConfig<S>
+  : {
+      [UUID in ActionUUID]: { uuid: UUID /* ... */ } & KeySurface<UUID> & EncoderSurface<UUID>;
+    }[ActionUUID];
 ```
 
 ## Context Types

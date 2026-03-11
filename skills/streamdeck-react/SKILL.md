@@ -29,9 +29,37 @@ React Tree --> Reconciler --> VNode Tree --> Takumi --> setImage/setFeedback
 
 1. Your components render standard React with hooks and state.
 2. A custom `react-reconciler` manages the fiber tree.
-3. On commit, host nodes form a virtual tree of `{ type, props, children }`.
-4. The Takumi renderer converts the tree to a PNG/WebP image buffer.
+3. On commit, host nodes form a virtual tree of `{ type, props, children }` with back-pointers for dirty propagation.
+4. The Takumi renderer converts the tree to a PNG/WebP image buffer via a direct VNode-to-Takumi bypass (skips createElement + fromJsx).
 5. The image is pushed to Stream Deck via `action.setImage()` or `action.setFeedback()`.
+
+### 4-Phase Skip Hierarchy
+
+Every render passes through a multi-tier skip hierarchy to avoid redundant work:
+
+```
+Phase 1: Dirty-flag check (O(1)) → skip if no VNode mutated
+Phase 2: Merkle hash → Image cache lookup → skip if hash matches cached render
+Phase 3: Takumi render (main thread or worker) → rasterize
+Phase 4: xxHash output dedup → skip hardware push if identical to last frame
+```
+
+Two entry points: `renderToDataUri` (keys/dials → base64 data URI) and `renderToRaw` (touchbar → raw RGBA Buffer).
+
+### Flush Coordinator
+
+When multiple roots request flushes in the same tick, the FlushCoordinator batches them via microtask and processes in priority order:
+
+- Priority 0 (animating) → 1 (interactive) → 2 (normal) → 3 (idle)
+- Sequential execution ensures higher-priority roots get first access to the USB bus.
+
+### Manifest Codegen
+
+The bundler plugins (Rollup and Vite) auto-generate `src/streamdeck-env.d.ts` from `manifest.json`:
+
+- Enables compile-time UUID validation (typos caught by TypeScript)
+- Enforces controller-aware `defineAction()` types (Keypad → `key` required, Encoder → `dial` or `touchBar` required)
+- Skips write if content unchanged (avoids unnecessary recompilation in watch mode)
 
 Each visible action instance on the hardware gets its own isolated React root. No shared state between roots unless you use an external store (Zustand, Jotai) or the wrapper API.
 
@@ -459,7 +487,7 @@ When scaffolding or modifying a @fcannizzaro/streamdeck-react plugin, verify:
 
 ## DevTools
 
-A browser-based inspector for debugging plugins during development. When enabled, the plugin starts a WebSocket server on `localhost` (port range 39400-39499) and the browser UI auto-discovers running plugins by scanning that range.
+A browser-based inspector for debugging plugins during development. When enabled, the plugin starts an HTTP + SSE (Server-Sent Events) server on `localhost` (port range 39400-39499) and the browser UI auto-discovers running plugins by scanning that range.
 
 ### Enabling
 
@@ -482,13 +510,14 @@ const plugin = createPlugin({
 
 ### Panels
 
-| Panel    | Description                                                           |
-| -------- | --------------------------------------------------------------------- |
-| Console  | Intercepted `console.log/warn/error/info/debug` output                |
-| Network  | Intercepted `fetch` requests and responses                            |
-| Elements | VNode tree inspector with element highlighting on the physical device |
-| Preview  | Live rendered images for every active action and touch bar            |
-| Events   | EventBus emissions (`keyDown`, `dialRotate`, `touchTap`, etc.)        |
+| Panel       | Description                                                                   |
+| ----------- | ----------------------------------------------------------------------------- |
+| Console     | Intercepted `console.log/warn/error/info/debug` output                        |
+| Network     | Intercepted `fetch` requests and responses                                    |
+| Elements    | VNode tree inspector with element highlighting on the physical device         |
+| Preview     | Live rendered images for every active action and touch bar                    |
+| Events      | EventBus emissions (`keyDown`, `dialRotate`, `touchTap`, etc.)                |
+| Performance | Render pipeline metrics: flush counts, skip rates, cache stats, render timing |
 
 ### Key Details
 

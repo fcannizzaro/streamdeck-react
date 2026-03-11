@@ -6,15 +6,17 @@ description: How @fcannizzaro/streamdeck-react turns JSX into rendered output fo
 ## High-Level Pipeline
 
 ```
-React Tree ──> Reconciler ──> Virtual Tree ──> Takumi ──> setImage / setFeedback
-(JSX+Hooks)   (host config)  (VNodes)         (JSX→image)
+React Tree ──> Reconciler ──> VNode Tree ──> Takumi ──> setImage / setFeedback
+(JSX+Hooks)   (host config)  (VNodes)       (raster)   (hardware)
 ```
 
 1. **React Tree** -- your components, hooks, state, context. Standard React.
 2. **Reconciler** -- a custom `react-reconciler` instance in mutation mode. Manages the fiber tree, calls hooks, schedules effects, diffs updates.
-3. **Virtual Tree** -- on each commit the reconciler's host nodes form a plain JS tree of `{ type, props, children }` objects.
-4. **Takumi renderer** -- receives the virtual tree as React elements, your fonts, and target dimensions. Produces the final image buffer.
+3. **VNode Tree** -- on each commit the reconciler's host nodes form a plain JS tree of `{ type, props, children }` objects with back-pointers for dirty propagation.
+4. **Takumi renderer** -- receives the VNode tree converted directly to Takumi nodes (bypassing `React.createElement`), your fonts, and target dimensions. Produces the final image buffer.
 5. **Stream Deck** -- the image is encoded as a data URI and pushed via `action.setImage()` for keys, or via `action.setFeedback()` for encoder displays.
+
+Between steps 3 and 4, the [4-phase skip hierarchy](/concepts/rendering-pipeline#4-phase-skip-hierarchy) can short-circuit the render at multiple points: dirty-flag check, Merkle hash + cache lookup, and post-render output dedup.
 
 ## One React Root Per Action Instance
 
@@ -34,6 +36,87 @@ Stream Deck Canvas:
   D1     D2    D3      Dials also get their own roots.
 ```
 
+## Root Registry
+
+The `RootRegistry` is the central hub that maps Stream Deck action instances to React roots and routes SDK events to the correct root. It owns three internal maps:
+
+- **roots** (actionId → ReactRoot) -- per-key and per-dial instances
+- **touchBarRoots** (deviceId → TouchBarRoot) -- shared per-device touchbar roots
+- **touchBarActions** (actionId → deviceId) -- reverse lookup for routing touch events
+
+When an SDK event arrives (keyDown, dialRotate, touchTap, etc.), the registry dispatches it:
+
+```
+SDK Event (onKeyDown, onWillAppear, ...)
+  ↓
+SingletonAction handler
+  ↓
+registry.dispatch(actionId, event, payload)
+  ↓
+┌─ Per-action root?  → root.eventBus.emit(event, payload)
+└─ TouchBar action?  → coordinate remap → tbRoot.eventBus.emit(touchBarEvent, payload)
+```
+
+For touchbar actions, events are remapped: `touchTap` becomes `touchBarTap` with coordinates translated from per-encoder (200×100) to absolute strip position, and dial events gain a `column` field.
+
+## TouchBarRoot
+
+Unlike standard per-action roots, there is **one TouchBarRoot per device**, shared across all encoder actions on that device. It renders a single React component tree spanning the full touch strip width (800×100 pixels for 4 encoders on Stream Deck+).
+
+```
+TouchBarRoot (one per device)
+┌──────────────────────────────────────────────────┐
+│ Single React tree renders at full width (800×100) │
+│                                                  │
+│  col 0      col 1      col 2      col 3          │
+│ ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐     │
+│ │ 200×100│ │ 200×100│ │ 200×100│ │ 200×100│     │
+│ └───┬────┘ └───┬────┘ └───┬────┘ └───┬────┘     │
+│     ▼          ▼          ▼          ▼           │
+│  setFeedback per encoder (sliced segments)       │
+└──────────────────────────────────────────────────┘
+```
+
+Two rendering paths are available (selected by `touchbarImageFormat`):
+
+- **Native format** (default, WebP) -- Takumi renders each segment independently using a CSS negative-margin viewport offset to extract the correct portion. Faster because Takumi encodes WebP natively during the render call.
+- **Raw + crop** (PNG) -- one full-width render produces raw RGBA pixels, then each per-encoder segment is cropped and PNG-encoded independently. Uses the buffer pool to avoid GC pressure.
+
+Columns may not be contiguous (e.g., columns [0, 1, 3] if encoder 2 is used by a different action). The touchbar component receives layout metadata via the `useTouchBar()` hook.
+
+See the [TouchBar guide](/guides/touchbar) for user-facing details on building touchbar components.
+
+## Flush Coordinator
+
+When a Stream Deck has 15 keys and 4 encoders all animating, up to 19 roots may request flushes in the same tick. Without coordination, they race for the USB bus, and lower-priority updates (settings changes) can starve higher-priority ones (animations, key press feedback).
+
+The `FlushCoordinator` solves this with microtask-based batching and priority sorting:
+
+1. Roots call `requestFlush()` — added to a pending set
+2. At the microtask boundary, all pending roots are collected and sorted by priority
+3. Flushes execute **sequentially** in priority order (highest priority first)
+4. If new requests arrive during the drain, another microtask cycle is scheduled
+
+Four priority levels:
+
+| Priority | Mode        | Condition                                           |
+| -------- | ----------- | --------------------------------------------------- |
+| **0**    | Animating   | >2 renders in a 100ms window (spring/tween running) |
+| **1**    | Interactive | User input (keyDown, dialRotate) within 500ms       |
+| **2**    | Normal      | Default                                             |
+| **3**    | Idle        | No flush for >2 seconds                             |
+
+Flushes are sequential (not parallel) because the Stream Deck USB connection serializes write operations — parallel pushes just queue in the USB driver. Sequential processing gives animated and interactive keys guaranteed first access to the USB bus, reducing perceived latency.
+
+## Dirty Propagation
+
+Each VNode has a `_parent` back-pointer to its parent. When a node is mutated by the reconciler, `markDirty` walks up through `_parent` references, setting `_dirty = true` on each ancestor until it reaches the container root. This enables:
+
+- **Phase 1 skip** -- the container's dirty flag is checked in O(1). If `false`, the entire render is skipped.
+- **Merkle hash efficiency** -- only dirty subtrees need rehashing. A single-node mutation rehashes O(depth) nodes instead of O(n).
+
+The dirty flags and Merkle hashes (`_hash`, `_hashValid`) are cleared after each successful flush.
+
 ## Lifecycle
 
 ```
@@ -47,7 +130,7 @@ onWillAppear(ev)
   ├── Dispatch into the corresponding root's event emitter
   ├── Hooks (useKeyDown, etc.) fire callbacks
   ├── State updates trigger re-render
-  └── Render pass → setImage() (debounced)
+  └── Render pass → setImage() (adaptive debounce)
 
 onDidReceiveSettings(ev)
   ├── Update settings in context
@@ -63,11 +146,11 @@ onWillDisappear(ev)
 Events from the SDK cannot directly call React hooks. Each root has an **EventBus** -- a typed event emitter stored in a ref-stable context:
 
 1. The `SingletonAction` handler receives an SDK event.
-2. It looks up the root by the action's context ID.
+2. It looks up the root by the action's context ID via the `RootRegistry`.
 3. It calls `root.eventBus.emit('keyDown', ev.payload)`.
 4. Inside the tree, `useKeyDown(callback)` has subscribed via `useEffect`. The callback fires.
 5. If the callback calls `setState`, React schedules a re-render.
-6. On commit, the reconciler triggers `resetAfterCommit`, which schedules a render pass.
+6. On commit, the reconciler triggers `resetAfterCommit`, which schedules a flush (routed through the adaptive debounce and flush coordinator).
 
 ## Context Provider Tree
 
@@ -106,3 +189,34 @@ Every action root is automatically wrapped with providers:
 | `CanvasContext`         | Set once on mount (immutable)                                   |
 | `EventBusContext`       | Stable reference, never changes                                 |
 | `StreamDeckContext`     | Stable reference, never changes                                 |
+
+## Manifest Codegen
+
+The bundler plugins (both Rollup and Vite) include a build-time codegen step that reads your `manifest.json` and generates a TypeScript declaration file for compile-time type safety.
+
+```
+manifest.json → parseManifest() → generateManifestDts() → src/streamdeck-env.d.ts
+```
+
+The generated file augments the `ManifestActions` interface:
+
+```ts
+// src/streamdeck-env.d.ts (auto-generated, do not edit)
+declare module "@fcannizzaro/streamdeck-react" {
+  interface ManifestActions {
+    "com.example.counter": {
+      controllers: readonly ["Keypad"];
+    };
+    "com.example.dial": {
+      controllers: readonly ["Encoder"];
+    };
+  }
+}
+```
+
+This enables two features:
+
+1. **Type-safe UUIDs** -- the `uuid` field in `defineAction()` becomes a union of manifest UUIDs. Typos are caught at compile time.
+2. **Controller-aware props** -- if an action declares `"Controllers": ["Keypad"]`, then `key` is required. If `"Controllers": ["Encoder"]`, at least one of `dial` or `touchBar` must be provided.
+
+The codegen auto-detects the `*.sdPlugin/manifest.json` in your project root. It skips the write if the generated content is unchanged, avoiding unnecessary TypeScript recompilation and HMR triggers during watch mode. Set `manifest: false` in the bundler plugin options to disable codegen.
