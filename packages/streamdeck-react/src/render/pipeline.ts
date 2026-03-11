@@ -35,7 +35,7 @@
 //
 // Two entry points:
 //   renderToDataUri  — keys/dials: returns base64 data URI string
-//   renderToRaw      — touchbar: returns raw RGBA Buffer for slicing
+//   renderToRaw      — touchstrip: returns raw RGBA Buffer for slicing
 
 import type { Renderer, OutputFormat } from "@takumi-rs/core";
 import type { Node as TakumiNode } from "@takumi-rs/helpers";
@@ -43,7 +43,7 @@ import { type VContainer, type VNode } from "@/reconciler/vnode";
 import { isContainerDirty, clearDirtyFlags } from "@/reconciler/vnode";
 import { fnv1a, computeTreeHash, computeCacheKey } from "./cache";
 import { encodePng, encodePngAsync } from "./png";
-import { getImageCache, getTouchbarCache, type CacheStats } from "./image-cache";
+import { getImageCache, getTouchstripCache, type CacheStats } from "./image-cache";
 import { getBufferPool } from "./buffer-pool";
 import type { RenderPool } from "./render-pool";
 import { metrics } from "./metrics";
@@ -77,12 +77,12 @@ export interface RenderConfig {
   debug: boolean;
   /** Maximum image cache size in bytes. Set to 0 to disable. @default 16777216 (16 MB) */
   imageCacheMaxBytes: number;
-  /** Maximum touchbar cache size in bytes. Set to 0 to disable. @default 8388608 (8 MB) */
-  touchbarCacheMaxBytes: number;
+  /** Maximum touchstrip cache size in bytes. Set to 0 to disable. @default 8388608 (8 MB) */
+  touchstripCacheMaxBytes: number;
   /** Worker thread pool for offloading Takumi renders. null = main-thread rendering. */
   renderPool: RenderPool | null;
-  /** Image format for touchbar segment encoding. @default "webp" */
-  touchbarImageFormat: OutputFormat;
+  /** Image format for touchstrip segment encoding. @default "webp" */
+  touchstripImageFormat: OutputFormat;
   /** DevTools callback. Called after a non-null render with the container and data URI. */
   onRender?: (container: VContainer, dataUri: string) => void;
   /** Profiling callback. Called after every renderToDataUri / renderToRaw attempt. */
@@ -215,7 +215,7 @@ export function buildTakumiRoot(container: VContainer): TakumiNode {
 
 /**
  * Convert a container's VNode children to Takumi nodes.
- * Used by the touchbar native-format path to build the Takumi node tree
+ * Used by the touchstrip native-format path to build the Takumi node tree
  * once and share it across all N segment renders in a single flush.
  */
 export function buildTakumiChildren(container: VContainer): TakumiNode[] {
@@ -460,9 +460,9 @@ export async function renderToDataUri(
 }
 // ── Render to Raw RGBA ──────────────────────────────────────────────
 //
-// TouchBar-specific entry point.  Produces raw RGBA pixels (no PNG/WebP
+// TouchStrip-specific entry point.  Produces raw RGBA pixels (no PNG/WebP
 // encoding overhead) for a single full-width render of the component
-// tree.  The caller (TouchBarRoot.doFlush) then crops per-encoder
+// tree.  The caller (TouchStripRoot.doFlush) then crops per-encoder
 // segments via cropSlice() and encodes each independently.
 //
 // Follows the same multi-tier skip hierarchy as renderToDataUri():
@@ -481,7 +481,7 @@ export async function renderToDataUri(
 //
 // Differences from renderToDataUri():
 //
-//   - Uses the touchbar LRU cache (separate size budget)
+//   - Uses the touchstrip LRU cache (separate size budget)
 //   - No base64 encoding step — raw RGBA is returned directly
 //   - Profile timing: t2 (fromJsx) is aliased to t1 (no fromJsx step
 //     in the VNode→Takumi bypass), and t4/t5 (hash+base64) collapse
@@ -500,8 +500,8 @@ export async function renderToDataUri(
 //     (caller calls onRender) ────→    bridge.onRender()
 //                                         │ consumes stashed profile
 //                                         ▼
-//                                       emitTouchBarRender()
-//                                         │ SSE "render:touchbar"
+//                                       emitTouchStripRender()
+//                                         │ SSE "render:touchstrip"
 //                                         ▼
 //                                       Performance Panel
 //
@@ -548,9 +548,9 @@ export async function renderToRaw(
   let t1 = t0;
   let t3 = t0;
 
-  // ── Phase 2: TouchBar Cache Lookup ────────────────────────────
+  // ── Phase 2: TouchStrip Cache Lookup ────────────────────────────
   // Compute Merkle hash of the VNode tree + render config params.
-  // If found in the touchbar-specific LRU cache, skip the Takumi
+  // If found in the touchstrip-specific LRU cache, skip the Takumi
   // render and return the cached raw RGBA buffer directly.
   //
   // Hoisted so the same values can be reused at cache-store time
@@ -558,10 +558,10 @@ export async function renderToRaw(
   let treeHash: number | undefined;
   let cacheKey: number | undefined;
 
-  if (config.caching && config.touchbarCacheMaxBytes > 0) {
+  if (config.caching && config.touchstripCacheMaxBytes > 0) {
     treeHash = computeTreeHash(container);
     cacheKey = computeCacheKey(treeHash, width, height, config.devicePixelRatio, "raw");
-    const cache = getTouchbarCache(config.touchbarCacheMaxBytes);
+    const cache = getTouchstripCache(config.touchstripCacheMaxBytes);
     const cached = cache.get(cacheKey);
 
     if (cached !== undefined) {
@@ -639,16 +639,16 @@ export async function renderToRaw(
 
   const buf = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer);
 
-  // ── Store in touchbar cache ───────────────────────────────────
+  // ── Store in touchstrip cache ───────────────────────────────────
   // Cache the raw RGBA buffer for future Merkle-hash hits.
   // byteLength + 64 accounts for Map/LRU overhead.
   // Reuse hoisted treeHash/cacheKey from Phase 2 lookup above.
-  if (config.caching && config.touchbarCacheMaxBytes > 0) {
+  if (config.caching && config.touchstripCacheMaxBytes > 0) {
     if (treeHash === undefined || cacheKey === undefined) {
       treeHash = computeTreeHash(container);
       cacheKey = computeCacheKey(treeHash, width, height, config.devicePixelRatio, "raw");
     }
-    const cache = getTouchbarCache(config.touchbarCacheMaxBytes);
+    const cache = getTouchstripCache(config.touchstripCacheMaxBytes);
     cache.set(cacheKey, buf, buf.byteLength + 64);
   }
 
@@ -673,7 +673,7 @@ export async function renderToRaw(
 
 // ── Raw Buffer Crop ─────────────────────────────────────────────────
 // Extracts a rectangular slice from a raw RGBA buffer (row-major order).
-// Used by the touchbar pipeline to cut per-encoder segments from a
+// Used by the touchstrip pipeline to cut per-encoder segments from a
 // single full-width render.
 //
 // Memory layout of the source buffer (fullWidth × segmentHeight):
@@ -731,7 +731,7 @@ export function sliceToDataUri(
 
 // ── Async Slice to Data URI ─────────────────────────────────────────
 // Async variant that offloads deflate compression to the libuv thread
-// pool (via zlib.deflate).  When multiple touchbar segments are encoded
+// pool (via zlib.deflate).  When multiple touchstrip segments are encoded
 // in parallel via Promise.all, each deflate runs on a separate libuv
 // worker — effectively parallelizing the most expensive step of PNG
 // encoding across CPU cores.
@@ -752,7 +752,7 @@ export async function sliceToDataUriAsync(
 }
 
 // ── Render Segment to Data URI (native format) ─────────────────────
-// Alternative touchbar rendering path that bypasses raw→crop→PNG entirely.
+// Alternative touchstrip rendering path that bypasses raw→crop→PNG entirely.
 // Each encoder segment gets its own independent Takumi render call using
 // a CSS negative-margin viewport offset to extract the correct portion:
 //
@@ -780,7 +780,7 @@ export async function renderSegmentToDataUri(
   if (container.children.length === 0) return null;
 
   // Reuse pre-built Takumi node tree when provided by the caller.
-  // In the touchbar native-format path, the caller (TouchBarRoot.doFlush)
+  // In the touchstrip native-format path, the caller (TouchStripRoot.doFlush)
   // builds the tree once and passes it to all N segment renders, avoiding
   // N redundant vnodeToTakumiNode() tree walks per flush.
   const children = prebuiltTakumiChildren ?? container.children.map(vnodeToTakumiNode);

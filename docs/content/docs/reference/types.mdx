@@ -22,12 +22,12 @@ interface PluginConfig {
   debug?: boolean;
   /** Maximum image cache size in bytes for key/dial renders. Set to 0 to disable. @default 16777216 (16 MB) */
   imageCacheMaxBytes?: number;
-  /** Maximum touchbar raw buffer cache size in bytes. Set to 0 to disable. @default 8388608 (8 MB) */
-  touchbarCacheMaxBytes?: number;
+  /** Maximum touchstrip raw buffer cache size in bytes. Set to 0 to disable. @default 8388608 (8 MB) */
+  touchstripCacheMaxBytes?: number;
   /** Offload Takumi rendering to a worker thread. @default true */
   useWorker?: boolean;
-  /** Image format for touchbar segment encoding. @default "webp" */
-  touchbarImageFormat?: "webp" | "png";
+  /** Image format for touchstrip segment encoding. @default "webp" */
+  touchstripImageFormat?: "webp" | "png";
 }
 
 interface FontConfig {
@@ -41,8 +41,8 @@ interface ActionConfig<S extends JsonObject = JsonObject> {
   uuid: string;
   key?: ComponentType;
   dial?: ComponentType;
-  touchBar?: ComponentType;
-  touchBarFPS?: number;
+  touchStrip?: ComponentType;
+  touchStripFPS?: number;
   dialLayout?: EncoderLayout;
   wrapper?: WrapperComponent;
   defaultSettings?: Partial<S>;
@@ -52,8 +52,8 @@ interface ActionDefinition<S extends JsonObject = JsonObject> {
   uuid: string;
   key?: ComponentType;
   dial?: ComponentType;
-  touchBar?: ComponentType;
-  touchBarFPS?: number;
+  touchStrip?: ComponentType;
+  touchStripFPS?: number;
   dialLayout?: EncoderLayout;
   wrapper?: WrapperComponent;
   defaultSettings: Partial<S>;
@@ -191,8 +191,8 @@ interface RenderMetrics {
   peakRenderMs: number;
   /** Image cache memory usage in bytes. */
   imageCacheBytes: number;
-  /** TouchBar cache memory usage in bytes. */
-  touchbarCacheBytes: number;
+  /** TouchStrip cache memory usage in bytes. */
+  touchstripCacheBytes: number;
 }
 ```
 
@@ -216,7 +216,7 @@ type ActionUUID = [keyof ManifestActions] extends [never]
  * Manifest-derived discriminated union for defineAction().
  * When ManifestActions is populated, each member enforces controller-specific
  * requirements (e.g., Keypad actions must provide `key`, Encoder actions must
- * provide `dial` or `touchBar`). Falls back to the permissive ActionConfig
+ * provide `dial` or `touchStrip`). Falls back to the permissive ActionConfig
  * when no manifest codegen is active.
  */
 type ActionConfigInput<S extends JsonObject = JsonObject> = [keyof ManifestActions] extends [never]
@@ -301,7 +301,7 @@ interface DialHints {
 ## Touch Bar Types
 
 ```ts
-interface TouchBarInfo {
+interface TouchStripInfo {
   /** Full render width in pixels (e.g., 800 for 4 encoders). */
   width: number;
   /** Strip height in pixels (always 100). */
@@ -314,7 +314,7 @@ interface TouchBarInfo {
   fps: number;
 }
 
-interface TouchBarTapPayload {
+interface TouchStripTapPayload {
   /** Absolute tap position across the full strip width. */
   tapPos: [x: number, y: number];
   hold: boolean;
@@ -322,13 +322,13 @@ interface TouchBarTapPayload {
   column: number;
 }
 
-interface TouchBarDialRotatePayload {
+interface TouchStripDialRotatePayload {
   column: number;
   ticks: number;
   pressed: boolean;
 }
 
-interface TouchBarDialPressPayload {
+interface TouchStripDialPressPayload {
   column: number;
 }
 ```

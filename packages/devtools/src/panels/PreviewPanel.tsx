@@ -1,16 +1,16 @@
 import { useStore } from "../hooks/useStore";
-import { ImagePreview, TouchBarPreview } from "../components/ImagePreview";
+import { ImagePreview, TouchStripPreview } from "../components/ImagePreview";
 
 // ── Preview Panel ───────────────────────────────────────────────────
 
 export function PreviewPanel() {
   const actions = useStore((s) => s.actions);
-  const touchBars = useStore((s) => s.touchBars);
+  const touchStrips = useStore((s) => s.touchStrips);
 
   const actionList = [...actions.values()];
-  const touchBarList = [...touchBars.values()];
+  const touchStripList = [...touchStrips.values()];
 
-  if (actionList.length === 0 && touchBarList.length === 0) {
+  if (actionList.length === 0 && touchStripList.length === 0) {
     return (
       <div className="flex items-center justify-center h-full text-neutral-600 text-xs">
         No active actions. Waiting for Stream Deck events...
@@ -51,12 +51,12 @@ export function PreviewPanel() {
         </div>
       ))}
 
-      {touchBarList.length > 0 && (
+      {touchStripList.length > 0 && (
         <div>
           <div className="text-xs text-neutral-500 mb-2 font-bold">Touch Bars</div>
           <div className="space-y-3">
-            {touchBarList.map((tb) => (
-              <TouchBarPreview key={tb.deviceId} touchBar={tb} />
+            {touchStripList.map((tb) => (
+              <TouchStripPreview key={tb.deviceId} touchStrip={tb} />
             ))}
           </div>
         </div>

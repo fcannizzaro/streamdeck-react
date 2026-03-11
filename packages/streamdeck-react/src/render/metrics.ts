@@ -17,7 +17,7 @@
 // rather than cumulative totals.  The report timer uses unref() to
 // avoid preventing Node.js process exit.
 
-import { getImageCache, getTouchbarCache, getTouchbarNativeCache } from "./image-cache";
+import { getImageCache, getTouchstripCache, getTouchstripNativeCache } from "./image-cache";
 
 // ── Types ───────────────────────────────────────────────────────────
 
@@ -38,8 +38,8 @@ export interface RenderMetrics {
   peakRenderMs: number;
   /** Image cache memory usage in bytes. */
   imageCacheBytes: number;
-  /** TouchBar cache memory usage in bytes. */
-  touchbarCacheBytes: number;
+  /** TouchStrip cache memory usage in bytes. */
+  touchstripCacheBytes: number;
 }
 
 // ── Metrics Collector ───────────────────────────────────────────────
@@ -148,8 +148,8 @@ class MetricsCollector {
   /** Get current snapshot of all metrics (cumulative, never reset). */
   snapshot(): RenderMetrics {
     const imageStats = getImageCache().stats;
-    const touchbarStats = getTouchbarCache().stats;
-    const nativeStats = getTouchbarNativeCache().stats;
+    const touchstripStats = getTouchstripCache().stats;
+    const nativeStats = getTouchstripNativeCache().stats;
     return {
       flushCount: this._cumFlushCount,
       renderCount: this._cumRenderCount,
@@ -160,9 +160,9 @@ class MetricsCollector {
       peakRenderMs: this._cumPeakRenderMs,
       imageCacheBytes: imageStats.bytes,
       // Sum raw buffer cache + native-format segment cache.
-      // Only one is active at a time (determined by touchbarImageFormat),
+      // Only one is active at a time (determined by touchstripImageFormat),
       // but both are reported for accurate memory accounting.
-      touchbarCacheBytes: touchbarStats.bytes + nativeStats.bytes,
+      touchstripCacheBytes: touchstripStats.bytes + nativeStats.bytes,
     };
   }
 
@@ -184,7 +184,7 @@ class MetricsCollector {
         `cacheHits=${m.cacheHitCount} dirtySkips=${m.dirtySkipCount} hashDedups=${m.hashDedupCount} ` +
         `skipRate=${skipRate}% ` +
         `avgRender=${m.avgRenderMs.toFixed(1)}ms peak=${m.peakRenderMs.toFixed(1)}ms ` +
-        `imgCache=${(m.imageCacheBytes / 1024).toFixed(0)}KB tbCache=${(m.touchbarCacheBytes / 1024).toFixed(0)}KB`,
+        `imgCache=${(m.imageCacheBytes / 1024).toFixed(0)}KB tbCache=${(m.touchstripCacheBytes / 1024).toFixed(0)}KB`,
     );
 
     // Reset counters for the next interval

@@ -12,10 +12,10 @@ const EVENT_CATEGORIES: Record<string, { color: string; label: string }> = {
   dialDown: { color: "text-green-300", label: "dial" },
   dialUp: { color: "text-green-300", label: "dial" },
   touchTap: { color: "text-orange-300", label: "touch" },
-  touchBarTap: { color: "text-purple-300", label: "tb" },
-  touchBarDialRotate: { color: "text-purple-300", label: "tb" },
-  touchBarDialDown: { color: "text-purple-300", label: "tb" },
-  touchBarDialUp: { color: "text-purple-300", label: "tb" },
+  touchStripTap: { color: "text-purple-300", label: "tb" },
+  touchStripDialRotate: { color: "text-purple-300", label: "tb" },
+  touchStripDialDown: { color: "text-purple-300", label: "tb" },
+  touchStripDialUp: { color: "text-purple-300", label: "tb" },
   willAppear: { color: "text-neutral-400", label: "lifecycle" },
   willDisappear: { color: "text-neutral-400", label: "lifecycle" },
   settingsChanged: { color: "text-yellow-300", label: "settings" },
@@ -137,7 +137,7 @@ function EventRow({ event }: { event: import("../types").EventBusMessage }) {
       <span className="text-neutral-600 shrink-0 w-20 truncate" title={event.actionId}>
         {event.actionId.slice(0, 8)}
       </span>
-      <div className="flex-1 min-w-0 break-words">
+      <div className="flex-1 min-w-0 wrap-break-word">
         <ValueRenderer value={event.payload} depth={0} />
       </div>
     </div>

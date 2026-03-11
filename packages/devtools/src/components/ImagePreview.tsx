@@ -1,4 +1,4 @@
-import type { ActionEntry, TouchBarEntry } from "../types";
+import type { ActionEntry, TouchStripEntry } from "../types";
 import { useStore } from "../hooks/useStore";
 
 // ── Image Preview Card ──────────────────────────────────────────────
@@ -64,12 +64,12 @@ export function ImagePreview({ action }: { action: ActionEntry }) {
   );
 }
 
-// ── TouchBar Preview ────────────────────────────────────────────────
+// ── TouchStrip Preview ────────────────────────────────────────────────
 
-export function TouchBarPreview({ touchBar }: { touchBar: TouchBarEntry }) {
-  const segments = [...touchBar.segments.entries()].sort(([a], [b]) => a - b);
+export function TouchStripPreview({ touchStrip }: { touchStrip: TouchStripEntry }) {
+  const segments = [...touchStrip.segments.entries()].sort(([a], [b]) => a - b);
 
-  // Per-segment highlight URIs are keyed as "touchbar:<deviceId>:seg:<col>"
+  // Per-segment highlight URIs are keyed as "touchstrip:<deviceId>:seg:<col>"
   // in the highlight store.  Each segment checks for its own highlight URI
   // and uses it instead of the normal segment image when present.
   const highlightMap = useStore((s) => s.highlightDataUri);
@@ -77,15 +77,16 @@ export function TouchBarPreview({ touchBar }: { touchBar: TouchBarEntry }) {
   return (
     <div className="bg-neutral-800 rounded-lg p-3 flex flex-col gap-2">
       <div className="text-[10px] text-neutral-400 flex items-center gap-2">
-        <span className="bg-purple-900/40 text-purple-300 px-1.5 py-0.5 rounded">touchbar</span>
-        <span className="text-neutral-500">{touchBar.deviceName}</span>
+        <span className="bg-purple-900/40 text-purple-300 px-1.5 py-0.5 rounded">touchstrip</span>
+        <span className="text-neutral-500">{touchStrip.deviceName}</span>
         <span className="text-neutral-600 ml-auto">
-          {touchBar.canvas.width}x{touchBar.canvas.height}
+          {touchStrip.canvas.width}x{touchStrip.canvas.height}
         </span>
       </div>
       <div className="flex">
         {segments.map(([col, seg]) => {
-          const highlightUri = highlightMap.get(`touchbar:${touchBar.deviceId}:seg:${col}`) ?? null;
+          const highlightUri =
+            highlightMap.get(`touchstrip:${touchStrip.deviceId}:seg:${col}`) ?? null;
           const displayUri = highlightUri ?? seg.dataUri;
 
           return (
@@ -99,7 +100,7 @@ export function TouchBarPreview({ touchBar }: { touchBar: TouchBarEntry }) {
                   style={{ imageRendering: "pixelated" }}
                 />
               ) : (
-                <div className="bg-neutral-900 rounded w-[200px] h-[100px] flex items-center justify-center text-neutral-700 text-xs">
+                <div className="bg-neutral-900 rounded w-50 h-25 flex items-center justify-center text-neutral-700 text-xs">
                   Col {col}
                 </div>
               )}

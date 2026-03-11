@@ -36,7 +36,7 @@
       "UUID": "com.example.react-animation.spring-dial",
       "Controllers": ["Encoder"],
       "Encoder": {
-        "layout": "layouts/touchbar.json",
+        "layout": "layouts/touchstrip.json",
         "TriggerDescription": {
           "Rotate": "Move ball",
           "Push": "Toggle size",

@@ -57,12 +57,12 @@ export {
 
 // ── Hooks — Touch Bar ───────────────────────────────────────────────
 export {
-  useTouchBar,
-  useTouchBarTap,
-  useTouchBarDialRotate,
-  useTouchBarDialDown,
-  useTouchBarDialUp,
-} from "@/hooks/touchbar";
+  useTouchStrip,
+  useTouchStripTap,
+  useTouchStripDialRotate,
+  useTouchStripDialDown,
+  useTouchStripDialUp,
+} from "@/hooks/touchstrip";
 
 // ── Components ──────────────────────────────────────────────────────
 export { Box } from "@/components/Box";
@@ -99,10 +99,10 @@ export type {
   TouchTapPayload,
   DialHints,
   StreamDeckAccess,
-  TouchBarInfo,
-  TouchBarTapPayload,
-  TouchBarDialRotatePayload,
-  TouchBarDialPressPayload,
+  TouchStripInfo,
+  TouchStripTapPayload,
+  TouchStripDialRotatePayload,
+  TouchStripDialPressPayload,
 } from "@/types";
 
 export type { TapOptions, LongPressOptions, DoubleTapOptions } from "@/hooks/gestures";

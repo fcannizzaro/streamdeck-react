@@ -27,7 +27,7 @@
 // Two variants:
 //   encodePng      — synchronous (deflateSync), used for single images
 //   encodePngAsync — async (deflate via libuv), used for parallel
-//                    touchbar segment encoding via Promise.all
+//                    touchstrip segment encoding via Promise.all
 
 import { deflateSync, deflate } from "node:zlib";
 import { promisify } from "node:util";

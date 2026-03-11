@@ -165,7 +165,7 @@ function Chevron({ expanded, onClick }: { expanded: boolean; onClick: () => void
 
 export function ConsoleArgs({ args }: { args: SerializedValue[] }) {
   return (
-    <span className="flex flex-wrap gap-x-2 items-baseline [overflow-wrap:anywhere]">
+    <span className="flex flex-wrap gap-x-2 items-baseline wrap-anywhere">
       {args.map((arg, i) => (
         <ValueRenderer key={i} value={arg} depth={0} />
       ))}

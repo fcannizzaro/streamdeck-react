@@ -1,22 +1,22 @@
 ---
-title: TouchBar Hooks
-description: React hooks for the Stream Deck+ shared touch strip -- geometry, tap events, dial rotation, and dial press within a touchBar component.
+title: TouchStrip Hooks
+description: React hooks for the Stream Deck+ shared touch strip -- geometry, tap events, dial rotation, and dial press within a touchStrip component.
 ---
 
-TouchBar hooks are available inside a `touchBar` component registered via `defineAction`. They provide geometry info, tap coordinates, and per-dial events with `column` identification.
+TouchStrip hooks are available inside a `touchStrip` component registered via `defineAction`. They provide geometry info, tap coordinates, and per-dial events with `column` identification.
 
-> These hooks are **only available inside a `touchBar` component**. For per-encoder hooks (one React root per dial), see [Event Hooks](/hooks/events).
+> These hooks are **only available inside a `touchStrip` component**. For per-encoder hooks (one React root per dial), see [Event Hooks](/hooks/events).
 
-## useTouchBar
+## useTouchStrip
 
 Returns the current touch strip geometry and configuration.
 
 ```ts
-function useTouchBar(): TouchBarInfo;
+function useTouchStrip(): TouchStripInfo;
 ```
 
 ```ts
-interface TouchBarInfo {
+interface TouchStripInfo {
   /** Full strip width in pixels (e.g. 800 for 4 encoders). */
   width: number;
   /** Strip height in pixels (always 100). */
@@ -31,8 +31,8 @@ interface TouchBarInfo {
 ```
 
 ```tsx
-function MyTouchBar() {
-  const { width, height, fps, columns, segmentWidth } = useTouchBar();
+function MyTouchStrip() {
+  const { width, height, fps, columns, segmentWidth } = useTouchStrip();
 
   return (
     <div style={{ width, height, background: "#1a1a2e" }}>
@@ -44,16 +44,16 @@ function MyTouchBar() {
 }
 ```
 
-## useTouchBarTap
+## useTouchStripTap
 
 Fires when the touch strip is tapped. Coordinates are **absolute** across the full strip width.
 
 ```ts
-function useTouchBarTap(callback: (payload: TouchBarTapPayload) => void): void;
+function useTouchStripTap(callback: (payload: TouchStripTapPayload) => void): void;
 ```
 
 ```ts
-interface TouchBarTapPayload {
+interface TouchStripTapPayload {
   /** Absolute tap position across the full strip. */
   tapPos: [x: number, y: number];
   /** Whether it was a long press. */
@@ -64,11 +64,11 @@ interface TouchBarTapPayload {
 ```
 
 ```tsx
-function MyTouchBar() {
-  const { width, height } = useTouchBar();
+function MyTouchStrip() {
+  const { width, height } = useTouchStrip();
   const [marker, setMarker] = useState(0);
 
-  useTouchBarTap(({ tapPos }) => {
+  useTouchStripTap(({ tapPos }) => {
     setMarker(tapPos[0]);
   });
 
@@ -91,16 +91,16 @@ function MyTouchBar() {
 
 Tap coordinates are translated from per-segment local coordinates to absolute strip coordinates automatically. A tap at local `[50, 30]` on column 2 becomes `[450, 30]`.
 
-## useTouchBarDialRotate
+## useTouchStripDialRotate
 
 Fires when any dial is rotated. The `column` field identifies which dial.
 
 ```ts
-function useTouchBarDialRotate(callback: (payload: TouchBarDialRotatePayload) => void): void;
+function useTouchStripDialRotate(callback: (payload: TouchStripDialRotatePayload) => void): void;
 ```
 
 ```ts
-interface TouchBarDialRotatePayload {
+interface TouchStripDialRotatePayload {
   /** Which encoder column was rotated (0-indexed). */
   column: number;
   /** Signed rotation amount. Positive = clockwise. */
@@ -111,7 +111,7 @@ interface TouchBarDialRotatePayload {
 ```
 
 ```tsx
-useTouchBarDialRotate(({ column, ticks }) => {
+useTouchStripDialRotate(({ column, ticks }) => {
   if (column === 0) {
     // Dial 0: steer
     setDirection((d) => (ticks > 0 ? turnRight(d) : turnLeft(d)));
@@ -122,37 +122,37 @@ useTouchBarDialRotate(({ column, ticks }) => {
 });
 ```
 
-## useTouchBarDialDown
+## useTouchStripDialDown
 
 Fires when a dial is pressed down.
 
 ```ts
-function useTouchBarDialDown(callback: (payload: TouchBarDialPressPayload) => void): void;
+function useTouchStripDialDown(callback: (payload: TouchStripDialPressPayload) => void): void;
 ```
 
 ```ts
-interface TouchBarDialPressPayload {
+interface TouchStripDialPressPayload {
   /** Which encoder column was pressed (0-indexed). */
   column: number;
 }
 ```
 
-## useTouchBarDialUp
+## useTouchStripDialUp
 
 Fires when a dial is released.
 
 ```ts
-function useTouchBarDialUp(callback: (payload: TouchBarDialPressPayload) => void): void;
+function useTouchStripDialUp(callback: (payload: TouchStripDialPressPayload) => void): void;
 ```
 
-Same payload as `useTouchBarDialDown`.
+Same payload as `useTouchStripDialDown`.
 
-## TouchBar vs Per-Encoder Hooks
+## TouchStrip vs Per-Encoder Hooks
 
-|               | TouchBar hooks                                                  | Per-encoder hooks                                   |
+|               | TouchStrip hooks                                                | Per-encoder hooks                                   |
 | ------------- | --------------------------------------------------------------- | --------------------------------------------------- |
-| Component     | `touchBar` in `defineAction`                                    | `dial` in `defineAction`                            |
+| Component     | `touchStrip` in `defineAction`                                  | `dial` in `defineAction`                            |
 | React roots   | One shared tree for the full strip                              | One root per encoder slot                           |
 | Event routing | All events arrive in one component; use `column` to distinguish | Each component only receives its own dial's events  |
 | Canvas size   | Full strip (e.g. 800x100)                                       | Single segment (200x100)                            |
-| Hooks         | `useTouchBar*` family                                           | `useDialRotate`, `useDialDown`, `useTouchTap`, etc. |
+| Hooks         | `useTouchStrip*` family                                         | `useDialRotate`, `useDialDown`, `useTouchTap`, etc. |

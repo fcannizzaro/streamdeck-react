@@ -4,7 +4,7 @@ import type {
   ConsoleMessage,
   NetworkEntry,
   ActionEntry,
-  TouchBarEntry,
+  TouchStripEntry,
   EventBusMessage,
   ServerMessage,
   SerializedVNode,
@@ -96,7 +96,7 @@ export interface DevtoolsState {
 
   // Elements
   actions: Map<string, ActionEntry>;
-  touchBars: Map<string, TouchBarEntry>;
+  touchStrips: Map<string, TouchStripEntry>;
   selectedActionId: string | null;
   selectedNodeId: number | null;
   hoveredNodeId: number | null;
@@ -142,7 +142,7 @@ function emptyDataState() {
     selectedRequestId: null,
     events: [] as EventBusMessage[],
     actions: new Map<string, ActionEntry>(),
-    touchBars: new Map<string, TouchBarEntry>(),
+    touchStrips: new Map<string, TouchStripEntry>(),
     selectedActionId: null,
     selectedNodeId: null,
     hoveredNodeId: null,
@@ -182,7 +182,7 @@ export const useStore = create<DevtoolsState>((set, get) => ({
 
   // Elements
   actions: new Map(),
-  touchBars: new Map(),
+  touchStrips: new Map(),
   selectedActionId: null,
   selectedNodeId: null,
   hoveredNodeId: null,
@@ -289,8 +289,8 @@ export const useStore = create<DevtoolsState>((set, get) => ({
           actions.set(a.actionId, { ...a });
         }
 
-        const touchBars = new Map<string, TouchBarEntry>();
-        for (const tb of msg.touchBars) {
+        const touchStrips = new Map<string, TouchStripEntry>();
+        for (const tb of msg.touchStrips) {
           const segments = new Map<number, { actionId: string; dataUri: string | null }>();
           for (const s of tb.segments) {
             segments.set(s.column, {
@@ -298,7 +298,7 @@ export const useStore = create<DevtoolsState>((set, get) => ({
               dataUri: s.dataUri,
             });
           }
-          touchBars.set(tb.deviceId, {
+          touchStrips.set(tb.deviceId, {
             deviceId: tb.deviceId,
             deviceName: tb.deviceName,
             canvas: tb.canvas,
@@ -323,27 +323,27 @@ export const useStore = create<DevtoolsState>((set, get) => ({
           }
         }
 
-        // Auto-select first action (or touchbar) if none selected.
+        // Auto-select first action (or touchstrip) if none selected.
         // The selectedActionId can be either a plain actionId or a
-        // "touchbar:<deviceId>" string — check both maps.
-        const TB_PREFIX = "touchbar:";
+        // "touchstrip:<deviceId>" string — check both maps.
+        const TB_PREFIX = "touchstrip:";
         const prevId = state.selectedActionId;
         const prevStillValid =
           prevId != null &&
           (actions.has(prevId) ||
-            (prevId.startsWith(TB_PREFIX) && touchBars.has(prevId.slice(TB_PREFIX.length))));
+            (prevId.startsWith(TB_PREFIX) && touchStrips.has(prevId.slice(TB_PREFIX.length))));
 
         const selectedActionId = prevStillValid
           ? prevId
           : actions.size > 0
             ? (actions.keys().next().value ?? null)
-            : touchBars.size > 0
-              ? `${TB_PREFIX}${touchBars.keys().next().value ?? ""}`
+            : touchStrips.size > 0
+              ? `${TB_PREFIX}${touchStrips.keys().next().value ?? ""}`
               : null;
 
         set({
           actions,
-          touchBars,
+          touchStrips,
           consoleLogs: msg.recentConsole.slice(-MAX_CONSOLE),
           networkRequests,
           networkOrder,
@@ -433,9 +433,9 @@ export const useStore = create<DevtoolsState>((set, get) => ({
         break;
       }
 
-      case "render:touchbar": {
-        const touchBars = new Map(state.touchBars);
-        const existing = touchBars.get(msg.deviceId);
+      case "render:touchstrip": {
+        const touchStrips = new Map(state.touchStrips);
+        const existing = touchStrips.get(msg.deviceId);
         const segments = new Map(existing?.segments ?? new Map());
         for (const s of msg.segments) {
           segments.set(s.column, {
@@ -443,7 +443,7 @@ export const useStore = create<DevtoolsState>((set, get) => ({
             dataUri: s.dataUri,
           });
         }
-        touchBars.set(msg.deviceId, {
+        touchStrips.set(msg.deviceId, {
           deviceId: msg.deviceId,
           deviceName: existing?.deviceName ?? "Unknown",
           canvas: msg.canvas,
@@ -451,19 +451,19 @@ export const useStore = create<DevtoolsState>((set, get) => ({
           segments,
         });
 
-        // ── Append touchbar profile to history ──────────────────
+        // ── Append touchstrip profile to history ──────────────────
         // Same pattern as the "render" case: if the message
         // includes a pipeline timing profile, create a ProfileEntry
         // and append it to the rolling profileHistory buffer.
-        // Uses `touchbar:<deviceId>` as the actionId to distinguish
-        // touchbar profiles from key/dial profiles in the
+        // Uses `touchstrip:<deviceId>` as the actionId to distinguish
+        // touchstrip profiles from key/dial profiles in the
         // Performance panel.
-        const updates: Partial<DevtoolsState> = { touchBars };
+        const updates: Partial<DevtoolsState> = { touchStrips };
         if (msg.profile) {
           const entry: ProfileEntry = {
             ...msg.profile,
             id: `p:${profileIdCounter++}`,
-            actionId: `touchbar:${msg.deviceId}`,
+            actionId: `touchstrip:${msg.deviceId}`,
             actionUuid: "",
             ts: msg.ts,
           };

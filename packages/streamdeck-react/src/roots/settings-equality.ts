@@ -1,7 +1,7 @@
 import type { JsonObject } from "@elgato/utils";
 
 // ── Settings Equality Helpers ───────────────────────────────────────
-// Shared by ReactRoot and TouchBarRoot to avoid unnecessary context
+// Shared by ReactRoot and TouchStripRoot to avoid unnecessary context
 // churn when settings/global-settings writes do not materially change
 // any values.
 

@@ -4,7 +4,7 @@
 //
 // Why byte-bounded (not count-bounded):
 //   Stream Deck images vary wildly in size — a 72×72 key PNG is ~2KB,
-//   a 144×144 key PNG is ~8KB, and an 800×100 raw RGBA touchbar buffer
+//   a 144×144 key PNG is ~8KB, and an 800×100 raw RGBA touchstrip buffer
 //   is 320KB.  A count-bounded cache would either waste memory on small
 //   images or evict too aggressively for large ones.
 //
@@ -22,8 +22,8 @@
 //
 // Generic over value type `V`:
 //   ImageCache<string>  — data URI cache for keys/dials (Phase 2)
-//   ImageCache<Buffer>  — raw RGBA cache for touchbar raw path (Phase 2)
-//   ImageCache<Array<[number, string]>>  — segment URI cache for touchbar native-format path (Phase 2)
+//   ImageCache<Buffer>  — raw RGBA cache for touchstrip raw path (Phase 2)
+//   ImageCache<Array<[number, string]>>  — segment URI cache for touchstrip native-format path (Phase 2)
 //
 // Shared as singletons (one per cache type) across all ReactRoots so
 // the global memory budget is enforced regardless of how many actions
@@ -59,7 +59,7 @@ export interface CacheStats {
  * total byte size exceeds `maxBytes`.
  *
  * Generic over value type: use `string` for data URI caching (keys/dials),
- * `Buffer` for raw RGBA caching (touchbar).
+ * `Buffer` for raw RGBA caching (touchstrip).
  */
 export class ImageCache<V = string> {
   private map = new Map<number, CacheEntry<V>>();
@@ -187,16 +187,16 @@ export class ImageCache<V = string> {
 // Single shared cache across all ReactRoots (per user decision).
 
 const DEFAULT_IMAGE_CACHE_MAX_BYTES = 16 * 1024 * 1024; // 16 MB
-const DEFAULT_TOUCHBAR_CACHE_MAX_BYTES = 8 * 1024 * 1024; // 8 MB
+const DEFAULT_TOUCHSTRIP_CACHE_MAX_BYTES = 8 * 1024 * 1024; // 8 MB
 
 /** Shared image cache for key/dial data URIs. */
 let imageCache: ImageCache<string> | null = null;
 
-/** Shared raw buffer cache for touchbar RGBA data. */
-let touchbarCache: ImageCache<Buffer> | null = null;
+/** Shared raw buffer cache for touchstrip RGBA data. */
+let touchstripCache: ImageCache<Buffer> | null = null;
 
-/** Shared segment URI cache for touchbar native-format (WebP/PNG) renders. */
-let touchbarNativeCache: ImageCache<Array<[number, string]>> | null = null;
+/** Shared segment URI cache for touchstrip native-format (WebP/PNG) renders. */
+let touchstripNativeCache: ImageCache<Array<[number, string]>> | null = null;
 
 /** Get or create the shared image cache for data URIs. */
 export function getImageCache(maxBytes?: number): ImageCache<string> {
@@ -206,35 +206,35 @@ export function getImageCache(maxBytes?: number): ImageCache<string> {
   return imageCache;
 }
 
-/** Get or create the shared touchbar raw buffer cache. */
-export function getTouchbarCache(maxBytes?: number): ImageCache<Buffer> {
-  if (touchbarCache == null) {
-    touchbarCache = new ImageCache<Buffer>(maxBytes ?? DEFAULT_TOUCHBAR_CACHE_MAX_BYTES);
+/** Get or create the shared touchstrip raw buffer cache. */
+export function getTouchstripCache(maxBytes?: number): ImageCache<Buffer> {
+  if (touchstripCache == null) {
+    touchstripCache = new ImageCache<Buffer>(maxBytes ?? DEFAULT_TOUCHSTRIP_CACHE_MAX_BYTES);
   }
-  return touchbarCache;
+  return touchstripCache;
 }
 
 /**
- * Get or create the shared touchbar native-format segment cache.
+ * Get or create the shared touchstrip native-format segment cache.
  * Stores sorted `[column, dataUri]` tuples per tree hash + column config.
- * Uses the same default budget as the raw touchbar cache since only one
- * touchbar rendering path is active at a time.
+ * Uses the same default budget as the raw touchstrip cache since only one
+ * touchstrip rendering path is active at a time.
  */
-export function getTouchbarNativeCache(maxBytes?: number): ImageCache<Array<[number, string]>> {
-  if (touchbarNativeCache == null) {
-    touchbarNativeCache = new ImageCache<Array<[number, string]>>(
-      maxBytes ?? DEFAULT_TOUCHBAR_CACHE_MAX_BYTES,
+export function getTouchstripNativeCache(maxBytes?: number): ImageCache<Array<[number, string]>> {
+  if (touchstripNativeCache == null) {
+    touchstripNativeCache = new ImageCache<Array<[number, string]>>(
+      maxBytes ?? DEFAULT_TOUCHSTRIP_CACHE_MAX_BYTES,
     );
   }
-  return touchbarNativeCache;
+  return touchstripNativeCache;
 }
 
 /** Reset all caches (for testing or config changes). */
 export function resetCaches(): void {
   imageCache?.clear();
   imageCache = null;
-  touchbarCache?.clear();
-  touchbarCache = null;
-  touchbarNativeCache?.clear();
-  touchbarNativeCache = null;
+  touchstripCache?.clear();
+  touchstripCache = null;
+  touchstripNativeCache?.clear();
+  touchstripNativeCache = null;
 }

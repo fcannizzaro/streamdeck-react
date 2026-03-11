@@ -4,7 +4,7 @@
 // stays responsive for SDK event handling and React reconciliation.
 //
 // Why: Takumi's native rasterization (Rust via NAPI) blocks the main
-// thread for 5–30ms per frame.  During 60fps touchbar animation, this
+// thread for 5–30ms per frame.  During 60fps touchstrip animation, this
 // leaves almost no time for event processing.  The worker thread runs
 // the expensive render in parallel while the main thread continues
 // processing keyDown/dialRotate events.

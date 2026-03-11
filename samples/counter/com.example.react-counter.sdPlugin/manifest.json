@@ -67,7 +67,7 @@
       "UUID": "com.example.react-counter.equalizer",
       "Controllers": ["Encoder"],
       "Encoder": {
-        "layout": "layouts/touchbar.json",
+        "layout": "layouts/touchstrip.json",
         "TriggerDescription": {
           "Rotate": "Adjust speed / amplitude",
           "Push": "Pause / Reset",
@@ -81,7 +81,7 @@
   "Category": "React Counter Sample",
   "CategoryIcon": "imgs/plugin-icon",
   "CodePath": "bin/plugin.mjs",
-  "Description": "Sample plugin demonstrating @fcannizzaro/streamdeck-react with counter, timer, toggle, volume, and equalizer touchbar actions.",
+  "Description": "Sample plugin demonstrating @fcannizzaro/streamdeck-react with counter, timer, toggle, volume, and equalizer touchstrip actions.",
   "Icon": "imgs/plugin-icon",
   "Name": "React Counter Sample",
   "Nodejs": {

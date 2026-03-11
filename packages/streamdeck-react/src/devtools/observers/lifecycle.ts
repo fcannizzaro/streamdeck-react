@@ -1,5 +1,5 @@
 import type { ReactRoot } from "@/roots/root";
-import type { TouchBarRoot } from "@/roots/touchbar-root";
+import type { TouchStripRoot } from "@/roots/touchstrip-root";
 import type { CanvasInfo, DeviceInfo } from "@/types";
 
 // ── Registry Observer Interface ─────────────────────────────────────
@@ -29,15 +29,15 @@ export interface RegistryObserver {
 
   onRootDestroyed(actionId: string): void;
 
-  onTouchBarCreated(deviceId: string, root: TouchBarRoot, deviceInfo: DeviceInfo): void;
+  onTouchStripCreated(deviceId: string, root: TouchStripRoot, deviceInfo: DeviceInfo): void;
 
-  onTouchBarColumnChanged(
+  onTouchStripColumnChanged(
     deviceId: string,
     columns: number[],
     actionMap: Map<number, string>,
   ): void;
 
-  onTouchBarDestroyed(deviceId: string): void;
+  onTouchStripDestroyed(deviceId: string): void;
 
   onDispatch(actionId: string, event: string, payload: unknown): void;
 }

@@ -4,7 +4,7 @@
 //
 // Direction:
 //   Server → Client (via SSE /events stream):
-//     server:info, snapshot, console, network:*, render, render:touchbar,
+//     server:info, snapshot, console, network:*, render, render:touchstrip,
 //     event, lifecycle, highlight:render, metrics
 //
 //   Client → Server (via POST /message or GET /message?d=<json>):
@@ -76,7 +76,7 @@ export interface SnapshotAction {
   dataUri: string | null;
 }
 
-export interface SnapshotTouchBar {
+export interface SnapshotTouchStrip {
   deviceId: string;
   deviceName: string;
   canvas: { width: number; height: number };
@@ -91,7 +91,7 @@ export interface SnapshotTouchBar {
 export interface SnapshotMessage extends BaseMessage {
   type: "snapshot";
   actions: SnapshotAction[];
-  touchBars: SnapshotTouchBar[];
+  touchStrips: SnapshotTouchStrip[];
   recentConsole: ConsoleMessage[];
   recentNetwork: (NetworkRequestMessage | NetworkResponseMessage | NetworkErrorMessage)[];
   recentEvents: EventBusMessage[];
@@ -145,8 +145,8 @@ export interface RenderMessage extends BaseMessage {
   profile?: ProfileData;
 }
 
-export interface TouchBarRenderMessage extends BaseMessage {
-  type: "render:touchbar";
+export interface TouchStripRenderMessage extends BaseMessage {
+  type: "render:touchstrip";
   deviceId: string;
   canvas: { width: number; height: number };
   tree: SerializedVNode;
@@ -174,7 +174,7 @@ export interface LifecycleMessage extends BaseMessage {
   event: "appear" | "disappear";
   actionId: string;
   actionUuid: string;
-  surface: "key" | "dial" | "touch" | "touchbar";
+  surface: "key" | "dial" | "touch" | "touchstrip";
   device: { id: string; type: number; name: string };
   coordinates?: { column: number; row: number };
   canvas: { width: number; height: number };
@@ -223,8 +223,8 @@ export interface MetricsData {
   peakRenderMs: number;
   /** Image cache memory usage in bytes. */
   imageCacheBytes: number;
-  /** TouchBar cache memory usage in bytes. */
-  touchbarCacheBytes: number;
+  /** TouchStrip cache memory usage in bytes. */
+  touchstripCacheBytes: number;
 }
 
 export interface MetricsMessage extends BaseMessage {
@@ -257,7 +257,7 @@ export type ServerMessage =
   | NetworkResponseMessage
   | NetworkErrorMessage
   | RenderMessage
-  | TouchBarRenderMessage
+  | TouchStripRenderMessage
   | EventBusMessage
   | LifecycleMessage
   | HighlightRenderMessage

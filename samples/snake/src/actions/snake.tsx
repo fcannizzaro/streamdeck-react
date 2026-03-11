@@ -1,10 +1,10 @@
 import { useState, useRef, useCallback } from "react";
 import {
   defineAction,
-  useTouchBar,
-  useTouchBarTap,
-  useTouchBarDialRotate,
-  useTouchBarDialDown,
+  useTouchStrip,
+  useTouchStripTap,
+  useTouchStripDialRotate,
+  useTouchStripDialDown,
   useTick,
 } from "@fcannizzaro/streamdeck-react";
 
@@ -101,8 +101,8 @@ function createInitialSnake(): Point[] {
 
 // ── Component ───────────────────────────────────────────────────────
 
-function SnakeTouchBar() {
-  const { width, height, fps, segmentWidth } = useTouchBar();
+function SnakeTouchStrip() {
+  const { width, height, fps, segmentWidth } = useTouchStrip();
 
   // ── State (render-driving) ────────────────────────────────────────
   const [snake, setSnake] = useState<Point[]>(createInitialSnake);
@@ -203,7 +203,7 @@ function SnakeTouchBar() {
   }, fps);
 
   // ── Dial Rotate: Steer (col 0) / Speed (col 1) ─────────────────
-  useTouchBarDialRotate(({ column, ticks }) => {
+  useTouchStripDialRotate(({ column, ticks }) => {
     if (column === 0) {
       // Steer: CW (ticks > 0) = turn right relative to heading
       if (gameStateRef.current !== "playing") return;
@@ -218,7 +218,7 @@ function SnakeTouchBar() {
   });
 
   // ── Dial Press: Pause/Start (col 2) / Restart (col 3) ───────────
-  useTouchBarDialDown(({ column }) => {
+  useTouchStripDialDown(({ column }) => {
     if (column === 2) {
       setGameState((gs) => {
         if (gs === "idle") return "playing";
@@ -232,7 +232,7 @@ function SnakeTouchBar() {
   });
 
   // ── Touch Tap: Steer toward tapped position ────────────────────
-  useTouchBarTap(({ tapPos }) => {
+  useTouchStripTap(({ tapPos }) => {
     if (gameStateRef.current !== "playing") return;
 
     const [tapX, tapY] = tapPos;
@@ -448,10 +448,10 @@ function SnakeTouchBar() {
 }
 
 // ── Action Definition ───────────────────────────────────────────────
-// One action placed in all encoder slots — all share the same touchbar.
+// One action placed in all encoder slots — all share the same touchstrip.
 
 export const snakeAction = defineAction({
-  uuid: "com.example.snake.touchbar",
-  touchBar: SnakeTouchBar,
-  touchBarFPS: 30,
+  uuid: "com.example.snake.touchstrip",
+  touchStrip: SnakeTouchStrip,
+  touchStripFPS: 30,
 });

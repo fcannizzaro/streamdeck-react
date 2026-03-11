@@ -128,12 +128,12 @@ export interface PluginConfig {
   debug?: boolean;
   /** Maximum image cache size in bytes for key/dial renders. Set to 0 to disable. @default 16777216 (16 MB) */
   imageCacheMaxBytes?: number;
-  /** Maximum touchbar raw buffer cache size in bytes. Set to 0 to disable. @default 8388608 (8 MB) */
-  touchbarCacheMaxBytes?: number;
+  /** Maximum touchstrip raw buffer cache size in bytes. Set to 0 to disable. @default 8388608 (8 MB) */
+  touchstripCacheMaxBytes?: number;
   /** Offload Takumi rendering to a worker thread. Set to false to disable. @default true */
   useWorker?: boolean;
-  /** Image format for touchbar segment encoding. `"webp"` renders each segment directly via Takumi (faster, no custom PNG encoder). `"png"` uses the raw+crop+deflate path. @default "webp" */
-  touchbarImageFormat?: "webp" | "png";
+  /** Image format for touchstrip segment encoding. `"webp"` renders each segment directly via Takumi (faster, no custom PNG encoder). `"png"` uses the raw+crop+deflate path. @default "webp" */
+  touchstripImageFormat?: "webp" | "png";
 }
 
 export interface Plugin {
@@ -163,7 +163,7 @@ export type ActionUUID = [keyof ManifestActions] extends [never]
 
 // ── Controller-aware Helpers ────────────────────────────────────────
 // These conditional types inspect the controllers tuple from
-// ManifestActions to determine which surface props (key/dial/touchBar)
+// ManifestActions to determine which surface props (key/dial/touchStrip)
 // should be required vs optional.
 //
 // HasController<UUID, C>:
@@ -177,7 +177,7 @@ export type ActionUUID = [keyof ManifestActions] extends [never]
 //
 // EncoderSurface<UUID>:
 //   If the action has "Encoder" controller → at least one of dial or
-//   touchBar must be provided (union of two shapes).
+//   touchStrip must be provided (union of two shapes).
 //   Otherwise → both optional.
 
 type HasController<UUID extends string, C extends string> = UUID extends keyof ManifestActions
@@ -194,9 +194,9 @@ type KeySurface<UUID extends string> =
 type EncoderSurface<UUID extends string> =
   HasController<UUID, "Encoder"> extends true
     ?
-        | { dial: ComponentType; touchBar?: ComponentType }
-        | { dial?: ComponentType; touchBar: ComponentType }
-    : { dial?: ComponentType; touchBar?: ComponentType };
+        | { dial: ComponentType; touchStrip?: ComponentType }
+        | { dial?: ComponentType; touchStrip: ComponentType }
+    : { dial?: ComponentType; touchStrip?: ComponentType };
 
 // ── Action Definition ───────────────────────────────────────────────
 
@@ -204,10 +204,10 @@ export interface ActionConfig<S extends JsonObject = JsonObject> {
   uuid: string;
   key?: ComponentType;
   dial?: ComponentType;
-  /** Full-strip touchbar component. When set, replaces per-encoder `dial` display with a single shared React tree that spans the entire touch strip. */
-  touchBar?: ComponentType;
-  /** Target frame rate for the touchbar animation loop and render pipeline. Controls both `useTick` cadence (via `useTouchBar().fps`) and the render debounce. @default 60 */
-  touchBarFPS?: number;
+  /** Full-strip touchstrip component. When set, replaces per-encoder `dial` display with a single shared React tree that spans the entire touch strip. */
+  touchStrip?: ComponentType;
+  /** Target frame rate for the touchstrip animation loop and render pipeline. Controls both `useTick` cadence (via `useTouchStrip().fps`) and the render debounce. @default 60 */
+  touchStripFPS?: number;
   /** Encoder feedback layout. Defaults to a full-width `pixmap` canvas layout. Custom layouts should include a `pixmap` item keyed as `canvas`. */
   dialLayout?: EncoderLayout;
   wrapper?: WrapperComponent;
@@ -222,8 +222,8 @@ export type ActionConfigInput<S extends JsonObject = JsonObject> = [keyof Manife
   : {
       [UUID in ActionUUID]: {
         uuid: UUID;
-        /** Target frame rate for the touchbar animation loop and render pipeline. Controls both `useTick` cadence (via `useTouchBar().fps`) and the render debounce. @default 60 */
-        touchBarFPS?: number;
+        /** Target frame rate for the touchstrip animation loop and render pipeline. Controls both `useTick` cadence (via `useTouchStrip().fps`) and the render debounce. @default 60 */
+        touchStripFPS?: number;
         /** Encoder feedback layout. Defaults to a full-width `pixmap` canvas layout. Custom layouts should include a `pixmap` item keyed as `canvas`. */
         dialLayout?: EncoderLayout;
         wrapper?: WrapperComponent;
@@ -236,10 +236,10 @@ export interface ActionDefinition<S extends JsonObject = JsonObject> {
   uuid: string;
   key?: ComponentType;
   dial?: ComponentType;
-  /** Full-strip touchbar component. When set, replaces per-encoder `dial` display with a single shared React tree that spans the entire touch strip. */
-  touchBar?: ComponentType;
-  /** Target frame rate for the touchbar animation loop and render pipeline. @default 60 */
-  touchBarFPS?: number;
+  /** Full-strip touchstrip component. When set, replaces per-encoder `dial` display with a single shared React tree that spans the entire touch strip. */
+  touchStrip?: ComponentType;
+  /** Target frame rate for the touchstrip animation loop and render pipeline. @default 60 */
+  touchStripFPS?: number;
   /** Encoder feedback layout. Defaults to a full-width `pixmap` canvas layout. Custom layouts should include a `pixmap` item keyed as `canvas`. */
   dialLayout?: EncoderLayout;
   wrapper?: WrapperComponent;
@@ -328,7 +328,7 @@ export interface DialHints {
 
 // ── Touch Bar Info ──────────────────────────────────────────────────
 
-export interface TouchBarInfo {
+export interface TouchStripInfo {
   /** Full render width in pixels (e.g., 800 for 4 encoders). */
   width: number;
   /** Strip height in pixels (always 100). */
@@ -343,7 +343,7 @@ export interface TouchBarInfo {
 
 // ── Touch Bar Event Payloads ────────────────────────────────────────
 
-export interface TouchBarTapPayload {
+export interface TouchStripTapPayload {
   /** Absolute tap position across the full strip width. */
   tapPos: [x: number, y: number];
   hold: boolean;
@@ -351,13 +351,13 @@ export interface TouchBarTapPayload {
   column: number;
 }
 
-export interface TouchBarDialRotatePayload {
+export interface TouchStripDialRotatePayload {
   column: number;
   ticks: number;
   pressed: boolean;
 }
 
-export interface TouchBarDialPressPayload {
+export interface TouchStripDialPressPayload {
   column: number;
 }
 
@@ -380,8 +380,8 @@ export interface EventMap {
     title: string;
     settings: JsonObject;
   };
-  touchBarTap: TouchBarTapPayload;
-  touchBarDialRotate: TouchBarDialRotatePayload;
-  touchBarDialDown: TouchBarDialPressPayload;
-  touchBarDialUp: TouchBarDialPressPayload;
+  touchStripTap: TouchStripTapPayload;
+  touchStripDialRotate: TouchStripDialRotatePayload;
+  touchStripDialDown: TouchStripDialPressPayload;
+  touchStripDialUp: TouchStripDialPressPayload;
 }

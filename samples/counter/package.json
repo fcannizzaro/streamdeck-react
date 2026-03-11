@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "bunx --bun rollup -c -w --watch.onEnd=\"streamdeck restart com.example.react-counter\"",
     "build": "rollup -c",
-    "check-types": "tsc --noEmit"
+    "check-types": "tsc --noEmit",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@fcannizzaro/streamdeck-react": "workspace:*",

@@ -1,21 +1,21 @@
 import { useState } from "react";
 import {
   defineAction,
-  useTouchBar,
-  useTouchBarDialRotate,
-  useTouchBarDialDown,
-  useTouchBarTap,
+  useTouchStrip,
+  useTouchStripDialRotate,
+  useTouchStripDialDown,
+  useTouchStripTap,
   useSpring,
   SpringPresets,
   tw,
 } from "@fcannizzaro/streamdeck-react";
 
-// ── Spring Dial TouchBar ────────────────────────────────────────────
-// Demonstrates spring physics on the touchbar: a ball follows dial rotation
+// ── Spring Dial TouchStrip ──────────────────────────────────────────
+// Demonstrates spring physics on the touchstrip: a ball follows dial rotation
 // with bouncy spring dynamics. Press to toggle ball size.
 
 function SpringDial() {
-  const { width, height } = useTouchBar();
+  const { width, height } = useTouchStrip();
   const [target, setTarget] = useState(width / 2);
   const [big, setBig] = useState(false);
 
@@ -25,15 +25,15 @@ function SpringDial() {
   // Spring-animated radius on press
   const { value: r } = useSpring(big ? 35 : 18, SpringPresets.stiff);
 
-  useTouchBarDialRotate(({ ticks }) => {
+  useTouchStripDialRotate(({ ticks }) => {
     setTarget((t) => Math.max(20, Math.min(width - 20, t + ticks * 15)));
   });
 
-  useTouchBarDialDown(() => {
+  useTouchStripDialDown(() => {
     setBig((b) => !b);
   });
 
-  useTouchBarTap(({ tapPos, hold }) => {
+  useTouchStripTap(({ tapPos, hold }) => {
     setTarget(Math.max(20, Math.min(width - 20, tapPos[0])));
     if (hold) {
       setBig((b) => !b);
@@ -84,6 +84,6 @@ function SpringDial() {
 
 export const springDialAction = defineAction({
   uuid: "com.example.react-animation.spring-dial",
-  touchBar: SpringDial,
-  touchBarFPS: 60,
+  touchStrip: SpringDial,
+  touchStripFPS: 60,
 });

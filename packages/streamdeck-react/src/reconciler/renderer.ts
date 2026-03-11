@@ -4,7 +4,7 @@ import { hostConfig } from "./host-config";
 // ── Reconciler Instance ─────────────────────────────────────────────
 // Creates the concrete reconciler by binding our VNode-based host
 // config to react-reconciler's internal fiber machinery.  This
-// instance is used by ReactRoot and TouchBarRoot to create/update
+// instance is used by ReactRoot and TouchStripRoot to create/update
 // fiber roots.
 //
 // injectIntoDevTools registers this renderer with React DevTools

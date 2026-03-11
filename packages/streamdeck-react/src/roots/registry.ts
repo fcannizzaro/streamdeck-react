@@ -8,7 +8,7 @@ import type {
 } from "@elgato/streamdeck";
 import type { JsonObject } from "@elgato/utils";
 import { ReactRoot } from "./root";
-import { TouchBarRoot } from "./touchbar-root";
+import { TouchStripRoot } from "./touchstrip-root";
 import { shallowEqualSettings } from "./settings-equality";
 import type {
   ActionDefinition,
@@ -75,20 +75,20 @@ function getCanvasInfo(deviceType: DeviceType, surfaceType: "key" | "dial"): Can
 //   registry.dispatch(actionId, event, payload)
 //     ↓
 //   ┌─ Per-action ReactRoot?  → root.eventBus.emit(event, payload)
-//   └─ TouchBar action?       → dispatchToTouchBar() with coordinate remap
+//   └─ TouchStrip action?       → dispatchToTouchStrip() with coordinate remap
 //
 // Owns three Maps:
 //   roots:           actionId → ReactRoot (per-key/dial instances)
-//   touchBarRoots:   deviceId → TouchBarRoot (shared per-device)
-//   touchBarActions: actionId → deviceId (reverse lookup for routing)
+//   touchStripRoots:   deviceId → TouchStripRoot (shared per-device)
+//   touchStripActions: actionId → deviceId (reverse lookup for routing)
 //
 // The observer (RegistryObserver) is set by the devtools system when
 // devtools mode is enabled, providing lifecycle and event visibility.
 
 export class RootRegistry {
   private roots = new Map<string, ReactRoot>();
-  private touchBarRoots = new Map<string, TouchBarRoot>(); // deviceId → TouchBarRoot
-  private touchBarActions = new Map<string, string>(); // actionId → deviceId
+  private touchStripRoots = new Map<string, TouchStripRoot>(); // deviceId → TouchStripRoot
+  private touchStripActions = new Map<string, string>(); // actionId → deviceId
   private renderConfig: RenderConfig;
   private renderDebounceMs: number;
   private sdkInstance: StreamDeckAccess["sdk"];
@@ -123,8 +123,8 @@ export class RootRegistry {
     for (const root of this.roots.values()) {
       root.updateGlobalSettings(settings);
     }
-    // Propagate to all touchbar roots
-    for (const tbRoot of this.touchBarRoots.values()) {
+    // Propagate to all touchstrip roots
+    for (const tbRoot of this.touchStripRoots.values()) {
       tbRoot.updateGlobalSettings(settings);
     }
   }
@@ -139,15 +139,15 @@ export class RootRegistry {
     const contextId = ev.action.id;
 
     // Don't recreate if already exists
-    if (this.roots.has(contextId) || this.touchBarActions.has(contextId)) return;
+    if (this.roots.has(contextId) || this.touchStripActions.has(contextId)) return;
 
     const device = ev.action.device;
     const controller = ev.action.controllerType;
     const isEncoder = controller === "Encoder";
 
-    // ── Touchbar path ───────────────────────────────────────────
-    if (isEncoder && definition.touchBar) {
-      this.registerTouchBarColumn(ev, definition);
+    // ── Touchstrip path ───────────────────────────────────────────
+    if (isEncoder && definition.touchStrip) {
+      this.registerTouchStripColumn(ev, definition);
       return;
     }
 
@@ -219,9 +219,9 @@ export class RootRegistry {
     });
   }
 
-  // ── Register an encoder column with the shared TouchBarRoot ───
+  // ── Register an encoder column with the shared TouchStripRoot ───
 
-  private registerTouchBarColumn(
+  private registerTouchStripColumn(
     ev: WillAppearEvent<JsonObject>,
     definition: ActionDefinition,
   ): void {
@@ -233,14 +233,14 @@ export class RootRegistry {
     const column = this.getEncoderColumn(ev);
     if (column === undefined) {
       console.warn(
-        "[@fcannizzaro/streamdeck-react] Cannot determine encoder column for touchbar action:",
+        "[@fcannizzaro/streamdeck-react] Cannot determine encoder column for touchstrip action:",
         actionId,
       );
       return;
     }
 
-    // Find or create the TouchBarRoot for this device
-    let tbRoot = this.touchBarRoots.get(deviceId);
+    // Find or create the TouchStripRoot for this device
+    let tbRoot = this.touchStripRoots.get(deviceId);
     if (!tbRoot) {
       const deviceInfo: DeviceInfo = {
         id: deviceId,
@@ -249,35 +249,35 @@ export class RootRegistry {
         name: device.name,
       };
 
-      tbRoot = new TouchBarRoot(
-        definition.touchBar!,
+      tbRoot = new TouchStripRoot(
+        definition.touchStrip!,
         deviceInfo,
         this.globalSettings,
         this.renderConfig,
         this.renderDebounceMs,
         this.onGlobalSettingsChange,
         this.wrapper,
-        definition.touchBarFPS,
+        definition.touchStripFPS,
         this.flushCoordinator,
       );
 
-      this.touchBarRoots.set(deviceId, tbRoot);
+      this.touchStripRoots.set(deviceId, tbRoot);
 
-      this.observer?.onTouchBarCreated(deviceId, tbRoot, deviceInfo);
+      this.observer?.onTouchStripCreated(deviceId, tbRoot, deviceInfo);
     }
 
     // Register this column
     tbRoot.addColumn(column, actionId, ev.action as DialAction);
 
     // Notify observer about column change
-    this.observer?.onTouchBarColumnChanged(
+    this.observer?.onTouchStripColumnChanged(
       deviceId,
       [...tbRoot.columnNumbers],
       tbRoot.columnActionMap,
     );
 
     // Track reverse mapping for event routing
-    this.touchBarActions.set(actionId, deviceId);
+    this.touchStripActions.set(actionId, deviceId);
   }
 
   private getEncoderColumn(ev: WillAppearEvent<JsonObject>): number | undefined {
@@ -288,23 +288,23 @@ export class RootRegistry {
   // ── Destroy a React root ──────────────────────────────────────
 
   destroy(contextId: string): void {
-    // ── Check if this is a touchbar action ──
-    const deviceId = this.touchBarActions.get(contextId);
+    // ── Check if this is a touchstrip action ──
+    const deviceId = this.touchStripActions.get(contextId);
     if (deviceId) {
-      const tbRoot = this.touchBarRoots.get(deviceId);
+      const tbRoot = this.touchStripRoots.get(deviceId);
       if (tbRoot) {
         const column = tbRoot.findColumnByActionId(contextId);
         if (column !== undefined) {
           tbRoot.removeColumn(column);
         }
-        // Clean up the TouchBarRoot if no columns remain
+        // Clean up the TouchStripRoot if no columns remain
         if (tbRoot.isEmpty) {
-          this.observer?.onTouchBarDestroyed(deviceId);
+          this.observer?.onTouchStripDestroyed(deviceId);
           tbRoot.unmount();
-          this.touchBarRoots.delete(deviceId);
+          this.touchStripRoots.delete(deviceId);
         }
       }
-      this.touchBarActions.delete(contextId);
+      this.touchStripActions.delete(contextId);
       return;
     }
 
@@ -318,10 +318,10 @@ export class RootRegistry {
   }
 
   // ── Dispatch an event to a root ───────────────────────────────
-  // Routes SDK events to the correct ReactRoot or TouchBarRoot.
-  // For touchbar actions, events are remapped:
-  //   touchTap → touchBarTap (per-encoder tap coordinates mapped to absolute strip position)
-  //   dialRotate/Down/Up → touchBarDialRotate/Down/Up (with column number)
+  // Routes SDK events to the correct ReactRoot or TouchStripRoot.
+  // For touchstrip actions, events are remapped:
+  //   touchTap → touchStripTap (per-encoder tap coordinates mapped to absolute strip position)
+  //   dialRotate/Down/Up → touchStripDialRotate/Down/Up (with column number)
 
   // ── Events that count as user interaction for adaptive debounce ─
   // These trigger a shorter debounce window on the target root,
@@ -347,22 +347,22 @@ export class RootRegistry {
       return;
     }
 
-    // ── Try touchbar root ──
-    const deviceId = this.touchBarActions.get(contextId);
+    // ── Try touchstrip root ──
+    const deviceId = this.touchStripActions.get(contextId);
     if (deviceId) {
-      const tbRoot = this.touchBarRoots.get(deviceId);
+      const tbRoot = this.touchStripRoots.get(deviceId);
       if (tbRoot) {
         if (RootRegistry.INTERACTION_EVENTS.has(event)) {
           tbRoot.markInteraction();
         }
-        this.dispatchToTouchBar(tbRoot, contextId, event, payload);
+        this.dispatchToTouchStrip(tbRoot, contextId, event, payload);
         this.observer?.onDispatch(contextId, event, payload);
       }
     }
   }
 
-  private dispatchToTouchBar<K extends keyof EventMap>(
-    tbRoot: TouchBarRoot,
+  private dispatchToTouchStrip<K extends keyof EventMap>(
+    tbRoot: TouchStripRoot,
     actionId: string,
     event: K,
     payload: EventMap[K],
@@ -373,7 +373,7 @@ export class RootRegistry {
     switch (event) {
       case "touchTap": {
         const tp = payload as unknown as TouchTapPayload;
-        tbRoot.eventBus.emit("touchBarTap", {
+        tbRoot.eventBus.emit("touchStripTap", {
           tapPos: [column * SEGMENT_WIDTH + tp.tapPos[0], tp.tapPos[1]],
           hold: tp.hold,
           column,
@@ -382,7 +382,7 @@ export class RootRegistry {
       }
       case "dialRotate": {
         const dr = payload as unknown as DialRotatePayload;
-        tbRoot.eventBus.emit("touchBarDialRotate", {
+        tbRoot.eventBus.emit("touchStripDialRotate", {
           column,
           ticks: dr.ticks,
           pressed: dr.pressed,
@@ -390,14 +390,14 @@ export class RootRegistry {
         break;
       }
       case "dialDown": {
-        tbRoot.eventBus.emit("touchBarDialDown", { column });
+        tbRoot.eventBus.emit("touchStripDialDown", { column });
         break;
       }
       case "dialUp": {
-        tbRoot.eventBus.emit("touchBarDialUp", { column });
+        tbRoot.eventBus.emit("touchStripDialUp", { column });
         break;
       }
-      // Other events (keyDown, sendToPlugin, etc.) are not relevant to touchbar
+      // Other events (keyDown, sendToPlugin, etc.) are not relevant to touchstrip
     }
   }
 
@@ -408,7 +408,7 @@ export class RootRegistry {
     if (root) {
       root.updateSettings(settings);
     }
-    // Note: touchbar roots do not have per-action settings.
+    // Note: touchstrip roots do not have per-action settings.
     // Per-encoder settings can be added in a future enhancement.
   }
 
@@ -420,10 +420,10 @@ export class RootRegistry {
     }
     this.roots.clear();
 
-    for (const [_, tbRoot] of this.touchBarRoots) {
+    for (const [_, tbRoot] of this.touchStripRoots) {
       tbRoot.unmount();
     }
-    this.touchBarRoots.clear();
-    this.touchBarActions.clear();
+    this.touchStripRoots.clear();
+    this.touchStripActions.clear();
   }
 }

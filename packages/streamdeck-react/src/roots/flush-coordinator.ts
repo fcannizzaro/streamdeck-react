@@ -1,7 +1,7 @@
 // ── Flush Coordinator ────────────────────────────────────────────────
 //
 // Batches and priority-orders flush requests from multiple ReactRoot
-// and TouchBarRoot instances.
+// and TouchStripRoot instances.
 //
 // Problem: when a Stream Deck has 15 keys + 4 encoders all animating,
 // 19 roots may request flushes in the same tick.  Without coordination,

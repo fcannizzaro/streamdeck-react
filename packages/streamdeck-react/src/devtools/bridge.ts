@@ -1,5 +1,5 @@
 import type { ReactRoot } from "@/roots/root";
-import type { TouchBarRoot } from "@/roots/touchbar-root";
+import type { TouchStripRoot } from "@/roots/touchstrip-root";
 import type { CanvasInfo, DeviceInfo } from "@/types";
 import type { VContainer } from "@/reconciler/vnode";
 import type { RenderConfig, RenderProfile } from "@/render/pipeline";
@@ -20,12 +20,12 @@ import type {
   ServerInfoMessage,
   SnapshotAction,
   SnapshotMessage,
-  SnapshotTouchBar,
-  TouchBarRenderMessage,
+  SnapshotTouchStrip,
+  TouchStripRenderMessage,
 } from "./types";
 import { serializeValue } from "./serialization/value";
 import { serializeVNode } from "./serialization/vnode";
-import { renderWithHighlight, renderTouchBarWithHighlight } from "./highlight";
+import { renderWithHighlight, renderTouchStripWithHighlight } from "./highlight";
 
 // ── DevTools Bridge ─────────────────────────────────────────────────
 //
@@ -100,8 +100,8 @@ interface ActionMeta {
   root: ReactRoot;
 }
 
-interface TouchBarMeta {
-  root: TouchBarRoot;
+interface TouchStripMeta {
+  root: TouchStripRoot;
   deviceInfo: DeviceInfo;
   columns: Map<number, string>; // column → actionId
 }
@@ -130,7 +130,7 @@ export class DevtoolsBridge implements RegistryObserver {
 
   // Action tracking
   private actions = new Map<string, ActionMeta>();
-  private touchBars = new Map<string, TouchBarMeta>();
+  private touchStrips = new Map<string, TouchStripMeta>();
 
   // Render throttling
   private lastRenderSent = new Map<string, number>();
@@ -265,35 +265,35 @@ export class DevtoolsBridge implements RegistryObserver {
     }
   }
 
-  onTouchBarCreated(deviceId: string, root: TouchBarRoot, deviceInfo: DeviceInfo): void {
-    this.touchBars.set(deviceId, {
+  onTouchStripCreated(deviceId: string, root: TouchStripRoot, deviceInfo: DeviceInfo): void {
+    this.touchStrips.set(deviceId, {
       root,
       deviceInfo,
       columns: new Map(),
     });
     this.eventBusOwners.set(root.eventBus, {
-      actionId: `touchbar:${deviceId}`,
+      actionId: `touchstrip:${deviceId}`,
       uuid: "",
     });
   }
 
-  onTouchBarColumnChanged(
+  onTouchStripColumnChanged(
     deviceId: string,
     columns: number[],
     actionMap: Map<number, string>,
   ): void {
-    const tb = this.touchBars.get(deviceId);
+    const tb = this.touchStrips.get(deviceId);
     if (tb) {
       tb.columns = new Map(actionMap);
     }
   }
 
-  onTouchBarDestroyed(deviceId: string): void {
-    const tb = this.touchBars.get(deviceId);
+  onTouchStripDestroyed(deviceId: string): void {
+    const tb = this.touchStrips.get(deviceId);
     if (tb) {
       this.eventBusOwners.delete(tb.root.eventBus);
     }
-    this.touchBars.delete(deviceId);
+    this.touchStrips.delete(deviceId);
   }
 
   onDispatch(actionId: string, event: string, payload: unknown): void {
@@ -478,7 +478,7 @@ export class DevtoolsBridge implements RegistryObserver {
   // ── Render Pipeline Callback ──────────────────────────────────
   //
   // Called by the render pipeline's config.onRender hook after a
-  // successful render (key/dial) or after touchbar flush completes.
+  // successful render (key/dial) or after touchstrip flush completes.
   //
   // Profile capture strategy:
   //
@@ -506,7 +506,7 @@ export class DevtoolsBridge implements RegistryObserver {
   //                        │              └─ trailing edge → setTimeout → emitRender(…, profile)
   //                        │                    (profile was captured before the delay)
   //                        │
-  //                        └─ touchbar? → emitTouchBarRender(…, profile)
+  //                        └─ touchstrip? → emitTouchStripRender(…, profile)
   //
 
   onRender(container: VContainer, dataUri: string): void {
@@ -545,19 +545,19 @@ export class DevtoolsBridge implements RegistryObserver {
       return;
     }
 
-    // Check touchbar roots
-    for (const [deviceId, tb] of this.touchBars) {
+    // Check touchstrip roots
+    for (const [deviceId, tb] of this.touchStrips) {
       if (tb.root.vcontainer === container) {
-        this.emitTouchBarRender(deviceId, tb, profile);
+        this.emitTouchStripRender(deviceId, tb, profile);
 
-        // Re-apply highlight overlay after touchbar render completes.
+        // Re-apply highlight overlay after touchstrip render completes.
         // Same pattern as the key/dial re-apply above — when a
         // highlight is active, the normal render updated lastSegmentUris
         // but skipped hardware push (suppressHardwarePush is true),
         // so we need to re-render the highlight with the new tree.
         const tbActionId = `${DevtoolsBridge.TB_PREFIX}${deviceId}`;
         if (this.highlightedActionId === tbActionId && this.highlightedNodeId !== null) {
-          this.applyTouchBarHighlight(tbActionId, deviceId, this.highlightedNodeId, tb).catch(
+          this.applyTouchStripHighlight(tbActionId, deviceId, this.highlightedNodeId, tb).catch(
             () => {},
           );
         }
@@ -662,33 +662,33 @@ export class DevtoolsBridge implements RegistryObserver {
     };
   }
 
-  // ── TouchBar Render Emission ────────────────────────────────────
+  // ── TouchStrip Render Emission ────────────────────────────────────
   //
-  // Emits a "render:touchbar" SSE message with the serialized VNode
+  // Emits a "render:touchstrip" SSE message with the serialized VNode
   // tree, per-segment data URIs, and the pipeline timing profile.
   //
-  // Unlike key/dial renders (which have one data URI), touchbar
+  // Unlike key/dial renders (which have one data URI), touchstrip
   // renders produce per-column segment URIs stored in
   // tb.root.lastSegmentUris.  The profile covers the full-width
   // Takumi render (renderToRaw) that produced the raw RGBA buffer
   // which was then sliced into segments.
   //
-  //   emitTouchBarRender(deviceId, tb, profile)
+  //   emitTouchStripRender(deviceId, tb, profile)
   //     │
   //     ├─ serializeVNode(container)     → tree snapshot
   //     ├─ tb.root.lastSegmentUris       → per-column data URIs
   //     ├─ toProfileData(profile)        → wire-format timing
   //     │
-  //     └─ broadcast "render:touchbar" message
+  //     └─ broadcast "render:touchstrip" message
   //          → SSE stream → devtools Performance Panel
 
-  private emitTouchBarRender(
+  private emitTouchStripRender(
     deviceId: string,
-    tb: TouchBarMeta,
+    tb: TouchStripMeta,
     profile: RenderProfile | null,
   ): void {
     const tree = serializeVNode(tb.root.vcontainer);
-    const segments: TouchBarRenderMessage["segments"] = [];
+    const segments: TouchStripRenderMessage["segments"] = [];
     for (const [column, actionId] of tb.columns) {
       const uri = tb.root.lastSegmentUris.get(column);
       if (uri) {
@@ -696,8 +696,8 @@ export class DevtoolsBridge implements RegistryObserver {
       }
     }
 
-    const msg: TouchBarRenderMessage = {
-      type: "render:touchbar",
+    const msg: TouchStripRenderMessage = {
+      type: "render:touchstrip",
       ts: Date.now(),
       deviceId,
       canvas: { width: tb.root.vcontainer.children.length * 200, height: 100 },
@@ -720,21 +720,21 @@ export class DevtoolsBridge implements RegistryObserver {
   //
   // Two paths:
   //   - Key/dial: actionId is a plain string, looked up in this.actions
-  //   - TouchBar: actionId is "touchbar:<deviceId>", looked up in
-  //     this.touchBars.  Requires per-segment slicing since the
-  //     touchbar pushes 200×100 segments, not a single image.
+  //   - TouchStrip: actionId is "touchstrip:<deviceId>", looked up in
+  //     this.touchStrips.  Requires per-segment slicing since the
+  //     touchstrip pushes 200×100 segments, not a single image.
   //
   //   handleHighlight(actionId, nodeId)
   //     │
   //     ├─ restore previous highlight (un-suppress, push original)
   //     │
-  //     ├─ actionId starts with "touchbar:" ?
-  //     │    ├─ YES → lookup this.touchBars → applyTouchBarHighlight()
+  //     ├─ actionId starts with "touchstrip:" ?
+  //     │    ├─ YES → lookup this.touchStrips → applyTouchStripHighlight()
   //     │    └─ NO  → lookup this.actions   → applyHighlight()
   //     │
   //     └─ broadcast "highlight:render" → devtools UI preview
 
-  private static readonly TB_PREFIX = "touchbar:";
+  private static readonly TB_PREFIX = "touchstrip:";
 
   private async handleHighlight(actionId: string | null, nodeId: number | null): Promise<void> {
     try {
@@ -742,7 +742,7 @@ export class DevtoolsBridge implements RegistryObserver {
       this.highlightedActionId = actionId;
       this.highlightedNodeId = nodeId;
 
-      // Restore previous action/touchbar to its normal state
+      // Restore previous action/touchstrip to its normal state
       if (prevId && prevId !== actionId) {
         await this.restoreHighlight(prevId);
         this.broadcastHighlightClear(prevId);
@@ -762,14 +762,14 @@ export class DevtoolsBridge implements RegistryObserver {
       // Route to the correct highlight path
       if (actionId.startsWith(DevtoolsBridge.TB_PREFIX)) {
         const deviceId = actionId.slice(DevtoolsBridge.TB_PREFIX.length);
-        const tb = this.touchBars.get(deviceId);
+        const tb = this.touchStrips.get(deviceId);
         if (!tb) {
           this.highlightedActionId = null;
           this.highlightedNodeId = null;
           return;
         }
         tb.root.suppressHardwarePush = true;
-        await this.applyTouchBarHighlight(actionId, deviceId, nodeId, tb);
+        await this.applyTouchStripHighlight(actionId, deviceId, nodeId, tb);
       } else {
         const meta = this.actions.get(actionId);
         if (!meta) {
@@ -786,13 +786,13 @@ export class DevtoolsBridge implements RegistryObserver {
   }
 
   /**
-   * Restore a highlighted action or touchbar to its normal state.
+   * Restore a highlighted action or touchstrip to its normal state.
    * Un-suppresses hardware pushes and restores the original image(s).
    */
   private async restoreHighlight(id: string): Promise<void> {
     if (id.startsWith(DevtoolsBridge.TB_PREFIX)) {
       const deviceId = id.slice(DevtoolsBridge.TB_PREFIX.length);
-      const tb = this.touchBars.get(deviceId);
+      const tb = this.touchStrips.get(deviceId);
       if (tb) {
         tb.root.suppressHardwarePush = false;
         // Restore the original per-segment images to hardware
@@ -830,38 +830,38 @@ export class DevtoolsBridge implements RegistryObserver {
     }
   }
 
-  // ── TouchBar Highlight ──────────────────────────────────────────
+  // ── TouchStrip Highlight ──────────────────────────────────────────
   //
-  // Renders the full touchbar tree with a highlight overlay, then:
+  // Renders the full touchstrip tree with a highlight overlay, then:
   //   - Pushes per-column segments to the physical hardware
   //   - Sends per-segment highlight URIs to the devtools browser
   //     preview (one "highlight:render" message per column, keyed
-  //     as "touchbar:<deviceId>:seg:<col>")
+  //     as "touchstrip:<deviceId>:seg:<col>")
   //
   // Why per-segment instead of a single full-width image?
-  //   The touchbar preview renders each segment as a separate 200×100
+  //   The touchstrip preview renders each segment as a separate 200×100
   //   <img>.  A single full-width image (e.g. 800×100) displayed via
   //   the canvas width/height attributes gets squished when the
   //   dimensions don't match.  Per-segment URIs avoid this entirely.
   //
-  //   applyTouchBarHighlight(actionId, deviceId, nodeId, tb)
+  //   applyTouchStripHighlight(actionId, deviceId, nodeId, tb)
   //     │
-  //     ├─ renderTouchBarWithHighlight(container, fullWidth, ...)
+  //     ├─ renderTouchStripWithHighlight(container, fullWidth, ...)
   //     │    └─ returns segmentUris (Map<col, uri>)
   //     │
   //     ├─ tb.root.pushSegmentImages(segmentUris) → physical device
   //     │
   //     └─ for each (col, uri):
-  //          broadcastHighlightRender("touchbar:<deviceId>:seg:<col>", uri)
+  //          broadcastHighlightRender("touchstrip:<deviceId>:seg:<col>", uri)
 
-  private async applyTouchBarHighlight(
+  private async applyTouchStripHighlight(
     actionId: string,
     deviceId: string,
     nodeId: number,
-    tb: TouchBarMeta,
+    tb: TouchStripMeta,
   ): Promise<void> {
     try {
-      // Compute touchbar geometry from active columns.
+      // Compute touchstrip geometry from active columns.
       // Each column is 200×100 pixels; full width = max column span.
       const columns = tb.root.columnNumbers;
       if (columns.length === 0) return;
@@ -870,13 +870,13 @@ export class DevtoolsBridge implements RegistryObserver {
       const segmentHeight = 100;
       const fullWidth = (Math.max(...columns) + 1) * segmentWidth;
 
-      const result = await renderTouchBarWithHighlight(
+      const result = await renderTouchStripWithHighlight(
         tb.root.vcontainer,
         fullWidth,
         segmentHeight,
         columns,
         segmentWidth,
-        this.renderConfig.touchbarImageFormat,
+        this.renderConfig.touchstripImageFormat,
         this.renderConfig,
         nodeId,
       );
@@ -890,7 +890,7 @@ export class DevtoolsBridge implements RegistryObserver {
         }
       }
     } catch {
-      // Silently ignore touchbar highlight render failures
+      // Silently ignore touchstrip highlight render failures
     }
   }
 
@@ -907,13 +907,13 @@ export class DevtoolsBridge implements RegistryObserver {
 
   /**
    * Clear highlight URIs for the given actionId.
-   * For touchbar IDs, clears all per-segment keys (touchbar:*:seg:N).
+   * For touchstrip IDs, clears all per-segment keys (touchstrip:*:seg:N).
    * For regular actions, clears the single actionId key.
    */
   private broadcastHighlightClear(id: string): void {
     if (id.startsWith(DevtoolsBridge.TB_PREFIX)) {
       const deviceId = id.slice(DevtoolsBridge.TB_PREFIX.length);
-      const tb = this.touchBars.get(deviceId);
+      const tb = this.touchStrips.get(deviceId);
       if (tb) {
         for (const col of tb.root.columnNumbers) {
           this.broadcastHighlightRender(`${id}:seg:${col}`, null);
@@ -952,8 +952,8 @@ export class DevtoolsBridge implements RegistryObserver {
       });
     }
 
-    const touchBars: SnapshotTouchBar[] = [];
-    for (const [deviceId, tb] of this.touchBars) {
+    const touchStrips: SnapshotTouchStrip[] = [];
+    for (const [deviceId, tb] of this.touchStrips) {
       let tree = null;
       try {
         tree = serializeVNode(tb.root.vcontainer);
@@ -961,7 +961,7 @@ export class DevtoolsBridge implements RegistryObserver {
         /* ignore */
       }
 
-      const segments: SnapshotTouchBar["segments"] = [];
+      const segments: SnapshotTouchStrip["segments"] = [];
       for (const [column, actionId] of tb.columns) {
         segments.push({
           column,
@@ -970,7 +970,7 @@ export class DevtoolsBridge implements RegistryObserver {
         });
       }
 
-      touchBars.push({
+      touchStrips.push({
         deviceId,
         deviceName: tb.deviceInfo.name,
         canvas: {
@@ -986,7 +986,7 @@ export class DevtoolsBridge implements RegistryObserver {
       type: "snapshot",
       ts: Date.now(),
       actions,
-      touchBars,
+      touchStrips,
       recentConsole: this.consoleRing.toArray(),
       recentNetwork: this.networkRing.toArray(),
       recentEvents: this.eventRing.toArray(),

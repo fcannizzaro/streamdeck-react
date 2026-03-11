@@ -41,8 +41,8 @@ Stream Deck Canvas:
 The `RootRegistry` is the central hub that maps Stream Deck action instances to React roots and routes SDK events to the correct root. It owns three internal maps:
 
 - **roots** (actionId → ReactRoot) -- per-key and per-dial instances
-- **touchBarRoots** (deviceId → TouchBarRoot) -- shared per-device touchbar roots
-- **touchBarActions** (actionId → deviceId) -- reverse lookup for routing touch events
+- **touchStripRoots** (deviceId → TouchStripRoot) -- shared per-device touchstrip roots
+- **touchStripActions** (actionId → deviceId) -- reverse lookup for routing touch events
 
 When an SDK event arrives (keyDown, dialRotate, touchTap, etc.), the registry dispatches it:
 
@@ -54,17 +54,17 @@ SingletonAction handler
 registry.dispatch(actionId, event, payload)
   ↓
 ┌─ Per-action root?  → root.eventBus.emit(event, payload)
-└─ TouchBar action?  → coordinate remap → tbRoot.eventBus.emit(touchBarEvent, payload)
+└─ TouchStrip action?  → coordinate remap → tbRoot.eventBus.emit(touchStripEvent, payload)
 ```
 
-For touchbar actions, events are remapped: `touchTap` becomes `touchBarTap` with coordinates translated from per-encoder (200×100) to absolute strip position, and dial events gain a `column` field.
+For touchstrip actions, events are remapped: `touchTap` becomes `touchStripTap` with coordinates translated from per-encoder (200×100) to absolute strip position, and dial events gain a `column` field.
 
-## TouchBarRoot
+## TouchStripRoot
 
-Unlike standard per-action roots, there is **one TouchBarRoot per device**, shared across all encoder actions on that device. It renders a single React component tree spanning the full touch strip width (800×100 pixels for 4 encoders on Stream Deck+).
+Unlike standard per-action roots, there is **one TouchStripRoot per device**, shared across all encoder actions on that device. It renders a single React component tree spanning the full touch strip width (800×100 pixels for 4 encoders on Stream Deck+).
 
 ```
-TouchBarRoot (one per device)
+TouchStripRoot (one per device)
 ┌──────────────────────────────────────────────────┐
 │ Single React tree renders at full width (800×100) │
 │                                                  │
@@ -77,14 +77,14 @@ TouchBarRoot (one per device)
 └──────────────────────────────────────────────────┘
 ```
 
-Two rendering paths are available (selected by `touchbarImageFormat`):
+Two rendering paths are available (selected by `touchstripImageFormat`):
 
 - **Native format** (default, WebP) -- Takumi renders each segment independently using a CSS negative-margin viewport offset to extract the correct portion. Faster because Takumi encodes WebP natively during the render call.
 - **Raw + crop** (PNG) -- one full-width render produces raw RGBA pixels, then each per-encoder segment is cropped and PNG-encoded independently. Uses the buffer pool to avoid GC pressure.
 
-Columns may not be contiguous (e.g., columns [0, 1, 3] if encoder 2 is used by a different action). The touchbar component receives layout metadata via the `useTouchBar()` hook.
+Columns may not be contiguous (e.g., columns [0, 1, 3] if encoder 2 is used by a different action). The touchstrip component receives layout metadata via the `useTouchStrip()` hook.
 
-See the [TouchBar guide](/guides/touchbar) for user-facing details on building touchbar components.
+See the [TouchStrip guide](/guides/touchstrip) for user-facing details on building touchstrip components.
 
 ## Flush Coordinator
 
@@ -217,6 +217,6 @@ declare module "@fcannizzaro/streamdeck-react" {
 This enables two features:
 
 1. **Type-safe UUIDs** -- the `uuid` field in `defineAction()` becomes a union of manifest UUIDs. Typos are caught at compile time.
-2. **Controller-aware props** -- if an action declares `"Controllers": ["Keypad"]`, then `key` is required. If `"Controllers": ["Encoder"]`, at least one of `dial` or `touchBar` must be provided.
+2. **Controller-aware props** -- if an action declares `"Controllers": ["Keypad"]`, then `key` is required. If `"Controllers": ["Encoder"]`, at least one of `dial` or `touchStrip` must be provided.
 
 The codegen auto-detects the `*.sdPlugin/manifest.json` in your project root. It skips the write if the generated content is unchanged, avoiding unnecessary TypeScript recompilation and HMR triggers during watch mode. Set `manifest: false` in the bundler plugin options to disable codegen.

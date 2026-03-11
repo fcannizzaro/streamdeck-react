@@ -231,7 +231,7 @@ const EXAMPLE_PRESETS: Record<StarterExample, ExamplePreset> = {
         tooltip: "Animated equalizer across the full touch strip.",
         controllers: ["Encoder"],
         encoder: {
-          layout: "layouts/touchbar.json",
+          layout: "layouts/touchstrip.json",
           rotate: "Adjust speed / amplitude",
           press: "Pause / Reset",
           touch: "Change color theme",
@@ -245,7 +245,7 @@ const EXAMPLE_PRESETS: Record<StarterExample, ExamplePreset> = {
       "src/actions/toggle.tsx": createToggleAction(options.pluginUuid),
       "src/actions/volume.tsx": createVolumeAction(options.pluginUuid),
       "src/actions/equalizer.tsx": createEqualizerAction(options.pluginUuid),
-      [`${options.pluginUuid}.sdPlugin/layouts/touchbar.json`]: createTouchBarLayout(),
+      [`${options.pluginUuid}.sdPlugin/layouts/touchstrip.json`]: createTouchStripLayout(),
       "src/plugin.ts": createPluginEntrypoint([
         "counterAction",
         "timerAction",
@@ -1112,10 +1112,10 @@ function createEqualizerAction(pluginUuid: string): string {
     'import { useState, useRef } from "react";',
     "import {",
     "  defineAction,",
-    "  useTouchBar,",
-    "  useTouchBarDialRotate,",
-    "  useTouchBarDialDown,",
-    "  useTouchBarTap,",
+    "  useTouchStrip,",
+    "  useTouchStripDialRotate,",
+    "  useTouchStripDialDown,",
+    "  useTouchStripTap,",
     "  useTick,",
     '} from "@fcannizzaro/streamdeck-react";',
     "",
@@ -1147,8 +1147,8 @@ function createEqualizerAction(pluginUuid: string): string {
     "  return `rgb(${r},${g},${blue})`;",
     "}",
     "",
-    "function EqualizerTouchBar() {",
-    "  const { width, height, fps, segmentWidth } = useTouchBar();",
+    "function EqualizerTouchStrip() {",
+    "  const { width, height, fps, segmentWidth } = useTouchStrip();",
     "",
     "  const [speed, setSpeed] = useState(DEFAULT_SPEED);",
     "  const [amplitude, setAmplitude] = useState(DEFAULT_AMPLITUDE);",
@@ -1166,7 +1166,7 @@ function createEqualizerAction(pluginUuid: string): string {
     "    setTime(timeRef.current);",
     "  }, fps);",
     "",
-    "  useTouchBarDialRotate(({ column, ticks }) => {",
+    "  useTouchStripDialRotate(({ column, ticks }) => {",
     "    if (column === 0) {",
     "      setSpeed((s) => Math.max(MIN_SPEED, Math.min(MAX_SPEED, s + ticks * 0.2)));",
     "    } else if (column === 1) {",
@@ -1174,7 +1174,7 @@ function createEqualizerAction(pluginUuid: string): string {
     "    }",
     "  });",
     "",
-    "  useTouchBarDialDown(({ column }) => {",
+    "  useTouchStripDialDown(({ column }) => {",
     "    if (column === 2) {",
     "      setPaused((p) => !p);",
     "    } else if (column === 3) {",
@@ -1186,7 +1186,7 @@ function createEqualizerAction(pluginUuid: string): string {
     "    }",
     "  });",
     "",
-    "  useTouchBarTap(() => {",
+    "  useTouchStripTap(() => {",
     "    setThemeIndex((i) => (i + 1) % THEMES.length);",
     "  });",
     "",
@@ -1263,17 +1263,17 @@ function createEqualizerAction(pluginUuid: string): string {
     "",
     "export const equalizerAction = defineAction({",
     `  uuid: "${pluginUuid}.equalizer",`,
-    "  touchBar: EqualizerTouchBar,",
-    "  touchBarFPS: 60,",
+    "  touchStrip: EqualizerTouchStrip,",
+    "  touchStripFPS: 60,",
     "});",
     "",
   ].join("\n");
 }
 
-function createTouchBarLayout(): string {
+function createTouchStripLayout(): string {
   return `${JSON.stringify(
     {
-      id: "com.streamdeck-react.touchbar-layout",
+      id: "com.streamdeck-react.touchstrip-layout",
       items: [
         {
           key: "canvas",

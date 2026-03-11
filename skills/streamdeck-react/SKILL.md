@@ -44,7 +44,7 @@ Phase 3: Takumi render (main thread or worker) → rasterize
 Phase 4: xxHash output dedup → skip hardware push if identical to last frame
 ```
 
-Two entry points: `renderToDataUri` (keys/dials → base64 data URI) and `renderToRaw` (touchbar → raw RGBA Buffer).
+Two entry points: `renderToDataUri` (keys/dials → base64 data URI) and `renderToRaw` (touchstrip → raw RGBA Buffer).
 
 ### Flush Coordinator
 
@@ -58,7 +58,7 @@ When multiple roots request flushes in the same tick, the FlushCoordinator batch
 The bundler plugins (Rollup and Vite) auto-generate `src/streamdeck-env.d.ts` from `manifest.json`:
 
 - Enables compile-time UUID validation (typos caught by TypeScript)
-- Enforces controller-aware `defineAction()` types (Keypad → `key` required, Encoder → `dial` or `touchBar` required)
+- Enforces controller-aware `defineAction()` types (Keypad → `key` required, Encoder → `dial` or `touchStrip` required)
 - Skips write if content unchanged (avoids unnecessary recompilation in watch mode)
 
 Each visible action instance on the hardware gets its own isolated React root. No shared state between roots unless you use an external store (Zustand, Jotai) or the wrapper API.

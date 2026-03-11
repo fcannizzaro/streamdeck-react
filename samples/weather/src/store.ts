@@ -1,5 +1,5 @@
 // ── Weather Store ──────────────────────────────────────────────────
-// Zustand singleton for the weather touchbar.
+// Zustand singleton for the weather touchstrip.
 // A single React root renders visible forecast cards on the
 // full-width touch strip (800×100). A global cursor selects which
 // entry is focused. Dial rotation scrolls through the forecast.

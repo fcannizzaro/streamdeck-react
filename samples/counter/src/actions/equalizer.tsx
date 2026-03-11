@@ -1,14 +1,14 @@
 import { useState, useRef } from "react";
 import {
   defineAction,
-  useTouchBar,
-  useTouchBarDialRotate,
-  useTouchBarDialDown,
-  useTouchBarTap,
+  useTouchStrip,
+  useTouchStripDialRotate,
+  useTouchStripDialDown,
+  useTouchStripTap,
   useTick,
 } from "@fcannizzaro/streamdeck-react";
 
-// ── Equalizer TouchBar ──────────────────────────────────────────────
+// ── Equalizer TouchStrip ────────────────────────────────────────────
 // An animated equalizer spanning the full Stream Deck+ touch strip.
 //
 // Dial 0: Speed — CW = faster, CCW = slower
@@ -45,8 +45,8 @@ function lerpColor(a: string, b: string, t: number): string {
   return `rgb(${r},${g},${blue})`;
 }
 
-function EqualizerTouchBar() {
-  const { width, height, fps, segmentWidth } = useTouchBar();
+function EqualizerTouchStrip() {
+  const { width, height, fps, segmentWidth } = useTouchStrip();
 
   const [speed, setSpeed] = useState(DEFAULT_SPEED);
   const [amplitude, setAmplitude] = useState(DEFAULT_AMPLITUDE);
@@ -66,7 +66,7 @@ function EqualizerTouchBar() {
   }, fps);
 
   // ── Dial 0: Speed, Dial 1: Amplitude ───────────────────────────
-  useTouchBarDialRotate(({ column, ticks }) => {
+  useTouchStripDialRotate(({ column, ticks }) => {
     if (column === 0) {
       setSpeed((s) => Math.max(MIN_SPEED, Math.min(MAX_SPEED, s + ticks * 0.2)));
     } else if (column === 1) {
@@ -75,7 +75,7 @@ function EqualizerTouchBar() {
   });
 
   // ── Dial 2: Pause, Dial 3: Reset ──────────────────────────────
-  useTouchBarDialDown(({ column }) => {
+  useTouchStripDialDown(({ column }) => {
     if (column === 2) {
       setPaused((p) => !p);
     } else if (column === 3) {
@@ -88,7 +88,7 @@ function EqualizerTouchBar() {
   });
 
   // ── Touch Tap: Cycle theme ─────────────────────────────────────
-  useTouchBarTap(() => {
+  useTouchStripTap(() => {
     setThemeIndex((i) => (i + 1) % THEMES.length);
   });
 
@@ -167,10 +167,10 @@ function EqualizerTouchBar() {
 }
 
 // ── Action Definition ───────────────────────────────────────────────
-// Place on all encoder slots — they share a single touchbar render.
+// Place on all encoder slots — they share a single touchstrip render.
 
 export const equalizerAction = defineAction({
   uuid: "com.example.react-counter.equalizer",
-  touchBar: EqualizerTouchBar,
-  touchBarFPS: 60,
+  touchStrip: EqualizerTouchStrip,
+  touchStripFPS: 60,
 });

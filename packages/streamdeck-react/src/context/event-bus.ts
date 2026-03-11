@@ -3,7 +3,7 @@ import type { EventMap } from "@/types";
 // ── Typed Event Bus ─────────────────────────────────────────────────
 //
 // Per-root event bus for routing Stream Deck hardware events to React
-// hooks.  Each ReactRoot and TouchBarRoot gets its own EventBus
+// hooks.  Each ReactRoot and TouchStripRoot gets its own EventBus
 // instance, providing isolation between action instances.
 //
 // Key features:
@@ -37,7 +37,7 @@ export class EventBus {
   /** Global devtools observer. Set by DevtoolsBridge when devtools mode is on. */
   static devtoolsObserver: ((bus: EventBus, event: string, payload: unknown) => void) | null = null;
 
-  /** Owning action ID. Set by ReactRoot/TouchBarRoot on creation. Used by devtools. */
+  /** Owning action ID. Set by ReactRoot/TouchStripRoot on creation. Used by devtools. */
   ownerId: string | null = null;
   /** Owning action UUID. Set by ReactRoot on creation. Used by devtools. */
   ownerUuid: string | null = null;

@@ -12,7 +12,7 @@
       "UUID": "com.example.react-weather.forecast",
       "Controllers": ["Encoder"],
       "Encoder": {
-        "layout": "layouts/touchbar.json",
+        "layout": "layouts/touchstrip.json",
         "TriggerDescription": {
           "Rotate": "Scroll forecast",
           "Push": "Toggle details",
@@ -26,7 +26,7 @@
   "Category": "React Weather Sample",
   "CategoryIcon": "imgs/plugin-icon",
   "CodePath": "bin/plugin.mjs",
-  "Description": "Sample plugin demonstrating @fcannizzaro/streamdeck-react with a weather forecast touchbar action using Open-Meteo API.",
+  "Description": "Sample plugin demonstrating @fcannizzaro/streamdeck-react with a weather forecast touchstrip action using Open-Meteo API.",
   "Icon": "imgs/plugin-icon",
   "Name": "React Weather Sample",
   "Nodejs": {

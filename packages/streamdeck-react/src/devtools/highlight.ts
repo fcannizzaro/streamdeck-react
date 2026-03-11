@@ -119,9 +119,9 @@ export async function renderWithHighlight(
   return bufferToDataUri(buffer, config.imageFormat);
 }
 
-// ── TouchBar Highlight ──────────────────────────────────────────────
+// ── TouchStrip Highlight ──────────────────────────────────────────────
 //
-// Renders the touchbar tree with a highlight overlay.  Re-renders ALL
+// Renders the touchstrip tree with a highlight overlay.  Re-renders ALL
 // segments (not just affected ones) because the inject approach
 // guarantees identical layout for non-highlighted segments — the only
 // difference is the overlay child in the target node.
@@ -130,7 +130,7 @@ export async function renderWithHighlight(
 //   - segmentUris: Map<column, dataUri> for ALL segments
 //   - fullUri: full-width data URI for the devtools browser preview
 //
-//   renderTouchBarWithHighlight()
+//   renderTouchStripWithHighlight()
 //     │
 //     ├─ buildTakumiRoot(container) → rootNode
 //     ├─ findTargetTakumiNode → inject overlay into target
@@ -140,12 +140,12 @@ export async function renderWithHighlight(
 //          ├─ Clip wrapper with marginLeft offset (same as renderSegmentToDataUri)
 //          └─ renderer.render → segment data URI
 
-export interface TouchBarHighlightResult {
+export interface TouchStripHighlightResult {
   /** Per-column data URIs for ALL segments. */
   segmentUris: Map<number, string>;
 }
 
-export async function renderTouchBarWithHighlight(
+export async function renderTouchStripWithHighlight(
   container: VContainer,
   fullWidth: number,
   segmentHeight: number,
@@ -154,7 +154,7 @@ export async function renderTouchBarWithHighlight(
   format: OutputFormat,
   config: RenderConfig,
   targetNid: number,
-): Promise<TouchBarHighlightResult | null> {
+): Promise<TouchStripHighlightResult | null> {
   if (container.children.length === 0) return null;
 
   const effectiveNid = resolveTargetNid(container, targetNid);

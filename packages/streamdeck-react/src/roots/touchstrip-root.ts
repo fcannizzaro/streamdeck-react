@@ -16,8 +16,8 @@ import {
   type RenderProfile,
 } from "@/render/pipeline";
 import { metrics } from "@/render/metrics";
-import { getTouchbarNativeCache } from "@/render/image-cache";
-import { fnv1a, computeTreeHash, computeNativeTouchbarCacheKey } from "@/render/cache";
+import { getTouchstripNativeCache } from "@/render/image-cache";
+import { fnv1a, computeTreeHash, computeNativeTouchstripCacheKey } from "@/render/cache";
 import { EventBus } from "@/context/event-bus";
 import {
   DeviceContext,
@@ -25,8 +25,8 @@ import {
   GlobalSettingsContext,
   type GlobalSettingsContextValue,
 } from "@/context/providers";
-import { TouchBarContext } from "@/context/touchbar-context";
-import type { DeviceInfo, EncoderLayout, TouchBarInfo, WrapperComponent } from "@/types";
+import { TouchStripContext } from "@/context/touchstrip-context";
+import type { DeviceInfo, EncoderLayout, TouchStripInfo, WrapperComponent } from "@/types";
 import type { FlushCoordinator, FlushableRoot } from "./flush-coordinator";
 import { partialHasChanges, shallowEqualSettings } from "./settings-equality";
 import type { DialAction } from "@elgato/streamdeck";
@@ -39,10 +39,10 @@ import type { JsonObject } from "@elgato/utils";
 
 const SEGMENT_WIDTH = 200;
 const SEGMENT_HEIGHT = 100;
-const DEFAULT_TOUCHBAR_FPS = 60;
+const DEFAULT_TOUCHSTRIP_FPS = 60;
 
-const TOUCHBAR_LAYOUT: Exclude<EncoderLayout, string> = {
-  id: "com.streamdeck-react.touchbar-layout",
+const TOUCHSTRIP_LAYOUT: Exclude<EncoderLayout, string> = {
+  id: "com.streamdeck-react.touchstrip-layout",
   items: [
     {
       key: "canvas",
@@ -63,12 +63,12 @@ interface ColumnEntry {
 //
 // Shared React fiber root that renders ONE component tree spanning
 // the full touch strip width.  Unlike ReactRoot (one per key/dial),
-// there is one TouchBarRoot per device, shared by all encoder actions
+// there is one TouchStripRoot per device, shared by all encoder actions
 // on that device.
 //
 // Architecture:
 //
-//   TouchBarRoot (one per device, e.g. Stream Deck Plus)
+//   TouchStripRoot (one per device, e.g. Stream Deck Plus)
 //   ┌──────────────────────────────────────────────────┐
 //   │ Single React tree renders at full width (800×100) │
 //   │                                                  │
@@ -81,7 +81,7 @@ interface ColumnEntry {
 //   │  setFeedback per encoder (sliced segments)       │
 //   └──────────────────────────────────────────────────┘
 //
-// Two rendering paths (selected by touchbarImageFormat config):
+// Two rendering paths (selected by touchstripImageFormat config):
 //
 //   Path A: Native format (WebP/PNG via Takumi)
 //     Each segment rendered independently with CSS viewport offset.
@@ -91,13 +91,13 @@ interface ColumnEntry {
 //   Path B: Raw → crop → PNG encode
 //     Single full-width render → raw RGBA → cropSlice per segment
 //     → encodePngAsync (parallel deflate via libuv thread pool).
-//     Used when touchbarImageFormat is "png".
+//     Used when touchstripImageFormat is "png".
 //
 // Columns are dynamic — encoders appear/disappear as the user drags
 // actions onto the Stream Deck.  The geometry is recomputed via
-// updateTouchBarInfo() whenever a column is added or removed.
+// updateTouchStripInfo() whenever a column is added or removed.
 
-export class TouchBarRoot implements FlushableRoot {
+export class TouchStripRoot implements FlushableRoot {
   readonly eventBus = new EventBus();
   private container: VContainer;
   private fiberRoot: ReturnType<typeof reconciler.createContainer>;
@@ -134,17 +134,17 @@ export class TouchBarRoot implements FlushableRoot {
   /** Current render priority (lower = higher priority). Used by flush coordinator. */
   get priority(): number {
     const now = Date.now();
-    const cutoff = now - TouchBarRoot.ANIMATION_WINDOW_MS;
+    const cutoff = now - TouchStripRoot.ANIMATION_WINDOW_MS;
     while (this._recentRenders.length > 0 && this._recentRenders[0]! < cutoff) {
       this._recentRenders.shift();
     }
-    if (this._recentRenders.length > TouchBarRoot.ANIMATION_THRESHOLD) {
+    if (this._recentRenders.length > TouchStripRoot.ANIMATION_THRESHOLD) {
       return 0;
     }
-    if (now - this._lastInteraction < TouchBarRoot.INTERACTION_COOLDOWN_MS) {
+    if (now - this._lastInteraction < TouchStripRoot.INTERACTION_COOLDOWN_MS) {
       return 1;
     }
-    if (this._lastFlushTime > 0 && now - this._lastFlushTime > TouchBarRoot.IDLE_THRESHOLD_MS) {
+    if (this._lastFlushTime > 0 && now - this._lastFlushTime > TouchStripRoot.IDLE_THRESHOLD_MS) {
       return 3;
     }
     return 2;
@@ -205,7 +205,7 @@ export class TouchBarRoot implements FlushableRoot {
 
   // Cached context values
   private globalSettingsValue: GlobalSettingsContextValue;
-  private touchBarValue: TouchBarInfo;
+  private touchStripValue: TouchStripInfo;
 
   constructor(
     private component: ComponentType,
@@ -215,17 +215,17 @@ export class TouchBarRoot implements FlushableRoot {
     renderDebounceMs: number,
     onGlobalSettingsChange: (settings: JsonObject) => Promise<void>,
     pluginWrapper?: WrapperComponent,
-    touchBarFPS?: number,
+    touchStripFPS?: number,
     private flushCoordinator?: FlushCoordinator,
   ) {
     this.deviceInfo = deviceInfo;
     this.globalSettings = { ...initialGlobalSettings };
     this.renderConfig = renderConfig;
-    this.fps = touchBarFPS ?? DEFAULT_TOUCHBAR_FPS;
-    // When touchBarFPS is explicitly set, derive debounce from it;
+    this.fps = touchStripFPS ?? DEFAULT_TOUCHSTRIP_FPS;
+    // When touchStripFPS is explicitly set, derive debounce from it;
     // otherwise fall back to the global renderDebounceMs.
     this.renderDebounceMs =
-      touchBarFPS != null ? Math.max(1, Math.round(1000 / touchBarFPS)) : renderDebounceMs;
+      touchStripFPS != null ? Math.max(1, Math.round(1000 / touchStripFPS)) : renderDebounceMs;
     this.pluginWrapper = pluginWrapper;
 
     // Global settings mutator
@@ -250,7 +250,7 @@ export class TouchBarRoot implements FlushableRoot {
       setSettings: this.setGlobalSettingsFn,
     };
 
-    this.touchBarValue = {
+    this.touchStripValue = {
       width: 0,
       height: SEGMENT_HEIGHT,
       columns: [],
@@ -272,19 +272,19 @@ export class TouchBarRoot implements FlushableRoot {
       null, // concurrentUpdatesByDefaultOverride
       "", // identifierPrefix
       (err: Error) => {
-        console.error("[@fcannizzaro/streamdeck-react] TouchBar uncaught error:", err);
+        console.error("[@fcannizzaro/streamdeck-react] TouchStrip uncaught error:", err);
       },
       (err: Error) => {
-        console.error("[@fcannizzaro/streamdeck-react] TouchBar caught error:", err);
+        console.error("[@fcannizzaro/streamdeck-react] TouchStrip caught error:", err);
       },
       (err: Error) => {
-        console.error("[@fcannizzaro/streamdeck-react] TouchBar recoverable error:", err);
+        console.error("[@fcannizzaro/streamdeck-react] TouchStrip recoverable error:", err);
       },
       () => {}, // onDefaultTransitionIndicator
     );
 
     // Set eventBus owner for devtools observer
-    this.eventBus.ownerId = `touchbar:${deviceInfo.id}`;
+    this.eventBus.ownerId = `touchstrip:${deviceInfo.id}`;
   }
 
   // ── Column Management ─────────────────────────────────────────
@@ -296,7 +296,7 @@ export class TouchBarRoot implements FlushableRoot {
     // No setFeedbackLayout call needed — it can conflict with the manifest layout.
 
     // Recompute geometry and render
-    this.updateTouchBarInfo();
+    this.updateTouchStripInfo();
     this.scheduleRerender();
   }
 
@@ -308,7 +308,7 @@ export class TouchBarRoot implements FlushableRoot {
       return;
     }
 
-    this.updateTouchBarInfo();
+    this.updateTouchStripInfo();
     this.scheduleRerender();
   }
 
@@ -325,11 +325,11 @@ export class TouchBarRoot implements FlushableRoot {
 
   // ── Touch Bar Info ────────────────────────────────────────────
 
-  private updateTouchBarInfo(): void {
+  private updateTouchStripInfo(): void {
     const sortedColumns = [...this.columns.keys()].sort((a, b) => a - b);
     const maxCol = sortedColumns.length > 0 ? sortedColumns[sortedColumns.length - 1]! + 1 : 0;
 
-    this.touchBarValue = {
+    this.touchStripValue = {
       width: maxCol * SEGMENT_WIDTH,
       height: SEGMENT_HEIGHT,
       columns: sortedColumns,
@@ -355,8 +355,8 @@ export class TouchBarRoot implements FlushableRoot {
 
     // Provider order: stable outermost, volatile innermost.
     return createElement(
-      TouchBarContext.Provider,
-      { value: this.touchBarValue },
+      TouchStripContext.Provider,
+      { value: this.touchStripValue },
       createElement(
         DeviceContext.Provider,
         { value: this.deviceInfo },
@@ -383,14 +383,14 @@ export class TouchBarRoot implements FlushableRoot {
 
   private get effectiveDebounceMs(): number {
     const now = Date.now();
-    const cutoff = now - TouchBarRoot.ANIMATION_WINDOW_MS;
+    const cutoff = now - TouchStripRoot.ANIMATION_WINDOW_MS;
     while (this._recentRenders.length > 0 && this._recentRenders[0]! < cutoff) {
       this._recentRenders.shift();
     }
-    if (this._recentRenders.length > TouchBarRoot.ANIMATION_THRESHOLD) {
+    if (this._recentRenders.length > TouchStripRoot.ANIMATION_THRESHOLD) {
       return 0;
     }
-    if (now - this._lastInteraction < TouchBarRoot.INTERACTION_COOLDOWN_MS) {
+    if (now - this._lastInteraction < TouchStripRoot.INTERACTION_COOLDOWN_MS) {
       return Math.min(this.renderDebounceMs, 16);
     }
     return this.renderDebounceMs;
@@ -455,9 +455,9 @@ export class TouchBarRoot implements FlushableRoot {
       this._renderCount++;
       const now = Date.now();
       if (now - this._lastRenderReport > 1000) {
-        if (this._renderCount > TouchBarRoot.RENDER_WARN_THRESHOLD) {
+        if (this._renderCount > TouchStripRoot.RENDER_WARN_THRESHOLD) {
           console.warn(
-            `[@fcannizzaro/streamdeck-react] TouchBar rendered ${this._renderCount}x in 1s (FPS target: ${this.fps})`,
+            `[@fcannizzaro/streamdeck-react] TouchStrip rendered ${this._renderCount}x in 1s (FPS target: ${this.fps})`,
           );
         }
         this._renderCount = 0;
@@ -466,10 +466,10 @@ export class TouchBarRoot implements FlushableRoot {
     }
 
     try {
-      const width = this.touchBarValue.width;
+      const width = this.touchStripValue.width;
       if (width === 0) return;
 
-      const useNativeFormat = this.renderConfig.touchbarImageFormat !== "png";
+      const useNativeFormat = this.renderConfig.touchstripImageFormat !== "png";
 
       if (useNativeFormat) {
         // ── Native-format path with full 4-phase skip hierarchy ──────
@@ -518,17 +518,17 @@ export class TouchBarRoot implements FlushableRoot {
         let cacheKey: number | undefined;
         let cacheHit = false;
 
-        if (this.renderConfig.caching && this.renderConfig.touchbarCacheMaxBytes > 0) {
+        if (this.renderConfig.caching && this.renderConfig.touchstripCacheMaxBytes > 0) {
           treeHash = computeTreeHash(this.container);
-          cacheKey = computeNativeTouchbarCacheKey(
+          cacheKey = computeNativeTouchstripCacheKey(
             treeHash,
             width,
             SEGMENT_HEIGHT,
             this.renderConfig.devicePixelRatio,
-            this.renderConfig.touchbarImageFormat,
+            this.renderConfig.touchstripImageFormat,
             sortedColumns,
           );
-          const cache = getTouchbarNativeCache(this.renderConfig.touchbarCacheMaxBytes);
+          const cache = getTouchstripNativeCache(this.renderConfig.touchstripCacheMaxBytes);
           const cached = cache.get(cacheKey);
 
           if (cached !== undefined) {
@@ -581,7 +581,7 @@ export class TouchBarRoot implements FlushableRoot {
               SEGMENT_HEIGHT,
               column,
               SEGMENT_WIDTH,
-              this.renderConfig.touchbarImageFormat,
+              this.renderConfig.touchstripImageFormat,
               this.renderConfig,
               takumiChildren,
             );
@@ -627,19 +627,19 @@ export class TouchBarRoot implements FlushableRoot {
           // ── Store in native cache ─────────────────────────────────
           // Cache the sorted segment URI tuples for future Merkle-hash hits.
           // Reuse hoisted treeHash/cacheKey from Phase 2 lookup above.
-          if (this.renderConfig.caching && this.renderConfig.touchbarCacheMaxBytes > 0) {
+          if (this.renderConfig.caching && this.renderConfig.touchstripCacheMaxBytes > 0) {
             if (treeHash === undefined || cacheKey === undefined) {
               treeHash = computeTreeHash(this.container);
-              cacheKey = computeNativeTouchbarCacheKey(
+              cacheKey = computeNativeTouchstripCacheKey(
                 treeHash,
                 width,
                 SEGMENT_HEIGHT,
                 this.renderConfig.devicePixelRatio,
-                this.renderConfig.touchbarImageFormat,
+                this.renderConfig.touchstripImageFormat,
                 sortedColumns,
               );
             }
-            const cache = getTouchbarNativeCache(this.renderConfig.touchbarCacheMaxBytes);
+            const cache = getTouchstripNativeCache(this.renderConfig.touchstripCacheMaxBytes);
             // Byte size: sum of URI string lengths × 2 (UTF-16) + per-entry overhead
             let byteSize = 64;
             for (const [, uri] of segmentResults) {
@@ -656,8 +656,8 @@ export class TouchBarRoot implements FlushableRoot {
           if (profiling) {
             const stats = measureTree(this.container.children);
             const nativeCache =
-              this.renderConfig.touchbarCacheMaxBytes > 0
-                ? getTouchbarNativeCache(this.renderConfig.touchbarCacheMaxBytes)
+              this.renderConfig.touchstripCacheMaxBytes > 0
+                ? getTouchstripNativeCache(this.renderConfig.touchstripCacheMaxBytes)
                 : null;
             this.renderConfig.onProfile!({
               vnodeToElementMs: 0,
@@ -703,39 +703,39 @@ export class TouchBarRoot implements FlushableRoot {
         await Promise.all(feedbackPromises);
       }
 
-      // ── Notify devtools of the touchbar render ──────────────────
+      // ── Notify devtools of the touchstrip render ──────────────────
       //
       // The devtools bridge hooks into config.onRender to receive
       // render notifications.  For key/dial actions, renderToDataUri()
-      // calls onRender internally with the data URI.  For touchbar,
+      // calls onRender internally with the data URI.  For touchstrip,
       // there is no single data URI (the output is per-segment), so
       // we call onRender here after all segments are processed.
       //
-      // The bridge's onRender handler detects touchbar containers by
+      // The bridge's onRender handler detects touchstrip containers by
       // matching `container === tb.root.vcontainer` and delegates to
-      // emitTouchBarRender(), which reads lastSegmentUris directly.
+      // emitTouchStripRender(), which reads lastSegmentUris directly.
       // The empty-string dataUri is intentional — it's unused for
-      // touchbar; the bridge reads segment URIs from the root.
+      // touchstrip; the bridge reads segment URIs from the root.
       //
       //   doFlush() ──onRender(container, "")──→  bridge.onRender()
       //                                              │
-      //                    matches touchbar root ◄───┘
+      //                    matches touchstrip root ◄───┘
       //                                              │
       //                                              ▼
-      //                                   emitTouchBarRender()
+      //                                   emitTouchStripRender()
       //                                      reads lastSegmentUris
       //                                              │
       //                                              ▼
-      //                                   SSE "render:touchbar"
+      //                                   SSE "render:touchstrip"
       //                                      → Performance Panel
       //
       // onProfile fires synchronously inside renderToRaw() /
       // renderSegmentToDataUri() BEFORE we reach this point, so
       // the bridge's _lastProfile stash is populated and will be
-      // consumed by emitTouchBarRender().
+      // consumed by emitTouchStripRender().
       this.renderConfig.onRender?.(this.container, "");
     } catch (err) {
-      console.error("[@fcannizzaro/streamdeck-react] TouchBar render error:", err);
+      console.error("[@fcannizzaro/streamdeck-react] TouchStrip render error:", err);
     } finally {
       this._rendering = false;
 

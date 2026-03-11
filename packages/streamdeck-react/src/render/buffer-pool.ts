@@ -4,7 +4,7 @@
 // during animation by recycling buffers instead of allocating new ones.
 //
 // Why this matters:
-//   At 60fps touchbar rendering, each frame allocates ~320KB of raw RGBA
+//   At 60fps touchstrip rendering, each frame allocates ~320KB of raw RGBA
 //   buffers (800×100×4) plus filtered scanline buffers for PNG encoding.
 //   Without pooling, V8's GC must collect ~20MB/s of short-lived buffers,
 //   causing periodic frame drops visible as stutter on the Stream Deck.

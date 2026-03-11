@@ -66,9 +66,9 @@ export function createPlugin(config: PluginConfig): Plugin {
     devicePixelRatio: config.devicePixelRatio ?? 1,
     debug: config.debug ?? process.env.NODE_ENV !== "production",
     imageCacheMaxBytes: config.imageCacheMaxBytes ?? 16 * 1024 * 1024,
-    touchbarCacheMaxBytes: config.touchbarCacheMaxBytes ?? 8 * 1024 * 1024,
+    touchstripCacheMaxBytes: config.touchstripCacheMaxBytes ?? 8 * 1024 * 1024,
     renderPool,
-    touchbarImageFormat: config.touchbarImageFormat ?? "webp",
+    touchstripImageFormat: config.touchstripImageFormat ?? "webp",
   };
 
   const renderDebounceMs = config.renderDebounceMs ?? 16;
@@ -161,9 +161,9 @@ function createSingletonAction(
         const controller = ev.payload.controller;
         const isEncoder = controller === "Encoder";
 
-        // Touchbar path: the registry handles shared TouchBarRoot creation
-        if (isEncoder && definition.touchBar) {
-          registry.create(ev, definition.touchBar, definition);
+        // Touchstrip path: the registry handles shared TouchStripRoot creation
+        if (isEncoder && definition.touchStrip) {
+          registry.create(ev, definition.touchStrip, definition);
           return;
         }
 

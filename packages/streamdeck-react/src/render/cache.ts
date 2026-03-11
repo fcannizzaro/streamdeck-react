@@ -4,7 +4,7 @@
 //
 // 1. Buffer hashing (Phase 4 output dedup)
 //    - Primary: xxHash-wasm — WASM-accelerated 32-bit xxHash
-//      Hashes the full raster buffer (~320 KB for touchbar) in native
+//      Hashes the full raster buffer (~320 KB for touchstrip) in native
 //      code, significantly faster than any JS loop with better
 //      avalanche/distribution than FNV-1a.
 //    - Fallback: FNV-1a with strided sampling (every 16th byte)
@@ -59,7 +59,7 @@ const SENTINEL_OBJECT = 0x4f424a54; // "OBJT" as u32
 // ── xxHash-wasm Accelerator ─────────────────────────────────────────
 //
 // xxHash-wasm provides a WASM-compiled xxHash implementation that hashes
-// full raster buffers (~320 KB for touchbar, ~83 KB for keys) faster
+// full raster buffers (~320 KB for touchstrip, ~83 KB for keys) faster
 // than any JS loop — even a strided one.  The WASM module compiles
 // asynchronously (~1ms on Node.js) so there's a brief window at startup
 // where the JS FNV-1a fallback is used.
@@ -124,7 +124,7 @@ const STRIDE = 16;
  * For buffers larger than {@link STRIDE_THRESHOLD} bytes:
  * - **Primary path**: xxHash-wasm `h32Raw()` — hashes the entire buffer
  *   in native WASM code.  Faster than JS strided sampling even for
- *   320 KB touchbar frames, with superior hash distribution.
+ *   320 KB touchstrip frames, with superior hash distribution.
  * - **Fallback path**: FNV-1a with strided sampling (every 16th byte)
  *   when WASM hasn't compiled yet (startup) or is unavailable.
  *
@@ -141,7 +141,7 @@ export function fnv1a(input: string | Uint8Array | Buffer): number {
     }
   } else if (input.length > STRIDE_THRESHOLD) {
     // Fast path: xxHash-wasm hashes the full buffer in native WASM —
-    // faster than JS strided FNV-1a even for 320 KB touchbar frames,
+    // faster than JS strided FNV-1a even for 320 KB touchstrip frames,
     // with better hash distribution (no sampling artifacts).
     if (bufferHashFn != null) {
       return bufferHashFn(input);
@@ -351,14 +351,14 @@ export function computeCacheKey(
   return key >>> 0;
 }
 
-// ── Native Touchbar Cache Key ───────────────────────────────────────
+// ── Native Touchstrip Cache Key ───────────────────────────────────────
 // Extends the standard cache key with the sorted column list.
 // Different column configurations at the same total width can produce
 // different segment URI sets (e.g. columns [0,1,2,3] vs [0,1,3] both
 // yield width=800 but different active segments), so the column layout
 // must be part of the cache key.
 
-export function computeNativeTouchbarCacheKey(
+export function computeNativeTouchstripCacheKey(
   treeHash: number,
   width: number,
   height: number,

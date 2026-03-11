@@ -32,28 +32,28 @@ interface PluginConfig {
   devtools?: boolean; // Default: false
   debug?: boolean; // Default: NODE_ENV !== 'production'
   imageCacheMaxBytes?: number; // Default: 16777216 (16 MB)
-  touchbarCacheMaxBytes?: number; // Default: 8388608 (8 MB)
+  touchstripCacheMaxBytes?: number; // Default: 8388608 (8 MB)
   useWorker?: boolean; // Default: true
-  touchbarImageFormat?: "webp" | "png"; // Default: 'webp'
+  touchstripImageFormat?: "webp" | "png"; // Default: 'webp'
 }
 ```
 
-| Field                   | Required | Description                                                                                     |
-| ----------------------- | -------- | ----------------------------------------------------------------------------------------------- |
-| `fonts`                 | Yes      | At least one font file. See FontConfig below.                                                   |
-| `actions`               | Yes      | Array of action definitions from `defineAction()`.                                              |
-| `wrapper`               | No       | Component that wraps ALL action roots. Use for global providers.                                |
-| `renderDebounceMs`      | No       | Coalesces renders. Increase for dial-heavy UIs.                                                 |
-| `imageFormat`           | No       | Output format. PNG is default and most compatible.                                              |
-| `caching`               | No       | Output hash caching (xxHash-wasm) to skip duplicate `setImage()` calls.                         |
-| `devicePixelRatio`      | No       | Device pixel ratio used by the Takumi renderer. Default: `1`.                                   |
-| `onActionError`         | No       | Called when a component throws in any action root.                                              |
-| `devtools`              | No       | Enable the devtools server. Port derived from plugin UUID (39400-39499).                        |
-| `debug`                 | No       | Enable render counters, duplicate detection, and depth warnings. Defaults to non-production.    |
-| `imageCacheMaxBytes`    | No       | Max bytes for the key/dial image cache (LRU). Set to 0 to disable. Default: 16 MB.              |
-| `touchbarCacheMaxBytes` | No       | Max bytes for the touchbar raw buffer cache (LRU). Set to 0 to disable. Default: 8 MB.          |
-| `useWorker`             | No       | Offload Takumi rendering to a worker thread. Transparent fallback if worker fails.              |
-| `touchbarImageFormat`   | No       | Touchbar segment encoding format. `"webp"` is faster (native Takumi encode). Default: `"webp"`. |
+| Field                     | Required | Description                                                                                       |
+| ------------------------- | -------- | ------------------------------------------------------------------------------------------------- |
+| `fonts`                   | Yes      | At least one font file. See FontConfig below.                                                     |
+| `actions`                 | Yes      | Array of action definitions from `defineAction()`.                                                |
+| `wrapper`                 | No       | Component that wraps ALL action roots. Use for global providers.                                  |
+| `renderDebounceMs`        | No       | Coalesces renders. Increase for dial-heavy UIs.                                                   |
+| `imageFormat`             | No       | Output format. PNG is default and most compatible.                                                |
+| `caching`                 | No       | Output hash caching (xxHash-wasm) to skip duplicate `setImage()` calls.                           |
+| `devicePixelRatio`        | No       | Device pixel ratio used by the Takumi renderer. Default: `1`.                                     |
+| `onActionError`           | No       | Called when a component throws in any action root.                                                |
+| `devtools`                | No       | Enable the devtools server. Port derived from plugin UUID (39400-39499).                          |
+| `debug`                   | No       | Enable render counters, duplicate detection, and depth warnings. Defaults to non-production.      |
+| `imageCacheMaxBytes`      | No       | Max bytes for the key/dial image cache (LRU). Set to 0 to disable. Default: 16 MB.                |
+| `touchstripCacheMaxBytes` | No       | Max bytes for the touchstrip raw buffer cache (LRU). Set to 0 to disable. Default: 8 MB.          |
+| `useWorker`               | No       | Offload Takumi rendering to a worker thread. Transparent fallback if worker fails.                |
+| `touchstripImageFormat`   | No       | Touchstrip segment encoding format. `"webp"` is faster (native Takumi encode). Default: `"webp"`. |
 
 ### Plugin-Level Wrapper
 
@@ -93,24 +93,24 @@ interface ActionConfig<S extends JsonObject = JsonObject> {
   uuid: string;
   key?: ComponentType;
   dial?: ComponentType;
-  touchBar?: ComponentType;
-  touchBarFPS?: number;
+  touchStrip?: ComponentType;
+  touchStripFPS?: number;
   dialLayout?: EncoderLayout;
   wrapper?: WrapperComponent;
   defaultSettings?: Partial<S>;
 }
 ```
 
-| Field             | Required | Description                                                                                                                 |
-| ----------------- | -------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `uuid`            | Yes      | Must exactly match the `UUID` in `manifest.json`.                                                                           |
-| `key`             | No       | Component for key (Keypad controller).                                                                                      |
-| `dial`            | No       | Component for encoder display (Stream Deck+). Falls back to `key` if not provided.                                          |
-| `touchBar`        | No       | Full-strip touchbar component. Replaces per-encoder `dial` with a single shared React tree spanning the entire touch strip. |
-| `touchBarFPS`     | No       | Target FPS for the touchbar animation loop and render pipeline. Default: `60`.                                              |
-| `dialLayout`      | No       | Encoder feedback layout. Defaults to a full-width canvas `pixmap` layout keyed as `canvas`.                                 |
-| `wrapper`         | No       | Component that wraps this action's root (nested inside plugin wrapper).                                                     |
-| `defaultSettings` | No       | Default settings shallow-merged with stored settings.                                                                       |
+| Field             | Required | Description                                                                                                                   |
+| ----------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `uuid`            | Yes      | Must exactly match the `UUID` in `manifest.json`.                                                                             |
+| `key`             | No       | Component for key (Keypad controller).                                                                                        |
+| `dial`            | No       | Component for encoder display (Stream Deck+). Falls back to `key` if not provided.                                            |
+| `touchStrip`      | No       | Full-strip touchstrip component. Replaces per-encoder `dial` with a single shared React tree spanning the entire touch strip. |
+| `touchStripFPS`   | No       | Target FPS for the touchstrip animation loop and render pipeline. Default: `60`.                                              |
+| `dialLayout`      | No       | Encoder feedback layout. Defaults to a full-width canvas `pixmap` layout keyed as `canvas`.                                   |
+| `wrapper`         | No       | Component that wraps this action's root (nested inside plugin wrapper).                                                       |
+| `defaultSettings` | No       | Default settings shallow-merged with stored settings.                                                                         |
 
 ### Typed Settings
 

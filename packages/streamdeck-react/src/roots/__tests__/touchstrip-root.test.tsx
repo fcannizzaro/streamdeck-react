@@ -5,12 +5,12 @@ import { act } from "react";
 import { useGlobalSettings } from "@/hooks/settings";
 import { useDevice } from "@/hooks/context";
 import {
-  useTouchBar,
-  useTouchBarTap,
-  useTouchBarDialRotate,
-  useTouchBarDialDown,
-  useTouchBarDialUp,
-} from "@/hooks/touchbar";
+  useTouchStrip,
+  useTouchStripTap,
+  useTouchStripDialRotate,
+  useTouchStripDialDown,
+  useTouchStripDialUp,
+} from "@/hooks/touchstrip";
 import { RootRegistry } from "@/roots/registry";
 import { sleep } from "@/test-utils/sleep";
 import type {
@@ -18,10 +18,10 @@ import type {
   DeviceInfo,
   EncoderLayout,
   StreamDeckAccess,
-  TouchBarInfo,
-  TouchBarTapPayload,
-  TouchBarDialRotatePayload,
-  TouchBarDialPressPayload,
+  TouchStripInfo,
+  TouchStripTapPayload,
+  TouchStripDialRotatePayload,
+  TouchStripDialPressPayload,
 } from "@/types";
 import type { JsonObject } from "@elgato/utils";
 
@@ -99,55 +99,55 @@ function createEncoderEvent(overrides?: {
 
 // ── Tests ───────────────────────────────────────────────────────────
 
-describe("TouchBarRoot integration", () => {
-  test("encoder with touchbar registers with TouchBarRoot instead of per-action root", async () => {
+describe("TouchStripRoot integration", () => {
+  test("encoder with touchstrip registers with TouchStripRoot instead of per-action root", async () => {
     const fakeSdk = createFakeSdk();
     const { ev } = createEncoderEvent({ column: 0 });
 
-    let touchBarInfo: TouchBarInfo | undefined;
+    let touchStripInfo: TouchStripInfo | undefined;
 
-    function MyTouchBar() {
-      touchBarInfo = useTouchBar();
+    function MyTouchStrip() {
+      touchStripInfo = useTouchStrip();
       return null;
     }
 
     const definition: ActionDefinition = {
-      uuid: "com.example.touchbar-test",
-      touchBar: MyTouchBar,
+      uuid: "com.example.touchstrip-test",
+      touchStrip: MyTouchStrip,
       defaultSettings: {},
     };
 
     const registry = createRegistry(fakeSdk);
 
     await act(async () => {
-      registry.create(ev, MyTouchBar, definition);
+      registry.create(ev, MyTouchStrip, definition);
       await sleep(20);
     });
 
-    // TouchBar context should be available
-    expect(touchBarInfo).toBeDefined();
-    expect(touchBarInfo!.columns).toEqual([0]);
-    expect(touchBarInfo!.width).toBe(200);
-    expect(touchBarInfo!.height).toBe(100);
-    expect(touchBarInfo!.segmentWidth).toBe(200);
+    // TouchStrip context should be available
+    expect(touchStripInfo).toBeDefined();
+    expect(touchStripInfo!.columns).toEqual([0]);
+    expect(touchStripInfo!.width).toBe(200);
+    expect(touchStripInfo!.height).toBe(100);
+    expect(touchStripInfo!.segmentWidth).toBe(200);
 
     act(() => {
       registry.destroyAll();
     });
   });
 
-  test("multiple encoder columns produce correct touchbar width and columns", async () => {
+  test("multiple encoder columns produce correct touchstrip width and columns", async () => {
     const fakeSdk = createFakeSdk();
-    let touchBarInfo: TouchBarInfo | undefined;
+    let touchStripInfo: TouchStripInfo | undefined;
 
-    function MyTouchBar() {
-      touchBarInfo = useTouchBar();
+    function MyTouchStrip() {
+      touchStripInfo = useTouchStrip();
       return null;
     }
 
     const definition: ActionDefinition = {
       uuid: "com.example.multi-column",
-      touchBar: MyTouchBar,
+      touchStrip: MyTouchStrip,
       defaultSettings: {},
     };
 
@@ -158,16 +158,16 @@ describe("TouchBarRoot integration", () => {
     const { ev: ev3 } = createEncoderEvent({ actionId: "enc-3", column: 3 });
 
     await act(async () => {
-      registry.create(ev0, MyTouchBar, definition);
-      registry.create(ev1, MyTouchBar, definition);
-      registry.create(ev3, MyTouchBar, definition);
+      registry.create(ev0, MyTouchStrip, definition);
+      registry.create(ev1, MyTouchStrip, definition);
+      registry.create(ev3, MyTouchStrip, definition);
       await sleep(20);
     });
 
     // width = (maxColumn + 1) * 200 = 4 * 200 = 800
-    expect(touchBarInfo).toBeDefined();
-    expect(touchBarInfo!.columns).toEqual([0, 1, 3]);
-    expect(touchBarInfo!.width).toBe(800);
+    expect(touchStripInfo).toBeDefined();
+    expect(touchStripInfo!.columns).toEqual([0, 1, 3]);
+    expect(touchStripInfo!.width).toBe(800);
 
     act(() => {
       registry.destroyAll();
@@ -176,10 +176,10 @@ describe("TouchBarRoot integration", () => {
 
   test("touchTap event is translated to absolute coordinates", async () => {
     const fakeSdk = createFakeSdk();
-    const tapPayloads: TouchBarTapPayload[] = [];
+    const tapPayloads: TouchStripTapPayload[] = [];
 
-    function MyTouchBar() {
-      useTouchBarTap((payload) => {
+    function MyTouchStrip() {
+      useTouchStripTap((payload) => {
         tapPayloads.push(payload);
       });
       return null;
@@ -187,7 +187,7 @@ describe("TouchBarRoot integration", () => {
 
     const definition: ActionDefinition = {
       uuid: "com.example.touch-translate",
-      touchBar: MyTouchBar,
+      touchStrip: MyTouchStrip,
       defaultSettings: {},
     };
 
@@ -197,8 +197,8 @@ describe("TouchBarRoot integration", () => {
     const { ev: ev2 } = createEncoderEvent({ actionId: "enc-2", column: 2 });
 
     await act(async () => {
-      registry.create(ev0, MyTouchBar, definition);
-      registry.create(ev2, MyTouchBar, definition);
+      registry.create(ev0, MyTouchStrip, definition);
+      registry.create(ev2, MyTouchStrip, definition);
       await sleep(20);
     });
 
@@ -225,10 +225,10 @@ describe("TouchBarRoot integration", () => {
 
   test("dialRotate event is forwarded with column info", async () => {
     const fakeSdk = createFakeSdk();
-    const rotatePayloads: TouchBarDialRotatePayload[] = [];
+    const rotatePayloads: TouchStripDialRotatePayload[] = [];
 
-    function MyTouchBar() {
-      useTouchBarDialRotate((payload) => {
+    function MyTouchStrip() {
+      useTouchStripDialRotate((payload) => {
         rotatePayloads.push(payload);
       });
       return null;
@@ -236,7 +236,7 @@ describe("TouchBarRoot integration", () => {
 
     const definition: ActionDefinition = {
       uuid: "com.example.dial-forward",
-      touchBar: MyTouchBar,
+      touchStrip: MyTouchStrip,
       defaultSettings: {},
     };
 
@@ -245,7 +245,7 @@ describe("TouchBarRoot integration", () => {
     const { ev } = createEncoderEvent({ actionId: "enc-1", column: 1 });
 
     await act(async () => {
-      registry.create(ev, MyTouchBar, definition);
+      registry.create(ev, MyTouchStrip, definition);
       await sleep(20);
     });
 
@@ -270,14 +270,14 @@ describe("TouchBarRoot integration", () => {
 
   test("dialDown and dialUp events are forwarded with column info", async () => {
     const fakeSdk = createFakeSdk();
-    const downPayloads: TouchBarDialPressPayload[] = [];
-    const upPayloads: TouchBarDialPressPayload[] = [];
+    const downPayloads: TouchStripDialPressPayload[] = [];
+    const upPayloads: TouchStripDialPressPayload[] = [];
 
-    function MyTouchBar() {
-      useTouchBarDialDown((payload) => {
+    function MyTouchStrip() {
+      useTouchStripDialDown((payload) => {
         downPayloads.push(payload);
       });
-      useTouchBarDialUp((payload) => {
+      useTouchStripDialUp((payload) => {
         upPayloads.push(payload);
       });
       return null;
@@ -285,7 +285,7 @@ describe("TouchBarRoot integration", () => {
 
     const definition: ActionDefinition = {
       uuid: "com.example.dial-press",
-      touchBar: MyTouchBar,
+      touchStrip: MyTouchStrip,
       defaultSettings: {},
     };
 
@@ -293,7 +293,7 @@ describe("TouchBarRoot integration", () => {
     const { ev } = createEncoderEvent({ actionId: "enc-2", column: 2 });
 
     await act(async () => {
-      registry.create(ev, MyTouchBar, definition);
+      registry.create(ev, MyTouchStrip, definition);
       await sleep(20);
     });
 
@@ -319,18 +319,18 @@ describe("TouchBarRoot integration", () => {
     });
   });
 
-  test("removing last column cleans up TouchBarRoot", async () => {
+  test("removing last column cleans up TouchStripRoot", async () => {
     const fakeSdk = createFakeSdk();
-    let touchBarInfo: TouchBarInfo | undefined;
+    let touchStripInfo: TouchStripInfo | undefined;
 
-    function MyTouchBar() {
-      touchBarInfo = useTouchBar();
+    function MyTouchStrip() {
+      touchStripInfo = useTouchStrip();
       return null;
     }
 
     const definition: ActionDefinition = {
       uuid: "com.example.cleanup",
-      touchBar: MyTouchBar,
+      touchStrip: MyTouchStrip,
       defaultSettings: {},
     };
 
@@ -340,23 +340,23 @@ describe("TouchBarRoot integration", () => {
     const { ev: ev1 } = createEncoderEvent({ actionId: "enc-1", column: 1 });
 
     await act(async () => {
-      registry.create(ev0, MyTouchBar, definition);
-      registry.create(ev1, MyTouchBar, definition);
+      registry.create(ev0, MyTouchStrip, definition);
+      registry.create(ev1, MyTouchStrip, definition);
       await sleep(20);
     });
 
-    expect(touchBarInfo!.columns).toEqual([0, 1]);
+    expect(touchStripInfo!.columns).toEqual([0, 1]);
 
-    // Remove column 0 — touchbar still alive with column 1
+    // Remove column 0 — touchstrip still alive with column 1
     await act(async () => {
       registry.destroy("enc-0");
       await sleep(20);
     });
 
-    expect(touchBarInfo!.columns).toEqual([1]);
-    expect(touchBarInfo!.width).toBe(400); // (1 + 1) * 200
+    expect(touchStripInfo!.columns).toEqual([1]);
+    expect(touchStripInfo!.width).toBe(400); // (1 + 1) * 200
 
-    // Remove column 1 — touchbar should be cleaned up
+    // Remove column 1 — touchstrip should be cleaned up
     act(() => {
       registry.destroy("enc-1");
     });
@@ -369,18 +369,18 @@ describe("TouchBarRoot integration", () => {
     });
   });
 
-  test("DeviceContext is available in touchbar component", async () => {
+  test("DeviceContext is available in touchstrip component", async () => {
     const fakeSdk = createFakeSdk();
     let deviceFromHook: DeviceInfo | undefined;
 
-    function MyTouchBar() {
+    function MyTouchStrip() {
       deviceFromHook = useDevice();
       return null;
     }
 
     const definition: ActionDefinition = {
       uuid: "com.example.device-ctx",
-      touchBar: MyTouchBar,
+      touchStrip: MyTouchStrip,
       defaultSettings: {},
     };
 
@@ -393,7 +393,7 @@ describe("TouchBarRoot integration", () => {
     });
 
     await act(async () => {
-      registry.create(ev, MyTouchBar, definition);
+      registry.create(ev, MyTouchStrip, definition);
       await sleep(20);
     });
 
@@ -406,11 +406,11 @@ describe("TouchBarRoot integration", () => {
     });
   });
 
-  test("global settings are propagated to touchbar root", async () => {
+  test("global settings are propagated to touchstrip root", async () => {
     const fakeSdk = createFakeSdk();
     let globalSettingsFromHook: JsonObject | undefined;
 
-    function MyTouchBar() {
+    function MyTouchStrip() {
       const [gs] = useGlobalSettings();
       globalSettingsFromHook = gs;
       return null;
@@ -418,7 +418,7 @@ describe("TouchBarRoot integration", () => {
 
     const definition: ActionDefinition = {
       uuid: "com.example.global-settings",
-      touchBar: MyTouchBar,
+      touchStrip: MyTouchStrip,
       defaultSettings: {},
     };
 
@@ -426,7 +426,7 @@ describe("TouchBarRoot integration", () => {
     const { ev } = createEncoderEvent({ actionId: "enc-0", column: 0 });
 
     await act(async () => {
-      registry.create(ev, MyTouchBar, definition);
+      registry.create(ev, MyTouchStrip, definition);
       await sleep(20);
     });
 
@@ -446,19 +446,19 @@ describe("TouchBarRoot integration", () => {
     });
   });
 
-  test("identical global settings do not rerender touchbar consumers", async () => {
+  test("identical global settings do not rerender touchstrip consumers", async () => {
     const fakeSdk = createFakeSdk();
     let renderCount = 0;
 
-    function MyTouchBar() {
+    function MyTouchStrip() {
       useGlobalSettings();
       renderCount++;
       return null;
     }
 
     const definition: ActionDefinition = {
-      uuid: "com.example.touchbar-global-stable",
-      touchBar: MyTouchBar,
+      uuid: "com.example.touchstrip-global-stable",
+      touchStrip: MyTouchStrip,
       defaultSettings: {},
     };
 
@@ -466,7 +466,7 @@ describe("TouchBarRoot integration", () => {
     const { ev } = createEncoderEvent({ actionId: "enc-0", column: 0 });
 
     await act(async () => {
-      registry.create(ev, MyTouchBar, definition);
+      registry.create(ev, MyTouchStrip, definition);
       await sleep(20);
     });
 
@@ -492,13 +492,13 @@ describe("TouchBarRoot integration", () => {
   test("duplicate create for same action ID is a no-op", async () => {
     const fakeSdk = createFakeSdk();
 
-    function MyTouchBar() {
+    function MyTouchStrip() {
       return null;
     }
 
     const definition: ActionDefinition = {
       uuid: "com.example.duplicate",
-      touchBar: MyTouchBar,
+      touchStrip: MyTouchStrip,
       defaultSettings: {},
     };
 
@@ -506,13 +506,13 @@ describe("TouchBarRoot integration", () => {
     const { ev, feedbackLayoutCalls } = createEncoderEvent({ actionId: "enc-0", column: 0 });
 
     await act(async () => {
-      registry.create(ev, MyTouchBar, definition);
+      registry.create(ev, MyTouchStrip, definition);
       await sleep(20);
     });
 
     // Second create for the same action ID should be ignored
     await act(async () => {
-      registry.create(ev, MyTouchBar, definition);
+      registry.create(ev, MyTouchStrip, definition);
       await sleep(20);
     });
 
@@ -526,16 +526,16 @@ describe("TouchBarRoot integration", () => {
 
   test("width adapts when columns are added and removed", async () => {
     const fakeSdk = createFakeSdk();
-    let touchBarInfo: TouchBarInfo | undefined;
+    let touchStripInfo: TouchStripInfo | undefined;
 
-    function MyTouchBar() {
-      touchBarInfo = useTouchBar();
+    function MyTouchStrip() {
+      touchStripInfo = useTouchStrip();
       return null;
     }
 
     const definition: ActionDefinition = {
       uuid: "com.example.adapt",
-      touchBar: MyTouchBar,
+      touchStrip: MyTouchStrip,
       defaultSettings: {},
     };
 
@@ -546,23 +546,23 @@ describe("TouchBarRoot integration", () => {
     const { ev: ev1 } = createEncoderEvent({ actionId: "enc-1", column: 1 });
 
     await act(async () => {
-      registry.create(ev0, MyTouchBar, definition);
-      registry.create(ev1, MyTouchBar, definition);
+      registry.create(ev0, MyTouchStrip, definition);
+      registry.create(ev1, MyTouchStrip, definition);
       await sleep(20);
     });
 
-    expect(touchBarInfo!.width).toBe(400); // 2 * 200
+    expect(touchStripInfo!.width).toBe(400); // 2 * 200
 
     // Add column 3 (gap at 2)
     const { ev: ev3 } = createEncoderEvent({ actionId: "enc-3", column: 3 });
 
     await act(async () => {
-      registry.create(ev3, MyTouchBar, definition);
+      registry.create(ev3, MyTouchStrip, definition);
       await sleep(20);
     });
 
-    expect(touchBarInfo!.width).toBe(800); // 4 * 200
-    expect(touchBarInfo!.columns).toEqual([0, 1, 3]);
+    expect(touchStripInfo!.width).toBe(800); // 4 * 200
+    expect(touchStripInfo!.columns).toEqual([0, 1, 3]);
 
     // Remove column 3 — width should shrink
     await act(async () => {
@@ -570,8 +570,8 @@ describe("TouchBarRoot integration", () => {
       await sleep(20);
     });
 
-    expect(touchBarInfo!.width).toBe(400);
-    expect(touchBarInfo!.columns).toEqual([0, 1]);
+    expect(touchStripInfo!.width).toBe(400);
+    expect(touchStripInfo!.columns).toEqual([0, 1]);
 
     act(() => {
       registry.destroyAll();

@@ -43,9 +43,8 @@ interface ActionConfig<S extends JsonObject = JsonObject> {
   uuid: string;
   key?: ComponentType;
   dial?: ComponentType;
-  touch?: ComponentType;
-  touchBar?: ComponentType;
-  touchBarFPS?: number;
+  touchStrip?: ComponentType;
+  touchStripFPS?: number;
   dialLayout?: EncoderLayout;
   wrapper?: WrapperComponent;
   defaultSettings?: Partial<S>;
@@ -91,9 +90,9 @@ export const volumeAction = defineAction({
 });
 ```
 
-### `touchBar`
+### `touchStrip`
 
-Component for full-strip rendering across all encoders. When set, replaces per-encoder `dial` display with a single shared React tree that spans the entire Stream Deck+ touch strip. See the [TouchBar Component](/guides/touchbar) guide.
+Component for full-strip rendering across all encoders. When set, replaces per-encoder `dial` display with a single shared React tree that spans the entire Stream Deck+ touch strip. See the [TouchStrip Component](/guides/touchstrip) guide.
 
 For encoder rendering, you can still pair a key surface with a dedicated dial component:
 
@@ -106,9 +105,9 @@ export const volumeAction = defineAction<VolumeSettings>({
 });
 ```
 
-### `touchBarFPS`
+### `touchStripFPS`
 
-Target frame rate for the touchbar animation loop and render pipeline. Controls both `useTick` cadence (via `useTouchBar().fps`) and the render debounce. Default: `60`.
+Target frame rate for the touchstrip animation loop and render pipeline. Controls both `useTick` cadence (via `useTouchStrip().fps`) and the render debounce. Default: `60`.
 
 ### `wrapper`
 

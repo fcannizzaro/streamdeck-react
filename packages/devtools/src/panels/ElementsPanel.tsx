@@ -5,29 +5,29 @@ import type { SerializedVNode } from "../types";
 
 // ── Elements Panel ──────────────────────────────────────────────────
 //
-// Unified element inspector for both key/dial actions and touchbar
+// Unified element inspector for both key/dial actions and touchstrip
 // surfaces.  The dropdown merges entries from the `actions` map
-// (keyed by actionId) and the `touchBars` map (keyed by deviceId,
-// prefixed with "touchbar:" to avoid collisions).
+// (keyed by actionId) and the `touchStrips` map (keyed by deviceId,
+// prefixed with "touchstrip:" to avoid collisions).
 //
-// The `touchbar:<deviceId>` key convention matches the one used by
+// The `touchstrip:<deviceId>` key convention matches the one used by
 // profile entries in the Performance panel, keeping IDs consistent
 // across panels.
 
-// ── Touchbar ID prefix ─────────────────────────────────────────────
+// ── Touchstrip ID prefix ─────────────────────────────────────────────
 
-const TB_PREFIX = "touchbar:";
+const TB_PREFIX = "touchstrip:";
 
 export function ElementsPanel() {
   const actions = useStore((s) => s.actions);
-  const touchBars = useStore((s) => s.touchBars);
+  const touchStrips = useStore((s) => s.touchStrips);
   const selectedActionId = useStore((s) => s.selectedActionId);
   const setSelectedAction = useStore((s) => s.setSelectedAction);
   const selectedNodeId = useStore((s) => s.selectedNodeId);
 
   // ── Resolve selected item's tree ────────────────────────────────
   // The selectedActionId can be either a plain actionId (key/dial)
-  // or a "touchbar:<deviceId>" string (touchbar surface).  We look
+  // or a "touchstrip:<deviceId>" string (touchstrip surface).  We look
   // up the correct map based on the prefix.
   let selectedTree: SerializedVNode | null = null;
   let dimensionLabel = "";
@@ -36,7 +36,7 @@ export function ElementsPanel() {
   if (selectedActionId) {
     if (selectedActionId.startsWith(TB_PREFIX)) {
       const deviceId = selectedActionId.slice(TB_PREFIX.length);
-      const tb = touchBars.get(deviceId);
+      const tb = touchStrips.get(deviceId);
       if (tb) {
         selectedTree = tb.tree;
         dimensionLabel = `${tb.canvas.width}x${tb.canvas.height}`;
@@ -55,11 +55,11 @@ export function ElementsPanel() {
   const selectedNode =
     selectedTree && selectedNodeId !== null ? findNodeByNid(selectedTree, selectedNodeId) : null;
 
-  const hasItems = actions.size > 0 || touchBars.size > 0;
+  const hasItems = actions.size > 0 || touchStrips.size > 0;
 
   return (
     <div className="flex flex-col h-full">
-      {/* Action / TouchBar selector */}
+      {/* Action / TouchStrip selector */}
       <div className="flex items-center gap-2 px-3 py-1.5 border-b border-neutral-800 bg-neutral-900/80 shrink-0">
         <span className="text-xs text-neutral-500">Action:</span>
         <select
@@ -79,10 +79,10 @@ export function ElementsPanel() {
             </option>
           ))}
 
-          {/* TouchBar surfaces */}
-          {[...touchBars.entries()].map(([deviceId, tb]) => (
+          {/* TouchStrip surfaces */}
+          {[...touchStrips.entries()].map(([deviceId, tb]) => (
             <option key={`${TB_PREFIX}${deviceId}`} value={`${TB_PREFIX}${deviceId}`}>
-              TouchBar [{tb.deviceName}]
+              TouchStrip [{tb.deviceName}]
             </option>
           ))}
         </select>

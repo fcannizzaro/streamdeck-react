@@ -1,4 +1,4 @@
-// ── Weather TouchBar ───────────────────────────────────────────────
+// ── Weather TouchStrip ─────────────────────────────────────────────
 // Full-width touch strip component (800×100). Renders a flat row of
 // mini weather cards. Dial rotation moves a cursor highlight.
 // Pressing a dial or tapping a card expands a detail overlay
@@ -7,10 +7,10 @@
 import { useEffect, useRef } from "react";
 import {
   defineAction,
-  useTouchBar,
-  useTouchBarTap,
-  useTouchBarDialRotate,
-  useTouchBarDialDown,
+  useTouchStrip,
+  useTouchStripTap,
+  useTouchStripDialRotate,
+  useTouchStripDialDown,
   useSpring,
   SpringPresets,
   Icon,
@@ -201,8 +201,8 @@ function DetailPanel({
 
 // ── Main component ─────────────────────────────────────────────────
 
-function WeatherTouchBar() {
-  const { width, height } = useTouchBar();
+function WeatherTouchStrip() {
+  const { width, height } = useTouchStrip();
 
   // Store state
   const forecast = useWeatherStore((s) => s.forecast);
@@ -219,9 +219,9 @@ function WeatherTouchBar() {
 
   const { value: progress } = useSpring(expanded ? 1 : 0, SpringPresets.stiff);
 
-  // ── TouchBar interactions ──────────────────────────────────────
+  // ── TouchStrip interactions ────────────────────────────────────
 
-  useTouchBarDialRotate(({ ticks }) => {
+  useTouchStripDialRotate(({ ticks }) => {
     const store = useWeatherStore.getState();
     if (store.expanded) {
       store.closeExpanded();
@@ -230,7 +230,7 @@ function WeatherTouchBar() {
     store.moveCursor(ticks);
   });
 
-  useTouchBarDialDown(() => {
+  useTouchStripDialDown(() => {
     const store = useWeatherStore.getState();
     if (store.expanded) {
       store.closeExpanded();
@@ -239,7 +239,7 @@ function WeatherTouchBar() {
     store.toggleExpanded();
   });
 
-  useTouchBarTap(({ tapPos }) => {
+  useTouchStripTap(({ tapPos }) => {
     const store = useWeatherStore.getState();
 
     if (store.expanded) {
@@ -353,6 +353,6 @@ function WeatherTouchBar() {
 
 export const weatherAction = defineAction({
   uuid: "com.example.react-weather.forecast",
-  touchBar: WeatherTouchBar,
-  touchBarFPS: 60,
+  touchStrip: WeatherTouchStrip,
+  touchStripFPS: 60,
 });

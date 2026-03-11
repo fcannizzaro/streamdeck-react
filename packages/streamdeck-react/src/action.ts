@@ -9,12 +9,12 @@ import type { JsonObject } from "@elgato/utils";
 // Type narrowing:
 //   The `config` parameter uses `ActionConfigInput<S>` which, when
 //   ManifestActions is populated, becomes a discriminated union that
-//   enforces UUID validity and requires key/dial/touchBar based on
+//   enforces UUID validity and requires key/dial/touchStrip based on
 //   the manifest's Controllers array.  This means TypeScript will
 //   error at the call site if:
 //     - The UUID is not in the manifest
 //     - A Keypad action is missing `key`
-//     - An Encoder action is missing both `dial` and `touchBar`
+//     - An Encoder action is missing both `dial` and `touchStrip`
 //
 //   When ManifestActions is empty (no streamdeck-env.d.ts), all
 //   properties are optional and UUID is a plain string.
@@ -31,8 +31,8 @@ export function defineAction<S extends JsonObject = JsonObject>(
     uuid: config.uuid,
     key: config.key,
     dial: config.dial,
-    touchBar: config.touchBar,
-    touchBarFPS: config.touchBarFPS,
+    touchStrip: config.touchStrip,
+    touchStripFPS: config.touchStripFPS,
     dialLayout: config.dialLayout,
     wrapper: config.wrapper,
     defaultSettings: config.defaultSettings ?? ({} as Partial<S>),

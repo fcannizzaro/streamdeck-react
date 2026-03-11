@@ -56,7 +56,7 @@ export interface SnapshotAction {
   dataUri: string | null;
 }
 
-export interface SnapshotTouchBar {
+export interface SnapshotTouchStrip {
   deviceId: string;
   deviceName: string;
   canvas: { width: number; height: number };
@@ -71,7 +71,7 @@ export interface SnapshotTouchBar {
 export interface SnapshotMessage extends BaseMessage {
   type: "snapshot";
   actions: SnapshotAction[];
-  touchBars: SnapshotTouchBar[];
+  touchStrips: SnapshotTouchStrip[];
   recentConsole: ConsoleMessage[];
   recentNetwork: (NetworkRequestMessage | NetworkResponseMessage | NetworkErrorMessage)[];
   recentEvents: EventBusMessage[];
@@ -124,8 +124,8 @@ export interface RenderMessage extends BaseMessage {
   profile?: ProfileData;
 }
 
-export interface TouchBarRenderMessage extends BaseMessage {
-  type: "render:touchbar";
+export interface TouchStripRenderMessage extends BaseMessage {
+  type: "render:touchstrip";
   deviceId: string;
   canvas: { width: number; height: number };
   tree: SerializedVNode;
@@ -153,7 +153,7 @@ export interface LifecycleMessage extends BaseMessage {
   event: "appear" | "disappear";
   actionId: string;
   actionUuid: string;
-  surface: "key" | "dial" | "touch" | "touchbar";
+  surface: "key" | "dial" | "touch" | "touchstrip";
   device: { id: string; type: number; name: string };
   coordinates?: { column: number; row: number };
   canvas: { width: number; height: number };
@@ -191,7 +191,7 @@ export interface MetricsData {
   avgRenderMs: number;
   peakRenderMs: number;
   imageCacheBytes: number;
-  touchbarCacheBytes: number;
+  touchstripCacheBytes: number;
 }
 
 export interface MetricsMessage extends BaseMessage {
@@ -222,7 +222,7 @@ export type ServerMessage =
   | NetworkResponseMessage
   | NetworkErrorMessage
   | RenderMessage
-  | TouchBarRenderMessage
+  | TouchStripRenderMessage
   | EventBusMessage
   | LifecycleMessage
   | HighlightRenderMessage
@@ -250,7 +250,7 @@ export interface ActionEntry {
   dataUri: string | null;
 }
 
-export interface TouchBarEntry {
+export interface TouchStripEntry {
   deviceId: string;
   deviceName: string;
   canvas: { width: number; height: number };
