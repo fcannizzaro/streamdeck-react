@@ -9,6 +9,7 @@ import type {
 import type { JsonObject } from "@elgato/utils";
 import { ReactRoot } from "./root";
 import { TouchBarRoot } from "./touchbar-root";
+import { shallowEqualSettings } from "./settings-equality";
 import type {
   ActionDefinition,
   ActionInfo,
@@ -114,6 +115,9 @@ export class RootRegistry {
   }
 
   setGlobalSettings(settings: JsonObject): void {
+    if (shallowEqualSettings(this.globalSettings, settings)) {
+      return;
+    }
     this.globalSettings = settings;
     // Propagate to all active roots
     for (const root of this.roots.values()) {

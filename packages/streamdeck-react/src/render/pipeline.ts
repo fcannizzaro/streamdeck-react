@@ -123,6 +123,27 @@ let depthWarned = false;
 // className → tw mapping replicates what vnodeToElement() does for
 // Takumi's built-in Tailwind CSS parser.
 
+// ── Props keys to skip when copying VNode props to Takumi nodes ─────
+// These are handled specially by vnodeToTakumiNode (className → tw,
+// src → image node, children → structural).
+const SKIP_PROPS = new Set(["children", "className", "src"]);
+
+// ── Copy VNode props to a Takumi node without destructure+spread ────
+// Avoids creating an intermediate rest object per node per frame.
+// Copies all non-skipped, non-function/symbol props from the VNode
+// directly onto the target Takumi node object.
+function copyPropsToNode(target: Record<string, unknown>, props: Record<string, unknown>): void {
+  const keys = Object.keys(props);
+  for (let i = 0; i < keys.length; i++) {
+    const key = keys[i]!;
+    if (SKIP_PROPS.has(key)) continue;
+    const value = props[key];
+    // tw is handled separately by the caller — skip to avoid overwrite
+    if (key === "tw") continue;
+    target[key] = value;
+  }
+}
+
 function vnodeToTakumiNode(node: VNode, depth = 0): TakumiNode {
   // Depth warning in debug mode (fires once to avoid log spam)
   if (!depthWarned && depth > MAX_DEPTH_WARN) {
@@ -137,22 +158,22 @@ function vnodeToTakumiNode(node: VNode, depth = 0): TakumiNode {
     return { type: "text", text: node.text ?? "" };
   }
 
-  const { children: _children, className, src, ...restProps } = node.props;
+  const props = node.props;
 
   // Map className → tw (same logic as vnodeToElement)
-  let tw: string | undefined = typeof restProps.tw === "string" ? restProps.tw : undefined;
+  const rawTw = typeof props.tw === "string" ? props.tw : undefined;
+  const className = props.className;
+  let tw: string | undefined = rawTw;
   if (typeof className === "string" && className.length > 0) {
     tw = tw ? tw + " " + className : className;
   }
 
   // Image nodes → Takumi ImageNode
-  if (node.type === "img" && typeof src === "string") {
-    return {
-      type: "image",
-      src: src as string,
-      ...(tw ? { tw } : {}),
-      ...restProps,
-    } as TakumiNode;
+  if (node.type === "img" && typeof props.src === "string") {
+    const result: Record<string, unknown> = { type: "image", src: props.src };
+    if (tw) result.tw = tw;
+    copyPropsToNode(result, props);
+    return result as TakumiNode;
   }
 
   // SVG nodes → Takumi ImageNode (serialize subtree to SVG markup)
@@ -160,31 +181,26 @@ function vnodeToTakumiNode(node: VNode, depth = 0): TakumiNode {
   // to an SVG markup string and wrapped in an ImageNode.
   if (node.type === "svg") {
     const svgMarkup = serializeSvgTree(node);
-    const width = typeof node.props.width === "number" ? node.props.width : undefined;
-    const height = typeof node.props.height === "number" ? node.props.height : undefined;
-    return {
-      type: "image",
-      src: svgMarkup,
-      ...(width != null ? { width } : {}),
-      ...(height != null ? { height } : {}),
-      ...(tw ? { tw } : {}),
-      ...(node.props.style ? { style: node.props.style } : {}),
-      tagName: "svg",
-    } as TakumiNode;
+    const result: Record<string, unknown> = { type: "image", src: svgMarkup, tagName: "svg" };
+    const width = typeof props.width === "number" ? props.width : undefined;
+    const height = typeof props.height === "number" ? props.height : undefined;
+    if (width != null) result.width = width;
+    if (height != null) result.height = height;
+    if (tw) result.tw = tw;
+    if (props.style) result.style = props.style;
+    return result as TakumiNode;
   }
 
   // All other nodes → Takumi ContainerNode
-  const takumiChildren =
-    node.children.length > 0
-      ? node.children.map((child) => vnodeToTakumiNode(child, depth + 1))
-      : undefined;
+  const result: Record<string, unknown> = { type: "container" };
+  if (tw) result.tw = tw;
+  copyPropsToNode(result, props);
 
-  return {
-    type: "container",
-    ...(tw ? { tw } : {}),
-    ...restProps,
-    ...(takumiChildren ? { children: takumiChildren } : {}),
-  } as TakumiNode;
+  if (node.children.length > 0) {
+    result.children = node.children.map((child) => vnodeToTakumiNode(child, depth + 1));
+  }
+
+  return result as TakumiNode;
 }
 
 /** Build the root Takumi container wrapping the VNode children. */
@@ -195,6 +211,15 @@ export function buildTakumiRoot(container: VContainer): TakumiNode {
     style: ROOT_STYLE,
     children,
   } as TakumiNode;
+}
+
+/**
+ * Convert a container's VNode children to Takumi nodes.
+ * Used by the touchbar native-format path to build the Takumi node tree
+ * once and share it across all N segment renders in a single flush.
+ */
+export function buildTakumiChildren(container: VContainer): TakumiNode[] {
+  return container.children.map(vnodeToTakumiNode);
 }
 
 // ── Tree Stats ──────────────────────────────────────────────────────
@@ -274,12 +299,19 @@ export async function renderToDataUri(
   let t2 = t0;
   let t3 = t0;
 
-  // ── Image Cache Lookup (Phase 3) ──────────────────────────────
+  // ── Image Cache Lookup (Phase 2) ──────────────────────────────
   // Compute Merkle hash of the VNode tree. If cached, skip the entire
   // Takumi render pipeline and return the cached data URI.
+  //
+  // The treeHash and cacheKey are hoisted so they can be reused at
+  // cache-store time (line ~395) without recomputing.  Previously
+  // computed twice — once here and once after rendering.
+  let treeHash: number | undefined;
+  let cacheKey: number | undefined;
+
   if (config.caching && config.imageCacheMaxBytes > 0) {
-    const treeHash = computeTreeHash(container);
-    const cacheKey = computeCacheKey(
+    treeHash = computeTreeHash(container);
+    cacheKey = computeCacheKey(
       treeHash,
       width,
       height,
@@ -388,15 +420,20 @@ export async function renderToDataUri(
   const t5 = profiling ? performance.now() : 0;
 
   // ── Store in image cache ──────────────────────────────────────
+  // Reuse hoisted treeHash/cacheKey from the lookup phase above.
+  // If caching was disabled or imageCacheMaxBytes was 0, the hoisted
+  // variables are still undefined — recompute only in that edge case.
   if (config.caching && config.imageCacheMaxBytes > 0) {
-    const treeHash = computeTreeHash(container);
-    const cacheKey = computeCacheKey(
-      treeHash,
-      width,
-      height,
-      config.devicePixelRatio,
-      config.imageFormat,
-    );
+    if (treeHash === undefined || cacheKey === undefined) {
+      treeHash = computeTreeHash(container);
+      cacheKey = computeCacheKey(
+        treeHash,
+        width,
+        height,
+        config.devicePixelRatio,
+        config.imageFormat,
+      );
+    }
     const cache = getImageCache(config.imageCacheMaxBytes);
     // Approximate byte size: dataUri string length × 2 (UTF-16) + overhead
     cache.set(cacheKey, dataUri, dataUri.length * 2 + 64);
@@ -515,9 +552,15 @@ export async function renderToRaw(
   // Compute Merkle hash of the VNode tree + render config params.
   // If found in the touchbar-specific LRU cache, skip the Takumi
   // render and return the cached raw RGBA buffer directly.
+  //
+  // Hoisted so the same values can be reused at cache-store time
+  // after rendering (avoids recomputing computeTreeHash twice).
+  let treeHash: number | undefined;
+  let cacheKey: number | undefined;
+
   if (config.caching && config.touchbarCacheMaxBytes > 0) {
-    const treeHash = computeTreeHash(container);
-    const cacheKey = computeCacheKey(treeHash, width, height, config.devicePixelRatio, "raw");
+    treeHash = computeTreeHash(container);
+    cacheKey = computeCacheKey(treeHash, width, height, config.devicePixelRatio, "raw");
     const cache = getTouchbarCache(config.touchbarCacheMaxBytes);
     const cached = cache.get(cacheKey);
 
@@ -599,9 +642,12 @@ export async function renderToRaw(
   // ── Store in touchbar cache ───────────────────────────────────
   // Cache the raw RGBA buffer for future Merkle-hash hits.
   // byteLength + 64 accounts for Map/LRU overhead.
+  // Reuse hoisted treeHash/cacheKey from Phase 2 lookup above.
   if (config.caching && config.touchbarCacheMaxBytes > 0) {
-    const treeHash = computeTreeHash(container);
-    const cacheKey = computeCacheKey(treeHash, width, height, config.devicePixelRatio, "raw");
+    if (treeHash === undefined || cacheKey === undefined) {
+      treeHash = computeTreeHash(container);
+      cacheKey = computeCacheKey(treeHash, width, height, config.devicePixelRatio, "raw");
+    }
     const cache = getTouchbarCache(config.touchbarCacheMaxBytes);
     cache.set(cacheKey, buf, buf.byteLength + 64);
   }
@@ -729,11 +775,15 @@ export async function renderSegmentToDataUri(
   segmentWidth: number,
   format: OutputFormat,
   config: RenderConfig,
+  prebuiltTakumiChildren?: TakumiNode[],
 ): Promise<string | null> {
   if (container.children.length === 0) return null;
 
-  // Build the root Takumi node with an X offset to extract the right segment
-  const children = container.children.map(vnodeToTakumiNode);
+  // Reuse pre-built Takumi node tree when provided by the caller.
+  // In the touchbar native-format path, the caller (TouchBarRoot.doFlush)
+  // builds the tree once and passes it to all N segment renders, avoiding
+  // N redundant vnodeToTakumiNode() tree walks per flush.
+  const children = prebuiltTakumiChildren ?? container.children.map(vnodeToTakumiNode);
   const innerNode: TakumiNode = {
     type: "container",
     style: {

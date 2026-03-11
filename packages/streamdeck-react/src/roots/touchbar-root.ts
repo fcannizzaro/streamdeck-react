@@ -5,6 +5,7 @@ import {
   renderToRaw,
   sliceToDataUriAsync,
   renderSegmentToDataUri,
+  buildTakumiChildren,
   measureTree,
   type RenderConfig,
   type RenderProfile,
@@ -21,6 +22,7 @@ import {
 import { TouchBarContext } from "@/context/touchbar-context";
 import type { DeviceInfo, EncoderLayout, TouchBarInfo, WrapperComponent } from "@/types";
 import type { FlushCoordinator, FlushableRoot } from "./flush-coordinator";
+import { partialHasChanges, shallowEqualSettings } from "./settings-equality";
 import type { DialAction } from "@elgato/streamdeck";
 import type { JsonObject } from "@elgato/utils";
 
@@ -222,12 +224,17 @@ export class TouchBarRoot implements FlushableRoot {
 
     // Global settings mutator
     this.setGlobalSettingsFn = (partial: JsonObject) => {
-      this.globalSettings = { ...this.globalSettings, ...partial };
+      const hasChanges = partialHasChanges(this.globalSettings, partial);
+      const nextSettings = hasChanges
+        ? { ...this.globalSettings, ...partial }
+        : this.globalSettings;
+      onGlobalSettingsChange(nextSettings);
+      if (!hasChanges) return;
+      this.globalSettings = nextSettings;
       this.globalSettingsValue = {
         settings: this.globalSettings,
         setSettings: this.setGlobalSettingsFn,
       };
-      onGlobalSettingsChange(this.globalSettings);
       this.scheduleRerender();
     };
 
@@ -491,6 +498,12 @@ export class TouchBarRoot implements FlushableRoot {
 
         const t0 = performance.now();
 
+        // Build the Takumi node tree ONCE for all segments.
+        // Previously, each renderSegmentToDataUri() call independently
+        // walked container.children → vnodeToTakumiNode(), repeating
+        // the same O(n) tree conversion N times per flush.
+        const takumiChildren = buildTakumiChildren(this.container);
+
         const feedbackPromises = [...this.columns.entries()].map(async ([column, entry]) => {
           const sliceUri = await renderSegmentToDataUri(
             this.container,
@@ -500,6 +513,7 @@ export class TouchBarRoot implements FlushableRoot {
             SEGMENT_WIDTH,
             this.renderConfig.touchbarImageFormat,
             this.renderConfig,
+            takumiChildren,
           );
           if (sliceUri != null) {
             this.lastSegmentUris.set(column, sliceUri);
@@ -619,6 +633,9 @@ export class TouchBarRoot implements FlushableRoot {
   // ── External Updates ──────────────────────────────────────────
 
   updateGlobalSettings(settings: JsonObject): void {
+    if (shallowEqualSettings(this.globalSettings, settings)) {
+      return;
+    }
     this.globalSettings = { ...settings };
     this.globalSettingsValue = {
       settings: this.globalSettings,

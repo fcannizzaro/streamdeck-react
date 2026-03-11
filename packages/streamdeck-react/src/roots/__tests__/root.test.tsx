@@ -297,6 +297,114 @@ describe("ReactRoot integration", () => {
     });
   });
 
+  test("external updateSettings with identical values does not rerender settings consumers", async () => {
+    const fakeSdk = createFakeSdk();
+    let renderCount = 0;
+
+    function TestAction() {
+      useSettings();
+      renderCount++;
+      return null;
+    }
+
+    const definition: ActionDefinition = {
+      uuid: "com.example.settings-stable",
+      key: TestAction,
+      defaultSettings: {},
+    };
+
+    const registry = createRegistry(fakeSdk);
+
+    await act(async () => {
+      registry.create(createWillAppearEvent({ settings: { volume: 50 } }), TestAction, definition);
+      await sleep(20);
+    });
+
+    const initialRenders = renderCount;
+
+    await act(async () => {
+      registry.updateSettings("action-1", { volume: 50 });
+      await sleep(20);
+    });
+
+    expect(renderCount).toBe(initialRenders);
+
+    act(() => {
+      registry.destroyAll();
+    });
+  });
+
+  test("setSettings persists identical values without rerendering", async () => {
+    const fakeSdk = createFakeSdk();
+    let renderCount = 0;
+    let persistCalls = 0;
+    let setSettingsHook: ((partial: JsonObject) => void) | undefined;
+
+    function TestAction() {
+      const [, setSettings] = useSettings();
+      setSettingsHook = setSettings as (partial: JsonObject) => void;
+      renderCount++;
+      return null;
+    }
+
+    const definition: ActionDefinition = {
+      uuid: "com.example.settings-persist",
+      key: TestAction,
+      defaultSettings: {},
+    };
+
+    const registry = new RootRegistry(
+      {
+        renderer: {} as never,
+        imageFormat: "png",
+        caching: true,
+      },
+      0,
+      fakeSdk,
+      async () => {},
+    );
+
+    const event = {
+      action: {
+        id: "action-1",
+        device: {
+          id: "device-1",
+          type: 0,
+          size: { columns: 5, rows: 3 },
+          name: "Stream Deck",
+        },
+        controllerType: "Keypad",
+        coordinates: { column: 0, row: 0 },
+        setSettings: async (_settings: JsonObject) => {
+          persistCalls++;
+        },
+      },
+      payload: {
+        settings: { enabled: true },
+        isInMultiAction: false,
+      },
+    } as never;
+
+    await act(async () => {
+      registry.create(event, TestAction, definition);
+      await sleep(20);
+    });
+
+    const initialRenders = renderCount;
+
+    await act(async () => {
+      setSettingsHook?.({ enabled: true });
+      await sleep(20);
+    });
+
+    expect(persistCalls).toBe(1);
+    expect(renderCount).toBe(initialRenders);
+
+    act(() => {
+      registry.destroyAll();
+    });
+  });
+
   test("encoder root calls setFeedbackLayout and dispatches dial events", async () => {
     const feedbackLayoutCalls: EncoderLayout[] = [];
     const feedbackCalls: Record<string, unknown>[] = [];

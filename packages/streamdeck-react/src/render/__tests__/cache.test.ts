@@ -46,6 +46,43 @@ describe("fnv1a", () => {
     expect(hash).toBeGreaterThanOrEqual(0);
     expect(hash).toBeLessThanOrEqual(0xffffffff);
   });
+
+  test("uses strided sampling for large buffers (>4KB)", () => {
+    const large = new Uint8Array(8192);
+    large.fill(42);
+    const hash1 = fnv1a(large);
+    const hash2 = fnv1a(large);
+    expect(hash1).toBe(hash2);
+  });
+
+  test("strided sampling distinguishes buffers of different lengths", () => {
+    const a = new Uint8Array(8192).fill(0);
+    const b = new Uint8Array(8193).fill(0);
+    expect(fnv1a(a)).not.toBe(fnv1a(b));
+  });
+
+  test("strided sampling detects changes at stride-aligned offsets", () => {
+    const a = new Uint8Array(8192).fill(0);
+    const b = new Uint8Array(8192).fill(0);
+    b[4096] = 255; // stride=16, offset 4096 is sample-aligned
+    expect(fnv1a(a)).not.toBe(fnv1a(b));
+  });
+
+  test("strided sampling detects changes within the sampled RGBA pixel", () => {
+    const a = new Uint8Array(8192).fill(0);
+    const b = new Uint8Array(8192).fill(0);
+    b[4099] = 255; // same sampled pixel, different channel
+    expect(fnv1a(a)).not.toBe(fnv1a(b));
+  });
+
+  test("small buffers below threshold hash every byte", () => {
+    // Two 100-byte buffers differing at offset 1 (non-stride-aligned
+    // but below threshold, so every byte is hashed)
+    const a = new Uint8Array(100).fill(0);
+    const b = new Uint8Array(100).fill(0);
+    b[1] = 255;
+    expect(fnv1a(a)).not.toBe(fnv1a(b));
+  });
 });
 
 describe("fnv1aString", () => {
@@ -214,6 +251,19 @@ describe("computeHash", () => {
     node._hashValid = true;
 
     expect(computeHash(node)).toBe(999);
+  });
+
+  test("reuses cached sorted prop keys across hash recomputations", () => {
+    const node = createVNode("div", { b: 2, a: 1 });
+
+    computeHash(node);
+    expect(node._sortedPropKeys).toEqual(["a", "b"]);
+
+    node._hashValid = false;
+    const cachedKeys = node._sortedPropKeys;
+    computeHash(node);
+
+    expect(node._sortedPropKeys).toBe(cachedKeys);
   });
 
   test("function props are skipped in hash", () => {

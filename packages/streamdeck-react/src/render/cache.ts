@@ -48,7 +48,25 @@ const SENTINEL_OBJECT = 0x4f424a54; // "OBJT" as u32
 
 // ── Low-Level Hash Primitives ───────────────────────────────────────
 
-/** Hash a raw byte buffer (Uint8Array or Buffer) into a running FNV-1a hash. */
+// Buffers larger than this threshold use strided sampling instead of
+// hashing every byte.  4 KB is well below the smallest useful raster
+// (144×144×4 = 83 KB for a key image), so the fast path only activates
+// for actual raster data, never for short strings or small props.
+const STRIDE_THRESHOLD = 4096;
+
+// Sample one full RGBA pixel out of every 4 pixels for large buffers.
+// This reduces the loop count by ~4x while still hashing all channels
+// (R, G, B, A) for each sampled pixel.
+const STRIDE = 16;
+
+/**
+ * Hash a raw byte buffer (Uint8Array or Buffer) or string via FNV-1a.
+ *
+ * For buffers larger than {@link STRIDE_THRESHOLD} bytes, uses strided
+ * sampling (every {@link STRIDE}th byte) to avoid iterating all 320 KB
+ * of a touchbar raster frame.  The buffer length is mixed into the hash
+ * to differentiate same-sample-pattern buffers of different sizes.
+ */
 export function fnv1a(input: string | Uint8Array | Buffer): number {
   let hash = FNV_OFFSET_BASIS;
 
@@ -56,6 +74,18 @@ export function fnv1a(input: string | Uint8Array | Buffer): number {
     for (let i = 0; i < input.length; i++) {
       hash ^= input.charCodeAt(i);
       hash = Math.imul(hash, FNV_PRIME);
+    }
+  } else if (input.length > STRIDE_THRESHOLD) {
+    // Strided sampling path: hash one full pixel out of every 4 pixels.
+    // Mix in the total byte length first so buffers of different sizes
+    // that happen to share sampled bytes still produce different hashes.
+    hash = fnv1aU32(input.length, hash);
+    for (let i = 0; i < input.length; i += STRIDE) {
+      const end = Math.min(i + 4, input.length);
+      for (let j = i; j < end; j++) {
+        hash ^= input[j]!;
+        hash = Math.imul(hash, FNV_PRIME);
+      }
     }
   } else {
     for (let i = 0; i < input.length; i++) {
@@ -186,8 +216,12 @@ export function computeHash(node: VNode): number {
     hash = fnv1aString(node.text, hash);
   }
 
-  // Hash props (sorted keys for determinism, skip functions)
-  const keys = Object.keys(node.props).sort();
+  // Hash props (sorted keys for determinism, skip functions).
+  // Reuse cached sorted key array when available — avoids
+  // Object.keys().sort() on every hash for unchanged prop shapes.
+  // The cache is invalidated in host-config.ts commitUpdate() when
+  // props are replaced.
+  const keys = (node._sortedPropKeys ??= Object.keys(node.props).sort());
   for (const key of keys) {
     const value = node.props[key];
     if (typeof value === "function" || typeof value === "symbol") continue;

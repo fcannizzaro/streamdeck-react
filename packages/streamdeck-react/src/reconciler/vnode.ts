@@ -43,6 +43,8 @@ export interface VNode {
   _hash?: number;
   /** @internal True when `_hash` is valid (invalidated on mutation). */
   _hashValid?: boolean;
+  /** @internal Cached sorted prop keys for deterministic hashing. Invalidated when props change (commitUpdate). */
+  _sortedPropKeys?: string[];
 }
 
 export interface VContainer {

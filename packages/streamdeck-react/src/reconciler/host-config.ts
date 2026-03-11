@@ -243,6 +243,10 @@ export const hostConfig = {
   ): void {
     const { children: _, ...cleanProps } = newProps;
     instance.props = cleanProps;
+    // Invalidate cached sorted-key array — the new props may have
+    // different keys (added/removed).  Will be re-populated lazily
+    // in computeHash() on the next Merkle hash pass.
+    instance._sortedPropKeys = undefined;
     markDirty(instance);
   },
 

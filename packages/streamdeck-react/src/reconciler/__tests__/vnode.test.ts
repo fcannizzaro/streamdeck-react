@@ -92,6 +92,15 @@ describe("markDirty", () => {
     expect(node._hashValid).toBe(false);
   });
 
+  test("preserves cached sorted prop keys until props are replaced", () => {
+    const node = createVNode("div", { b: 2, a: 1 });
+    node._sortedPropKeys = ["a", "b"];
+
+    markDirty(node);
+
+    expect(node._sortedPropKeys).toEqual(["a", "b"]);
+  });
+
   test("stops propagation when ancestor is already dirty", () => {
     const container = createVContainer(() => {});
     const grandparent = createVNode("div", {});

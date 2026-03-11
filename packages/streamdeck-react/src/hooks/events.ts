@@ -1,4 +1,4 @@
-import { useContext, useEffect, useRef } from "react";
+import { useContext, useEffect } from "react";
 import { EventBusContext } from "@/context/providers";
 import type {
   KeyDownPayload,
@@ -77,13 +77,8 @@ export function useTouchTap(callback: (payload: TouchTapPayload) => void): void 
 
 export function useDialHint(hints: DialHints): void {
   const { action } = useContext(StreamDeckContext);
-  const prevHints = useRef<string>("");
 
   useEffect(() => {
-    const serialized = JSON.stringify(hints);
-    if (serialized === prevHints.current) return;
-    prevHints.current = serialized;
-
     if ("setTriggerDescription" in action) {
       (action as DialAction).setTriggerDescription({
         rotate: hints.rotate,

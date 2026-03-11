@@ -3,7 +3,7 @@
 import { describe, expect, test } from "bun:test";
 import React, { act } from "react";
 import { EventBus } from "@/context/event-bus";
-import { EventBusContext } from "@/context/providers";
+import { EventBusContext, StreamDeckContext } from "@/context/providers";
 import {
   useKeyDown,
   useKeyUp,
@@ -11,6 +11,7 @@ import {
   useDialDown,
   useDialUp,
   useTouchTap,
+  useDialHint,
 } from "@/hooks/events";
 import { createDomRoot, sleep } from "@/test-utils/react";
 import type {
@@ -19,6 +20,7 @@ import type {
   DialRotatePayload,
   DialPressPayload,
   TouchTapPayload,
+  StreamDeckAccess,
 } from "@/types";
 
 // ── Helpers ─────────────────────────────────────────────────────────
@@ -235,6 +237,114 @@ describe("useTouchTap", () => {
     expect(payloads[0]!.tapPos).toEqual([10, 10]);
     expect(payloads[1]!.hold).toBe(true);
     await unmount();
+  });
+});
+
+// ── useDialHint ─────────────────────────────────────────────────────
+
+describe("useDialHint", () => {
+  test("calls setTriggerDescription when hints change", async () => {
+    const calls: Array<Record<string, string | undefined>> = [];
+    const streamDeckValue = {
+      action: {
+        setTriggerDescription: async (payload: Record<string, string | undefined>) => {
+          calls.push(payload);
+        },
+      },
+      sdk: {} as StreamDeckAccess["sdk"],
+    } as unknown as StreamDeckAccess;
+
+    function TestComponent({ rotate }: { rotate?: string }) {
+      useDialHint({ rotate, press: "Press", touch: "Touch", longTouch: "Hold" });
+      return null;
+    }
+
+    const root = createDomRoot();
+    await root.render(
+      <StreamDeckContext.Provider value={streamDeckValue}>
+        <TestComponent rotate="Left/Right" />
+      </StreamDeckContext.Provider>,
+    );
+
+    await sleep(0);
+
+    expect(calls).toEqual([
+      {
+        rotate: "Left/Right",
+        push: "Press",
+        touch: "Touch",
+        longTouch: "Hold",
+      },
+    ]);
+
+    await root.render(
+      <StreamDeckContext.Provider value={streamDeckValue}>
+        <TestComponent rotate="Volume" />
+      </StreamDeckContext.Provider>,
+    );
+
+    await sleep(0);
+
+    expect(calls).toEqual([
+      {
+        rotate: "Left/Right",
+        push: "Press",
+        touch: "Touch",
+        longTouch: "Hold",
+      },
+      {
+        rotate: "Volume",
+        push: "Press",
+        touch: "Touch",
+        longTouch: "Hold",
+      },
+    ]);
+
+    await root.unmount();
+  });
+
+  test("does not call setTriggerDescription on rerender with same hint values", async () => {
+    const calls: Array<Record<string, string | undefined>> = [];
+    const streamDeckValue = {
+      action: {
+        setTriggerDescription: async (payload: Record<string, string | undefined>) => {
+          calls.push(payload);
+        },
+      },
+      sdk: {} as StreamDeckAccess["sdk"],
+    } as unknown as StreamDeckAccess;
+
+    function TestComponent() {
+      useDialHint({ rotate: "Seek", press: "Open", touch: "Peek", longTouch: "Reset" });
+      return null;
+    }
+
+    const root = createDomRoot();
+    await root.render(
+      <StreamDeckContext.Provider value={streamDeckValue}>
+        <TestComponent />
+      </StreamDeckContext.Provider>,
+    );
+
+    await sleep(0);
+
+    await root.render(
+      <StreamDeckContext.Provider value={streamDeckValue}>
+        <TestComponent />
+      </StreamDeckContext.Provider>,
+    );
+
+    await sleep(0);
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toEqual({
+      rotate: "Seek",
+      push: "Open",
+      touch: "Peek",
+      longTouch: "Reset",
+    });
+
+    await root.unmount();
   });
 });
 

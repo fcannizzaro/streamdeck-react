@@ -23,6 +23,7 @@ import type {
   WrapperComponent,
 } from "@/types";
 import type { FlushCoordinator, FlushableRoot } from "./flush-coordinator";
+import { partialHasChanges, shallowEqualSettings } from "./settings-equality";
 import type { JsonObject } from "@elgato/utils";
 import type { Action, DialAction, KeyAction } from "@elgato/streamdeck";
 
@@ -241,21 +242,34 @@ export class ReactRoot implements FlushableRoot {
     this.renderDebounceMs = renderDebounceMs;
     this.resolvedDialLayout = resolveDialLayout(dialLayout);
 
-    // Create settings mutators
+    // Create settings mutators.
+    // Each performs a shallow-compare guard: if no key in `partial`
+    // actually differs from the current value, we still persist the
+    // requested settings write but skip the merge, context value
+    // allocation, and re-render.  This avoids unnecessary VNode tree
+    // walks when the SDK pushes the same settings object back.
     this.setSettingsFn = (partial: JsonObject) => {
-      this.settings = { ...this.settings, ...partial };
+      const hasChanges = partialHasChanges(this.settings, partial);
+      const nextSettings = hasChanges ? { ...this.settings, ...partial } : this.settings;
+      onSettingsChange(nextSettings);
+      if (!hasChanges) return;
+      this.settings = nextSettings;
       this.settingsValue = { settings: this.settings, setSettings: this.setSettingsFn };
-      onSettingsChange(this.settings);
       this.scheduleRerender();
     };
 
     this.setGlobalSettingsFn = (partial: JsonObject) => {
-      this.globalSettings = { ...this.globalSettings, ...partial };
+      const hasChanges = partialHasChanges(this.globalSettings, partial);
+      const nextSettings = hasChanges
+        ? { ...this.globalSettings, ...partial }
+        : this.globalSettings;
+      onGlobalSettingsChange(nextSettings);
+      if (!hasChanges) return;
+      this.globalSettings = nextSettings;
       this.globalSettingsValue = {
         settings: this.globalSettings,
         setSettings: this.setGlobalSettingsFn,
       };
-      onGlobalSettingsChange(this.globalSettings);
       this.scheduleRerender();
     };
 
@@ -507,6 +521,10 @@ export class ReactRoot implements FlushableRoot {
   // ── External updates from SDK events ──────────────────────────
 
   updateSettings(settings: JsonObject): void {
+    if (shallowEqualSettings(this.settings, settings)) {
+      this.eventBus.emit("settingsChanged", settings);
+      return;
+    }
     this.settings = { ...settings };
     this.settingsValue = { settings: this.settings, setSettings: this.setSettingsFn };
     this.eventBus.emit("settingsChanged", settings);
@@ -514,6 +532,9 @@ export class ReactRoot implements FlushableRoot {
   }
 
   updateGlobalSettings(settings: JsonObject): void {
+    if (shallowEqualSettings(this.globalSettings, settings)) {
+      return;
+    }
     this.globalSettings = { ...settings };
     this.globalSettingsValue = {
       settings: this.globalSettings,
