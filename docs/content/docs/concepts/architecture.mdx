@@ -41,7 +41,7 @@ Stream Deck Canvas:
 The `RootRegistry` is the central hub that maps Stream Deck action instances to React roots and routes SDK events to the correct root. It owns three internal maps:
 
 - **roots** (actionId → ReactRoot) -- per-key and per-dial instances
-- **touchStripRoots** (deviceId → TouchStripRoot) -- shared per-device touchstrip roots
+- **touchStripRoots** (deviceId → TouchStripRoot) -- shared per-device TouchStrip roots
 - **touchStripActions** (actionId → deviceId) -- reverse lookup for routing touch events
 
 When an SDK event arrives (keyDown, dialRotate, touchTap, etc.), the registry dispatches it:
@@ -77,14 +77,11 @@ TouchStripRoot (one per device)
 └──────────────────────────────────────────────────┘
 ```
 
-Two rendering paths are available (selected by `touchstripImageFormat`):
+The rendering path performs one full-width Takumi render producing raw RGBA pixels, then each per-encoder segment is cropped and PNG-encoded independently. The buffer pool is used to avoid GC pressure from the large raw RGBA allocations.
 
-- **Native format** (default, WebP) -- Takumi renders each segment independently using a CSS negative-margin viewport offset to extract the correct portion. Faster because Takumi encodes WebP natively during the render call.
-- **Raw + crop** (PNG) -- one full-width render produces raw RGBA pixels, then each per-encoder segment is cropped and PNG-encoded independently. Uses the buffer pool to avoid GC pressure.
+Columns may not be contiguous (e.g., columns [0, 1, 3] if encoder 2 is used by a different action). The TouchStrip component receives layout metadata via the `useTouchStrip()` hook.
 
-Columns may not be contiguous (e.g., columns [0, 1, 3] if encoder 2 is used by a different action). The touchstrip component receives layout metadata via the `useTouchStrip()` hook.
-
-See the [TouchStrip guide](/guides/touchstrip) for user-facing details on building touchstrip components.
+See the [TouchStrip guide](/guides/touchstrip) for user-facing details on building TouchStrip components.
 
 ## Flush Coordinator
 

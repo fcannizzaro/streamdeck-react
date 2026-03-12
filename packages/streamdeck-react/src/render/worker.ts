@@ -20,7 +20,7 @@
 //   The rendered buffer is transferred (not copied) back to the main
 //   thread via postMessage's transfer list.  This avoids copying
 //   potentially large raster buffers (e.g. 800×100×4 = 320KB for
-//   touchstrip) across the thread boundary.
+//   TouchStrip) across the thread boundary.
 
 import { parentPort, workerData } from "node:worker_threads";
 

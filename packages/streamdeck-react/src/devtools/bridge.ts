@@ -48,7 +48,7 @@ import { renderWithHighlight, renderTouchStripWithHighlight } from "./highlight"
 //
 //   Render throttling: leading+trailing-edge throttle at 100ms
 //   (max 10 render messages/sec per action).  Prevents the SSE
-//   stream from being overwhelmed during 60fps animation.
+//   stream from being overwhelmed during 30fps animation.
 //
 //   Highlight overlay: when the devtools UI hovers over a VNode,
 //   the bridge renders a Chrome-DevTools-style highlight overlay
@@ -272,7 +272,7 @@ export class DevtoolsBridge implements RegistryObserver {
       columns: new Map(),
     });
     this.eventBusOwners.set(root.eventBus, {
-      actionId: `touchstrip:${deviceId}`,
+      actionId: `touchStrip:${deviceId}`,
       uuid: "",
     });
   }
@@ -478,7 +478,7 @@ export class DevtoolsBridge implements RegistryObserver {
   // ── Render Pipeline Callback ──────────────────────────────────
   //
   // Called by the render pipeline's config.onRender hook after a
-  // successful render (key/dial) or after touchstrip flush completes.
+  // successful render (key/dial) or after TouchStrip flush completes.
   //
   // Profile capture strategy:
   //
@@ -506,7 +506,7 @@ export class DevtoolsBridge implements RegistryObserver {
   //                        │              └─ trailing edge → setTimeout → emitRender(…, profile)
   //                        │                    (profile was captured before the delay)
   //                        │
-  //                        └─ touchstrip? → emitTouchStripRender(…, profile)
+  //                        └─ touchStrip? → emitTouchStripRender(…, profile)
   //
 
   onRender(container: VContainer, dataUri: string): void {
@@ -545,12 +545,12 @@ export class DevtoolsBridge implements RegistryObserver {
       return;
     }
 
-    // Check touchstrip roots
+    // Check TouchStrip roots
     for (const [deviceId, tb] of this.touchStrips) {
       if (tb.root.vcontainer === container) {
         this.emitTouchStripRender(deviceId, tb, profile);
 
-        // Re-apply highlight overlay after touchstrip render completes.
+        // Re-apply highlight overlay after TouchStrip render completes.
         // Same pattern as the key/dial re-apply above — when a
         // highlight is active, the normal render updated lastSegmentUris
         // but skipped hardware push (suppressHardwarePush is true),
@@ -570,7 +570,7 @@ export class DevtoolsBridge implements RegistryObserver {
   // ── Render Throttle ───────────────────────────────────────────
   //
   // Leading + trailing edge throttle at RENDER_THROTTLE_MS (100ms).
-  // Prevents the SSE stream from being overwhelmed during 60fps
+  // Prevents the SSE stream from being overwhelmed during 30fps
   // animation while ensuring the latest frame is always delivered.
   //
   // The `profile` parameter is captured eagerly in onRender() and
@@ -649,8 +649,7 @@ export class DevtoolsBridge implements RegistryObserver {
   /** Convert internal RenderProfile to wire-protocol ProfileData. */
   private toProfileData(profile: RenderProfile): ProfileData {
     return {
-      vnodeToElementMs: profile.vnodeToElementMs,
-      fromJsxMs: profile.fromJsxMs,
+      vnodeConversionMs: profile.vnodeConversionMs,
       takumiRenderMs: profile.takumiRenderMs,
       hashMs: profile.hashMs,
       base64Ms: profile.base64Ms,
@@ -664,10 +663,10 @@ export class DevtoolsBridge implements RegistryObserver {
 
   // ── TouchStrip Render Emission ────────────────────────────────────
   //
-  // Emits a "render:touchstrip" SSE message with the serialized VNode
+  // Emits a "render:touchStrip" SSE message with the serialized VNode
   // tree, per-segment data URIs, and the pipeline timing profile.
   //
-  // Unlike key/dial renders (which have one data URI), touchstrip
+  // Unlike key/dial renders (which have one data URI), TouchStrip
   // renders produce per-column segment URIs stored in
   // tb.root.lastSegmentUris.  The profile covers the full-width
   // Takumi render (renderToRaw) that produced the raw RGBA buffer
@@ -679,7 +678,7 @@ export class DevtoolsBridge implements RegistryObserver {
   //     ├─ tb.root.lastSegmentUris       → per-column data URIs
   //     ├─ toProfileData(profile)        → wire-format timing
   //     │
-  //     └─ broadcast "render:touchstrip" message
+  //     └─ broadcast "render:touchStrip" message
   //          → SSE stream → devtools Performance Panel
 
   private emitTouchStripRender(
@@ -697,7 +696,7 @@ export class DevtoolsBridge implements RegistryObserver {
     }
 
     const msg: TouchStripRenderMessage = {
-      type: "render:touchstrip",
+      type: "render:touchStrip",
       ts: Date.now(),
       deviceId,
       canvas: { width: tb.root.vcontainer.children.length * 200, height: 100 },
@@ -720,21 +719,21 @@ export class DevtoolsBridge implements RegistryObserver {
   //
   // Two paths:
   //   - Key/dial: actionId is a plain string, looked up in this.actions
-  //   - TouchStrip: actionId is "touchstrip:<deviceId>", looked up in
+  //   - TouchStrip: actionId is "touchStrip:<deviceId>", looked up in
   //     this.touchStrips.  Requires per-segment slicing since the
-  //     touchstrip pushes 200×100 segments, not a single image.
+  //     TouchStrip pushes 200×100 segments, not a single image.
   //
   //   handleHighlight(actionId, nodeId)
   //     │
   //     ├─ restore previous highlight (un-suppress, push original)
   //     │
-  //     ├─ actionId starts with "touchstrip:" ?
+  //     ├─ actionId starts with "touchStrip:" ?
   //     │    ├─ YES → lookup this.touchStrips → applyTouchStripHighlight()
   //     │    └─ NO  → lookup this.actions   → applyHighlight()
   //     │
   //     └─ broadcast "highlight:render" → devtools UI preview
 
-  private static readonly TB_PREFIX = "touchstrip:";
+  private static readonly TB_PREFIX = "touchStrip:";
 
   private async handleHighlight(actionId: string | null, nodeId: number | null): Promise<void> {
     try {
@@ -742,7 +741,7 @@ export class DevtoolsBridge implements RegistryObserver {
       this.highlightedActionId = actionId;
       this.highlightedNodeId = nodeId;
 
-      // Restore previous action/touchstrip to its normal state
+      // Restore previous action/TouchStrip to its normal state
       if (prevId && prevId !== actionId) {
         await this.restoreHighlight(prevId);
         this.broadcastHighlightClear(prevId);
@@ -786,7 +785,7 @@ export class DevtoolsBridge implements RegistryObserver {
   }
 
   /**
-   * Restore a highlighted action or touchstrip to its normal state.
+   * Restore a highlighted action or TouchStrip to its normal state.
    * Un-suppresses hardware pushes and restores the original image(s).
    */
   private async restoreHighlight(id: string): Promise<void> {
@@ -832,14 +831,14 @@ export class DevtoolsBridge implements RegistryObserver {
 
   // ── TouchStrip Highlight ──────────────────────────────────────────
   //
-  // Renders the full touchstrip tree with a highlight overlay, then:
+  // Renders the full TouchStrip tree with a highlight overlay, then:
   //   - Pushes per-column segments to the physical hardware
   //   - Sends per-segment highlight URIs to the devtools browser
   //     preview (one "highlight:render" message per column, keyed
-  //     as "touchstrip:<deviceId>:seg:<col>")
+  //     as "touchStrip:<deviceId>:seg:<col>")
   //
   // Why per-segment instead of a single full-width image?
-  //   The touchstrip preview renders each segment as a separate 200×100
+  //   The TouchStrip preview renders each segment as a separate 200×100
   //   <img>.  A single full-width image (e.g. 800×100) displayed via
   //   the canvas width/height attributes gets squished when the
   //   dimensions don't match.  Per-segment URIs avoid this entirely.
@@ -852,7 +851,7 @@ export class DevtoolsBridge implements RegistryObserver {
   //     ├─ tb.root.pushSegmentImages(segmentUris) → physical device
   //     │
   //     └─ for each (col, uri):
-  //          broadcastHighlightRender("touchstrip:<deviceId>:seg:<col>", uri)
+  //          broadcastHighlightRender("touchStrip:<deviceId>:seg:<col>", uri)
 
   private async applyTouchStripHighlight(
     actionId: string,
@@ -861,7 +860,7 @@ export class DevtoolsBridge implements RegistryObserver {
     tb: TouchStripMeta,
   ): Promise<void> {
     try {
-      // Compute touchstrip geometry from active columns.
+      // Compute TouchStrip geometry from active columns.
       // Each column is 200×100 pixels; full width = max column span.
       const columns = tb.root.columnNumbers;
       if (columns.length === 0) return;
@@ -876,7 +875,6 @@ export class DevtoolsBridge implements RegistryObserver {
         segmentHeight,
         columns,
         segmentWidth,
-        this.renderConfig.touchstripImageFormat,
         this.renderConfig,
         nodeId,
       );
@@ -890,7 +888,7 @@ export class DevtoolsBridge implements RegistryObserver {
         }
       }
     } catch {
-      // Silently ignore touchstrip highlight render failures
+      // Silently ignore TouchStrip highlight render failures
     }
   }
 
@@ -907,7 +905,7 @@ export class DevtoolsBridge implements RegistryObserver {
 
   /**
    * Clear highlight URIs for the given actionId.
-   * For touchstrip IDs, clears all per-segment keys (touchstrip:*:seg:N).
+   * For TouchStrip IDs, clears all per-segment keys (touchStrip:*:seg:N).
    * For regular actions, clears the single actionId key.
    */
   private broadcastHighlightClear(id: string): void {

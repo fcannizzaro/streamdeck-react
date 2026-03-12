@@ -23,7 +23,6 @@ import type {
 } from "@/types";
 import type { RenderConfig } from "@/render/pipeline";
 import type { RegistryObserver } from "@/devtools/observers/lifecycle";
-import { FlushCoordinator } from "./flush-coordinator";
 
 // ── Constants ───────────────────────────────────────────────────────
 // Each encoder segment on the touch strip is 200px wide.
@@ -90,25 +89,21 @@ export class RootRegistry {
   private touchStripRoots = new Map<string, TouchStripRoot>(); // deviceId → TouchStripRoot
   private touchStripActions = new Map<string, string>(); // actionId → deviceId
   private renderConfig: RenderConfig;
-  private renderDebounceMs: number;
   private sdkInstance: StreamDeckAccess["sdk"];
   private globalSettings: JsonObject = {};
   private onGlobalSettingsChange: (settings: JsonObject) => Promise<void>;
   private wrapper?: WrapperComponent;
-  private flushCoordinator = new FlushCoordinator();
 
   /** DevTools observer. Set externally by startDevtoolsServer(). null when devtools is off. */
   observer: RegistryObserver | null = null;
 
   constructor(
     renderConfig: RenderConfig,
-    renderDebounceMs: number,
     sdkInstance: StreamDeckAccess["sdk"],
     onGlobalSettingsChange: (settings: JsonObject) => Promise<void>,
     wrapper?: WrapperComponent,
   ) {
     this.renderConfig = renderConfig;
-    this.renderDebounceMs = renderDebounceMs;
     this.sdkInstance = sdkInstance;
     this.onGlobalSettingsChange = onGlobalSettingsChange;
     this.wrapper = wrapper;
@@ -123,7 +118,7 @@ export class RootRegistry {
     for (const root of this.roots.values()) {
       root.updateGlobalSettings(settings);
     }
-    // Propagate to all touchstrip roots
+    // Propagate to all TouchStrip roots
     for (const tbRoot of this.touchStripRoots.values()) {
       tbRoot.updateGlobalSettings(settings);
     }
@@ -145,7 +140,7 @@ export class RootRegistry {
     const controller = ev.action.controllerType;
     const isEncoder = controller === "Encoder";
 
-    // ── Touchstrip path ───────────────────────────────────────────
+    // ── TouchStrip path ───────────────────────────────────────────
     if (isEncoder && definition.touchStrip) {
       this.registerTouchStripColumn(ev, definition);
       return;
@@ -186,14 +181,12 @@ export class RootRegistry {
       ev.action as Action | DialAction | KeyAction,
       this.sdkInstance,
       this.renderConfig,
-      this.renderDebounceMs,
       // onSettingsChange
       async (settings: JsonObject) => {
         await ev.action.setSettings(settings);
       },
       // onGlobalSettingsChange
       this.onGlobalSettingsChange,
-      this.flushCoordinator,
       this.wrapper,
       definition.wrapper,
       definition.dialLayout,
@@ -233,7 +226,7 @@ export class RootRegistry {
     const column = this.getEncoderColumn(ev);
     if (column === undefined) {
       console.warn(
-        "[@fcannizzaro/streamdeck-react] Cannot determine encoder column for touchstrip action:",
+        "[@fcannizzaro/streamdeck-react] Cannot determine encoder column for TouchStrip action:",
         actionId,
       );
       return;
@@ -254,11 +247,8 @@ export class RootRegistry {
         deviceInfo,
         this.globalSettings,
         this.renderConfig,
-        this.renderDebounceMs,
         this.onGlobalSettingsChange,
         this.wrapper,
-        definition.touchStripFPS,
-        this.flushCoordinator,
       );
 
       this.touchStripRoots.set(deviceId, tbRoot);
@@ -288,7 +278,7 @@ export class RootRegistry {
   // ── Destroy a React root ──────────────────────────────────────
 
   destroy(contextId: string): void {
-    // ── Check if this is a touchstrip action ──
+    // ── Check if this is a TouchStrip action ──
     const deviceId = this.touchStripActions.get(contextId);
     if (deviceId) {
       const tbRoot = this.touchStripRoots.get(deviceId);
@@ -319,42 +309,24 @@ export class RootRegistry {
 
   // ── Dispatch an event to a root ───────────────────────────────
   // Routes SDK events to the correct ReactRoot or TouchStripRoot.
-  // For touchstrip actions, events are remapped:
+  // For TouchStrip actions, events are remapped:
   //   touchTap → touchStripTap (per-encoder tap coordinates mapped to absolute strip position)
   //   dialRotate/Down/Up → touchStripDialRotate/Down/Up (with column number)
-
-  // ── Events that count as user interaction for adaptive debounce ─
-  // These trigger a shorter debounce window on the target root,
-  // ensuring fast visual feedback for user input.
-  private static readonly INTERACTION_EVENTS: ReadonlySet<string> = new Set([
-    "keyDown",
-    "keyUp",
-    "dialRotate",
-    "dialDown",
-    "dialUp",
-    "touchTap",
-  ]);
 
   dispatch<K extends keyof EventMap>(contextId: string, event: K, payload: EventMap[K]): void {
     // ── Try per-action root first ──
     const root = this.roots.get(contextId);
     if (root) {
-      if (RootRegistry.INTERACTION_EVENTS.has(event)) {
-        root.markInteraction();
-      }
       root.eventBus.emit(event, payload);
       this.observer?.onDispatch(contextId, event, payload);
       return;
     }
 
-    // ── Try touchstrip root ──
+    // ── Try TouchStrip root ──
     const deviceId = this.touchStripActions.get(contextId);
     if (deviceId) {
       const tbRoot = this.touchStripRoots.get(deviceId);
       if (tbRoot) {
-        if (RootRegistry.INTERACTION_EVENTS.has(event)) {
-          tbRoot.markInteraction();
-        }
         this.dispatchToTouchStrip(tbRoot, contextId, event, payload);
         this.observer?.onDispatch(contextId, event, payload);
       }
@@ -397,7 +369,7 @@ export class RootRegistry {
         tbRoot.eventBus.emit("touchStripDialUp", { column });
         break;
       }
-      // Other events (keyDown, sendToPlugin, etc.) are not relevant to touchstrip
+      // Other events (keyDown, sendToPlugin, etc.) are not relevant to TouchStrip
     }
   }
 
@@ -408,7 +380,7 @@ export class RootRegistry {
     if (root) {
       root.updateSettings(settings);
     }
-    // Note: touchstrip roots do not have per-action settings.
+    // Note: TouchStrip roots do not have per-action settings.
     // Per-encoder settings can be added in a future enhancement.
   }
 

@@ -13,7 +13,8 @@ import { useCallbackRef } from "./internal/useCallbackRef";
 //   - Used by useSpring and useTween for frame stepping
 //   - Also available to users for custom animation logic
 
-const DEFAULT_TICK_FPS = 60;
+const DEFAULT_TICK_FPS = 30;
+const MAX_TICK_FPS = 30;
 
 export type IntervalControls = {
   reset: () => void;
@@ -29,7 +30,7 @@ function toTickIntervalMs(fps: number): number {
     return Math.round(1000 / DEFAULT_TICK_FPS);
   }
 
-  return Math.max(1, Math.round(1000 / fps));
+  return Math.max(1, Math.round(1000 / Math.min(fps, MAX_TICK_FPS)));
 }
 
 // ── useInterval ─────────────────────────────────────────────────────
@@ -143,10 +144,14 @@ export function usePrevious<T>(value: T): T | undefined {
 // pause.  The tick loop automatically starts/stops when the parameter
 // changes, enabling patterns like:
 //
-//   useTick(onFrame, isAnimating ? 60 : false);
+//   useTick(onFrame, isAnimating ? 30 : false);
 //
 // Delta time is computed from Date.now() difference (not interval timing)
 // to account for timer drift and GC pauses.
+//
+// FPS values above 30 are clamped because Stream Deck hardware does not
+// display updates faster than 30Hz, so higher tick rates only create extra
+// React/state churn with no visible benefit on-device.
 
 export function useTick(
   callback: (deltaMs: number) => void,

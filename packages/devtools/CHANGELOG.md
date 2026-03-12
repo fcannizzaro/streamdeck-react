@@ -1,5 +1,11 @@
 # @fcannizzaro/streamdeck-react-devtools
 
+## 0.1.13
+
+### Patch Changes
+
+- remove unused perf, cap animation to 30 fps, update docs/skills
+
 ## 0.1.12
 
 ### Patch Changes

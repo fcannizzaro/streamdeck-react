@@ -12,7 +12,6 @@ interface PluginConfig {
   fonts: FontConfig[];
   actions: ActionDefinition[];
   wrapper?: WrapperComponent;
-  renderDebounceMs?: number;
   imageFormat?: "png" | "webp";
   caching?: boolean;
   devicePixelRatio?: number;
@@ -22,12 +21,10 @@ interface PluginConfig {
   debug?: boolean;
   /** Maximum image cache size in bytes for key/dial renders. Set to 0 to disable. @default 16777216 (16 MB) */
   imageCacheMaxBytes?: number;
-  /** Maximum touchstrip raw buffer cache size in bytes. Set to 0 to disable. @default 8388608 (8 MB) */
-  touchstripCacheMaxBytes?: number;
+  /** Maximum TouchStrip raw buffer cache size in bytes. Set to 0 to disable. @default 8388608 (8 MB) */
+  touchStripCacheMaxBytes?: number;
   /** Offload Takumi rendering to a worker thread. @default true */
   useWorker?: boolean;
-  /** Image format for touchstrip segment encoding. @default "webp" */
-  touchstripImageFormat?: "webp" | "png";
 }
 
 interface FontConfig {
@@ -192,7 +189,7 @@ interface RenderMetrics {
   /** Image cache memory usage in bytes. */
   imageCacheBytes: number;
   /** TouchStrip cache memory usage in bytes. */
-  touchstripCacheBytes: number;
+  touchStripCacheBytes: number;
 }
 ```
 

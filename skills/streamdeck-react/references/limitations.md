@@ -31,9 +31,8 @@ Stream Deck hardware does not support animated images. Each `setImage` call is a
 
 - Fast repeated updates still trigger real image renders.
 - Dial rotation can emit many events in a short burst -- keep high-frequency UIs visually simple.
-- `renderDebounceMs` (default: 16ms) coalesces heavy update bursts.
 - Output hash caching (`caching: true` by default) skips duplicate `setImage()` calls when the rendered image hasn't changed.
-- Actual animation FPS is roughly 10-30fps depending on component complexity.
+- Actual animation FPS is capped at 30fps (Stream Deck hardware max refresh rate).
 
 ## One React Root Per Visible Instance
 
@@ -62,4 +61,4 @@ The rendered image is static -- there are no clickable regions within a key imag
 Multiple state updates within a single event handler are batched by React's automatic batching. The library adds:
 
 1. **Microtask scheduling**: after `resetAfterCommit`, a microtask is queued rather than rendering immediately. Multiple commits in the same tick produce only one render pass.
-2. **Configurable debounce**: `renderDebounceMs` (default 16ms, ~60fps ceiling) coalesces renders for high-frequency events.
+2. **Adaptive debounce**: the pipeline detects rendering patterns and chooses 0ms (animating), 16ms (interactive), or a configured delay (idle).

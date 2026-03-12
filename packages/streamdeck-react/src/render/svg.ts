@@ -13,20 +13,18 @@
 //   </svg>                                    <circle cx="40" .../>
 //                                           </svg>' }
 //
-// This mirrors the behavior of fromJsx()'s internal SVG handler in
-// @takumi-rs/helpers.
+// This mirrors the behavior of @takumi-rs/helpers' SVG handler.
 //
 // CamelCase → kebab-case conversion:
 //   React JSX uses camelCase for SVG attributes (strokeWidth, fillRule).
 //   SVG markup requires kebab-case (stroke-width, fill-rule).
-//   The SVG_CAMEL_ATTRS set lists all attributes that need conversion,
-//   matching the `V` set in fromJsx()'s source.
+//   The SVG_CAMEL_ATTRS set lists all attributes that need conversion.
 
 import type { VNode } from "@/reconciler/vnode";
 
 // ── CamelCase SVG Attributes ────────────────────────────────────────
 // These attributes must be converted from camelCase to kebab-case when
-// serialized to SVG markup. Matches the `V` set in fromJsx()'s source.
+// serialized to SVG markup.
 
 const SVG_CAMEL_ATTRS: ReadonlySet<string> = new Set([
   "accentHeight",

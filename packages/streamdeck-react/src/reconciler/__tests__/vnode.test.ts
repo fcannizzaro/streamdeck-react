@@ -9,7 +9,6 @@ import {
   clearDirtyFlags,
   setParent,
   clearParent,
-  vnodeToElement,
 } from "@/reconciler/vnode";
 import type { VNode, VContainer } from "@/reconciler/vnode";
 
@@ -217,73 +216,5 @@ describe("setParent / clearParent", () => {
     clearParent(child);
 
     expect(child._parent).toBeUndefined();
-  });
-});
-
-// ── vnodeToElement ──────────────────────────────────────────────────
-
-describe("vnodeToElement", () => {
-  test("converts text node to string", () => {
-    const node = createTextVNode("Hello world");
-    const element = vnodeToElement(node);
-    expect(element).toBe("Hello world");
-  });
-
-  test("returns empty string for text node with undefined text", () => {
-    const node: VNode = { type: "#text", props: {}, children: [], text: undefined };
-    const element = vnodeToElement(node);
-    expect(element).toBe("");
-  });
-
-  test("converts element node to React element", () => {
-    const node = createVNode("div", { style: { color: "red" } });
-    const element = vnodeToElement(node) as any;
-
-    expect(element.type).toBe("div");
-    expect(element.props.style).toEqual({ color: "red" });
-  });
-
-  test("maps className to tw prop", () => {
-    const node = createVNode("div", { className: "flex items-center" });
-    const element = vnodeToElement(node) as any;
-
-    expect(element.props.tw).toBe("flex items-center");
-    expect(element.props.className).toBeUndefined();
-  });
-
-  test("appends className to existing tw prop", () => {
-    const node = createVNode("div", { tw: "p-4", className: "flex" });
-    const element = vnodeToElement(node) as any;
-
-    expect(element.props.tw).toBe("p-4 flex");
-  });
-
-  test("children prop is not passed through to element", () => {
-    const parent = createVNode("div", { children: "ignored" });
-    const child = createTextVNode("Hello");
-    parent.children.push(child);
-
-    const element = vnodeToElement(parent) as any;
-    // Single child — React's createElement unwraps it (no array wrapper)
-    expect(element.props.children).toBe("Hello");
-  });
-
-  test("recursively converts child nodes", () => {
-    const parent = createVNode("div", {});
-    const child1 = createVNode("span", {});
-    const child2 = createTextVNode("World");
-    const textChild = createTextVNode("Hi");
-
-    child1.children.push(textChild);
-    parent.children.push(child1);
-    parent.children.push(child2);
-
-    const element = vnodeToElement(parent) as any;
-    // With 2 children, React wraps in an array
-    const [spanElement, textElement] = element.props.children;
-
-    expect(spanElement.type).toBe("span");
-    expect(spanElement.props.children).toBe("Hi");
-    expect(textElement).toBe("World");
   });
 });

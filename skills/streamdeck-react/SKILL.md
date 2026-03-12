@@ -44,7 +44,7 @@ Phase 3: Takumi render (main thread or worker) → rasterize
 Phase 4: xxHash output dedup → skip hardware push if identical to last frame
 ```
 
-Two entry points: `renderToDataUri` (keys/dials → base64 data URI) and `renderToRaw` (touchstrip → raw RGBA Buffer).
+Two entry points: `renderToDataUri` (keys/dials → base64 data URI) and `renderToRaw` (TouchStrip → raw RGBA Buffer).
 
 ### Flush Coordinator
 
@@ -464,7 +464,7 @@ For touch interaction on Stream Deck+, use `useTouchTap()` inside the mounted ac
 6. **No animated images** -- each `setImage` call is a static frame. Use `useTick` for manual animation loops, or the higher-level `useSpring` and `useTween` hooks for physics-based and easing-based animation.
 7. **Design for 72x72 minimum** -- smallest key size. Use `useCanvas()` to adapt to larger devices.
 8. **Use simple layouts** -- this is not a browser DOM. Stick to flex layouts, fixed sizes, and simple elements (`div`, `span`, `img`, `svg`, `p`).
-9. **`renderDebounceMs`** -- default 16ms (~60fps ceiling). Increase for dial-heavy UIs to reduce render load.
+9. **Animation FPS** -- Stream Deck hardware refreshes at max 30Hz. The `useTick`, `useSpring`, and `useTween` hooks default to 30fps (clamped). Design animations accordingly.
 
 ## Verification Checklist
 

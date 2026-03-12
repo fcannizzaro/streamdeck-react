@@ -34,7 +34,6 @@ interface PluginConfig {
   fonts: FontConfig[];
   actions: ActionDefinition[];
   wrapper?: WrapperComponent;
-  renderDebounceMs?: number;
   imageFormat?: "png" | "webp";
   caching?: boolean;
   devicePixelRatio?: number;
@@ -42,9 +41,8 @@ interface PluginConfig {
   devtools?: boolean;
   debug?: boolean;
   imageCacheMaxBytes?: number;
-  touchstripCacheMaxBytes?: number;
+  touchStripCacheMaxBytes?: number;
   useWorker?: boolean;
-  touchstripImageFormat?: "webp" | "png";
 }
 ```
 
@@ -67,10 +65,6 @@ const plugin = createPlugin({
   wrapper: ({ children }) => <MyGlobalProvider>{children}</MyGlobalProvider>,
 });
 ```
-
-### `renderDebounceMs`
-
-Debounce interval for renders in milliseconds. Default: `16` (~60fps ceiling). Increase this for high-frequency events like dial rotation if you want to reduce render load.
 
 ### `imageFormat`
 
@@ -109,17 +103,13 @@ Enable performance diagnostics including render counters, duplicate detection, a
 
 Maximum byte budget for the key/dial image cache (LRU, byte-bounded). Cached renders are skipped entirely on cache hit. Set to `0` to disable. Default: `16777216` (16 MB).
 
-### `touchstripCacheMaxBytes`
+### `touchStripCacheMaxBytes`
 
-Maximum byte budget for the touchstrip raw buffer cache. This cache stores RGBA buffers for rendered touchstrip frames. Set to `0` to disable. Default: `8388608` (8 MB).
+Maximum byte budget for the TouchStrip raw buffer cache. This cache stores RGBA buffers for rendered TouchStrip frames. Set to `0` to disable. Default: `8388608` (8 MB).
 
 ### `useWorker`
 
 Offload Takumi rendering to a worker thread. This prevents the native rasterization (5-30ms per frame) from blocking the main thread during animations. Set to `false` to disable. Default: `true`.
-
-### `touchstripImageFormat`
-
-Image format for touchstrip segment encoding. `"webp"` renders each segment directly via Takumi (faster, avoids the custom PNG encoder). `"png"` uses the raw+crop+deflate path. Default: `"webp"`.
 
 ## connect()
 

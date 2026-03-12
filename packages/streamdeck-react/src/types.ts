@@ -117,7 +117,7 @@ export interface PluginConfig {
   fonts: FontConfig[];
   actions: ActionDefinition[];
   wrapper?: WrapperComponent;
-  renderDebounceMs?: number;
+
   imageFormat?: "png" | "webp";
   caching?: boolean;
   devicePixelRatio?: number;
@@ -128,12 +128,10 @@ export interface PluginConfig {
   debug?: boolean;
   /** Maximum image cache size in bytes for key/dial renders. Set to 0 to disable. @default 16777216 (16 MB) */
   imageCacheMaxBytes?: number;
-  /** Maximum touchstrip raw buffer cache size in bytes. Set to 0 to disable. @default 8388608 (8 MB) */
-  touchstripCacheMaxBytes?: number;
+  /** Maximum TouchStrip raw buffer cache size in bytes. Set to 0 to disable. @default 8388608 (8 MB) */
+  touchStripCacheMaxBytes?: number;
   /** Offload Takumi rendering to a worker thread. Set to false to disable. @default true */
   useWorker?: boolean;
-  /** Image format for touchstrip segment encoding. `"webp"` renders each segment directly via Takumi (faster, no custom PNG encoder). `"png"` uses the raw+crop+deflate path. @default "webp" */
-  touchstripImageFormat?: "webp" | "png";
 }
 
 export interface Plugin {
@@ -204,10 +202,8 @@ export interface ActionConfig<S extends JsonObject = JsonObject> {
   uuid: string;
   key?: ComponentType;
   dial?: ComponentType;
-  /** Full-strip touchstrip component. When set, replaces per-encoder `dial` display with a single shared React tree that spans the entire touch strip. */
+  /** Full-strip TouchStrip component. When set, replaces per-encoder `dial` display with a single shared React tree that spans the entire touch strip. */
   touchStrip?: ComponentType;
-  /** Target frame rate for the touchstrip animation loop and render pipeline. Controls both `useTick` cadence (via `useTouchStrip().fps`) and the render debounce. @default 60 */
-  touchStripFPS?: number;
   /** Encoder feedback layout. Defaults to a full-width `pixmap` canvas layout. Custom layouts should include a `pixmap` item keyed as `canvas`. */
   dialLayout?: EncoderLayout;
   wrapper?: WrapperComponent;
@@ -222,8 +218,6 @@ export type ActionConfigInput<S extends JsonObject = JsonObject> = [keyof Manife
   : {
       [UUID in ActionUUID]: {
         uuid: UUID;
-        /** Target frame rate for the touchstrip animation loop and render pipeline. Controls both `useTick` cadence (via `useTouchStrip().fps`) and the render debounce. @default 60 */
-        touchStripFPS?: number;
         /** Encoder feedback layout. Defaults to a full-width `pixmap` canvas layout. Custom layouts should include a `pixmap` item keyed as `canvas`. */
         dialLayout?: EncoderLayout;
         wrapper?: WrapperComponent;
@@ -236,10 +230,8 @@ export interface ActionDefinition<S extends JsonObject = JsonObject> {
   uuid: string;
   key?: ComponentType;
   dial?: ComponentType;
-  /** Full-strip touchstrip component. When set, replaces per-encoder `dial` display with a single shared React tree that spans the entire touch strip. */
+  /** Full-strip TouchStrip component. When set, replaces per-encoder `dial` display with a single shared React tree that spans the entire touch strip. */
   touchStrip?: ComponentType;
-  /** Target frame rate for the touchstrip animation loop and render pipeline. @default 60 */
-  touchStripFPS?: number;
   /** Encoder feedback layout. Defaults to a full-width `pixmap` canvas layout. Custom layouts should include a `pixmap` item keyed as `canvas`. */
   dialLayout?: EncoderLayout;
   wrapper?: WrapperComponent;
@@ -337,8 +329,6 @@ export interface TouchStripInfo {
   columns: number[];
   /** Width of each encoder segment in pixels (always 200). */
   segmentWidth: number;
-  /** Target frame rate for the animation loop. Pass to `useTick` for matched cadence. */
-  fps: number;
 }
 
 // ── Touch Bar Event Payloads ────────────────────────────────────────

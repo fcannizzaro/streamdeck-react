@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { encodePng, encodePngAsync } from "@/render/png";
+import { encodePng } from "@/render/png";
 
 const PNG_SIGNATURE = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
 
@@ -31,15 +31,5 @@ describe("encodePng", () => {
     const arrayPng = encodePng(4, 4, new Uint8Array(rgba));
 
     expect(arrayPng).toEqual(bufferPng);
-  });
-});
-
-describe("encodePngAsync", () => {
-  test("matches the sync encoder output for Uint8Array input", async () => {
-    const rgba = new Uint8Array(createRgbaBuffer(4, 4));
-    const sync = encodePng(4, 4, rgba);
-    const asyncPng = await encodePngAsync(4, 4, rgba);
-
-    expect(asyncPng).toEqual(sync);
   });
 });

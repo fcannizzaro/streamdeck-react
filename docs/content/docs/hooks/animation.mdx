@@ -118,7 +118,7 @@ useLongPress(() => jump(0)); // snap back instantly
 
 - Uses semi-implicit Euler integration of a damped harmonic oscillator.
 - Internally drives re-renders via `useTick` -- the tick loop starts when the target changes and stops once all channels settle below the velocity and displacement thresholds.
-- The `fps` option (default 60) controls the tick rate. Actual frame rate is still capped by `renderDebounceMs`.
+- The `fps` option (default 30) controls the tick rate. Actual frame rate is still capped by the hardware refresh rate (max 30Hz).
 
 ## SpringPresets
 
@@ -278,6 +278,6 @@ type EasingFn = (t: number) => number;
 
 ## Note on Animation Performance
 
-Both hooks use `useTick` internally and accept an `fps` option (default 60). The actual frame rate is capped by the render debounce (default 16ms = ~60fps theoretical max). In practice, rendering time limits real throughput to roughly 10-30fps depending on component complexity.
+Both hooks use `useTick` internally and accept an `fps` option (default 30, max 30). The actual frame rate is capped at 30fps — Stream Deck hardware refreshes at max 30Hz. In practice, rendering time limits real throughput to roughly 10-30fps depending on component complexity.
 
 The tick loop is only active while the animation is in motion. Once the spring settles or the tween completes, `useTick` is paused automatically -- no CPU cost when idle.

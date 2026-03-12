@@ -24,13 +24,10 @@
 //
 // Each chunk is: [4-byte length][4-byte type][data][4-byte CRC-32]
 //
-// Two variants:
-//   encodePng      — synchronous (deflateSync), used for single images
-//   encodePngAsync — async (deflate via libuv), used for parallel
-//                    touchstrip segment encoding via Promise.all
-
-import { deflateSync, deflate } from "node:zlib";
-import { promisify } from "node:util";
+// Uses synchronous deflateSync for compression — at 30fps the overhead
+// is negligible and avoids maintaining a second async code path.
+//
+import { deflateSync } from "node:zlib";
 import { getBufferPool } from "./buffer-pool";
 
 // ── CRC-32 Lookup Table (ISO 3309 polynomial) ──────────────────────
@@ -70,7 +67,6 @@ function pngChunk(type: string, data: Buffer): Buffer {
 // ── PNG Signature ───────────────────────────────────────────────────
 
 const PNG_SIGNATURE = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
-const deflateAsync = promisify(deflate);
 
 // ── Shared Helpers ──────────────────────────────────────────────────
 
@@ -130,26 +126,6 @@ export function encodePng(width: number, height: number, rgba: Buffer | Uint8Arr
   const ihdr = buildIhdr(width, height);
   const filtered = buildFilteredScanlines(width, height, rgba);
   const compressed = deflateSync(filtered);
-  getBufferPool().release(filtered);
-  return assemblePng(ihdr, compressed);
-}
-
-/**
- * Encode raw RGBA pixels into a PNG buffer (async).
- * Uses libuv thread pool for deflate compression, avoiding main-thread blocking.
- *
- * @param width  Image width in pixels.
- * @param height Image height in pixels.
- * @param rgba   Raw RGBA pixel data (width × height × 4 bytes, row-major).
- */
-export async function encodePngAsync(
-  width: number,
-  height: number,
-  rgba: Buffer | Uint8Array,
-): Promise<Buffer> {
-  const ihdr = buildIhdr(width, height);
-  const filtered = buildFilteredScanlines(width, height, rgba);
-  const compressed = await deflateAsync(filtered);
   getBufferPool().release(filtered);
   return assemblePng(ihdr, compressed);
 }

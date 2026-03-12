@@ -3,13 +3,9 @@
 // Two-level caching system for the render pipeline:
 //
 // 1. Buffer hashing (Phase 4 output dedup)
-//    - Primary: xxHash-wasm — WASM-accelerated 32-bit xxHash
-//      Hashes the full raster buffer (~320 KB for touchstrip) in native
-//      code, significantly faster than any JS loop with better
-//      avalanche/distribution than FNV-1a.
-//    - Fallback: FNV-1a with strided sampling (every 16th byte)
-//      Used during startup before WASM has compiled (~1ms), or if
-//      WASM is unavailable in the runtime.
+//    - FNV-1a with strided sampling (every 16th byte) for large buffers
+//      At 30fps, even hashing a 320KB TouchStrip buffer with strided
+//      JS sampling takes <1ms — no need for WASM acceleration.
 //
 // 2. FNV-1a (Fowler–Noll–Vo variant 1a)
 //    - Fast, non-cryptographic 32-bit hash
@@ -34,7 +30,6 @@
 // forms the image cache key.  Two trees with identical structure but
 // different render configs produce different cache keys.
 
-import xxhashInit from "xxhash-wasm";
 import type { VNode, VContainer } from "@/reconciler/vnode";
 
 // ── Constants ───────────────────────────────────────────────────────
@@ -56,54 +51,6 @@ const SENTINEL_FALSE = 0x46414c53; // "FALS" as u32
 const SENTINEL_ARRAY = 0x41525259; // "ARRY" as u32
 const SENTINEL_OBJECT = 0x4f424a54; // "OBJT" as u32
 
-// ── xxHash-wasm Accelerator ─────────────────────────────────────────
-//
-// xxHash-wasm provides a WASM-compiled xxHash implementation that hashes
-// full raster buffers (~320 KB for touchstrip, ~83 KB for keys) faster
-// than any JS loop — even a strided one.  The WASM module compiles
-// asynchronously (~1ms on Node.js) so there's a brief window at startup
-// where the JS FNV-1a fallback is used.
-//
-//   Module imported → initBufferHasher() fires (async)
-//     ↓ ~1ms
-//   WASM compiled → bufferHashFn set → fnv1a() uses xxHash
-//
-// The `h32Raw()` function is a synchronous, zero-allocation hash of a
-// Uint8Array that returns a u32.  Since Buffer extends Uint8Array, it
-// works directly without conversion.
-
-/** @internal WASM-accelerated buffer hash function, null before init. */
-let bufferHashFn: ((input: Uint8Array, seed?: number) => number) | null = null;
-let xxHashInitPromise: Promise<void> | null = null;
-
-/**
- * Initialize the xxHash-wasm module.  Call is idempotent — subsequent
- * calls return the same promise.  Resolves once `fnv1a()` will use the
- * WASM fast path for large buffers.
- */
-export function initBufferHasher(): Promise<void> {
-  if (xxHashInitPromise != null) return xxHashInitPromise;
-  xxHashInitPromise = xxhashInit()
-    .then((api) => {
-      bufferHashFn = api.h32Raw;
-    })
-    .catch(() => {
-      // WASM unavailable — fnv1a() will continue using JS strided sampling.
-    });
-  return xxHashInitPromise;
-}
-
-/** Reset the xxHash singleton — for testing only. */
-export function resetBufferHasher(): void {
-  bufferHashFn = null;
-  xxHashInitPromise = null;
-}
-
-// Fire-and-forget: start WASM compilation when module is first imported.
-// By the time the first render cycle calls fnv1a() for a large buffer,
-// WASM will have compiled.
-void initBufferHasher();
-
 // ── Low-Level Hash Primitives ───────────────────────────────────────
 
 // Buffers larger than this threshold use the xxHash-wasm fast path
@@ -121,15 +68,11 @@ const STRIDE = 16;
 /**
  * Hash a raw byte buffer (Uint8Array or Buffer) or string.
  *
- * For buffers larger than {@link STRIDE_THRESHOLD} bytes:
- * - **Primary path**: xxHash-wasm `h32Raw()` — hashes the entire buffer
- *   in native WASM code.  Faster than JS strided sampling even for
- *   320 KB touchstrip frames, with superior hash distribution.
- * - **Fallback path**: FNV-1a with strided sampling (every 16th byte)
- *   when WASM hasn't compiled yet (startup) or is unavailable.
+ * For buffers larger than {@link STRIDE_THRESHOLD} bytes, uses strided
+ * FNV-1a sampling (every 16th byte) — at 30fps this adds <1ms even
+ * for 320KB TouchStrip buffers.
  *
- * Strings and small buffers always use JS FNV-1a (fast enough at those
- * sizes, and avoids the overhead of calling into WASM for tiny inputs).
+ * Strings and small buffers always use full byte-by-byte FNV-1a.
  */
 export function fnv1a(input: string | Uint8Array | Buffer): number {
   let hash = FNV_OFFSET_BASIS;
@@ -140,13 +83,7 @@ export function fnv1a(input: string | Uint8Array | Buffer): number {
       hash = Math.imul(hash, FNV_PRIME);
     }
   } else if (input.length > STRIDE_THRESHOLD) {
-    // Fast path: xxHash-wasm hashes the full buffer in native WASM —
-    // faster than JS strided FNV-1a even for 320 KB touchstrip frames,
-    // with better hash distribution (no sampling artifacts).
-    if (bufferHashFn != null) {
-      return bufferHashFn(input);
-    }
-    // Fallback: strided FNV-1a when WASM hasn't initialized yet.
+    // Strided FNV-1a: sample one full RGBA pixel out of every 4 pixels.
     // Mix in the total byte length first so buffers of different sizes
     // that happen to share sampled bytes still produce different hashes.
     hash = fnv1aU32(input.length, hash);
@@ -351,22 +288,21 @@ export function computeCacheKey(
   return key >>> 0;
 }
 
-// ── Native Touchstrip Cache Key ───────────────────────────────────────
+// ── TouchStrip Segment Cache Key ─────────────────────────────────────
 // Extends the standard cache key with the sorted column list.
 // Different column configurations at the same total width can produce
 // different segment URI sets (e.g. columns [0,1,2,3] vs [0,1,3] both
 // yield width=800 but different active segments), so the column layout
 // must be part of the cache key.
 
-export function computeNativeTouchstripCacheKey(
+export function computeTouchStripSegmentCacheKey(
   treeHash: number,
   width: number,
   height: number,
   dpr: number,
-  format: string,
   columns: number[],
 ): number {
-  let key = computeCacheKey(treeHash, width, height, dpr, format);
+  let key = computeCacheKey(treeHash, width, height, dpr, "png");
   key = fnv1aU32(columns.length, key);
   for (const col of columns) {
     key = fnv1aU32(col, key);

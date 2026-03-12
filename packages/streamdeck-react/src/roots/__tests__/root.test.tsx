@@ -8,6 +8,8 @@ import { useSettings, useGlobalSettings } from "@/hooks/settings";
 import { useWillAppear } from "@/hooks/lifecycle";
 import { useDialRotate } from "@/hooks/events";
 import { RootRegistry } from "@/roots/registry";
+import { ReactRoot } from "@/roots/root";
+import type { RenderConfig } from "@/render/pipeline";
 import { sleep } from "@/test-utils/sleep";
 import type {
   ActionDefinition,
@@ -38,15 +40,25 @@ function createRegistry(
   onGlobalSettingsChange?: (settings: JsonObject) => Promise<void>,
 ) {
   return new RootRegistry(
-    {
-      renderer: {} as never,
-      imageFormat: "png",
-      caching: true,
-    },
-    0,
+    createRenderConfig(),
     fakeSdk,
     onGlobalSettingsChange ?? (async () => {}),
   );
+}
+
+function createRenderConfig(): RenderConfig {
+  return {
+    renderer: {
+      render: async () => Buffer.from("rendered"),
+    } as never,
+    imageFormat: "png",
+    caching: true,
+    devicePixelRatio: 1,
+    debug: false,
+    imageCacheMaxBytes: 16 * 1024 * 1024,
+    touchStripCacheMaxBytes: 8 * 1024 * 1024,
+    renderPool: null,
+  };
 }
 
 function createWillAppearEvent(overrides?: { settings?: JsonObject; actionId?: string }) {
@@ -110,16 +122,7 @@ describe("ReactRoot integration", () => {
       defaultSettings: {},
     };
 
-    const registry = new RootRegistry(
-      {
-        renderer: {} as never,
-        imageFormat: "png",
-        caching: true,
-      },
-      0,
-      fakeSdk,
-      async () => {},
-    );
+    const registry = new RootRegistry(createRenderConfig(), fakeSdk, async () => {});
 
     await act(async () => {
       registry.create(
@@ -353,16 +356,7 @@ describe("ReactRoot integration", () => {
       defaultSettings: {},
     };
 
-    const registry = new RootRegistry(
-      {
-        renderer: {} as never,
-        imageFormat: "png",
-        caching: true,
-      },
-      0,
-      fakeSdk,
-      async () => {},
-    );
+    const registry = new RootRegistry(createRenderConfig(), fakeSdk, async () => {});
 
     const event = {
       action: {
@@ -552,6 +546,74 @@ describe("ReactRoot integration", () => {
     act(() => {
       registry.destroyAll();
     });
+  });
+
+  test("key root debounce clears a pending timer before scheduling the next flush", async () => {
+    const fakeSdk = createFakeSdk();
+    const originalClearTimeout = globalThis.clearTimeout;
+    let clearCalls = 0;
+    let root!: ReactRoot;
+
+    globalThis.clearTimeout = ((timer: ReturnType<typeof setTimeout> | number | undefined) => {
+      clearCalls++;
+      return originalClearTimeout(timer as ReturnType<typeof setTimeout>);
+    }) as typeof clearTimeout;
+
+    try {
+      await act(async () => {
+        root = new ReactRoot(
+          () => null,
+          {
+            id: "action-1",
+            uuid: "com.example.debounce-key",
+            controller: "Keypad",
+            coordinates: { column: 0, row: 0 },
+            isInMultiAction: false,
+          },
+          {
+            id: "device-1",
+            type: 0,
+            size: { columns: 5, rows: 3 },
+            name: "Stream Deck",
+          },
+          { width: 72, height: 72, type: "key" },
+          {},
+          {},
+          {
+            setSettings: async (_settings: JsonObject) => {},
+            setImage: async (_dataUri: string) => {},
+          } as never,
+          fakeSdk,
+          createRenderConfig(),
+          async () => {},
+          async () => {},
+        );
+        await sleep(25);
+      });
+
+      clearCalls = 0;
+
+      await act(async () => {
+        await (root as unknown as { flush(): Promise<void> }).flush();
+        await sleep(1);
+      });
+
+      expect(
+        (root as unknown as { container: { renderTimer: ReturnType<typeof setTimeout> | null } })
+          .container.renderTimer,
+      ).not.toBeNull();
+
+      await act(async () => {
+        await (root as unknown as { flush(): Promise<void> }).flush();
+      });
+
+      expect(clearCalls).toBeGreaterThanOrEqual(1);
+    } finally {
+      globalThis.clearTimeout = originalClearTimeout;
+      await act(async () => {
+        root.unmount();
+      });
+    }
   });
 
   test("encoder root uses object dialLayout when provided", async () => {

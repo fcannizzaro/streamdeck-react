@@ -16,7 +16,7 @@ import {
   Icon,
   tw,
 } from "@fcannizzaro/streamdeck-react";
-import { useWeatherStore, TOTAL_VISIBLE } from "../store";
+import { useWeatherStore, CARDS_PER_SEGMENT } from "../store";
 import { getWeatherIcon, WeatherIcon, ICON_THERMO_HIGH, ICON_THERMO_LOW } from "../icons";
 import { getSubColBackground, getSubColShadow, DIAL_BACKGROUND } from "../theme";
 import type { ForecastEntry } from "../types";
@@ -30,8 +30,8 @@ const CARD_V_PAD = 3; // top/bottom padding
 const DETAIL_PANEL_W = 200;
 
 /** Compute card width from the available strip width. */
-function computeCardWidth(stripWidth: number): number {
-  return Math.floor((stripWidth - EDGE_PAD * 2 - CARD_GAP * (TOTAL_VISIBLE - 1)) / TOTAL_VISIBLE);
+function computeCardWidth(stripWidth: number, totalVisible: number): number {
+  return Math.floor((stripWidth - EDGE_PAD * 2 - CARD_GAP * (totalVisible - 1)) / totalVisible);
 }
 
 /** Compute the x-center of a card at the given visible index. */
@@ -202,17 +202,24 @@ function DetailPanel({
 // ── Main component ─────────────────────────────────────────────────
 
 function WeatherTouchStrip() {
-  const { width, height } = useTouchStrip();
+  const { width, height, columns } = useTouchStrip();
+
+  // Sync segment count into the store when columns change
+  const segmentCount = columns.length;
+  useEffect(() => {
+    useWeatherStore.getState().setSegmentCount(segmentCount);
+  }, [segmentCount]);
 
   // Store state
   const forecast = useWeatherStore((s) => s.forecast);
   const scrollOffset = useWeatherStore((s) => s.scrollOffset);
   const cursor = useWeatherStore((s) => s.cursor);
   const expanded = useWeatherStore((s) => s.expanded);
+  const totalVisible = useWeatherStore((s) => s.totalVisible);
   const isLoading = useWeatherStore((s) => s.isLoading && s.forecast.length === 0);
 
   // Layout
-  const cardW = computeCardWidth(width);
+  const cardW = computeCardWidth(width, totalVisible);
   const cardH = STRIP_H - CARD_V_PAD * 2;
 
   // ── Spring-animated detail panel progress ───────────────────────
@@ -250,7 +257,7 @@ function WeatherTouchStrip() {
     // Determine which card was tapped
     const x = tapPos[0];
     const tappedCol = Math.floor((x - EDGE_PAD) / (cardW + CARD_GAP));
-    const tappedIdx = store.scrollOffset + Math.min(TOTAL_VISIBLE - 1, Math.max(0, tappedCol));
+    const tappedIdx = store.scrollOffset + Math.min(totalVisible - 1, Math.max(0, tappedCol));
 
     if (tappedIdx < store.forecast.length) {
       if (store.cursor !== tappedIdx) {
@@ -314,7 +321,7 @@ function WeatherTouchStrip() {
       }}
     >
       {/* Flat row of cards */}
-      {Array.from({ length: TOTAL_VISIBLE }, (_, i) => {
+      {Array.from({ length: totalVisible }, (_, i) => {
         const idx = scrollOffset + i;
         const entry = forecast[idx];
         const isFocused = idx === cursor;
@@ -354,5 +361,4 @@ function WeatherTouchStrip() {
 export const weatherAction = defineAction({
   uuid: "com.example.react-weather.forecast",
   touchStrip: WeatherTouchStrip,
-  touchStripFPS: 60,
 });

@@ -323,10 +323,10 @@ export const useStore = create<DevtoolsState>((set, get) => ({
           }
         }
 
-        // Auto-select first action (or touchstrip) if none selected.
+        // Auto-select first action (or TouchStrip) if none selected.
         // The selectedActionId can be either a plain actionId or a
-        // "touchstrip:<deviceId>" string — check both maps.
-        const TB_PREFIX = "touchstrip:";
+        // "touchStrip:<deviceId>" string — check both maps.
+        const TB_PREFIX = "touchStrip:";
         const prevId = state.selectedActionId;
         const prevStillValid =
           prevId != null &&
@@ -433,7 +433,7 @@ export const useStore = create<DevtoolsState>((set, get) => ({
         break;
       }
 
-      case "render:touchstrip": {
+      case "render:touchStrip": {
         const touchStrips = new Map(state.touchStrips);
         const existing = touchStrips.get(msg.deviceId);
         const segments = new Map(existing?.segments ?? new Map());
@@ -451,19 +451,19 @@ export const useStore = create<DevtoolsState>((set, get) => ({
           segments,
         });
 
-        // ── Append touchstrip profile to history ──────────────────
+        // ── Append TouchStrip profile to history ──────────────────
         // Same pattern as the "render" case: if the message
         // includes a pipeline timing profile, create a ProfileEntry
         // and append it to the rolling profileHistory buffer.
-        // Uses `touchstrip:<deviceId>` as the actionId to distinguish
-        // touchstrip profiles from key/dial profiles in the
+        // Uses `touchStrip:<deviceId>` as the actionId to distinguish
+        // TouchStrip profiles from key/dial profiles in the
         // Performance panel.
         const updates: Partial<DevtoolsState> = { touchStrips };
         if (msg.profile) {
           const entry: ProfileEntry = {
             ...msg.profile,
             id: `p:${profileIdCounter++}`,
-            actionId: `touchstrip:${msg.deviceId}`,
+            actionId: `touchStrip:${msg.deviceId}`,
             actionUuid: "",
             ts: msg.ts,
           };

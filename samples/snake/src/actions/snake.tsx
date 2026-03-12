@@ -102,7 +102,7 @@ function createInitialSnake(): Point[] {
 // ── Component ───────────────────────────────────────────────────────
 
 function SnakeTouchStrip() {
-  const { width, height, fps, segmentWidth } = useTouchStrip();
+  const { width, height, segmentWidth } = useTouchStrip();
 
   // ── State (render-driving) ────────────────────────────────────────
   const [snake, setSnake] = useState<Point[]>(createInitialSnake);
@@ -200,7 +200,7 @@ function SnakeTouchStrip() {
       setFood(foodRef.current);
       setScore(scoreRef.current);
     }
-  }, fps);
+  }, gameState === "playing");
 
   // ── Dial Rotate: Steer (col 0) / Speed (col 1) ─────────────────
   useTouchStripDialRotate(({ column, ticks }) => {
@@ -453,5 +453,4 @@ function SnakeTouchStrip() {
 export const snakeAction = defineAction({
   uuid: "com.example.snake.touchstrip",
   touchStrip: SnakeTouchStrip,
-  touchStripFPS: 30,
 });

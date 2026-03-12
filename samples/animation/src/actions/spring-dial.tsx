@@ -6,23 +6,33 @@ import {
   useTouchStripDialDown,
   useTouchStripTap,
   useSpring,
+  useTween,
   SpringPresets,
   tw,
 } from "@fcannizzaro/streamdeck-react";
 
 // ── Spring Dial TouchStrip ──────────────────────────────────────────
-// Demonstrates spring physics on the touchstrip: a ball follows dial rotation
-// with bouncy spring dynamics. Press to toggle ball size.
+// Demonstrates spring and tween animation on the touchstrip: a ball follows
+// dial rotation. Tap the top-left label to switch between spring and tween
+// animation modes. Press dial to toggle ball size.
+
+// Approximate hit area for the top-left animation type label
+const LABEL_TAP_WIDTH = 100;
+const LABEL_TAP_HEIGHT = 24;
 
 function SpringDial() {
   const { width, height } = useTouchStrip();
   const [target, setTarget] = useState(width / 2);
   const [big, setBig] = useState(false);
+  const [mode, setMode] = useState<"spring" | "tween">("spring");
 
-  // Spring-animated horizontal position
-  const { value: x, isAnimating } = useSpring(target, SpringPresets.wobbly);
+  // Both hooks are always called (rules of hooks); we pick the active value below.
+  const spring = useSpring(target, SpringPresets.wobbly);
+  const tween = useTween(target, { duration: 400, easing: "easeOutCubic" });
 
-  // Spring-animated radius on press
+  const { value: x, isAnimating } = mode === "spring" ? spring : tween;
+
+  // Spring-animated radius on press (always spring — feels better for size toggle)
   const { value: r } = useSpring(big ? 35 : 18, SpringPresets.stiff);
 
   useTouchStripDialRotate(({ ticks }) => {
@@ -34,6 +44,12 @@ function SpringDial() {
   });
 
   useTouchStripTap(({ tapPos, hold }) => {
+    // Tap on the top-left label toggles animation mode
+    if (tapPos[0] < LABEL_TAP_WIDTH && tapPos[1] < LABEL_TAP_HEIGHT) {
+      setMode((m) => (m === "spring" ? "tween" : "spring"));
+      return;
+    }
+
     setTarget(Math.max(20, Math.min(width - 20, tapPos[0])));
     if (hold) {
       setBig((b) => !b);
@@ -44,6 +60,7 @@ function SpringDial() {
   const cx = Math.round(x);
   const cr = Math.round(r);
   const cy = Math.round(height / 2);
+  const label = mode === "spring" ? "SPRING" : "TWEEN";
 
   return (
     <div style={{ width, height, backgroundColor: "#0d1117", position: "relative" }}>
@@ -59,7 +76,7 @@ function SpringDial() {
         }}
       />
 
-      {/* Spring-animated ball */}
+      {/* Spring/Tween-animated ball */}
       <div
         style={{
           position: "absolute",
@@ -72,10 +89,10 @@ function SpringDial() {
         }}
       />
 
-      {/* Label */}
+      {/* Label — tap to toggle animation mode */}
       <div style={{ position: "absolute", left: 8, top: 4 }}>
         <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 10 }}>
-          SPRING {isAnimating ? "\u25CF" : "\u25CB"}
+          {label} {isAnimating ? "\u25CF" : "\u25CB"}
         </span>
       </div>
     </div>
@@ -85,5 +102,4 @@ function SpringDial() {
 export const springDialAction = defineAction({
   uuid: "com.example.react-animation.spring-dial",
   touchStrip: SpringDial,
-  touchStripFPS: 60,
 });

@@ -66,17 +66,13 @@ export function createPlugin(config: PluginConfig): Plugin {
     devicePixelRatio: config.devicePixelRatio ?? 1,
     debug: config.debug ?? process.env.NODE_ENV !== "production",
     imageCacheMaxBytes: config.imageCacheMaxBytes ?? 16 * 1024 * 1024,
-    touchstripCacheMaxBytes: config.touchstripCacheMaxBytes ?? 8 * 1024 * 1024,
+    touchStripCacheMaxBytes: config.touchStripCacheMaxBytes ?? 8 * 1024 * 1024,
     renderPool,
-    touchstripImageFormat: config.touchstripImageFormat ?? "webp",
   };
-
-  const renderDebounceMs = config.renderDebounceMs ?? 16;
 
   // Create the root registry
   const registry = new RootRegistry(
     renderConfig,
-    renderDebounceMs,
     streamDeck,
     async (settings: JsonObject) => {
       await streamDeck.settings.setGlobalSettings(settings);

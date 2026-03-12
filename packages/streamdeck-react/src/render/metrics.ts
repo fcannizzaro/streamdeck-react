@@ -1,7 +1,7 @@
 // ── Render Metrics ──────────────────────────────────────────────────
 //
-// Aggregates render pipeline statistics over rolling 10-second windows.
-// Enabled in debug mode to quantify the impact of each optimization tier:
+// Aggregates render pipeline statistics.  Enabled in debug mode to
+// quantify the impact of each optimization tier:
 //
 //   flushCount       — total render attempts (flush() calls)
 //   dirtySkipCount   — Phase 1 skips (VNode tree was clean)
@@ -13,11 +13,15 @@
 // indicates how effectively the caching tiers avoid redundant work.
 // A well-optimized plugin typically sees 60-90% skip rates.
 //
-// Counters are reset after each 10s report to show per-window rates
-// rather than cumulative totals.  The report timer uses unref() to
-// avoid preventing Node.js process exit.
+// A single set of cumulative counters is used.  The periodic console
+// reporter computes deltas from the last snapshot.  The devtools
+// bridge reads the cumulative totals directly via snapshot().
 
-import { getImageCache, getTouchstripCache, getTouchstripNativeCache } from "./image-cache";
+import {
+  getImageCacheStats,
+  getTouchStripCacheStats,
+  getTouchStripSegmentCacheStats,
+} from "./image-cache";
 
 // ── Types ───────────────────────────────────────────────────────────
 
@@ -39,7 +43,7 @@ export interface RenderMetrics {
   /** Image cache memory usage in bytes. */
   imageCacheBytes: number;
   /** TouchStrip cache memory usage in bytes. */
-  touchstripCacheBytes: number;
+  touchStripCacheBytes: number;
 }
 
 // ── Metrics Collector ───────────────────────────────────────────────
@@ -47,7 +51,7 @@ export interface RenderMetrics {
 const REPORT_INTERVAL_MS = 10_000; // Log every 10s in debug mode
 
 class MetricsCollector {
-  // ── Windowed counters (reset every 10s by report() for console log) ──
+  // ── Cumulative counters (monotonically increasing) ────────────────
   private _flushCount = 0;
   private _renderCount = 0;
   private _cacheHitCount = 0;
@@ -56,32 +60,13 @@ class MetricsCollector {
   private _totalRenderMs = 0;
   private _peakRenderMs = 0;
 
-  // ── Cumulative counters (never reset, for devtools snapshot()) ────────
-  //
-  // The devtools bridge reads metrics via snapshot() every 3 seconds.
-  // The console reporter calls report() every 10 seconds and resets the
-  // windowed counters.  Without separate cumulative counters, the bridge
-  // would periodically see near-zero values right after a report() cycle.
-  //
-  // By maintaining a second set of counters that are never reset, the
-  // devtools always receives monotonically increasing totals.  The UI
-  // can compute deltas if it needs per-interval rates.
-  //
-  //   ┌──────────────────────────────────────────────────────────┐
-  //   │  record*()  ──→  _windowed++   (reset by report())      │
-  //   │              ──→  _cumulative++ (never reset)            │
-  //   │                                                         │
-  //   │  report()   ──→  logs _windowed, resets _windowed       │
-  //   │  snapshot() ──→  returns _cumulative (stable for UI)    │
-  //   └──────────────────────────────────────────────────────────┘
-  private _cumFlushCount = 0;
-  private _cumRenderCount = 0;
-  private _cumCacheHitCount = 0;
-  private _cumDirtySkipCount = 0;
-  private _cumHashDedupCount = 0;
-  private _cumTotalRenderMs = 0;
-  private _cumPeakRenderMs = 0;
-
+  // ── Last-reported snapshot (for computing deltas in report()) ─────
+  private _lastFlush = 0;
+  private _lastRender = 0;
+  private _lastCacheHit = 0;
+  private _lastDirtySkip = 0;
+  private _lastHashDedup = 0;
+  private _lastTotalRenderMs = 0;
   private _reportTimer: ReturnType<typeof setInterval> | null = null;
   private _enabled = false;
 
@@ -110,91 +95,86 @@ class MetricsCollector {
   /** Record a flush attempt (before any skip checks). */
   recordFlush(): void {
     this._flushCount++;
-    this._cumFlushCount++;
   }
 
   /** Record a dirty-skip (container was clean). */
   recordDirtySkip(): void {
     this._dirtySkipCount++;
-    this._cumDirtySkipCount++;
   }
 
   /** Record an image cache hit. */
   recordCacheHit(): void {
     this._cacheHitCount++;
-    this._cumCacheHitCount++;
   }
 
   /** Record a post-render hash dedup (identical output). */
   recordHashDedup(): void {
     this._hashDedupCount++;
-    this._cumHashDedupCount++;
   }
 
   /** Record a completed render with its duration in milliseconds. */
   recordRender(renderMs: number): void {
     this._renderCount++;
-    this._cumRenderCount++;
     this._totalRenderMs += renderMs;
-    this._cumTotalRenderMs += renderMs;
     if (renderMs > this._peakRenderMs) {
       this._peakRenderMs = renderMs;
     }
-    if (renderMs > this._cumPeakRenderMs) {
-      this._cumPeakRenderMs = renderMs;
-    }
   }
 
-  /** Get current snapshot of all metrics (cumulative, never reset). */
+  /** Get current snapshot of all metrics (cumulative). */
   snapshot(): RenderMetrics {
-    const imageStats = getImageCache().stats;
-    const touchstripStats = getTouchstripCache().stats;
-    const nativeStats = getTouchstripNativeCache().stats;
+    const imageStats = getImageCacheStats();
+    const touchStripStats = getTouchStripCacheStats();
+    const segmentStats = getTouchStripSegmentCacheStats();
     return {
-      flushCount: this._cumFlushCount,
-      renderCount: this._cumRenderCount,
-      cacheHitCount: this._cumCacheHitCount,
-      dirtySkipCount: this._cumDirtySkipCount,
-      hashDedupCount: this._cumHashDedupCount,
-      avgRenderMs: this._cumRenderCount > 0 ? this._cumTotalRenderMs / this._cumRenderCount : 0,
-      peakRenderMs: this._cumPeakRenderMs,
+      flushCount: this._flushCount,
+      renderCount: this._renderCount,
+      cacheHitCount: this._cacheHitCount,
+      dirtySkipCount: this._dirtySkipCount,
+      hashDedupCount: this._hashDedupCount,
+      avgRenderMs: this._renderCount > 0 ? this._totalRenderMs / this._renderCount : 0,
+      peakRenderMs: this._peakRenderMs,
       imageCacheBytes: imageStats.bytes,
-      // Sum raw buffer cache + native-format segment cache.
-      // Only one is active at a time (determined by touchstripImageFormat),
-      // but both are reported for accurate memory accounting.
-      touchstripCacheBytes: touchstripStats.bytes + nativeStats.bytes,
+      // Sum raw buffer cache + segment URI cache. The TouchStrip runtime
+      // can populate both during normal operation: a segment-cache miss falls
+      // through to renderToRaw(), which may hit or fill the raw buffer cache.
+      touchStripCacheBytes: touchStripStats.bytes + segmentStats.bytes,
     };
   }
 
-  /** Log a summary to console (called periodically). */
+  /** Log a summary to console (called periodically). Computes deltas since last report. */
   private report(): void {
-    if (this._flushCount === 0) return; // nothing to report
+    // Compute deltas since last report
+    const dFlush = this._flushCount - this._lastFlush;
+    if (dFlush === 0) return; // nothing to report
 
-    const m = this.snapshot();
+    const dRender = this._renderCount - this._lastRender;
+    const dCacheHit = this._cacheHitCount - this._lastCacheHit;
+    const dDirtySkip = this._dirtySkipCount - this._lastDirtySkip;
+    const dHashDedup = this._hashDedupCount - this._lastHashDedup;
+    const dTotalMs = this._totalRenderMs - this._lastTotalRenderMs;
+
     const skipRate =
-      m.flushCount > 0
-        ? (((m.dirtySkipCount + m.cacheHitCount + m.hashDedupCount) / m.flushCount) * 100).toFixed(
-            1,
-          )
-        : "0";
+      dFlush > 0 ? (((dDirtySkip + dCacheHit + dHashDedup) / dFlush) * 100).toFixed(1) : "0";
+    const avgMs = dRender > 0 ? (dTotalMs / dRender).toFixed(1) : "0.0";
 
     console.log(
       `[@fcannizzaro/streamdeck-react] Metrics (${REPORT_INTERVAL_MS / 1000}s): ` +
-        `flushes=${m.flushCount} renders=${m.renderCount} ` +
-        `cacheHits=${m.cacheHitCount} dirtySkips=${m.dirtySkipCount} hashDedups=${m.hashDedupCount} ` +
+        `flushes=${dFlush} renders=${dRender} ` +
+        `cacheHits=${dCacheHit} dirtySkips=${dDirtySkip} hashDedups=${dHashDedup} ` +
         `skipRate=${skipRate}% ` +
-        `avgRender=${m.avgRenderMs.toFixed(1)}ms peak=${m.peakRenderMs.toFixed(1)}ms ` +
-        `imgCache=${(m.imageCacheBytes / 1024).toFixed(0)}KB tbCache=${(m.touchstripCacheBytes / 1024).toFixed(0)}KB`,
+        `avgRender=${avgMs}ms peak=${this._peakRenderMs.toFixed(1)}ms ` +
+        `imgCache=${(getImageCacheStats().bytes / 1024).toFixed(0)}KB ` +
+        `tbCache=${((getTouchStripCacheStats().bytes + getTouchStripSegmentCacheStats().bytes) / 1024).toFixed(0)}KB`,
     );
 
-    // Reset counters for the next interval
-    this._flushCount = 0;
-    this._renderCount = 0;
-    this._cacheHitCount = 0;
-    this._dirtySkipCount = 0;
-    this._hashDedupCount = 0;
-    this._totalRenderMs = 0;
-    this._peakRenderMs = 0;
+    // Save current values as the last-reported baseline
+    this._lastFlush = this._flushCount;
+    this._lastRender = this._renderCount;
+    this._lastCacheHit = this._cacheHitCount;
+    this._lastDirtySkip = this._dirtySkipCount;
+    this._lastHashDedup = this._hashDedupCount;
+    this._lastTotalRenderMs = this._totalRenderMs;
   }
 }
 

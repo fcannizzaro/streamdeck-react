@@ -12,6 +12,8 @@ import {
   useTouchStripDialUp,
 } from "@/hooks/touchstrip";
 import { RootRegistry } from "@/roots/registry";
+import { TouchStripRoot } from "@/roots/touchstrip-root";
+import type { RenderConfig } from "@/render/pipeline";
 import { sleep } from "@/test-utils/sleep";
 import type {
   ActionDefinition,
@@ -46,15 +48,25 @@ function createRegistry(
   onGlobalSettingsChange?: (settings: JsonObject) => Promise<void>,
 ) {
   return new RootRegistry(
-    {
-      renderer: {} as never,
-      imageFormat: "png",
-      caching: true,
-    },
-    0,
+    createRenderConfig(),
     fakeSdk,
     onGlobalSettingsChange ?? (async () => {}),
   );
+}
+
+function createRenderConfig(): RenderConfig {
+  return {
+    renderer: {
+      render: async () => Buffer.from("rendered"),
+    } as never,
+    imageFormat: "png",
+    caching: true,
+    devicePixelRatio: 1,
+    debug: false,
+    imageCacheMaxBytes: 16 * 1024 * 1024,
+    touchStripCacheMaxBytes: 8 * 1024 * 1024,
+    renderPool: null,
+  };
 }
 
 function createEncoderEvent(overrides?: {
@@ -100,7 +112,7 @@ function createEncoderEvent(overrides?: {
 // ── Tests ───────────────────────────────────────────────────────────
 
 describe("TouchStripRoot integration", () => {
-  test("encoder with touchstrip registers with TouchStripRoot instead of per-action root", async () => {
+  test("encoder with touchStrip registers with TouchStripRoot instead of per-action root", async () => {
     const fakeSdk = createFakeSdk();
     const { ev } = createEncoderEvent({ column: 0 });
 
@@ -136,7 +148,7 @@ describe("TouchStripRoot integration", () => {
     });
   });
 
-  test("multiple encoder columns produce correct touchstrip width and columns", async () => {
+  test("multiple encoder columns produce correct TouchStrip width and columns", async () => {
     const fakeSdk = createFakeSdk();
     let touchStripInfo: TouchStripInfo | undefined;
 
@@ -347,7 +359,7 @@ describe("TouchStripRoot integration", () => {
 
     expect(touchStripInfo!.columns).toEqual([0, 1]);
 
-    // Remove column 0 — touchstrip still alive with column 1
+    // Remove column 0 — TouchStrip still alive with column 1
     await act(async () => {
       registry.destroy("enc-0");
       await sleep(20);
@@ -356,7 +368,7 @@ describe("TouchStripRoot integration", () => {
     expect(touchStripInfo!.columns).toEqual([1]);
     expect(touchStripInfo!.width).toBe(400); // (1 + 1) * 200
 
-    // Remove column 1 — touchstrip should be cleaned up
+    // Remove column 1 — TouchStrip should be cleaned up
     act(() => {
       registry.destroy("enc-1");
     });
@@ -369,7 +381,7 @@ describe("TouchStripRoot integration", () => {
     });
   });
 
-  test("DeviceContext is available in touchstrip component", async () => {
+  test("DeviceContext is available in TouchStrip component", async () => {
     const fakeSdk = createFakeSdk();
     let deviceFromHook: DeviceInfo | undefined;
 
@@ -406,7 +418,7 @@ describe("TouchStripRoot integration", () => {
     });
   });
 
-  test("global settings are propagated to touchstrip root", async () => {
+  test("global settings are propagated to TouchStrip root", async () => {
     const fakeSdk = createFakeSdk();
     let globalSettingsFromHook: JsonObject | undefined;
 
@@ -446,7 +458,7 @@ describe("TouchStripRoot integration", () => {
     });
   });
 
-  test("identical global settings do not rerender touchstrip consumers", async () => {
+  test("identical global settings do not rerender TouchStrip consumers", async () => {
     const fakeSdk = createFakeSdk();
     let renderCount = 0;
 
@@ -576,5 +588,55 @@ describe("TouchStripRoot integration", () => {
     act(() => {
       registry.destroyAll();
     });
+  });
+
+  test("TouchStrip flush leaves pending timers intact across rapid rerenders", async () => {
+    const fakeSdk = createFakeSdk();
+    const originalClearTimeout = globalThis.clearTimeout;
+    let clearCalls = 0;
+    let root!: TouchStripRoot;
+
+    globalThis.clearTimeout = ((timer: ReturnType<typeof setTimeout> | number | undefined) => {
+      clearCalls++;
+      return originalClearTimeout(timer as ReturnType<typeof setTimeout>);
+    }) as typeof clearTimeout;
+
+    try {
+      await act(async () => {
+        root = new TouchStripRoot(
+          () => null,
+          {
+            id: "device-plus",
+            type: 7,
+            size: { columns: 4, rows: 2 },
+            name: "Stream Deck+",
+          },
+          {},
+          createRenderConfig(),
+          async () => {},
+        );
+
+        root.addColumn(0, "enc-0", {
+          setFeedback: async (_payload: Record<string, unknown>) => {},
+        } as never);
+
+        await sleep(25);
+      });
+
+      clearCalls = 0;
+
+      await act(async () => {
+        await (root as unknown as { flush(): Promise<void> }).flush();
+        await sleep(1);
+        await (root as unknown as { flush(): Promise<void> }).flush();
+      });
+
+      expect(clearCalls).toBe(0);
+    } finally {
+      globalThis.clearTimeout = originalClearTimeout;
+      await act(async () => {
+        root.unmount();
+      });
+    }
   });
 });

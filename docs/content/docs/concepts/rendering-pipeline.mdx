@@ -93,7 +93,7 @@ Cost: **O(depth)** for single-node mutations, **O(n)** worst case.
 
 A Merkle-style hash is computed over the VNode tree. Unchanged subtrees reuse their cached `_hash` values, so a single-node mutation only rehashes the path from the changed node to the root. The resulting tree hash is combined with render parameters (width, height, device pixel ratio, image format) to form a cache key.
 
-If the key is found in the byte-bounded LRU image cache, the cached data URI (or raw buffer for touchstrip) is returned immediately — skipping the entire Takumi render.
+If the key is found in the byte-bounded LRU image cache, the cached data URI (or raw buffer for TouchStrip) is returned immediately — skipping the entire Takumi render.
 
 ### Phase 3: Takumi Render
 
@@ -105,7 +105,7 @@ The VNode tree is converted to Takumi nodes via the direct bypass path and passe
 
 Cost: **O(n)** over the output buffer.
 
-After rendering, the raw pixel buffer is hashed via [xxHash-wasm](https://github.com/jungomi/xxhash-wasm) — a WASM-compiled xxHash that processes the entire buffer in native code, significantly faster than a JS byte loop even for 320 KB touchstrip frames. If the hash matches the previous frame's hash (`lastSvgHash`), the component re-rendered but produced no visual change — encoding and the hardware push are skipped.
+After rendering, the raw pixel buffer is hashed via [xxHash-wasm](https://github.com/jungomi/xxhash-wasm) — a WASM-compiled xxHash that processes the entire buffer in native code, significantly faster than a JS byte loop even for 320 KB TouchStrip frames. If the hash matches the previous frame's hash (`lastSvgHash`), the component re-rendered but produced no visual change — encoding and the hardware push are skipped.
 
 If the WASM module hasn't compiled yet (brief window at startup, ~1ms), the pipeline falls back to FNV-1a with strided sampling (every 16th byte) until xxHash is ready.
 
@@ -118,7 +118,7 @@ The pipeline provides two render functions for different surfaces:
 | Entry point       | Surface     | Returns                | Cache                           |
 | ----------------- | ----------- | ---------------------- | ------------------------------- |
 | `renderToDataUri` | Keys, dials | Base64 data URI string | Image cache (16 MB default)     |
-| `renderToRaw`     | Touchstrip  | Raw RGBA `Buffer`      | Touchstrip cache (8 MB default) |
+| `renderToRaw`     | TouchStrip  | Raw RGBA `Buffer`      | TouchStrip cache (8 MB default) |
 
 Both follow the same 4-phase skip hierarchy. The key difference is that `renderToRaw` skips the base64 encoding step — the caller (TouchStripRoot) crops per-encoder segments from the raw buffer and encodes each independently.
 
@@ -134,9 +134,8 @@ interface RenderConfig {
   devicePixelRatio: number;
   debug: boolean;
   imageCacheMaxBytes: number; // Default: 16 MB
-  touchstripCacheMaxBytes: number; // Default: 8 MB
+  touchStripCacheMaxBytes: number; // Default: 8 MB
   renderPool: RenderPool | null;
-  touchstripImageFormat: OutputFormat; // Default: "webp"
   onRender?: (container: VContainer, dataUri: string) => void;
   onProfile?: (profile: RenderProfile) => void;
 }
@@ -151,26 +150,25 @@ Most of these map directly to `PluginConfig` options:
 | `devicePixelRatio`        | `devicePixelRatio`        | `1`                             |
 | `debug`                   | `debug`                   | `NODE_ENV !== 'production'`     |
 | `imageCacheMaxBytes`      | `imageCacheMaxBytes`      | `16777216` (16 MB)              |
-| `touchstripCacheMaxBytes` | `touchstripCacheMaxBytes` | `8388608` (8 MB)                |
+| `touchStripCacheMaxBytes` | `touchStripCacheMaxBytes` | `8388608` (8 MB)                |
 | `useWorker`               | `renderPool`              | `true` (creates a `RenderPool`) |
-| `touchstripImageFormat`   | `touchstripImageFormat`   | `"webp"`                        |
 
 ## Image Cache
 
-The image cache is a byte-bounded LRU cache shared across all React roots. Unlike a count-bounded cache, byte-bounding handles the wide size variance of Stream Deck images correctly — a 72×72 key PNG is ~2KB while an 800×100 raw RGBA touchstrip buffer is 320KB.
+The image cache is a byte-bounded LRU cache shared across all React roots. Unlike a count-bounded cache, byte-bounding handles the wide size variance of Stream Deck images correctly — a 72×72 key PNG is ~2KB while an 800×100 raw RGBA TouchStrip buffer is 320KB.
 
 Two separate caches exist:
 
 - **Image cache** (`ImageCache<string>`) — stores base64 data URIs for key/dial renders. Default budget: **16 MB**.
-- **Touchstrip cache** (`ImageCache<Buffer>`) — stores raw RGBA buffers. Default budget: **8 MB**.
+- **TouchStrip cache** (`ImageCache<Buffer>`) — stores raw RGBA buffers. Default budget: **8 MB**.
 
 Both use a doubly-linked list for O(1) LRU eviction and a `Map` for O(1) lookups. When the total byte size exceeds the budget, the least-recently-used entries are evicted from the tail.
 
-Cache sizes are configurable via `imageCacheMaxBytes` and `touchstripCacheMaxBytes` in `createPlugin()`. Set to `0` to disable.
+Cache sizes are configurable via `imageCacheMaxBytes` and `touchStripCacheMaxBytes` in `createPlugin()`. Set to `0` to disable.
 
 ## Buffer Pool
 
-At 60fps touchstrip rendering, each frame allocates ~320KB of raw RGBA buffers (800×100×4 bytes). Without pooling, V8's garbage collector must reclaim ~20MB/s of short-lived buffers, causing periodic frame drops visible as stutter.
+At 30fps TouchStrip rendering, each frame allocates ~320KB of raw RGBA buffers (800×100×4 bytes). Without pooling, V8's garbage collector must reclaim ~10MB/s of short-lived buffers, causing periodic frame drops visible as stutter.
 
 The `BufferPool` recycles buffers by exact byte size:
 
@@ -183,7 +181,7 @@ Each size bucket is capped at 8 buffers to prevent unbounded memory growth durin
 
 The `RenderPool` offloads Takumi rasterization to a worker thread so the main thread stays responsive for SDK event handling and React reconciliation.
 
-**Why**: Takumi's native rasterization (Rust via NAPI) blocks the calling thread for 5–30ms per frame. During 60fps touchstrip animation, this leaves almost no time for processing `keyDown` or `dialRotate` events on the main thread.
+**Why**: Takumi's native rasterization (Rust via NAPI) blocks the calling thread for 5–30ms per frame. During 30fps TouchStrip animation, this leaves almost no time for processing `keyDown` or `dialRotate` events on the main thread.
 
 The worker receives serialized VNode trees (stripped of back-pointers and function props that can't cross the structured-clone boundary), converts them to Takumi nodes, and returns the raster buffer via zero-copy `ArrayBuffer` transfer.
 
@@ -217,7 +215,7 @@ interface RenderMetrics {
   avgRenderMs: number; // Average Takumi render time
   peakRenderMs: number; // Worst-case render time
   imageCacheBytes: number; // Image cache memory usage
-  touchstripCacheBytes: number; // TouchStrip cache memory usage
+  touchStripCacheBytes: number; // TouchStrip cache memory usage
 }
 ```
 
@@ -249,6 +247,6 @@ This data flows through the devtools bridge to the Performance panel via SSE, pr
 
 ## Output Format
 
-The renderer writes PNG by default and can be configured to output WebP via `imageFormat: "webp"` in `createPlugin()`. For touchstrip segments specifically, `touchstripImageFormat` defaults to `"webp"` because Takumi encodes WebP natively during the render call itself, avoiding the separate PNG encoding step.
+The renderer writes PNG by default and can be configured to output WebP via `imageFormat: "webp"` in `createPlugin()`.
 
 Dimensions (width/height) are determined automatically from the device type and controller. See [Device Sizes](/reference/device-sizes) for the full table.

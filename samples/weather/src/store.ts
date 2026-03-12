@@ -14,8 +14,11 @@ const DEFAULT_LAT = 41.9028;
 const DEFAULT_LON = 12.4964;
 const POLL_INTERVAL = 15 * 60 * 1000; // 15 minutes
 
-/** Total visible cards across the touch strip */
-export const TOTAL_VISIBLE = 12;
+/** Number of forecast cards shown per dial segment. */
+export const CARDS_PER_SEGMENT = 3;
+
+/** Default segment count (Stream Deck+ has 4 dials). */
+const DEFAULT_SEGMENTS = 4;
 
 // ── Store type ─────────────────────────────────────────────────────
 
@@ -30,6 +33,12 @@ interface WeatherStore {
   /** User-configured longitude. Falls back to DEFAULT_LON when unset. */
   lon: number | null;
 
+  /** Number of active dial segments on the touch strip. */
+  segmentCount: number;
+
+  /** Total visible cards (segmentCount × CARDS_PER_SEGMENT). */
+  totalVisible: number;
+
   /** Global cursor index into forecast[]. Dial rotation moves this. */
   cursor: number;
 
@@ -40,6 +49,7 @@ interface WeatherStore {
   expanded: boolean;
 
   setCoordinates: (lat: number | null, lon: number | null) => void;
+  setSegmentCount: (count: number) => void;
   fetchForecast: () => Promise<void>;
   moveCursor: (ticks: number) => void;
   toggleExpanded: () => void;
@@ -53,11 +63,16 @@ function clamp(value: number, min: number, max: number): number {
 }
 
 /** Ensure scrollOffset keeps cursor visible. */
-function adjustScroll(cursor: number, scrollOffset: number, maxIdx: number): number {
-  const maxScroll = Math.max(0, maxIdx - TOTAL_VISIBLE + 1);
+function adjustScroll(
+  cursor: number,
+  scrollOffset: number,
+  maxIdx: number,
+  totalVisible: number,
+): number {
+  const maxScroll = Math.max(0, maxIdx - totalVisible + 1);
   let offset = scrollOffset;
   if (cursor < offset) offset = cursor;
-  if (cursor >= offset + TOTAL_VISIBLE) offset = cursor - TOTAL_VISIBLE + 1;
+  if (cursor >= offset + totalVisible) offset = cursor - totalVisible + 1;
   return clamp(offset, 0, maxScroll);
 }
 
@@ -70,6 +85,8 @@ export const useWeatherStore = create<WeatherStore>((set, get) => ({
   lastFetched: null,
   lat: null,
   lon: null,
+  segmentCount: DEFAULT_SEGMENTS,
+  totalVisible: DEFAULT_SEGMENTS * CARDS_PER_SEGMENT,
   cursor: 0,
   scrollOffset: 0,
   expanded: false,
@@ -82,10 +99,24 @@ export const useWeatherStore = create<WeatherStore>((set, get) => ({
     state.fetchForecast();
   },
 
+  setSegmentCount: (count: number) => {
+    const state = get();
+    if (state.segmentCount === count) return;
+    const totalVisible = count * CARDS_PER_SEGMENT;
+    const maxIdx = Math.max(0, state.forecast.length - 1);
+    const cursor = clamp(state.cursor, 0, maxIdx);
+    set({
+      segmentCount: count,
+      totalVisible,
+      cursor,
+      scrollOffset: adjustScroll(cursor, state.scrollOffset, maxIdx, totalVisible),
+    });
+  },
+
   fetchForecast: async () => {
     if (get().isLoading) return;
 
-    const { lat, lon } = get();
+    const { lat, lon, totalVisible } = get();
 
     set({ isLoading: true, error: null });
     try {
@@ -98,7 +129,7 @@ export const useWeatherStore = create<WeatherStore>((set, get) => ({
         isLoading: false,
         lastFetched: Date.now(),
         cursor,
-        scrollOffset: adjustScroll(cursor, get().scrollOffset, maxIdx),
+        scrollOffset: adjustScroll(cursor, get().scrollOffset, maxIdx, totalVisible),
       });
     } catch (err) {
       set({
@@ -109,7 +140,7 @@ export const useWeatherStore = create<WeatherStore>((set, get) => ({
   },
 
   moveCursor: (ticks: number) => {
-    const { forecast, cursor, scrollOffset } = get();
+    const { forecast, cursor, scrollOffset, totalVisible } = get();
     if (forecast.length === 0) return;
 
     const maxIdx = forecast.length - 1;
@@ -118,7 +149,7 @@ export const useWeatherStore = create<WeatherStore>((set, get) => ({
 
     set({
       cursor: next,
-      scrollOffset: adjustScroll(next, scrollOffset, maxIdx),
+      scrollOffset: adjustScroll(next, scrollOffset, maxIdx, totalVisible),
     });
   },
 

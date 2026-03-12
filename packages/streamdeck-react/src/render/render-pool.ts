@@ -4,7 +4,7 @@
 // stays responsive for SDK event handling and React reconciliation.
 //
 // Why: Takumi's native rasterization (Rust via NAPI) blocks the main
-// thread for 5–30ms per frame.  During 60fps touchstrip animation, this
+// thread for 5–30ms per frame.  During 30fps TouchStrip animation, this
 // leaves almost no time for event processing.  The worker thread runs
 // the expensive render in parallel while the main thread continues
 // processing keyDown/dialRotate events.
@@ -208,22 +208,6 @@ export class RenderPool {
         dpr,
       });
     });
-  }
-
-  /** Gracefully shut down the worker. */
-  async shutdown(): Promise<void> {
-    if (this.worker != null) {
-      // Reject all pending requests
-      for (const [_, req] of this.pending) {
-        req.reject(new Error("Worker shutting down"));
-      }
-      this.pending.clear();
-
-      this.worker.postMessage({ type: "shutdown" });
-      await this.worker.terminate();
-      this.worker = null;
-    }
-    this.ready = false;
   }
 
   // ── Internal ────────────────────────────────────────────────────

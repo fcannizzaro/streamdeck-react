@@ -4,7 +4,7 @@
 //
 // Direction:
 //   Server → Client (via SSE /events stream):
-//     server:info, snapshot, console, network:*, render, render:touchstrip,
+//     server:info, snapshot, console, network:*, render, render:touchStrip,
 //     event, lifecycle, highlight:render, metrics
 //
 //   Client → Server (via POST /message or GET /message?d=<json>):
@@ -146,7 +146,7 @@ export interface RenderMessage extends BaseMessage {
 }
 
 export interface TouchStripRenderMessage extends BaseMessage {
-  type: "render:touchstrip";
+  type: "render:touchStrip";
   deviceId: string;
   canvas: { width: number; height: number };
   tree: SerializedVNode;
@@ -174,7 +174,7 @@ export interface LifecycleMessage extends BaseMessage {
   event: "appear" | "disappear";
   actionId: string;
   actionUuid: string;
-  surface: "key" | "dial" | "touch" | "touchstrip";
+  surface: "key" | "dial" | "touch" | "touchStrip";
   device: { id: string; type: number; name: string };
   coordinates?: { column: number; row: number };
   canvas: { width: number; height: number };
@@ -192,8 +192,8 @@ export interface HighlightRenderMessage extends BaseMessage {
 
 /** Per-render pipeline timing data, embedded in RenderMessage. */
 export interface ProfileData {
-  vnodeToElementMs: number;
-  fromJsxMs: number;
+  /** Time to convert VNode tree to Takumi node tree (ms). */
+  vnodeConversionMs: number;
   takumiRenderMs: number;
   hashMs: number;
   base64Ms: number;
@@ -224,7 +224,7 @@ export interface MetricsData {
   /** Image cache memory usage in bytes. */
   imageCacheBytes: number;
   /** TouchStrip cache memory usage in bytes. */
-  touchstripCacheBytes: number;
+  touchStripCacheBytes: number;
 }
 
 export interface MetricsMessage extends BaseMessage {

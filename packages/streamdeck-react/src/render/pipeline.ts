@@ -35,15 +35,14 @@
 //
 // Two entry points:
 //   renderToDataUri  — keys/dials: returns base64 data URI string
-//   renderToRaw      — touchstrip: returns raw RGBA Buffer for slicing
+//   renderToRaw      — TouchStrip: returns raw RGBA Buffer for slicing
 
 import type { Renderer, OutputFormat } from "@takumi-rs/core";
 import type { Node as TakumiNode } from "@takumi-rs/helpers";
-import { type VContainer, type VNode } from "@/reconciler/vnode";
-import { isContainerDirty, clearDirtyFlags } from "@/reconciler/vnode";
+import { type VContainer, type VNode, isContainerDirty } from "@/reconciler/vnode";
 import { fnv1a, computeTreeHash, computeCacheKey } from "./cache";
-import { encodePng, encodePngAsync } from "./png";
-import { getImageCache, getTouchstripCache, type CacheStats } from "./image-cache";
+import { encodePng } from "./png";
+import { getImageCache, getTouchStripCache, type CacheStats } from "./image-cache";
 import { getBufferPool } from "./buffer-pool";
 import type { RenderPool } from "./render-pool";
 import { metrics } from "./metrics";
@@ -53,8 +52,8 @@ import { serializeSvgTree } from "./svg";
 
 /** Per-render timing and diagnostic data exposed via `RenderConfig.onProfile`. */
 export interface RenderProfile {
-  vnodeToElementMs: number;
-  fromJsxMs: number;
+  /** Time to convert VNode tree to Takumi node tree (ms). */
+  vnodeConversionMs: number;
   takumiRenderMs: number;
   hashMs: number;
   base64Ms: number;
@@ -77,12 +76,10 @@ export interface RenderConfig {
   debug: boolean;
   /** Maximum image cache size in bytes. Set to 0 to disable. @default 16777216 (16 MB) */
   imageCacheMaxBytes: number;
-  /** Maximum touchstrip cache size in bytes. Set to 0 to disable. @default 8388608 (8 MB) */
-  touchstripCacheMaxBytes: number;
+  /** Maximum TouchStrip cache size in bytes. Set to 0 to disable. @default 8388608 (8 MB) */
+  touchStripCacheMaxBytes: number;
   /** Worker thread pool for offloading Takumi renders. null = main-thread rendering. */
   renderPool: RenderPool | null;
-  /** Image format for touchstrip segment encoding. @default "webp" */
-  touchstripImageFormat: OutputFormat;
   /** DevTools callback. Called after a non-null render with the container and data URI. */
   onRender?: (container: VContainer, dataUri: string) => void;
   /** Profiling callback. Called after every renderToDataUri / renderToRaw attempt. */
@@ -102,45 +99,32 @@ const MAX_DEPTH_WARN = 25;
 /** Whether we've already warned about tree depth (avoid log spam). */
 let depthWarned = false;
 
-// ── Direct VNode → Takumi Node Bypass ───────────────────────────────
-// Performance optimization: converts VNodes directly to Takumi's
-// plain-object node format, bypassing two intermediate steps:
+// ── VNode → Takumi Node Conversion ──────────────────────────────────
+// Converts VNodes directly to Takumi's plain-object node format
+// in a single tree walk.
 //
-//   Standard path (eliminated):
-//     VNode → vnodeToElement() → React element → fromJsx() → Takumi node
-//     (2 full tree walks + 2× node allocations per render)
-//
-//   Bypass path (used here):
-//     VNode → vnodeToTakumiNode() → Takumi node
-//     (1 tree walk, saves ~1–5ms per frame)
-//
-// The mapping handles three VNode types:
+// The mapping handles four VNode types:
 //   #text  → Takumi TextNode { type: "text", text }
 //   img    → Takumi ImageNode { type: "image", src }
 //   svg    → Takumi ImageNode { type: "image", src: "<svg>...</svg>" }
 //   *      → Takumi ContainerNode { type: "container", children }
 //
-// className → tw mapping replicates what vnodeToElement() does for
-// Takumi's built-in Tailwind CSS parser.
+// className → tw mapping: Takumi uses a `tw` prop for its built-in
+// Tailwind CSS parser.
 
 // ── Props keys to skip when copying VNode props to Takumi nodes ─────
 // These are handled specially by vnodeToTakumiNode (className → tw,
 // src → image node, children → structural).
-const SKIP_PROPS = new Set(["children", "className", "src"]);
+const SKIP_PROPS = new Set(["children", "className", "src", "tw"]);
 
-// ── Copy VNode props to a Takumi node without destructure+spread ────
-// Avoids creating an intermediate rest object per node per frame.
-// Copies all non-skipped, non-function/symbol props from the VNode
-// directly onto the target Takumi node object.
+// ── Copy VNode props to a Takumi node ──────────────────────────────
+// Copies all non-skipped props from the VNode directly onto the target
+// Takumi node object.
 function copyPropsToNode(target: Record<string, unknown>, props: Record<string, unknown>): void {
-  const keys = Object.keys(props);
-  for (let i = 0; i < keys.length; i++) {
-    const key = keys[i]!;
-    if (SKIP_PROPS.has(key)) continue;
-    const value = props[key];
-    // tw is handled separately by the caller — skip to avoid overwrite
-    if (key === "tw") continue;
-    target[key] = value;
+  for (const key of Object.keys(props)) {
+    if (!SKIP_PROPS.has(key)) {
+      target[key] = props[key];
+    }
   }
 }
 
@@ -160,7 +144,7 @@ function vnodeToTakumiNode(node: VNode, depth = 0): TakumiNode {
 
   const props = node.props;
 
-  // Map className → tw (same logic as vnodeToElement)
+  // Map className → tw
   const rawTw = typeof props.tw === "string" ? props.tw : undefined;
   const className = props.className;
   let tw: string | undefined = rawTw;
@@ -177,8 +161,6 @@ function vnodeToTakumiNode(node: VNode, depth = 0): TakumiNode {
   }
 
   // SVG nodes → Takumi ImageNode (serialize subtree to SVG markup)
-  // Mirrors fromJsx()'s SVG handling: the entire <svg> subtree is serialized
-  // to an SVG markup string and wrapped in an ImageNode.
   if (node.type === "svg") {
     const svgMarkup = serializeSvgTree(node);
     const result: Record<string, unknown> = { type: "image", src: svgMarkup, tagName: "svg" };
@@ -213,15 +195,6 @@ export function buildTakumiRoot(container: VContainer): TakumiNode {
   } as TakumiNode;
 }
 
-/**
- * Convert a container's VNode children to Takumi nodes.
- * Used by the touchstrip native-format path to build the Takumi node tree
- * once and share it across all N segment renders in a single flush.
- */
-export function buildTakumiChildren(container: VContainer): TakumiNode[] {
-  return container.children.map(vnodeToTakumiNode);
-}
-
 // ── Tree Stats ──────────────────────────────────────────────────────
 
 export function measureTree(nodes: VNode[]): { depth: number; count: number } {
@@ -251,18 +224,17 @@ export function bufferToDataUri(buffer: Buffer | Uint8Array, format: string): st
 
 function emitProfile(
   config: RenderConfig,
-  times: { t0: number; t1: number; t2: number; t3: number; t4: number; t5: number },
+  times: { t0: number; t1: number; t2: number; t3: number },
   opts: { skipped: boolean; cacheHit: boolean; container: VContainer },
 ): void {
   const stats = measureTree(opts.container.children);
   const cache = config.imageCacheMaxBytes > 0 ? getImageCache(config.imageCacheMaxBytes) : null;
   config.onProfile!({
-    vnodeToElementMs: times.t1 - times.t0,
-    fromJsxMs: times.t2 - times.t1,
-    takumiRenderMs: times.t3 - times.t2,
-    hashMs: times.t4 - times.t3,
-    base64Ms: times.t5 - times.t4,
-    totalMs: times.t5 - times.t0,
+    vnodeConversionMs: times.t1 - times.t0,
+    takumiRenderMs: times.t2 - times.t1,
+    hashMs: times.t3 - times.t2,
+    base64Ms: 0,
+    totalMs: times.t3 - times.t0,
     skipped: opts.skipped,
     cacheHit: opts.cacheHit,
     treeDepth: stats.depth,
@@ -297,15 +269,13 @@ export async function renderToDataUri(
   const t0 = profiling ? performance.now() : 0;
   let t1 = t0;
   let t2 = t0;
-  let t3 = t0;
 
   // ── Image Cache Lookup (Phase 2) ──────────────────────────────
   // Compute Merkle hash of the VNode tree. If cached, skip the entire
   // Takumi render pipeline and return the cached data URI.
   //
   // The treeHash and cacheKey are hoisted so they can be reused at
-  // cache-store time (line ~395) without recomputing.  Previously
-  // computed twice — once here and once after rendering.
+  // cache-store time without recomputing.
   let treeHash: number | undefined;
   let cacheKey: number | undefined;
 
@@ -328,17 +298,14 @@ export async function renderToDataUri(
         const tNow = performance.now();
         emitProfile(
           config,
-          { t0, t1: tNow, t2: tNow, t3: tNow, t4: tNow, t5: tNow },
-          {
-            skipped: false,
-            cacheHit: true,
-            container,
-          },
+          { t0, t1: tNow, t2: tNow, t3: tNow },
+          { skipped: false, cacheHit: true, container },
         );
       }
       container._dupCount = 0;
       config.onRender?.(container, cached);
-      clearDirtyFlags(container);
+      // Dirty flags are cleared by the caller (ReactRoot.doFlush),
+      // NOT here — see clearDirtyFlags race condition comment in root.ts.
       return cached;
     }
   }
@@ -347,7 +314,7 @@ export async function renderToDataUri(
   let buffer: Buffer | Uint8Array;
 
   if (config.renderPool?.isAvailable) {
-    // Worker path: vnodeToElement + fromJsx + render all happen in the worker.
+    // Worker path: conversion + render all happen in the worker.
     // Sub-stage timing is not available in worker mode.
     buffer = await config.renderPool.render(
       container.children,
@@ -356,18 +323,15 @@ export async function renderToDataUri(
       config.imageFormat,
       config.devicePixelRatio,
     );
-    t3 = profiling ? performance.now() : 0;
+    t2 = profiling ? performance.now() : 0;
     t1 = t0; // no sub-stage data
-    t2 = t0;
   } else {
-    // Main-thread path: VNode → Takumi node (direct bypass, skips fromJsx)
-    // 1. Convert VNode tree → Takumi nodes directly
+    // Main-thread path: VNode → Takumi node (direct conversion)
     const rootNode = buildTakumiRoot(container);
 
     t1 = profiling ? performance.now() : 0;
-    t2 = t1; // no fromJsx step in bypass mode
 
-    // 2. Render to raster image
+    // Render to raster image
     buffer = await config.renderer.render(rootNode, {
       width,
       height,
@@ -375,10 +339,10 @@ export async function renderToDataUri(
       devicePixelRatio: config.devicePixelRatio,
     });
 
-    t3 = profiling ? performance.now() : 0;
+    t2 = profiling ? performance.now() : 0;
   }
 
-  // 4. Cache check — skip if identical to last render (post-render dedup)
+  // Phase 4: Cache check — skip if identical to last render (post-render dedup)
   if (config.caching) {
     const hash = fnv1a(buffer);
     if (hash === container.lastSvgHash) {
@@ -394,30 +358,22 @@ export async function renderToDataUri(
       }
 
       if (profiling) {
-        const t4 = performance.now();
+        const tEnd = performance.now();
         emitProfile(
           config,
-          { t0, t1, t2, t3, t4, t5: t4 },
-          {
-            skipped: true,
-            cacheHit: false,
-            container,
-          },
+          { t0, t1, t2, t3: tEnd },
+          { skipped: true, cacheHit: false, container },
         );
       }
 
-      clearDirtyFlags(container);
+      // Dirty flags are cleared by the caller — see race condition comment.
       return null; // No change
     }
     container.lastSvgHash = hash;
     container._dupCount = 0;
   }
 
-  const t4 = profiling ? performance.now() : 0;
-
   const dataUri = bufferToDataUri(buffer, config.imageFormat);
-
-  const t5 = profiling ? performance.now() : 0;
 
   // ── Store in image cache ──────────────────────────────────────
   // Reuse hoisted treeHash/cacheKey from the lookup phase above.
@@ -439,28 +395,21 @@ export async function renderToDataUri(
     cache.set(cacheKey, dataUri, dataUri.length * 2 + 64);
   }
 
-  // Record render for metrics (t3-t0 includes full render pipeline)
-  metrics.recordRender(t3 - t0);
+  // Record render for metrics
+  metrics.recordRender(t2 - t0);
 
   if (profiling) {
-    emitProfile(
-      config,
-      { t0, t1, t2, t3, t4, t5 },
-      {
-        skipped: false,
-        cacheHit: false,
-        container,
-      },
-    );
+    const tEnd = performance.now();
+    emitProfile(config, { t0, t1, t2, t3: tEnd }, { skipped: false, cacheHit: false, container });
   }
 
   config.onRender?.(container, dataUri);
-  clearDirtyFlags(container);
+  // Dirty flags are cleared by the caller — see race condition comment.
   return dataUri;
 }
 // ── Render to Raw RGBA ──────────────────────────────────────────────
 //
-// TouchStrip-specific entry point.  Produces raw RGBA pixels (no PNG/WebP
+// TouchStrip-specific entry point.  Produces raw RGBA pixels (no PNG
 // encoding overhead) for a single full-width render of the component
 // tree.  The caller (TouchStripRoot.doFlush) then crops per-encoder
 // segments via cropSlice() and encodes each independently.
@@ -481,11 +430,8 @@ export async function renderToDataUri(
 //
 // Differences from renderToDataUri():
 //
-//   - Uses the touchstrip LRU cache (separate size budget)
+//   - Uses the TouchStrip LRU cache (separate size budget)
 //   - No base64 encoding step — raw RGBA is returned directly
-//   - Profile timing: t2 (fromJsx) is aliased to t1 (no fromJsx step
-//     in the VNode→Takumi bypass), and t4/t5 (hash+base64) collapse
-//     to a single endpoint since there's no base64 encoding.
 //
 // Profiling integration:
 //
@@ -501,7 +447,7 @@ export async function renderToDataUri(
 //                                         │ consumes stashed profile
 //                                         ▼
 //                                       emitTouchStripRender()
-//                                         │ SSE "render:touchstrip"
+//                                         │ SSE "render:touchStrip"
 //                                         ▼
 //                                       Performance Panel
 //
@@ -535,22 +481,17 @@ export async function renderToRaw(
   }
 
   // ── Profiling setup ───────────────────────────────────────────
-  // Timing variables mirror renderToDataUri() for consistency:
-  //
   //   t0 ── start
-  //   t1 ── after VNode→Takumi node conversion (vnodeToElementMs)
-  //   t2 ── after fromJsx (aliased to t1; no fromJsx in bypass mode)
-  //   t3 ── after Takumi renderer.render() (takumiRenderMs)
-  //   t4 ── after hash check (hashMs; aliased to t5 for raw — no base64)
-  //   t5 ── end (base64Ms = 0 for raw renders)
+  //   t1 ── after VNode→Takumi node conversion
+  //   t2 ── after Takumi renderer.render()
   const profiling = config.onProfile != null;
   const t0 = profiling ? performance.now() : 0;
   let t1 = t0;
-  let t3 = t0;
+  let t2 = t0;
 
   // ── Phase 2: TouchStrip Cache Lookup ────────────────────────────
   // Compute Merkle hash of the VNode tree + render config params.
-  // If found in the touchstrip-specific LRU cache, skip the Takumi
+  // If found in the TouchStrip-specific LRU cache, skip the Takumi
   // render and return the cached raw RGBA buffer directly.
   //
   // Hoisted so the same values can be reused at cache-store time
@@ -558,37 +499,32 @@ export async function renderToRaw(
   let treeHash: number | undefined;
   let cacheKey: number | undefined;
 
-  if (config.caching && config.touchstripCacheMaxBytes > 0) {
+  if (config.caching && config.touchStripCacheMaxBytes > 0) {
     treeHash = computeTreeHash(container);
     cacheKey = computeCacheKey(treeHash, width, height, config.devicePixelRatio, "raw");
-    const cache = getTouchstripCache(config.touchstripCacheMaxBytes);
+    const cache = getTouchStripCache(config.touchStripCacheMaxBytes);
     const cached = cache.get(cacheKey);
 
     if (cached !== undefined) {
       metrics.recordCacheHit();
       if (profiling) {
-        // All stages collapsed to a single instant — render was skipped.
         const tNow = performance.now();
         emitProfile(
           config,
-          { t0, t1: tNow, t2: tNow, t3: tNow, t4: tNow, t5: tNow },
+          { t0, t1: tNow, t2: tNow, t3: tNow },
           { skipped: false, cacheHit: true, container },
         );
       }
-      clearDirtyFlags(container);
+      // Dirty flags are cleared by the caller — see race condition comment.
       return { buffer: cached, width, height };
     }
   }
 
   // ── Phase 3: Takumi Render (raw RGBA) ─────────────────────────
-  // Either offloaded to a worker thread or run on the main thread
-  // using the VNode→Takumi node bypass (skips createElement + fromJsx).
   let buffer: Buffer | Uint8Array;
 
   if (config.renderPool?.isAvailable) {
-    // Worker path: all conversion + render happens in the worker.
-    // Sub-stage timing (vnodeToElement vs takumiRender) is not
-    // available — the worker reports only total render time.
+    // Worker path: conversion + render happens in the worker.
     buffer = await config.renderPool.render(
       container.children,
       width,
@@ -596,10 +532,10 @@ export async function renderToRaw(
       "raw",
       config.devicePixelRatio,
     );
-    t3 = profiling ? performance.now() : 0;
+    t2 = profiling ? performance.now() : 0;
     t1 = t0; // no sub-stage data in worker mode
   } else {
-    // Main-thread path: VNode → Takumi node (direct bypass)
+    // Main-thread path: VNode → Takumi node (direct conversion)
     const rootNode = buildTakumiRoot(container);
 
     t1 = profiling ? performance.now() : 0;
@@ -611,7 +547,7 @@ export async function renderToRaw(
       devicePixelRatio: config.devicePixelRatio,
     });
 
-    t3 = profiling ? performance.now() : 0;
+    t2 = profiling ? performance.now() : 0;
   }
 
   // ── Phase 4: FNV-1a Output Dedup ──────────────────────────────
@@ -622,16 +558,14 @@ export async function renderToRaw(
     if (hash === container.lastSvgHash) {
       metrics.recordHashDedup();
       if (profiling) {
-        // Render ran but output was identical — skipped: true.
-        // No base64 step for raw renders, so t4 == t5.
-        const t4 = performance.now();
+        const tEnd = performance.now();
         emitProfile(
           config,
-          { t0, t1, t2: t1, t3, t4, t5: t4 },
+          { t0, t1, t2, t3: tEnd },
           { skipped: true, cacheHit: false, container },
         );
       }
-      clearDirtyFlags(container);
+      // Dirty flags are cleared by the caller — see race condition comment.
       return null; // No change
     }
     container.lastSvgHash = hash;
@@ -639,41 +573,34 @@ export async function renderToRaw(
 
   const buf = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer);
 
-  // ── Store in touchstrip cache ───────────────────────────────────
+  // ── Store in TouchStrip cache ───────────────────────────────────
   // Cache the raw RGBA buffer for future Merkle-hash hits.
   // byteLength + 64 accounts for Map/LRU overhead.
   // Reuse hoisted treeHash/cacheKey from Phase 2 lookup above.
-  if (config.caching && config.touchstripCacheMaxBytes > 0) {
+  if (config.caching && config.touchStripCacheMaxBytes > 0) {
     if (treeHash === undefined || cacheKey === undefined) {
       treeHash = computeTreeHash(container);
       cacheKey = computeCacheKey(treeHash, width, height, config.devicePixelRatio, "raw");
     }
-    const cache = getTouchstripCache(config.touchstripCacheMaxBytes);
+    const cache = getTouchStripCache(config.touchStripCacheMaxBytes);
     cache.set(cacheKey, buf, buf.byteLength + 64);
   }
 
-  // Record render for metrics.
-  // Duration covers VNode conversion + Takumi render (t3 - t0).
-  // No base64 step for raw renders.
-  metrics.recordRender(t3 - t0);
+  // Record render for metrics
+  metrics.recordRender(t2 - t0);
 
   if (profiling) {
-    // Emit profile with t2=t1 (no fromJsx) and t4=t5=tEnd (no base64).
     const tEnd = performance.now();
-    emitProfile(
-      config,
-      { t0, t1, t2: t1, t3, t4: tEnd, t5: tEnd },
-      { skipped: false, cacheHit: false, container },
-    );
+    emitProfile(config, { t0, t1, t2, t3: tEnd }, { skipped: false, cacheHit: false, container });
   }
 
-  clearDirtyFlags(container);
+  // Dirty flags are cleared by the caller — see race condition comment.
   return { buffer: buf, width, height };
 }
 
 // ── Raw Buffer Crop ─────────────────────────────────────────────────
 // Extracts a rectangular slice from a raw RGBA buffer (row-major order).
-// Used by the touchstrip pipeline to cut per-encoder segments from a
+// Used by the TouchStrip pipeline to cut per-encoder segments from a
 // single full-width render.
 //
 // Memory layout of the source buffer (fullWidth × segmentHeight):
@@ -685,7 +612,7 @@ export async function renderToRaw(
 // Each pixel is 4 bytes (RGBA).  The crop copies `segmentWidth * 4`
 // bytes per row at offset `column * segmentWidth * 4`.
 //
-// Uses the buffer pool to avoid GC pressure during 60fps animation —
+// Uses the buffer pool to avoid GC pressure during 30fps animation —
 // the caller MUST release the returned buffer via pool.release().
 
 export function cropSlice(
@@ -727,91 +654,4 @@ export function sliceToDataUri(
   const png = encodePng(segmentWidth, segmentHeight, cropped);
   getBufferPool().release(cropped);
   return bufferToDataUri(png, "png");
-}
-
-// ── Async Slice to Data URI ─────────────────────────────────────────
-// Async variant that offloads deflate compression to the libuv thread
-// pool (via zlib.deflate).  When multiple touchstrip segments are encoded
-// in parallel via Promise.all, each deflate runs on a separate libuv
-// worker — effectively parallelizing the most expensive step of PNG
-// encoding across CPU cores.
-
-export async function sliceToDataUriAsync(
-  raw: Buffer,
-  fullWidth: number,
-  fullHeight: number,
-  column: number,
-  segmentWidth: number,
-  segmentHeight: number,
-): Promise<string> {
-  const cropped = cropSlice(raw, fullWidth, column, segmentWidth, segmentHeight);
-  const png = await encodePngAsync(segmentWidth, segmentHeight, cropped);
-  // Release the crop buffer back to the pool after encoding
-  getBufferPool().release(cropped);
-  return bufferToDataUri(png, "png");
-}
-
-// ── Render Segment to Data URI (native format) ─────────────────────
-// Alternative touchstrip rendering path that bypasses raw→crop→PNG entirely.
-// Each encoder segment gets its own independent Takumi render call using
-// a CSS negative-margin viewport offset to extract the correct portion:
-//
-//   ┌─────────────────────────────────────────────┐
-//   │           Full-width component tree          │
-//   │  ┌─────────┐                                │
-//   │  │ segment  │◄─ marginLeft: -(col * 200)     │
-//   │  │ 200×100  │   overflow: hidden             │
-//   │  └─────────┘                                │
-//   └─────────────────────────────────────────────┘
-//
-// This is faster than raw→crop→deflate when using WebP output
-// (Takumi encodes WebP natively in the render call itself).
-
-export async function renderSegmentToDataUri(
-  container: VContainer,
-  fullWidth: number,
-  segmentHeight: number,
-  column: number,
-  segmentWidth: number,
-  format: OutputFormat,
-  config: RenderConfig,
-  prebuiltTakumiChildren?: TakumiNode[],
-): Promise<string | null> {
-  if (container.children.length === 0) return null;
-
-  // Reuse pre-built Takumi node tree when provided by the caller.
-  // In the touchstrip native-format path, the caller (TouchStripRoot.doFlush)
-  // builds the tree once and passes it to all N segment renders, avoiding
-  // N redundant vnodeToTakumiNode() tree walks per flush.
-  const children = prebuiltTakumiChildren ?? container.children.map(vnodeToTakumiNode);
-  const innerNode: TakumiNode = {
-    type: "container",
-    style: {
-      ...ROOT_STYLE,
-      width: fullWidth,
-      height: segmentHeight,
-      marginLeft: -(column * segmentWidth),
-    },
-    children,
-  } as TakumiNode;
-
-  // Clip to segment bounds
-  const clipNode: TakumiNode = {
-    type: "container",
-    style: {
-      width: segmentWidth,
-      height: segmentHeight,
-      overflow: "hidden",
-    },
-    children: [innerNode],
-  } as TakumiNode;
-
-  const buffer = await config.renderer.render(clipNode, {
-    width: segmentWidth,
-    height: segmentHeight,
-    format,
-    devicePixelRatio: config.devicePixelRatio,
-  });
-
-  return bufferToDataUri(buffer, format);
 }

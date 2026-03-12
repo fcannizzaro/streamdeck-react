@@ -1,4 +1,3 @@
-import type { OutputFormat } from "@takumi-rs/core";
 import type { Node as TakumiNode } from "@takumi-rs/helpers";
 import type { VContainer, VNode } from "@/reconciler/vnode";
 import { buildTakumiRoot, bufferToDataUri, type RenderConfig } from "@/render/pipeline";
@@ -121,7 +120,7 @@ export async function renderWithHighlight(
 
 // ── TouchStrip Highlight ──────────────────────────────────────────────
 //
-// Renders the touchstrip tree with a highlight overlay.  Re-renders ALL
+// Renders the TouchStrip tree with a highlight overlay.  Re-renders ALL
 // segments (not just affected ones) because the inject approach
 // guarantees identical layout for non-highlighted segments — the only
 // difference is the overlay child in the target node.
@@ -137,8 +136,10 @@ export async function renderWithHighlight(
 //     ├─ Render full width → fullUri (browser preview)
 //     │
 //     └─ For each column:
-//          ├─ Clip wrapper with marginLeft offset (same as renderSegmentToDataUri)
+//          ├─ Clip wrapper with marginLeft offset (same as the runtime slicer)
 //          └─ renderer.render → segment data URI
+
+const TOUCHSTRIP_HIGHLIGHT_FORMAT = "png";
 
 export interface TouchStripHighlightResult {
   /** Per-column data URIs for ALL segments. */
@@ -151,7 +152,6 @@ export async function renderTouchStripWithHighlight(
   segmentHeight: number,
   columns: number[],
   segmentWidth: number,
-  format: OutputFormat,
   config: RenderConfig,
   targetNid: number,
 ): Promise<TouchStripHighlightResult | null> {
@@ -177,8 +177,8 @@ export async function renderTouchStripWithHighlight(
   injectHighlightOverlay(target);
 
   // 3. Render per-segment data URIs for hardware push AND browser
-  //    preview.  Uses the same clip approach as renderSegmentToDataUri()
-  //    in pipeline.ts: wrap the full-width tree in a clip container with
+  //    preview. Uses the same clip approach as the runtime TouchStrip path:
+  //    wrap the full-width tree in a clip container with
   //    a negative marginLeft to extract each column's slice.
   //
   //    Each segment is rendered independently at 200×100.  For segments
@@ -216,10 +216,10 @@ export async function renderTouchStripWithHighlight(
     const segBuffer = await config.renderer.render(clipNode, {
       width: segmentWidth,
       height: segmentHeight,
-      format,
+      format: TOUCHSTRIP_HIGHLIGHT_FORMAT,
       devicePixelRatio: config.devicePixelRatio,
     });
-    segmentUris.set(column, bufferToDataUri(segBuffer, format));
+    segmentUris.set(column, bufferToDataUri(segBuffer, TOUCHSTRIP_HIGHLIGHT_FORMAT));
   });
   await Promise.all(segmentPromises);
 

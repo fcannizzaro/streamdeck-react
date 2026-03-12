@@ -101,7 +101,7 @@ export interface TweenConfig {
   duration: number;
   /** Easing function name or custom (t: number) => number. @default "easeOut" */
   easing: EasingName | EasingFn;
-  /** Target FPS for the animation tick loop. @default 60 */
+  /** Target FPS for the animation tick loop. @default 30 */
   fps: number;
 }
 
@@ -137,7 +137,7 @@ const SPRING_DEFAULTS: SpringConfig = {
 const TWEEN_DEFAULTS: TweenConfig = {
   duration: 300,
   easing: "easeOut",
-  fps: 60,
+  fps: 30,
 };
 
 /** Max dt cap to prevent spring explosion after long pauses.
@@ -351,7 +351,7 @@ export function useSpring<T extends AnimationTarget>(
     ],
   );
 
-  const fps = config?.fps ?? 60;
+  const fps = config?.fps ?? 30;
   const isObject = typeof target === "object" && target !== null;
 
   // Mutable spring state (position + velocity per channel)

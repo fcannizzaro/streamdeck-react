@@ -203,7 +203,7 @@ export function resetBufferPool(): void {
 }
 ```
 
-Same pattern is used by `getImageCache()`, `getTouchstripCache()`, `getMetrics()`.
+Same pattern is used by `getImageCache()`, `getTouchStripCache()`, `getMetrics()`.
 
 ### Shared Interfaces
 
@@ -332,7 +332,7 @@ When implementing a new feature, **always check for existing utilities first**. 
 | Module                       | Exports                                                                                  | Use For                                          |
 | ---------------------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------ |
 | `render/cache.ts`            | `fnv1a`, `fnv1aString`, `hashValue`, `computeHash`, `computeTreeHash`, `computeCacheKey` | Hashing buffers, values, VNode trees, cache keys |
-| `render/image-cache.ts`      | `ImageCache`, `getImageCache()`, `getTouchstripCache()`, `resetCaches()`                 | Byte-bounded LRU caching for rendered images     |
+| `render/image-cache.ts`      | `ImageCache`, `getImageCache()`, `getTouchStripCache()`, `resetCaches()`                 | Byte-bounded LRU caching for rendered images     |
 | `render/buffer-pool.ts`      | `BufferPool`, `getBufferPool()`, `resetBufferPool()`                                     | Reusable buffer allocation (reduces GC)          |
 | `render/metrics.ts`          | `RenderMetrics`, `getMetrics()`                                                          | Rolling-window render performance tracking       |
 | `render/render-pool.ts`      | `RenderPool`                                                                             | Worker thread pool for offloading Takumi         |
@@ -422,8 +422,8 @@ Phase 4: FNV-1a output dedup
 
 ```ts
 // Why this matters:
-//   At 60fps touchstrip rendering, each frame allocates ~320KB of raw RGBA
-//   buffers (800×100×4).  Without pooling, V8's GC must collect ~20MB/s
+//   At 30fps TouchStrip rendering, each frame allocates ~320KB of raw RGBA
+//   buffers (800×100×4).  Without pooling, V8's GC must collect ~10MB/s
 //   of short-lived buffers, causing periodic frame drops.
 ```
 

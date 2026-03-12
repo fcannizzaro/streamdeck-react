@@ -397,11 +397,11 @@ Animation frame loop driven by timers. Receives elapsed milliseconds since the l
 ```ts
 function useTick(
   callback: (deltaMs: number) => void,
-  fpsOrActive?: number | boolean, // Default: 60. Pass false to pause.
+  fpsOrActive?: number | boolean, // Default: 30, max 30. Pass false to pause.
 ): void;
 ```
 
-Actual frame rate is capped by `renderDebounceMs` (default 16ms). In practice, real throughput is roughly 10-30fps depending on component complexity.
+Actual frame rate is capped at 30fps — Stream Deck hardware refreshes at max 30Hz. In practice, real throughput is roughly 10-30fps depending on component complexity.
 
 ## Animation Hooks
 
@@ -509,7 +509,7 @@ function useTween<T extends AnimationTarget>(
 interface TweenConfig {
   duration: number; // Milliseconds. Default 300
   easing: EasingName | EasingFn; // Default "easeOut"
-  fps: number; // Default 60
+  fps: number; // Default 30
 }
 
 interface TweenResult<T extends AnimationTarget> {

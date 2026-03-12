@@ -11,12 +11,13 @@
     "build": "turbo run build --filter='./packages/*'",
     "build:all": "turbo run build",
     "typecheck": "turbo run typecheck",
+    "dev": "turbo run dev --filter='./samples/*'",
     "format": "oxfmt"
   },
   "devDependencies": {
     "@changesets/cli": "^2.30.0",
     "@types/bun": "1.3.10",
-    "oxfmt": "^0.38.0",
+    "oxfmt": "^0.40.0",
     "turbo": "2.8.16",
     "typescript": "^5"
   },

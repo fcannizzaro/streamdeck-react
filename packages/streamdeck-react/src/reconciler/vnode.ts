@@ -1,5 +1,3 @@
-import { createElement, type ReactElement } from "react";
-
 // ── VNode: Virtual DOM for the Stream Deck Reconciler ───────────────
 //
 // VNodes form the in-memory tree that bridges React's reconciler and
@@ -142,32 +140,4 @@ export function createVContainer(renderCallback: () => void): VContainer {
     _dupCount: 0,
     _dirty: true, // Start dirty to ensure first render runs
   };
-}
-
-// ── Serialization: VNode → React Element ────────────────────────────
-// Converts a VNode tree back into React elements for use with
-// Takumi's fromJsx() helper.  Only used by the devtools highlight
-// path (the main render pipeline uses the direct vnodeToTakumiNode
-// bypass in pipeline.ts instead).
-//
-// className → tw mapping: Takumi uses a `tw` prop for its built-in
-// Tailwind CSS parser.  React components use `className` by convention.
-// This bridge maps one to the other during serialization.
-
-export function vnodeToElement(node: VNode): ReactElement | string {
-  if (node.type === "#text") {
-    return node.text ?? "";
-  }
-
-  const { children: _children, className, ...restProps } = node.props;
-
-  // Map className → tw for Takumi's built-in Tailwind parser
-  if (typeof className === "string" && className.length > 0) {
-    const existingTw = typeof restProps.tw === "string" ? restProps.tw + " " : "";
-    restProps.tw = existingTw + className;
-  }
-
-  const childElements = node.children.map(vnodeToElement);
-
-  return createElement(node.type, restProps, ...childElements);
 }

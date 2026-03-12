@@ -125,7 +125,7 @@ export interface RenderMessage extends BaseMessage {
 }
 
 export interface TouchStripRenderMessage extends BaseMessage {
-  type: "render:touchstrip";
+  type: "render:touchStrip";
   deviceId: string;
   canvas: { width: number; height: number };
   tree: SerializedVNode;
@@ -153,7 +153,7 @@ export interface LifecycleMessage extends BaseMessage {
   event: "appear" | "disappear";
   actionId: string;
   actionUuid: string;
-  surface: "key" | "dial" | "touch" | "touchstrip";
+  surface: "key" | "dial" | "touch" | "touchStrip";
   device: { id: string; type: number; name: string };
   coordinates?: { column: number; row: number };
   canvas: { width: number; height: number };
@@ -191,7 +191,7 @@ export interface MetricsData {
   avgRenderMs: number;
   peakRenderMs: number;
   imageCacheBytes: number;
-  touchstripCacheBytes: number;
+  touchStripCacheBytes: number;
 }
 
 export interface MetricsMessage extends BaseMessage {

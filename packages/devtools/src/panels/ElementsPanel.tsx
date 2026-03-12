@@ -5,18 +5,18 @@ import type { SerializedVNode } from "../types";
 
 // ── Elements Panel ──────────────────────────────────────────────────
 //
-// Unified element inspector for both key/dial actions and touchstrip
+// Unified element inspector for both key/dial actions and TouchStrip
 // surfaces.  The dropdown merges entries from the `actions` map
 // (keyed by actionId) and the `touchStrips` map (keyed by deviceId,
-// prefixed with "touchstrip:" to avoid collisions).
+// prefixed with "touchStrip:" to avoid collisions).
 //
-// The `touchstrip:<deviceId>` key convention matches the one used by
+// The `touchStrip:<deviceId>` key convention matches the one used by
 // profile entries in the Performance panel, keeping IDs consistent
 // across panels.
 
-// ── Touchstrip ID prefix ─────────────────────────────────────────────
+// ── TouchStrip ID prefix ─────────────────────────────────────────────
 
-const TB_PREFIX = "touchstrip:";
+const TB_PREFIX = "touchStrip:";
 
 export function ElementsPanel() {
   const actions = useStore((s) => s.actions);
@@ -27,7 +27,7 @@ export function ElementsPanel() {
 
   // ── Resolve selected item's tree ────────────────────────────────
   // The selectedActionId can be either a plain actionId (key/dial)
-  // or a "touchstrip:<deviceId>" string (touchstrip surface).  We look
+  // or a "touchStrip:<deviceId>" string (TouchStrip surface).  We look
   // up the correct map based on the prefix.
   let selectedTree: SerializedVNode | null = null;
   let dimensionLabel = "";

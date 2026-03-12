@@ -25,7 +25,7 @@ function useTouchStripEvent<T>(event: string, callback: (payload: T) => void): v
 }
 
 // ── useTouchStrip ─────────────────────────────────────────────────────
-// Returns touchstrip geometry: active columns, full width, segment width.
+// Returns TouchStrip geometry: active columns, full width, segment width.
 
 export function useTouchStrip(): TouchStripInfo {
   return useContext(TouchStripContext);

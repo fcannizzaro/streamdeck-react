@@ -1,6 +1,6 @@
 import { createElement, type ComponentType, type ReactElement } from "react";
 import { reconciler } from "@/reconciler/renderer";
-import { createVContainer, type VContainer } from "@/reconciler/vnode";
+import { createVContainer, clearDirtyFlags, type VContainer } from "@/reconciler/vnode";
 import { renderToDataUri, type RenderConfig } from "@/render/pipeline";
 import { EventBus } from "@/context/event-bus";
 import {
@@ -22,7 +22,6 @@ import type {
   StreamDeckAccess,
   WrapperComponent,
 } from "@/types";
-import type { FlushCoordinator, FlushableRoot } from "./flush-coordinator";
 import { partialHasChanges, shallowEqualSettings } from "./settings-equality";
 import type { JsonObject } from "@elgato/utils";
 import type { Action, DialAction, KeyAction } from "@elgato/streamdeck";
@@ -44,12 +43,10 @@ import type { Action, DialAction, KeyAction } from "@elgato/streamdeck";
 //     └─ resetAfterCommit → microtask → flush()
 //                                          ↓
 //   ┌─────────── flush loop ───────────────┤
-//   │  adaptive debounce (0ms/16ms/Nms)    │
-//   │  → submitFlush → FlushCoordinator    │
+//   │  fixed debounce (0ms or configured)  │
 //   │  → doFlush:                          │
 //   │    renderToDataUri(VNode→pixels)     │
 //   │    → setImage/setFeedback (hardware) │
-//   │  ← if _pendingFlush, loop            │
 //   └──────────────────────────────────────┘
 //     ↓
 //   onWillDisappear (from SDK)
@@ -78,7 +75,7 @@ const DEFAULT_DIAL_LAYOUT: Exclude<EncoderLayout, string> = {
 
 // ── Root Instance ───────────────────────────────────────────────────
 
-export class ReactRoot implements FlushableRoot {
+export class ReactRoot {
   readonly eventBus = new EventBus();
   private container: VContainer;
   private fiberRoot: ReturnType<typeof reconciler.createContainer>;
@@ -86,7 +83,10 @@ export class ReactRoot implements FlushableRoot {
   private globalSettings: JsonObject;
   private setSettingsFn: (partial: JsonObject) => void;
   private setGlobalSettingsFn: (partial: JsonObject) => void;
-  private renderDebounceMs: number;
+  // Stream Deck hardware refreshes at max 30Hz.  Half-period debounce
+  // (17ms) fires at the midpoint between ticks, coalescing high-frequency
+  // state updates without adding perceptible latency.
+  private readonly renderDebounceMs = 17;
   private renderConfig: RenderConfig;
   private canvas: CanvasInfo;
   private resolvedDialLayout: EncoderLayout;
@@ -98,77 +98,6 @@ export class ReactRoot implements FlushableRoot {
   private _renderCount = 0;
   private _lastRenderReport = 0;
   private static readonly RENDER_WARN_THRESHOLD = 30;
-
-  // ── Frame skipping ────────────────────────────────────────────
-  // Prevents queue buildup when renders are slower than commit rate.
-  // If doFlush() is already running, the next flush request just
-  // sets _pendingFlush=true.  When doFlush finishes, it checks the
-  // flag and runs one more flush — coalescing all intermediate
-  // commits into a single render pass.
-  private _rendering = false;
-  private _pendingFlush = false;
-
-  // ── Adaptive debounce ─────────────────────────────────────────
-  // Detects rendering patterns to choose the optimal debounce:
-  //
-  //   Animating (>2 renders in 100ms window):  0ms debounce
-  //     → Spring/tween animations need every frame delivered
-  //
-  //   Interactive (user input within 500ms):   min(configured, 16ms)
-  //     → Key press/dial rotate needs fast visual feedback
-  //
-  //   Idle (no recent activity):               configured debounce
-  //     → Settings changes, initial render — batch updates
-  //
-  // _recentRenders tracks timestamps in a sliding window.
-  // Stale entries are pruned on each access.
-  private _recentRenders: number[] = [];
-  private _lastInteraction = 0;
-  private static readonly ANIMATION_WINDOW_MS = 100;
-  private static readonly ANIMATION_THRESHOLD = 2; // >2 renders in window → animating
-  private static readonly INTERACTION_COOLDOWN_MS = 500;
-
-  // ── Render Priority ───────────────────────────────────────────
-  // Used by FlushCoordinator to order flushes across all active roots.
-  // Lower number = higher priority = flushed first.
-  //   0 = animating (many recent renders → needs every frame)
-  //   1 = interactive (recent user input → fast feedback needed)
-  //   2 = normal (default)
-  //   3 = idle (no flush for >2s → low urgency)
-  //
-  // This ensures animated keys get first access to the USB bus
-  // when multiple keys need to update simultaneously.
-  private static readonly IDLE_THRESHOLD_MS = 2000;
-  private _lastFlushTime = 0;
-
-  /** Current render priority (lower = higher priority). Used by flush coordinator for ordering. */
-  get priority(): number {
-    const now = Date.now();
-
-    // Prune stale timestamps (same window as adaptive debounce)
-    const cutoff = now - ReactRoot.ANIMATION_WINDOW_MS;
-    while (this._recentRenders.length > 0 && this._recentRenders[0]! < cutoff) {
-      this._recentRenders.shift();
-    }
-
-    // Animating: many recent renders
-    if (this._recentRenders.length > ReactRoot.ANIMATION_THRESHOLD) {
-      return 0;
-    }
-
-    // Interactive: recent user input
-    if (now - this._lastInteraction < ReactRoot.INTERACTION_COOLDOWN_MS) {
-      return 1;
-    }
-
-    // Idle: no flush for a while
-    if (this._lastFlushTime > 0 && now - this._lastFlushTime > ReactRoot.IDLE_THRESHOLD_MS) {
-      return 3;
-    }
-
-    // Normal
-    return 2;
-  }
 
   /** Last data URI successfully sent to hardware. Used by devtools snapshots. */
   lastDataUri: string | null = null;
@@ -225,10 +154,8 @@ export class ReactRoot implements FlushableRoot {
     sdkAction: Action | DialAction | KeyAction,
     sdkInstance: StreamDeckAccess["sdk"],
     renderConfig: RenderConfig,
-    renderDebounceMs: number,
     onSettingsChange: (settings: JsonObject) => Promise<void>,
     onGlobalSettingsChange: (settings: JsonObject) => Promise<void>,
-    private flushCoordinator?: FlushCoordinator,
     private pluginWrapper?: WrapperComponent,
     private actionWrapper?: WrapperComponent,
     dialLayout?: EncoderLayout,
@@ -239,7 +166,6 @@ export class ReactRoot implements FlushableRoot {
     this.sdkAction = sdkAction;
     this.sdkInstance = sdkInstance;
     this.renderConfig = renderConfig;
-    this.renderDebounceMs = renderDebounceMs;
     this.resolvedDialLayout = resolveDialLayout(dialLayout);
 
     // Create settings mutators.
@@ -384,91 +310,26 @@ export class ReactRoot implements FlushableRoot {
 
   // ── Flush: VNode → Takumi → raster → setImage ─────────────────
 
-  /** Record a user interaction (keyDown, dialRotate, etc.) for adaptive debounce. */
-  markInteraction(): void {
-    this._lastInteraction = Date.now();
-  }
-
-  /** Compute effective debounce based on recent render frequency and interaction state. */
-  private get effectiveDebounceMs(): number {
-    const now = Date.now();
-
-    // Prune stale timestamps
-    const cutoff = now - ReactRoot.ANIMATION_WINDOW_MS;
-    while (this._recentRenders.length > 0 && this._recentRenders[0]! < cutoff) {
-      this._recentRenders.shift();
-    }
-
-    // If many recent renders → likely animating → no debounce
-    if (this._recentRenders.length > ReactRoot.ANIMATION_THRESHOLD) {
-      return 0;
-    }
-
-    // Recent user interaction → short debounce for responsiveness
-    if (now - this._lastInteraction < ReactRoot.INTERACTION_COOLDOWN_MS) {
-      return Math.min(this.renderDebounceMs, 16);
-    }
-
-    // Idle → use configured debounce
-    return this.renderDebounceMs;
-  }
-
   private async flush(): Promise<void> {
     if (this.disposed) return;
 
-    // Frame skipping: if a render is in progress, just mark pending
-    if (this._rendering) {
-      this._pendingFlush = true;
-      return;
-    }
-
-    // Track render timestamp for adaptive debounce
-    this._recentRenders.push(Date.now());
-
-    const debounce = this.effectiveDebounceMs;
-
     // Apply debounce for high-frequency updates
-    if (debounce > 0 && this.container.renderTimer !== null) {
+    if (this.renderDebounceMs > 0 && this.container.renderTimer !== null) {
       clearTimeout(this.container.renderTimer);
     }
 
-    if (debounce > 0) {
-      this.container.renderTimer = setTimeout(() => {
+    if (this.renderDebounceMs > 0) {
+      this.container.renderTimer = setTimeout(async () => {
         this.container.renderTimer = null;
-        this.submitFlush();
-      }, debounce);
+        await this.doFlush();
+      }, this.renderDebounceMs);
     } else {
-      this.submitFlush();
+      await this.doFlush();
     }
-  }
-
-  /**
-   * Submit this root for flushing. Routes through the coordinator
-   * (priority-ordered) when available, or flushes directly.
-   */
-  private submitFlush(): void {
-    if (this.disposed) return;
-    if (this.flushCoordinator) {
-      this.flushCoordinator.requestFlush(this);
-    } else {
-      this.doFlush();
-    }
-  }
-
-  /**
-   * Execute the flush. Called by FlushCoordinator in priority order,
-   * or directly when no coordinator is present.
-   */
-  async executeFlush(): Promise<void> {
-    await this.doFlush();
   }
 
   private async doFlush(): Promise<void> {
     if (this.disposed) return;
-
-    this._rendering = true;
-    this._pendingFlush = false;
-    this._lastFlushTime = Date.now();
 
     // Performance diagnostics: render frequency counter
     if (this.renderConfig.debug) {
@@ -493,13 +354,14 @@ export class ReactRoot implements FlushableRoot {
         this.renderConfig,
       );
 
+      clearDirtyFlags(this.container);
+
       if (dataUri === null || this.disposed) return;
 
       // Store for devtools snapshots (before push so it's always available for restore)
       this.lastDataUri = dataUri;
 
-      // Double buffering: fire-and-forget the hardware push.
-      // The next render can start immediately without waiting for USB transfer.
+      // Push to Stream Deck (skipped when devtools highlight overlay is active)
       if (!this.suppressHardwarePush) {
         this.pushImage(dataUri).catch((err) => {
           console.error("[@fcannizzaro/streamdeck-react] Hardware push error:", err);
@@ -507,14 +369,6 @@ export class ReactRoot implements FlushableRoot {
       }
     } catch (err) {
       console.error("[@fcannizzaro/streamdeck-react] Render error:", err);
-    } finally {
-      this._rendering = false;
-
-      // If a flush was requested while we were rendering, drain it now
-      if (this._pendingFlush && !this.disposed) {
-        this._pendingFlush = false;
-        await this.doFlush();
-      }
     }
   }
 

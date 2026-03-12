@@ -1,6 +1,6 @@
 {
   "name": "@fcannizzaro/streamdeck-react",
-  "version": "0.1.11",
+  "version": "0.1.12",
   "description": "Build Stream Deck plugins with React — render components directly to keys, dials, and touch screens",
   "keywords": [
     "elgato",
@@ -63,8 +63,7 @@
     "@elgato/streamdeck": "^2.0.2",
     "@takumi-rs/core": "^0.71.7",
     "@takumi-rs/helpers": "^0.71.7",
-    "react-reconciler": "^0.33.0",
-    "xxhash-wasm": "^1.1.0"
+    "react-reconciler": "^0.33.0"
   },
   "devDependencies": {
     "@happy-dom/global-registrator": "^20.8.3",

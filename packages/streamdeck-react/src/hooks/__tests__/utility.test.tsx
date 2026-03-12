@@ -214,6 +214,28 @@ describe("utility hooks", () => {
     await hook.unmount();
   });
 
+  test("useTick clamps fps above the 30Hz hardware ceiling", async () => {
+    const deltas: number[] = [];
+
+    const hook = await renderStatefulHook<{ fpsOrActive: number | boolean }, void>(
+      ({ fpsOrActive }) =>
+        useTick((deltaMs) => {
+          deltas.push(deltaMs);
+        }, fpsOrActive),
+      { fpsOrActive: 120 },
+    );
+
+    await act(async () => {
+      await sleep(110);
+    });
+
+    expect(deltas.length).toBeGreaterThanOrEqual(2);
+    expect(deltas.length).toBeLessThanOrEqual(4);
+    expect(deltas.every((delta) => delta >= 20)).toBe(true);
+
+    await hook.unmount();
+  });
+
   test("timer hooks keep the latest callback without restarting consumers", async () => {
     const values: number[] = [];
 

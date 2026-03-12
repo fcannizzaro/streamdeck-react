@@ -1,5 +1,11 @@
 # create-streamdeck-react
 
+## 0.1.9
+
+### Patch Changes
+
+- remove unused perf, cap animation to 30 fps, update docs/skills
+
 ## 0.1.8
 
 ### Patch Changes
