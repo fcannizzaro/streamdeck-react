@@ -284,14 +284,14 @@ interface CanvasInfo {
 
 ### useStreamDeck
 
-Escape hatch: direct access to the underlying SDK objects. Use sparingly.
+Access the adapter and action handle. Use for operations not covered by the built-in hooks.
 
 ```ts
 function useStreamDeck(): StreamDeckAccess;
 
 interface StreamDeckAccess {
-  action: Action | DialAction | KeyAction;
-  sdk: typeof streamDeck;
+  action: AdapterActionHandle;
+  adapter: StreamDeckAdapter;
 }
 ```
 

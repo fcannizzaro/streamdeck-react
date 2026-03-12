@@ -19,37 +19,37 @@ import type {
   ActionDefinition,
   DeviceInfo,
   EncoderLayout,
-  StreamDeckAccess,
   TouchStripInfo,
   TouchStripTapPayload,
   TouchStripDialRotatePayload,
   TouchStripDialPressPayload,
 } from "@/types";
+import type { StreamDeckAdapter } from "@/adapter/types";
 import type { JsonObject } from "@elgato/utils";
 
 // ── Helpers ─────────────────────────────────────────────────────────
 
-function createFakeSdk() {
+function createFakeAdapter() {
   return {
-    system: {
-      openUrl: async (_url: string) => {},
-    },
-    profiles: {
-      switchToProfile: async () => {},
-    },
-    ui: {
-      sendToPropertyInspector: async () => {},
-    },
-  } as unknown as StreamDeckAccess["sdk"];
+    pluginUUID: "com.example.test",
+    connect: async () => {},
+    getGlobalSettings: async () => ({}),
+    setGlobalSettings: async () => {},
+    onGlobalSettingsChanged: () => {},
+    registerAction: () => {},
+    openUrl: async (_url: string) => {},
+    switchToProfile: async () => {},
+    sendToPropertyInspector: async () => {},
+  } as unknown as StreamDeckAdapter;
 }
 
 function createRegistry(
-  fakeSdk: StreamDeckAccess["sdk"],
+  fakeAdapter: StreamDeckAdapter,
   onGlobalSettingsChange?: (settings: JsonObject) => Promise<void>,
 ) {
   return new RootRegistry(
     createRenderConfig(),
-    fakeSdk,
+    fakeAdapter,
     onGlobalSettingsChange ?? (async () => {}),
   );
 }
@@ -113,7 +113,7 @@ function createEncoderEvent(overrides?: {
 
 describe("TouchStripRoot integration", () => {
   test("encoder with touchStrip registers with TouchStripRoot instead of per-action root", async () => {
-    const fakeSdk = createFakeSdk();
+    const fakeSdk = createFakeAdapter();
     const { ev } = createEncoderEvent({ column: 0 });
 
     let touchStripInfo: TouchStripInfo | undefined;
@@ -149,7 +149,7 @@ describe("TouchStripRoot integration", () => {
   });
 
   test("multiple encoder columns produce correct TouchStrip width and columns", async () => {
-    const fakeSdk = createFakeSdk();
+    const fakeSdk = createFakeAdapter();
     let touchStripInfo: TouchStripInfo | undefined;
 
     function MyTouchStrip() {
@@ -187,7 +187,7 @@ describe("TouchStripRoot integration", () => {
   });
 
   test("touchTap event is translated to absolute coordinates", async () => {
-    const fakeSdk = createFakeSdk();
+    const fakeSdk = createFakeAdapter();
     const tapPayloads: TouchStripTapPayload[] = [];
 
     function MyTouchStrip() {
@@ -236,7 +236,7 @@ describe("TouchStripRoot integration", () => {
   });
 
   test("dialRotate event is forwarded with column info", async () => {
-    const fakeSdk = createFakeSdk();
+    const fakeSdk = createFakeAdapter();
     const rotatePayloads: TouchStripDialRotatePayload[] = [];
 
     function MyTouchStrip() {
@@ -281,7 +281,7 @@ describe("TouchStripRoot integration", () => {
   });
 
   test("dialDown and dialUp events are forwarded with column info", async () => {
-    const fakeSdk = createFakeSdk();
+    const fakeSdk = createFakeAdapter();
     const downPayloads: TouchStripDialPressPayload[] = [];
     const upPayloads: TouchStripDialPressPayload[] = [];
 
@@ -332,7 +332,7 @@ describe("TouchStripRoot integration", () => {
   });
 
   test("removing last column cleans up TouchStripRoot", async () => {
-    const fakeSdk = createFakeSdk();
+    const fakeSdk = createFakeAdapter();
     let touchStripInfo: TouchStripInfo | undefined;
 
     function MyTouchStrip() {
@@ -382,7 +382,7 @@ describe("TouchStripRoot integration", () => {
   });
 
   test("DeviceContext is available in TouchStrip component", async () => {
-    const fakeSdk = createFakeSdk();
+    const fakeSdk = createFakeAdapter();
     let deviceFromHook: DeviceInfo | undefined;
 
     function MyTouchStrip() {
@@ -419,7 +419,7 @@ describe("TouchStripRoot integration", () => {
   });
 
   test("global settings are propagated to TouchStrip root", async () => {
-    const fakeSdk = createFakeSdk();
+    const fakeSdk = createFakeAdapter();
     let globalSettingsFromHook: JsonObject | undefined;
 
     function MyTouchStrip() {
@@ -459,7 +459,7 @@ describe("TouchStripRoot integration", () => {
   });
 
   test("identical global settings do not rerender TouchStrip consumers", async () => {
-    const fakeSdk = createFakeSdk();
+    const fakeSdk = createFakeAdapter();
     let renderCount = 0;
 
     function MyTouchStrip() {
@@ -502,7 +502,7 @@ describe("TouchStripRoot integration", () => {
   });
 
   test("duplicate create for same action ID is a no-op", async () => {
-    const fakeSdk = createFakeSdk();
+    const fakeSdk = createFakeAdapter();
 
     function MyTouchStrip() {
       return null;
@@ -537,7 +537,7 @@ describe("TouchStripRoot integration", () => {
   });
 
   test("width adapts when columns are added and removed", async () => {
-    const fakeSdk = createFakeSdk();
+    const fakeSdk = createFakeAdapter();
     let touchStripInfo: TouchStripInfo | undefined;
 
     function MyTouchStrip() {
@@ -591,7 +591,7 @@ describe("TouchStripRoot integration", () => {
   });
 
   test("TouchStrip flush leaves pending timers intact across rapid rerenders", async () => {
-    const fakeSdk = createFakeSdk();
+    const fakeSdk = createFakeAdapter();
     const originalClearTimeout = globalThis.clearTimeout;
     let clearCalls = 0;
     let root!: TouchStripRoot;

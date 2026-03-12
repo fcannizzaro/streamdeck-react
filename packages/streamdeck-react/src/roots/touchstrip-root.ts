@@ -19,7 +19,7 @@ import {
 import { TouchStripContext } from "@/context/touchstrip-context";
 import type { DeviceInfo, TouchStripInfo, WrapperComponent } from "@/types";
 import { partialHasChanges, shallowEqualSettings } from "./settings-equality";
-import type { DialAction } from "@elgato/streamdeck";
+import type { AdapterActionHandle } from "@/adapter/types";
 import type { JsonObject } from "@elgato/utils";
 
 // ── Constants ───────────────────────────────────────────────────────
@@ -35,7 +35,7 @@ const DEFAULT_TOUCH_STRIP_FPS = 30;
 
 interface ColumnEntry {
   actionId: string;
-  sdkAction: DialAction;
+  sdkAction: AdapterActionHandle;
 }
 
 // ── Touch Strip Root ────────────────────────────────────────────────
@@ -253,7 +253,7 @@ export class TouchStripRoot {
 
   // ── Column Management ─────────────────────────────────────────
 
-  addColumn(column: number, actionId: string, sdkAction: DialAction): void {
+  addColumn(column: number, actionId: string, sdkAction: AdapterActionHandle): void {
     this.columns.set(column, { actionId, sdkAction });
 
     // The manifest's encoder layout (e.g. "$A0") provides the canvas pixmap.

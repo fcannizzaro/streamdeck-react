@@ -1,12 +1,6 @@
 import type { ComponentType } from "react";
-import type {
-  Action,
-  DialAction,
-  KeyAction,
-  WillAppearEvent,
-  DeviceType,
-} from "@elgato/streamdeck";
 import type { JsonObject } from "@elgato/utils";
+import type { AdapterWillAppearEvent, StreamDeckAdapter } from "@/adapter/types";
 import { ReactRoot } from "./root";
 import { TouchStripRoot } from "./touchstrip-root";
 import { shallowEqualSettings } from "./settings-equality";
@@ -17,7 +11,6 @@ import type {
   DeviceInfo,
   DialRotatePayload,
   EventMap,
-  StreamDeckAccess,
   TouchTapPayload,
   WrapperComponent,
 } from "@/types";
@@ -54,7 +47,7 @@ const KEY_SIZES: Record<number, { width: number; height: number }> = {
 
 const DIAL_SIZE = { width: 200, height: 100 };
 
-function getCanvasInfo(deviceType: DeviceType, surfaceType: "key" | "dial"): CanvasInfo {
+function getCanvasInfo(deviceType: number, surfaceType: "key" | "dial"): CanvasInfo {
   if (surfaceType === "dial") {
     return { ...DIAL_SIZE, type: "dial" };
   }
@@ -89,7 +82,7 @@ export class RootRegistry {
   private touchStripRoots = new Map<string, TouchStripRoot>(); // deviceId → TouchStripRoot
   private touchStripActions = new Map<string, string>(); // actionId → deviceId
   private renderConfig: RenderConfig;
-  private sdkInstance: StreamDeckAccess["sdk"];
+  private adapter: StreamDeckAdapter;
   private globalSettings: JsonObject = {};
   private onGlobalSettingsChange: (settings: JsonObject) => Promise<void>;
   private wrapper?: WrapperComponent;
@@ -99,12 +92,12 @@ export class RootRegistry {
 
   constructor(
     renderConfig: RenderConfig,
-    sdkInstance: StreamDeckAccess["sdk"],
+    adapter: StreamDeckAdapter,
     onGlobalSettingsChange: (settings: JsonObject) => Promise<void>,
     wrapper?: WrapperComponent,
   ) {
     this.renderConfig = renderConfig;
-    this.sdkInstance = sdkInstance;
+    this.adapter = adapter;
     this.onGlobalSettingsChange = onGlobalSettingsChange;
     this.wrapper = wrapper;
   }
@@ -127,7 +120,7 @@ export class RootRegistry {
   // ── Create a React root for an action instance ────────────────
 
   create(
-    ev: WillAppearEvent<JsonObject>,
+    ev: AdapterWillAppearEvent,
     component: ComponentType,
     definition: ActionDefinition,
   ): void {
@@ -165,7 +158,7 @@ export class RootRegistry {
       id: contextId,
       uuid: definition.uuid,
       controller,
-      coordinates: "coordinates" in ev.action ? (ev.action as KeyAction).coordinates : undefined,
+      coordinates: ev.action.coordinates,
       isInMultiAction: ev.payload.isInMultiAction,
     };
 
@@ -178,8 +171,8 @@ export class RootRegistry {
       canvas,
       ev.payload.settings,
       this.globalSettings,
-      ev.action as Action | DialAction | KeyAction,
-      this.sdkInstance,
+      ev.action,
+      this.adapter,
       this.renderConfig,
       // onSettingsChange
       async (settings: JsonObject) => {
@@ -215,7 +208,7 @@ export class RootRegistry {
   // ── Register an encoder column with the shared TouchStripRoot ───
 
   private registerTouchStripColumn(
-    ev: WillAppearEvent<JsonObject>,
+    ev: AdapterWillAppearEvent,
     definition: ActionDefinition,
   ): void {
     const actionId = ev.action.id;
@@ -223,7 +216,7 @@ export class RootRegistry {
     const deviceId = device.id;
 
     // Determine encoder column from coordinates
-    const column = this.getEncoderColumn(ev);
+    const column = ev.action.coordinates?.column;
     if (column === undefined) {
       console.warn(
         "[@fcannizzaro/streamdeck-react] Cannot determine encoder column for TouchStrip action:",
@@ -257,7 +250,7 @@ export class RootRegistry {
     }
 
     // Register this column
-    tbRoot.addColumn(column, actionId, ev.action as DialAction);
+    tbRoot.addColumn(column, actionId, ev.action);
 
     // Notify observer about column change
     this.observer?.onTouchStripColumnChanged(
@@ -268,11 +261,6 @@ export class RootRegistry {
 
     // Track reverse mapping for event routing
     this.touchStripActions.set(actionId, deviceId);
-  }
-
-  private getEncoderColumn(ev: WillAppearEvent<JsonObject>): number | undefined {
-    const action = ev.action as unknown as { coordinates?: { column: number } };
-    return action.coordinates?.column;
   }
 
   // ── Destroy a React root ──────────────────────────────────────

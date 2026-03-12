@@ -31,6 +31,7 @@ await plugin.connect();
 
 ```ts
 interface PluginConfig {
+  adapter?: StreamDeckAdapter;
   fonts: FontConfig[];
   actions: ActionDefinition[];
   wrapper?: WrapperComponent;
@@ -45,6 +46,22 @@ interface PluginConfig {
   useWorker?: boolean;
 }
 ```
+
+### `adapter`
+
+The Stream Deck adapter to use. Defaults to `physicalDevice()` which wraps the `@elgato/streamdeck` SDK. Pass a custom adapter to use an alternative backend (web simulator, test harness):
+
+```ts
+import { createPlugin, physicalDevice } from "@fcannizzaro/streamdeck-react";
+
+const plugin = createPlugin({
+  adapter: physicalDevice(), // explicit, or omit for same default
+  fonts: [...],
+  actions: [...],
+});
+```
+
+See [Adapter](/concepts/adapter) for details on the `StreamDeckAdapter` interface and writing custom adapters.
 
 ### `fonts` (required)
 
@@ -113,6 +130,6 @@ Offload Takumi rendering to a worker thread. This prevents the native rasterizat
 
 ## connect()
 
-`connect()` must be the last call in your entry file. It calls `streamDeck.connect()` to establish the WebSocket connection with the Stream Deck software.
+`connect()` must be the last call in your entry file. It calls `adapter.connect()` to establish the connection with the Stream Deck backend (or custom adapter).
 
 The action registration, font initialization, and renderer setup all happen during the `createPlugin()` call itself — `connect()` only opens the connection.

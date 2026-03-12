@@ -1,4 +1,4 @@
 {
   "title": "Concepts",
-  "pages": ["architecture", "rendering-pipeline"]
+  "pages": ["architecture", "rendering-pipeline", "adapter"]
 }

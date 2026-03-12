@@ -47,9 +47,7 @@ The `RootRegistry` is the central hub that maps Stream Deck action instances to 
 When an SDK event arrives (keyDown, dialRotate, touchTap, etc.), the registry dispatches it:
 
 ```
-SDK Event (onKeyDown, onWillAppear, ...)
-  ↓
-SingletonAction handler
+Adapter event (onKeyDown, onWillAppear, ...)
   ↓
 registry.dispatch(actionId, event, payload)
   ↓
@@ -142,12 +140,13 @@ onWillDisappear(ev)
 
 Events from the SDK cannot directly call React hooks. Each root has an **EventBus** -- a typed event emitter stored in a ref-stable context:
 
-1. The `SingletonAction` handler receives an SDK event.
-2. It looks up the root by the action's context ID via the `RootRegistry`.
-3. It calls `root.eventBus.emit('keyDown', ev.payload)`.
-4. Inside the tree, `useKeyDown(callback)` has subscribed via `useEffect`. The callback fires.
-5. If the callback calls `setState`, React schedules a re-render.
-6. On commit, the reconciler triggers `resetAfterCommit`, which schedules a flush (routed through the adaptive debounce and flush coordinator).
+1. The adapter receives a backend event (SDK, WebSocket, etc.).
+2. It invokes the registered callback, which calls `registry.dispatch(actionId, event, payload)`.
+3. The registry looks up the root by the action's context ID.
+4. It calls `root.eventBus.emit('keyDown', ev.payload)`.
+5. Inside the tree, `useKeyDown(callback)` has subscribed via `useEffect`. The callback fires.
+6. If the callback calls `setState`, React schedules a re-render.
+7. On commit, the reconciler triggers `resetAfterCommit`, which schedules a flush (routed through the adaptive debounce and flush coordinator).
 
 ## Context Provider Tree
 

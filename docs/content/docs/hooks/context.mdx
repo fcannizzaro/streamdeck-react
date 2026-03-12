@@ -83,7 +83,7 @@ See [Device Sizes](/reference/device-sizes) for the full dimension table.
 
 ## useStreamDeck
 
-Escape hatch -- provides direct access to the underlying `@elgato/streamdeck` SDK action instance and the global `streamDeck` object.
+Provides access to the adapter and the action handle for the current action root. The adapter routes all SDK operations, and the action handle provides per-action methods like `setImage`, `setFeedback`, `showAlert`, etc.
 
 ```ts
 function useStreamDeck(): StreamDeckAccess;
@@ -91,24 +91,26 @@ function useStreamDeck(): StreamDeckAccess;
 
 ```ts
 interface StreamDeckAccess {
-  action: Action | DialAction | KeyAction;
-  sdk: typeof streamDeck;
+  action: AdapterActionHandle;
+  adapter: StreamDeckAdapter;
 }
 ```
 
-Use this for features not yet wrapped by the library:
+Use this for operations not yet wrapped by the library's built-in hooks:
 
 ```tsx
 function AdvancedKey() {
-  const { action, sdk } = useStreamDeck();
+  const { action, adapter } = useStreamDeck();
 
   useKeyDown(async () => {
     await action.showOk();
-    await sdk.system.openUrl("https://example.com");
+    await adapter.openUrl("https://example.com");
   });
 
   return <div style={{ width: "100%", height: "100%", background: "#000" }} />;
 }
 ```
 
-Use sparingly -- prefer the dedicated hooks when available.
+The `action` is an `AdapterActionHandle` -- a flat interface that unifies Key/Dial/Action. Methods not applicable for the current surface (e.g., `setImage` on a dial) resolve as no-ops. See [Adapter](/concepts/adapter) for details.
+
+Prefer the dedicated hooks (`useOpenUrl`, `useShowAlert`, etc.) when available.

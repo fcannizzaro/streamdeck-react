@@ -1,27 +1,13 @@
-import streamDeck, {
-  SingletonAction,
-  type WillAppearEvent,
-  type WillDisappearEvent,
-  type KeyDownEvent,
-  type KeyUpEvent,
-  type DialRotateEvent,
-  type DialDownEvent,
-  type DialUpEvent,
-  type TouchTapEvent,
-  type DidReceiveSettingsEvent,
-  type SendToPluginEvent,
-  type PropertyInspectorDidAppearEvent,
-  type PropertyInspectorDidDisappearEvent,
-  type TitleParametersDidChangeEvent,
-} from "@elgato/streamdeck";
 import { Renderer } from "@takumi-rs/core";
-import type { JsonObject, JsonValue } from "@elgato/utils";
+import type { JsonObject } from "@elgato/utils";
 import { RootRegistry } from "@/roots/registry";
 import type { PluginConfig, Plugin, ActionDefinition } from "./types";
 import type { RenderConfig } from "@/render/pipeline";
 import { RenderPool } from "@/render/render-pool";
 import { metrics } from "@/render/metrics";
 import { startDevtoolsServer } from "./devtools/index.js";
+import { physicalDevice } from "@/adapter/physical-device";
+import type { StreamDeckAdapter } from "@/adapter/types";
 
 // ── createPlugin ────────────────────────────────────────────────────
 //
@@ -31,21 +17,28 @@ import { startDevtoolsServer } from "./devtools/index.js";
 //
 //   createPlugin(config)
 //     │
-//     ├─ 1. Create Takumi Renderer (native Rust rasterizer) with fonts
-//     ├─ 2. Create RenderPool (optional worker thread for offloading)
-//     ├─ 3. Build RenderConfig (format, DPR, cache budgets, debug flags)
-//     ├─ 4. Create RootRegistry (central action→root mapping)
-//     ├─ 5. Load initial global settings from SDK
-//     ├─ 6. Subscribe to global settings changes
-//     ├─ 7. Register each action definition as a SingletonAction
-//     ├─ 8. Enable render metrics (debug mode)
-//     ├─ 9. Start devtools server (if configured)
-//     └─ Return { connect() } → starts the SDK connection
+//     ├─ 1. Resolve adapter (custom or physicalDevice() default)
+//     ├─ 2. Create Takumi Renderer (native Rust rasterizer) with fonts
+//     ├─ 3. Create RenderPool (optional worker thread for offloading)
+//     ├─ 4. Build RenderConfig (format, DPR, cache budgets, debug flags)
+//     ├─ 5. Create RootRegistry (central action→root mapping)
+//     ├─ 6. Load initial global settings via adapter
+//     ├─ 7. Subscribe to global settings changes via adapter
+//     ├─ 8. Register each action definition via adapter callbacks
+//     ├─ 9. Enable render metrics (debug mode)
+//     ├─ 10. Start devtools server (if configured)
+//     └─ Return { connect() } → starts the adapter connection
 //
 // The returned Plugin.connect() initializes the worker pool (non-blocking,
-// falls back on failure) and connects to the Stream Deck SDK.
+// falls back on failure) and connects via the adapter.
 
 export function createPlugin(config: PluginConfig): Plugin {
+  // ── Adapter resolution ────────────────────────────────────────
+  // Defaults to physicalDevice() which wraps the @elgato/streamdeck
+  // SDK.  Custom adapters (web simulator, test harness) can be
+  // passed via config.adapter.
+  const adapter = config.adapter ?? physicalDevice();
+
   // Create a shared Takumi Renderer instance with the provided fonts
   const renderer = new Renderer({
     fonts: config.fonts.map((f) => ({
@@ -73,32 +66,31 @@ export function createPlugin(config: PluginConfig): Plugin {
   // Create the root registry
   const registry = new RootRegistry(
     renderConfig,
-    streamDeck,
+    adapter,
     async (settings: JsonObject) => {
-      await streamDeck.settings.setGlobalSettings(settings);
+      await adapter.setGlobalSettings(settings);
     },
     config.wrapper,
   );
 
   // Load initial global settings
-  streamDeck.settings
+  adapter
     .getGlobalSettings()
-    .then((gs) => {
+    .then((gs: JsonObject) => {
       registry.setGlobalSettings(gs);
     })
-    .catch((err) => {
+    .catch((err: unknown) => {
       console.error("[@fcannizzaro/streamdeck-react] Failed to load global settings:", err);
     });
 
   // Listen for global settings changes
-  streamDeck.settings.onDidReceiveGlobalSettings((ev) => {
-    registry.setGlobalSettings(ev.settings);
+  adapter.onGlobalSettingsChanged((settings: JsonObject) => {
+    registry.setGlobalSettings(settings);
   });
 
-  // Register each action definition
+  // Register each action definition via the adapter
   for (const definition of config.actions) {
-    const singletonAction = createSingletonAction(definition, registry, config.onActionError);
-    streamDeck.actions.registerAction(singletonAction);
+    registerActionWithAdapter(adapter, definition, registry, config.onActionError);
   }
 
   // ── Metrics (debug mode) ───────────────────────────────────────────
@@ -109,7 +101,7 @@ export function createPlugin(config: PluginConfig): Plugin {
   // ── DevTools server (conditional) ──────────────────────────────────────
   if (config.devtools) {
     startDevtoolsServer({
-      devtoolsName: streamDeck.info.plugin.uuid,
+      devtoolsName: adapter.pluginUUID,
       registry,
       renderConfig,
     });
@@ -123,36 +115,42 @@ export function createPlugin(config: PluginConfig): Plugin {
           // Failure is handled inside RenderPool — it logs a warning and sets failed=true
         });
       }
-      await streamDeck.connect();
+      await adapter.connect();
     },
   };
 }
 
-// ── Internal: Generate a SingletonAction from an ActionDefinition ───
+// ── Internal: Register an action definition via the adapter ─────────
 //
-// Creates an anonymous SingletonAction subclass for each action UUID.
-// This bridges the Elgato SDK's event-driven model to our React-based
-// rendering system:
+// Bridges the adapter's callback-based event model to the library's
+// registry-based routing system:
 //
-//   Elgato SDK event (e.g. onKeyDown)
-//     → SingletonAction handler
-//       → registry.dispatch(actionId, "keyDown", payload)
-//         → ReactRoot.eventBus.emit("keyDown", payload)
-//           → useKeyDown() hook fires in user component
+//   Adapter event (e.g. onKeyDown callback)
+//     → registry.dispatch(actionId, "keyDown", payload)
+//       → ReactRoot.eventBus.emit("keyDown", payload)
+//         → useKeyDown() hook fires in user component
 //
-// Each handler is wrapped in try/catch with error isolation — a crash
+// Each callback is wrapped in try/catch with error isolation — a crash
 // in one action's handler doesn't affect other actions.  Errors are
 // forwarded to the optional onError callback for user-level handling.
 
-function createSingletonAction(
+function registerActionWithAdapter(
+  adapter: StreamDeckAdapter,
   definition: ActionDefinition,
   registry: RootRegistry,
   onError?: (uuid: string, actionId: string, error: Error) => void,
-): SingletonAction<JsonObject> {
-  const action = new (class extends SingletonAction<JsonObject> {
-    override readonly manifestId = definition.uuid;
+): void {
+  const handleError = (actionId: string, err: unknown) => {
+    const error = err instanceof Error ? err : new Error(String(err));
+    console.error(
+      `[@fcannizzaro/streamdeck-react] Error in action ${definition.uuid} (${actionId}):`,
+      error,
+    );
+    onError?.(definition.uuid, actionId, error);
+  };
 
-    override onWillAppear(ev: WillAppearEvent<JsonObject>) {
+  adapter.registerAction(definition.uuid, {
+    onWillAppear(ev) {
       try {
         const controller = ev.payload.controller;
         const isEncoder = controller === "Encoder";
@@ -170,148 +168,104 @@ function createSingletonAction(
 
         registry.create(ev, component, definition);
       } catch (err) {
-        this.handleError(ev.action.id, err);
+        handleError(ev.action.id, err);
       }
-    }
+    },
 
-    override onWillDisappear(ev: WillDisappearEvent<JsonObject>) {
+    onWillDisappear(actionId) {
       try {
-        registry.destroy(ev.action.id);
+        registry.destroy(actionId);
       } catch (err) {
-        this.handleError(ev.action.id, err);
+        handleError(actionId, err);
       }
-    }
+    },
 
-    override onKeyDown(ev: KeyDownEvent<JsonObject>) {
+    onKeyDown(actionId, payload) {
       try {
-        registry.dispatch(ev.action.id, "keyDown", {
-          settings: ev.payload.settings,
-          isInMultiAction: ev.payload.isInMultiAction,
-          state: ev.payload.state,
-          userDesiredState:
-            "userDesiredState" in ev.payload
-              ? (ev.payload as { userDesiredState?: number }).userDesiredState
-              : undefined,
-        });
+        registry.dispatch(actionId, "keyDown", payload);
       } catch (err) {
-        this.handleError(ev.action.id, err);
+        handleError(actionId, err);
       }
-    }
+    },
 
-    override onKeyUp(ev: KeyUpEvent<JsonObject>) {
+    onKeyUp(actionId, payload) {
       try {
-        registry.dispatch(ev.action.id, "keyUp", {
-          settings: ev.payload.settings,
-          isInMultiAction: ev.payload.isInMultiAction,
-          state: ev.payload.state,
-          userDesiredState:
-            "userDesiredState" in ev.payload
-              ? (ev.payload as { userDesiredState?: number }).userDesiredState
-              : undefined,
-        });
+        registry.dispatch(actionId, "keyUp", payload);
       } catch (err) {
-        this.handleError(ev.action.id, err);
+        handleError(actionId, err);
       }
-    }
+    },
 
-    override onDialRotate(ev: DialRotateEvent<JsonObject>) {
+    onDialRotate(actionId, payload) {
       try {
-        registry.dispatch(ev.action.id, "dialRotate", {
-          ticks: ev.payload.ticks,
-          pressed: ev.payload.pressed,
-          settings: ev.payload.settings,
-        });
+        registry.dispatch(actionId, "dialRotate", payload);
       } catch (err) {
-        this.handleError(ev.action.id, err);
+        handleError(actionId, err);
       }
-    }
+    },
 
-    override onDialDown(ev: DialDownEvent<JsonObject>) {
+    onDialDown(actionId, payload) {
       try {
-        registry.dispatch(ev.action.id, "dialDown", {
-          settings: ev.payload.settings,
-          controller: "Encoder",
-        });
+        registry.dispatch(actionId, "dialDown", payload);
       } catch (err) {
-        this.handleError(ev.action.id, err);
+        handleError(actionId, err);
       }
-    }
+    },
 
-    override onDialUp(ev: DialUpEvent<JsonObject>) {
+    onDialUp(actionId, payload) {
       try {
-        registry.dispatch(ev.action.id, "dialUp", {
-          settings: ev.payload.settings,
-          controller: "Encoder",
-        });
+        registry.dispatch(actionId, "dialUp", payload);
       } catch (err) {
-        this.handleError(ev.action.id, err);
+        handleError(actionId, err);
       }
-    }
+    },
 
-    override onTouchTap(ev: TouchTapEvent<JsonObject>) {
+    onTouchTap(actionId, payload) {
       try {
-        registry.dispatch(ev.action.id, "touchTap", {
-          tapPos: ev.payload.tapPos,
-          hold: ev.payload.hold,
-          settings: ev.payload.settings,
-        });
+        registry.dispatch(actionId, "touchTap", payload);
       } catch (err) {
-        this.handleError(ev.action.id, err);
+        handleError(actionId, err);
       }
-    }
+    },
 
-    override onDidReceiveSettings(ev: DidReceiveSettingsEvent<JsonObject>) {
+    onDidReceiveSettings(actionId, settings) {
       try {
-        registry.updateSettings(ev.action.id, ev.payload.settings);
+        registry.updateSettings(actionId, settings);
       } catch (err) {
-        this.handleError(ev.action.id, err);
+        handleError(actionId, err);
       }
-    }
+    },
 
-    override onSendToPlugin(ev: SendToPluginEvent<JsonValue, JsonObject>) {
+    onSendToPlugin(actionId, payload) {
       try {
-        registry.dispatch(ev.action.id, "sendToPlugin", ev.payload);
+        registry.dispatch(actionId, "sendToPlugin", payload);
       } catch (err) {
-        this.handleError(ev.action.id, err);
+        handleError(actionId, err);
       }
-    }
+    },
 
-    override onPropertyInspectorDidAppear(ev: PropertyInspectorDidAppearEvent<JsonObject>) {
+    onPropertyInspectorDidAppear(actionId) {
       try {
-        registry.dispatch(ev.action.id, "propertyInspectorDidAppear", undefined as never);
+        registry.dispatch(actionId, "propertyInspectorDidAppear", undefined as never);
       } catch (err) {
-        this.handleError(ev.action.id, err);
+        handleError(actionId, err);
       }
-    }
+    },
 
-    override onPropertyInspectorDidDisappear(ev: PropertyInspectorDidDisappearEvent<JsonObject>) {
+    onPropertyInspectorDidDisappear(actionId) {
       try {
-        registry.dispatch(ev.action.id, "propertyInspectorDidDisappear", undefined as never);
+        registry.dispatch(actionId, "propertyInspectorDidDisappear", undefined as never);
       } catch (err) {
-        this.handleError(ev.action.id, err);
+        handleError(actionId, err);
       }
-    }
+    },
 
-    override onTitleParametersDidChange(ev: TitleParametersDidChangeEvent<JsonObject>) {
+    onTitleParametersDidChange(actionId, payload) {
       try {
-        registry.dispatch(ev.action.id, "titleParametersDidChange", {
-          title: ev.payload.title,
-          settings: ev.payload.settings,
-        });
+        registry.dispatch(actionId, "titleParametersDidChange", payload);
       } catch (err) {
-        this.handleError(ev.action.id, err);
+        handleError(actionId, err);
       }
-    }
-
-    private handleError(actionId: string, err: unknown) {
-      const error = err instanceof Error ? err : new Error(String(err));
-      console.error(
-        `[@fcannizzaro/streamdeck-react] Error in action ${definition.uuid} (${actionId}):`,
-        error,
-      );
-      onError?.(definition.uuid, actionId, error);
-    }
-  })();
-
-  return action;
+    },
+  });
 }

@@ -24,7 +24,7 @@ import type {
 } from "@/types";
 import { partialHasChanges, shallowEqualSettings } from "./settings-equality";
 import type { JsonObject } from "@elgato/utils";
-import type { Action, DialAction, KeyAction } from "@elgato/streamdeck";
+import type { AdapterActionHandle, StreamDeckAdapter } from "@/adapter/types";
 
 // ── Per-Action React Root ───────────────────────────────────────────
 //
@@ -90,8 +90,8 @@ export class ReactRoot {
   private renderConfig: RenderConfig;
   private canvas: CanvasInfo;
   private resolvedDialLayout: EncoderLayout;
-  private sdkAction: Action | DialAction | KeyAction;
-  private sdkInstance: StreamDeckAccess["sdk"];
+  private action: AdapterActionHandle;
+  private adapter: StreamDeckAdapter;
   private disposed = false;
 
   // ── Performance diagnostics ───────────────────────────────────
@@ -114,23 +114,20 @@ export class ReactRoot {
   async pushImage(dataUri: string): Promise<void> {
     if (this.disposed) return;
 
+    // The adapter action handle always has all methods — inapplicable
+    // ones no-op internally.  We route based on canvas type which is
+    // known at root creation time.
     if (this.canvas.type === "key") {
-      if ("setImage" in this.sdkAction) {
-        await (this.sdkAction as KeyAction).setImage(dataUri);
-      }
+      await this.action.setImage(dataUri);
     } else if (this.canvas.type === "dial") {
-      if ("setFeedback" in this.sdkAction) {
-        await (this.sdkAction as DialAction).setFeedback({
-          canvas: dataUri,
-          title: "",
-        });
-      }
+      await this.action.setFeedback({
+        canvas: dataUri,
+        title: "",
+      });
     } else if (this.canvas.type === "touch") {
-      if ("setFeedback" in this.sdkAction) {
-        await (this.sdkAction as DialAction).setFeedback({
-          canvas: dataUri,
-        });
-      }
+      await this.action.setFeedback({
+        canvas: dataUri,
+      });
     }
   }
 
@@ -151,8 +148,8 @@ export class ReactRoot {
     canvas: CanvasInfo,
     initialSettings: JsonObject,
     initialGlobalSettings: JsonObject,
-    sdkAction: Action | DialAction | KeyAction,
-    sdkInstance: StreamDeckAccess["sdk"],
+    action: AdapterActionHandle,
+    adapter: StreamDeckAdapter,
     renderConfig: RenderConfig,
     onSettingsChange: (settings: JsonObject) => Promise<void>,
     onGlobalSettingsChange: (settings: JsonObject) => Promise<void>,
@@ -163,8 +160,8 @@ export class ReactRoot {
     this.canvas = canvas;
     this.settings = { ...initialSettings };
     this.globalSettings = { ...initialGlobalSettings };
-    this.sdkAction = sdkAction;
-    this.sdkInstance = sdkInstance;
+    this.action = action;
+    this.adapter = adapter;
     this.renderConfig = renderConfig;
     this.resolvedDialLayout = resolveDialLayout(dialLayout);
 
@@ -200,7 +197,7 @@ export class ReactRoot {
     };
 
     // Initialize cached context values (stable references until data changes)
-    this.streamDeckValue = { action: this.sdkAction, sdk: this.sdkInstance };
+    this.streamDeckValue = { action: this.action, adapter: this.adapter };
     this.settingsValue = { settings: this.settings, setSettings: this.setSettingsFn };
     this.globalSettingsValue = {
       settings: this.globalSettings,
@@ -235,14 +232,13 @@ export class ReactRoot {
     // For encoder surfaces, ensure the feedback layout has a canvas element.
     // This must happen before the first render so the SDK processes the layout
     // change before setFeedback is called.
+    // The adapter action handle always has setFeedbackLayout — it no-ops
+    // internally for non-encoder surfaces.
     if (canvas.type === "dial" || canvas.type === "touch") {
-      if ("setFeedbackLayout" in this.sdkAction) {
-        (
-          this.sdkAction as DialAction & {
-            setFeedbackLayout(layout: EncoderLayout): Promise<void>;
-          }
-        ).setFeedbackLayout(this.resolvedDialLayout);
-      }
+      const layout = this.resolvedDialLayout;
+      this.action.setFeedbackLayout(
+        typeof layout === "string" ? layout : (layout as unknown as Record<string, unknown>),
+      );
     }
 
     // Set eventBus owner for devtools observer

@@ -1,0 +1,208 @@
+---
+title: Adapter
+description: How the adapter layer abstracts the Stream Deck SDK behind a pluggable interface.
+---
+
+## Overview
+
+The adapter layer sits between the library and the Stream Deck SDK. Instead of importing `@elgato/streamdeck` directly throughout the codebase, all SDK interactions are funneled through a single `StreamDeckAdapter` interface. This makes `@elgato/streamdeck` an optional peer dependency and enables alternative backends like web simulators and test harnesses.
+
+```
+createPlugin({ adapter })
+       ↓
+  StreamDeckAdapter
+       ↓
+  ┌────────────────────────┐
+  │ physicalDevice()       │  ← wraps @elgato/streamdeck
+  │ webSimulator()         │  ← browser preview (custom)
+  │ testAdapter()          │  ← unit testing (custom)
+  └────────────────────────┘
+```
+
+By default, `createPlugin()` uses `physicalDevice()` which delegates to the real Elgato SDK. Pass a custom adapter to swap the backend:
+
+```ts
+import { createPlugin, physicalDevice } from "@fcannizzaro/streamdeck-react";
+
+// Explicit (same as default):
+const plugin = createPlugin({
+  adapter: physicalDevice(),
+  fonts: [...],
+  actions: [...],
+});
+
+// Custom backend:
+const plugin = createPlugin({
+  adapter: myWebSimulator(),
+  fonts: [...],
+  actions: [...],
+});
+```
+
+## StreamDeckAdapter Interface
+
+The main contract between the library and any backend:
+
+```ts
+interface StreamDeckAdapter {
+  readonly pluginUUID: string;
+
+  connect(): Promise<void>;
+
+  getGlobalSettings<T extends JsonObject>(): Promise<T>;
+  setGlobalSettings<T extends JsonObject>(settings: T): Promise<void>;
+  onGlobalSettingsChanged(callback: (settings: JsonObject) => void): void;
+
+  registerAction(uuid: string, callbacks: AdapterActionCallbacks): void;
+
+  openUrl(url: string): Promise<void>;
+  switchToProfile(deviceId: string, profile: string): Promise<void>;
+  sendToPropertyInspector(payload: JsonValue): Promise<void>;
+}
+```
+
+| Method                    | Purpose                                                  |
+| ------------------------- | -------------------------------------------------------- |
+| `connect()`               | Initialize the backend connection.                       |
+| `getGlobalSettings()`     | Retrieve plugin-wide global settings.                    |
+| `setGlobalSettings()`     | Persist plugin-wide global settings.                     |
+| `onGlobalSettingsChanged` | Subscribe to external global settings changes.           |
+| `registerAction()`        | Register an action UUID and wire event callbacks.        |
+| `openUrl()`               | Open a URL in the user's default browser.                |
+| `switchToProfile()`       | Switch the active Stream Deck profile.                   |
+| `sendToPropertyInspector` | Send a payload to the Property Inspector.                |
+
+## AdapterActionHandle
+
+Each `onWillAppear` event provides an `AdapterActionHandle` -- a flat interface that unifies Key, Dial, and Action operations. Methods that are inapplicable for a given surface (e.g., `setImage` on a dial) resolve immediately as no-ops.
+
+```ts
+interface AdapterActionHandle {
+  readonly id: string;
+  readonly device: AdapterActionDevice;
+  readonly controllerType: AdapterController;
+  readonly coordinates?: AdapterCoordinates;
+
+  // Key operations (no-op on encoder surfaces)
+  setImage(dataUri: string): Promise<void>;
+  setTitle(title: string): Promise<void>;
+  showOk(): Promise<void>;
+
+  // Shared operations
+  showAlert(): Promise<void>;
+  setSettings(settings: JsonObject): Promise<void>;
+
+  // Encoder operations (no-op on key surfaces)
+  setFeedback(payload: Record<string, unknown>): Promise<void>;
+  setFeedbackLayout(layout: string | Record<string, unknown>): Promise<void>;
+  setTriggerDescription(hints: AdapterTriggerDescription): Promise<void>;
+}
+```
+
+The library routes to the correct method based on `canvas.type` (determined at root creation time), not on the action handle's runtime type. This eliminates repetitive type guards scattered across roots and hooks.
+
+## AdapterActionCallbacks
+
+When you call `adapter.registerAction(uuid, callbacks)`, you provide callback implementations for all Stream Deck events. The adapter invokes them when events arrive from the backend:
+
+```ts
+interface AdapterActionCallbacks {
+  onWillAppear(ev: AdapterWillAppearEvent): void;
+  onWillDisappear(actionId: string): void;
+  onKeyDown(actionId: string, payload: AdapterKeyDownPayload): void;
+  onKeyUp(actionId: string, payload: AdapterKeyUpPayload): void;
+  onDialRotate(actionId: string, payload: AdapterDialRotatePayload): void;
+  onDialDown(actionId: string, payload: AdapterDialPressPayload): void;
+  onDialUp(actionId: string, payload: AdapterDialPressPayload): void;
+  onTouchTap(actionId: string, payload: AdapterTouchTapPayload): void;
+  onDidReceiveSettings(actionId: string, settings: JsonObject): void;
+  onSendToPlugin(actionId: string, payload: JsonValue): void;
+  onPropertyInspectorDidAppear(actionId: string): void;
+  onPropertyInspectorDidDisappear(actionId: string): void;
+  onTitleParametersDidChange(actionId: string, payload: { title: string; settings: JsonObject }): void;
+}
+```
+
+The library owns the callback implementations (in `plugin.ts`). The adapter owns the event plumbing. Each callback receives the `actionId` as the first argument so the library can route events to the correct React root.
+
+## Event Flow
+
+```
+Backend (SDK, WebSocket, etc.)
+  ↓ fires event
+AdapterActionCallbacks.onKeyDown(actionId, payload)
+  ↓ library routes to
+registry.dispatch(actionId, "keyDown", payload)
+  ↓
+EventBus → useKeyDown() hook in user component
+```
+
+All hooks that interact with the SDK (`useOpenUrl`, `useSwitchProfile`, `useSendToPI`, `useShowAlert`, `useShowOk`, `useTitle`, `useDialHint`) route through the adapter. This means a custom adapter can intercept or mock every SDK interaction.
+
+## Physical Device Adapter
+
+`physicalDevice()` is the built-in adapter that wraps the `@elgato/streamdeck` SDK. It is the **only** module in the library that value-imports from `@elgato/streamdeck`. All other modules use adapter interfaces exclusively.
+
+Key implementation details:
+
+- **SingletonAction internalization**: `registerAction()` creates an anonymous `SingletonAction` subclass, wires its override methods to the provided callbacks, and registers it with the SDK. The `SingletonAction` class does not leak beyond this module.
+- **Action wrapping**: SDK action objects (`Action | DialAction | KeyAction`) are converted to `AdapterActionHandle` via runtime `"in"` checks. Methods not available on a given action type resolve as no-ops.
+
+## Writing a Custom Adapter
+
+To create a custom adapter (e.g., a web simulator), implement the `StreamDeckAdapter` interface:
+
+```ts
+import type { StreamDeckAdapter, AdapterActionCallbacks } from "@fcannizzaro/streamdeck-react";
+
+function myWebSimulator(): StreamDeckAdapter {
+  const actionCallbackMap = new Map<string, AdapterActionCallbacks>();
+
+  return {
+    pluginUUID: "com.example.my-plugin",
+
+    async connect() {
+      // Set up WebSocket connection, etc.
+    },
+
+    async getGlobalSettings() {
+      return {}; // Load from storage
+    },
+
+    async setGlobalSettings(settings) {
+      // Persist to storage
+    },
+
+    onGlobalSettingsChanged(callback) {
+      // Subscribe to external changes
+    },
+
+    registerAction(uuid, callbacks) {
+      actionCallbackMap.set(uuid, callbacks);
+      // Wire to your event source (WebSocket messages, UI clicks, etc.)
+    },
+
+    async openUrl(url) {
+      window.open(url, "_blank");
+    },
+
+    async switchToProfile() {
+      // No-op or implement profile switching
+    },
+
+    async sendToPropertyInspector() {
+      // No-op or route to PI
+    },
+  };
+}
+```
+
+The key contract to satisfy: when your backend detects an event (key press, dial rotation, etc.), invoke the corresponding callback from `registerAction()` with the correct `actionId` and payload shape. The library handles everything from there -- React root creation, rendering, and state management.
+
+## SDK Isolation
+
+Only `src/adapter/physical-device.ts` value-imports from `@elgato/streamdeck`. Every other module in the library imports from `@/adapter/types` instead. This means:
+
+- `@elgato/streamdeck` is an **optional** peer dependency.
+- Projects that use a custom adapter (web simulator, test harness) do not need the SDK installed at all.
+- The SDK types (`Action`, `DialAction`, `KeyAction`, `SingletonAction`, `DeviceType`) do not appear in the library's public API.
