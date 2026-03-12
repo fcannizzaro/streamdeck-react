@@ -229,8 +229,8 @@ Each individual render can be profiled via the `onProfile` callback in `RenderCo
 
 ```ts
 interface RenderProfile {
-  vnodeToElementMs: number;
-  fromJsxMs: number;
+  /** Time to convert VNode tree to Takumi node tree (ms). */
+  vnodeConversionMs: number;
   takumiRenderMs: number;
   hashMs: number;
   base64Ms: number;

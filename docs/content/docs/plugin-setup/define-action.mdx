@@ -44,7 +44,6 @@ interface ActionConfig<S extends JsonObject = JsonObject> {
   key?: ComponentType;
   dial?: ComponentType;
   touchStrip?: ComponentType;
-  touchStripFPS?: number;
   dialLayout?: EncoderLayout;
   wrapper?: WrapperComponent;
   defaultSettings?: Partial<S>;
@@ -104,10 +103,6 @@ export const volumeAction = defineAction<VolumeSettings>({
   defaultSettings: { volume: 50, muted: false },
 });
 ```
-
-### `touchStripFPS`
-
-Target frame rate for the touchstrip animation loop and render pipeline. Controls both `useTick` cadence (via `useTouchStrip().fps`) and the render debounce. Default: `60`.
 
 ### `wrapper`
 

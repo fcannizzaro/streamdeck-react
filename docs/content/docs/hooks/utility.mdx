@@ -77,13 +77,13 @@ function MyKey() {
 
 ## useTick
 
-Calls the callback repeatedly with delta time using timer-driven ticks. Pass a number to set target FPS, `true` for 60fps, or `false` to pause.
+Calls the callback repeatedly with delta time using timer-driven ticks. Pass a number to set target FPS, `true` for 30fps, or `false` to pause.
 
 ```ts
 function useTick(callback: (deltaMs: number) => void, fpsOrActive?: number | boolean): void;
 ```
 
-Default FPS is 60. The callback receives the elapsed milliseconds since the last tick.
+Default FPS is 30. The callback receives the elapsed milliseconds since the last tick.
 
 ```tsx
 function AnimatedKey() {
@@ -96,7 +96,3 @@ function AnimatedKey() {
   // ...
 }
 ```
-
-### Note on Animation Performance
-
-The actual frame rate is capped by the render debounce (default 16ms = ~60fps theoretical max). In practice, rendering time limits real throughput to roughly 10-30fps depending on component complexity.

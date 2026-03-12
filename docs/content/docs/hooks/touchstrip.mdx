@@ -25,14 +25,12 @@ interface TouchStripInfo {
   columns: number[];
   /** Width of each encoder segment in pixels (always 200). */
   segmentWidth: number;
-  /** Target FPS from the action definition. */
-  fps: number;
 }
 ```
 
 ```tsx
 function MyTouchStrip() {
-  const { width, height, fps, columns, segmentWidth } = useTouchStrip();
+  const { width, height, columns, segmentWidth } = useTouchStrip();
 
   return (
     <div style={{ width, height, background: "#1a1a2e" }}>

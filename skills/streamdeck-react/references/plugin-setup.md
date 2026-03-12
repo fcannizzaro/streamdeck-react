@@ -90,7 +90,6 @@ interface ActionConfig<S extends JsonObject = JsonObject> {
   key?: ComponentType;
   dial?: ComponentType;
   touchStrip?: ComponentType;
-  touchStripFPS?: number;
   dialLayout?: EncoderLayout;
   wrapper?: WrapperComponent;
   defaultSettings?: Partial<S>;
@@ -103,7 +102,6 @@ interface ActionConfig<S extends JsonObject = JsonObject> {
 | `key`             | No       | Component for key (Keypad controller).                                                                                        |
 | `dial`            | No       | Component for encoder display (Stream Deck+). Falls back to `key` if not provided.                                            |
 | `touchStrip`      | No       | Full-strip TouchStrip component. Replaces per-encoder `dial` with a single shared React tree spanning the entire touch strip. |
-| `touchStripFPS`   | No       | Target FPS for the TouchStrip animation loop and render pipeline. Default: `30`.                                              |
 | `dialLayout`      | No       | Encoder feedback layout. Defaults to a full-width canvas `pixmap` layout keyed as `canvas`.                                   |
 | `wrapper`         | No       | Component that wraps this action's root (nested inside plugin wrapper).                                                       |
 | `defaultSettings` | No       | Default settings shallow-merged with stored settings.                                                                         |

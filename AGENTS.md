@@ -111,7 +111,6 @@ export type ActionConfigInput<S extends JsonObject = JsonObject> = [keyof Manife
   : {
       [UUID in ActionUUID]: {
         uuid: UUID;
-        touchStripFPS?: number;
         wrapper?: WrapperComponent;
         defaultSettings?: Partial<S>;
       } & KeySurface<UUID> &

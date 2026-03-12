@@ -15,7 +15,7 @@ Pass a `touchStrip` component to `defineAction` instead of `dial`:
 import { defineAction, useTouchStrip, useTick } from "@fcannizzaro/streamdeck-react";
 
 function MyTouchStrip() {
-  const { width, height, fps } = useTouchStrip();
+  const { width, height } = useTouchStrip();
 
   return (
     <div style={{ width, height, background: "#1a1a2e" }}>
@@ -28,8 +28,7 @@ function MyTouchStrip() {
 
 export const myAction = defineAction({
   uuid: "com.example.plugin.touchstrip",
-  touchStrip: MyTouchStrip,
-  touchStripFPS: 30,
+  touchStrip: MyTouchStrip
 });
 ```
 
@@ -51,34 +50,12 @@ When `touchStrip` is set, the library:
 3. Slices the rendered image into 200px segments.
 4. Pushes each slice to its corresponding encoder via `setFeedback`.
 
-## touchStripFPS
-
-Controls both the `useTick` cadence and the render debounce interval.
-
 ```tsx
 export const myAction = defineAction({
   uuid: "com.example.plugin.action",
   touchStrip: MyTouchStrip,
-  touchStripFPS: 30, // 30fps render loop
 });
 ```
-
-The FPS value is available inside the component via `useTouchStrip().fps`, which you should pass to `useTick` so the animation loop matches the render pipeline:
-
-```tsx
-function MyTouchStrip() {
-  const { fps } = useTouchStrip();
-
-  useTick((delta) => {
-    // delta is in milliseconds
-    // runs at the configured touchStripFPS rate
-  }, fps);
-
-  // ...
-}
-```
-
-Default is 30fps (the maximum supported by Stream Deck hardware).
 
 ## Geometry
 
@@ -182,7 +159,7 @@ import {
 } from "@fcannizzaro/streamdeck-react";
 
 function ScrollBar() {
-  const { width, height, fps } = useTouchStrip();
+  const { width, height } = useTouchStrip();
   const [offset, setOffset] = useState(0);
   const [speed, setSpeed] = useState(1);
   const [paused, setPaused] = useState(false);
@@ -190,7 +167,7 @@ function ScrollBar() {
   useTick((delta) => {
     if (paused) return;
     setOffset((o) => (o + delta * 0.05 * speed) % width);
-  }, fps);
+  });
 
   useTouchStripDialRotate(({ column, ticks }) => {
     if (column === 0) {
@@ -222,7 +199,6 @@ function ScrollBar() {
 export const scrollAction = defineAction({
   uuid: "com.example.plugin.scroll",
   touchStrip: ScrollBar,
-  touchStripFPS: 30,
 });
 ```
 
