@@ -61,16 +61,16 @@ interface StreamDeckAdapter {
 }
 ```
 
-| Method                    | Purpose                                                  |
-| ------------------------- | -------------------------------------------------------- |
-| `connect()`               | Initialize the backend connection.                       |
-| `getGlobalSettings()`     | Retrieve plugin-wide global settings.                    |
-| `setGlobalSettings()`     | Persist plugin-wide global settings.                     |
-| `onGlobalSettingsChanged` | Subscribe to external global settings changes.           |
-| `registerAction()`        | Register an action UUID and wire event callbacks.        |
-| `openUrl()`               | Open a URL in the user's default browser.                |
-| `switchToProfile()`       | Switch the active Stream Deck profile.                   |
-| `sendToPropertyInspector` | Send a payload to the Property Inspector.                |
+| Method                    | Purpose                                           |
+| ------------------------- | ------------------------------------------------- |
+| `connect()`               | Initialize the backend connection.                |
+| `getGlobalSettings()`     | Retrieve plugin-wide global settings.             |
+| `setGlobalSettings()`     | Persist plugin-wide global settings.              |
+| `onGlobalSettingsChanged` | Subscribe to external global settings changes.    |
+| `registerAction()`        | Register an action UUID and wire event callbacks. |
+| `openUrl()`               | Open a URL in the user's default browser.         |
+| `switchToProfile()`       | Switch the active Stream Deck profile.            |
+| `sendToPropertyInspector` | Send a payload to the Property Inspector.         |
 
 ## AdapterActionHandle
 
@@ -119,7 +119,10 @@ interface AdapterActionCallbacks {
   onSendToPlugin(actionId: string, payload: JsonValue): void;
   onPropertyInspectorDidAppear(actionId: string): void;
   onPropertyInspectorDidDisappear(actionId: string): void;
-  onTitleParametersDidChange(actionId: string, payload: { title: string; settings: JsonObject }): void;
+  onTitleParametersDidChange(
+    actionId: string,
+    payload: { title: string; settings: JsonObject },
+  ): void;
 }
 ```
 

@@ -1,5 +1,11 @@
 # create-streamdeck-react
 
+## 0.1.10
+
+### Patch Changes
+
+- add adapter option
+
 ## 0.1.9
 
 ### Patch Changes

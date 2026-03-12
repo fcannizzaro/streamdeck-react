@@ -11,18 +11,18 @@ Complete public API exported from `@fcannizzaro/streamdeck-react`.
 
 ## Adapter
 
-| Export                      | Type     | Description                                                                                         |
-| --------------------------- | -------- | --------------------------------------------------------------------------------------------------- |
+| Export                      | Type     | Description                                                                                          |
+| --------------------------- | -------- | ---------------------------------------------------------------------------------------------------- |
 | `physicalDevice()`          | Function | Creates a `StreamDeckAdapter` wrapping the `@elgato/streamdeck` SDK. Default when `adapter` omitted. |
 | `StreamDeckAdapter`         | Type     | Main adapter contract. Implement for custom backends (web simulator, test harness).                  |
-| `AdapterActionHandle`       | Type     | Flat per-action handle unifying Key/Dial/Action operations.                                         |
-| `AdapterActionCallbacks`    | Type     | Callback interface for action registration. Adapter invokes when events fire.                       |
-| `AdapterWillAppearEvent`    | Type     | Event payload for `onWillAppear` callbacks.                                                         |
-| `AdapterActionDevice`       | Type     | Device info from an action event: `id`, `type`, `size`, `name`.                                     |
-| `AdapterController`         | Type     | `"Keypad" \| "Encoder"`.                                                                            |
-| `AdapterCoordinates`        | Type     | `{ column, row }`.                                                                                  |
-| `AdapterSize`               | Type     | `{ columns, rows }`.                                                                                |
-| `AdapterTriggerDescription` | Type     | Dial hint labels: `{ rotate?, push?, touch?, longTouch? }`.                                         |
+| `AdapterActionHandle`       | Type     | Flat per-action handle unifying Key/Dial/Action operations.                                          |
+| `AdapterActionCallbacks`    | Type     | Callback interface for action registration. Adapter invokes when events fire.                        |
+| `AdapterWillAppearEvent`    | Type     | Event payload for `onWillAppear` callbacks.                                                          |
+| `AdapterActionDevice`       | Type     | Device info from an action event: `id`, `type`, `size`, `name`.                                      |
+| `AdapterController`         | Type     | `"Keypad" \| "Encoder"`.                                                                             |
+| `AdapterCoordinates`        | Type     | `{ column, row }`.                                                                                   |
+| `AdapterSize`               | Type     | `{ columns, rows }`.                                                                                 |
+| `AdapterTriggerDescription` | Type     | Dial hint labels: `{ rotate?, push?, touch?, longTouch? }`.                                          |
 
 ## Event Hooks
 
@@ -58,7 +58,7 @@ Complete public API exported from `@fcannizzaro/streamdeck-react`.
 | `useDevice`     | `() => DeviceInfo`       | Device ID, type, size, and name. Set once on mount.                      |
 | `useAction`     | `() => ActionInfo`       | Action context ID, UUID, controller, coordinates. Set once on mount.     |
 | `useCanvas`     | `() => CanvasInfo`       | Render target dimensions (`width`, `height`, `type`). Set once on mount. |
-| `useStreamDeck` | `() => StreamDeckAccess` | Adapter and action handle: `{ action, adapter }`.           |
+| `useStreamDeck` | `() => StreamDeckAccess` | Adapter and action handle: `{ action, adapter }`.                        |
 
 ## Lifecycle Hooks
 
@@ -175,7 +175,7 @@ Complete public API exported from `@fcannizzaro/streamdeck-react`.
 | `DialPressPayload`            | Interface | `{ settings, controller: 'Encoder' }`.                                                                               |
 | `TouchTapPayload`             | Interface | `{ tapPos: [x, y], hold, settings }`.                                                                                |
 | `DialHints`                   | Interface | `{ rotate?, press?, touch?, longTouch? }`.                                                                           |
-| `StreamDeckAccess`            | Interface | `{ action: AdapterActionHandle, adapter: StreamDeckAdapter }`.                                               |
+| `StreamDeckAccess`            | Interface | `{ action: AdapterActionHandle, adapter: StreamDeckAdapter }`.                                                       |
 | `TouchStripInfo`              | Interface | `{ width, height, columns, segmentWidth, fps }`.                                                                     |
 | `TouchStripTapPayload`        | Interface | `{ tapPos: [x, y], hold, column }`.                                                                                  |
 | `TouchStripDialRotatePayload` | Interface | `{ column, ticks, pressed }`.                                                                                        |

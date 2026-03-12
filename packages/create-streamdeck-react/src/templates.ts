@@ -3,6 +3,7 @@ export type Bundler = "rollup" | "rolldown";
 export type StarterExample = "minimal" | "counter" | "zustand" | "jotai" | "pokemon";
 export type StreamDeckPlatform = "mac" | "windows";
 export type NativeTargetId = "darwin-arm64" | "darwin-x64" | "win32-arm64" | "win32-x64";
+export type Adapter = "physical" | "custom";
 
 export interface ScaffoldOptions {
   packageName: string;
@@ -17,6 +18,7 @@ export interface ScaffoldOptions {
   platforms: StreamDeckPlatform[];
   nativeTargets: NativeTargetId[];
   reactCompiler: boolean;
+  adapter: Adapter;
 }
 
 interface ExampleOption {
@@ -55,7 +57,8 @@ interface ExamplePreset {
 }
 
 const STREAMDECK_REACT_VERSION = "latest";
-const TAKUMI_VERSION = "^0.70.4";
+const TAKUMI_VERSION = "^0.71.7";
+const ELGATO_SDK_VERSION = "^1.3.0";
 
 const BASE_DEPENDENCIES = {
   "@fcannizzaro/streamdeck-react": STREAMDECK_REACT_VERSION,
@@ -172,6 +175,19 @@ export const TARGET_OPTIONS: Array<ChoiceOption<NativeTargetId>> = [
   { value: "win32-x64", label: "win32-x64", description: "Windows x64 build." },
 ];
 
+export const ADAPTER_OPTIONS: Array<ChoiceOption<Adapter>> = [
+  {
+    value: "physical",
+    label: "Physical Device",
+    description: "Connect to real Stream Deck hardware via @elgato/streamdeck.",
+  },
+  {
+    value: "custom",
+    label: "Custom Adapter",
+    description: "Scaffold a custom StreamDeckAdapter implementation.",
+  },
+];
+
 const EXAMPLE_PRESETS: Record<StarterExample, ExamplePreset> = {
   minimal: {
     dependencies: {},
@@ -186,7 +202,8 @@ const EXAMPLE_PRESETS: Record<StarterExample, ExamplePreset> = {
     ],
     files: (options) => ({
       "src/actions/status.tsx": createMinimalAction(options.pluginUuid),
-      "src/plugin.ts": createPluginEntrypoint(["statusAction"]),
+      ...createAdapterFiles(options.adapter),
+      "src/plugin.ts": createPluginEntrypoint(["statusAction"], undefined, options.adapter),
     }),
   },
   counter: {
@@ -246,13 +263,12 @@ const EXAMPLE_PRESETS: Record<StarterExample, ExamplePreset> = {
       "src/actions/volume.tsx": createVolumeAction(options.pluginUuid),
       "src/actions/equalizer.tsx": createEqualizerAction(options.pluginUuid),
       [`${options.pluginUuid}.sdPlugin/layouts/touchstrip.json`]: createTouchStripLayout(),
-      "src/plugin.ts": createPluginEntrypoint([
-        "counterAction",
-        "timerAction",
-        "toggleAction",
-        "volumeAction",
-        "equalizerAction",
-      ]),
+      ...createAdapterFiles(options.adapter),
+      "src/plugin.ts": createPluginEntrypoint(
+        ["counterAction", "timerAction", "toggleAction", "volumeAction", "equalizerAction"],
+        undefined,
+        options.adapter,
+      ),
     }),
   },
   zustand: {
@@ -287,7 +303,12 @@ const EXAMPLE_PRESETS: Record<StarterExample, ExamplePreset> = {
       "src/actions/display.tsx": createZustandDisplayAction(options.pluginUuid),
       "src/actions/increment.tsx": createZustandIncrementAction(options.pluginUuid),
       "src/actions/reset.tsx": createZustandResetAction(options.pluginUuid),
-      "src/plugin.ts": createPluginEntrypoint(["displayAction", "incrementAction", "resetAction"]),
+      ...createAdapterFiles(options.adapter),
+      "src/plugin.ts": createPluginEntrypoint(
+        ["displayAction", "incrementAction", "resetAction"],
+        undefined,
+        options.adapter,
+      ),
     }),
   },
   jotai: {
@@ -323,9 +344,11 @@ const EXAMPLE_PRESETS: Record<StarterExample, ExamplePreset> = {
       "src/actions/display.tsx": createJotaiDisplayAction(options.pluginUuid),
       "src/actions/increment.tsx": createJotaiIncrementAction(options.pluginUuid),
       "src/actions/reset.tsx": createJotaiResetAction(options.pluginUuid),
+      ...createAdapterFiles(options.adapter),
       "src/plugin.ts": createPluginEntrypoint(
         ["displayAction", "incrementAction", "resetAction"],
         "JotaiWrapper",
+        options.adapter,
       ),
     }),
   },
@@ -345,7 +368,8 @@ const EXAMPLE_PRESETS: Record<StarterExample, ExamplePreset> = {
     files: (options) => ({
       "src/actions/pokemon.tsx": createPokemonAction(options.pluginUuid),
       "src/wrapper.tsx": createQueryWrapper(),
-      "src/plugin.ts": createPluginEntrypoint(["pokemonAction"], "QueryWrapper"),
+      ...createAdapterFiles(options.adapter),
+      "src/plugin.ts": createPluginEntrypoint(["pokemonAction"], "QueryWrapper", options.adapter),
     }),
   },
 };
@@ -603,13 +627,18 @@ export function buildViteConfig(
 function buildPackageJson(
   options: Pick<
     ScaffoldOptions,
-    "packageName" | "description" | "nativeTargets" | "reactCompiler" | "bundler"
+    "packageName" | "description" | "nativeTargets" | "reactCompiler" | "bundler" | "adapter"
   >,
   exampleDependencies: Record<string, string>,
 ): string {
   const nativeDependencies = Object.fromEntries(
     options.nativeTargets.map((target) => [TARGET_PACKAGE_MAP[target], TAKUMI_VERSION]),
   );
+
+  // The @elgato/streamdeck SDK is only required for the physical device adapter.
+  // Custom adapters communicate with the hardware through their own mechanism.
+  const adapterDependencies: Record<string, string> =
+    options.adapter === "physical" ? { "@elgato/streamdeck": ELGATO_SDK_VERSION } : {};
 
   const isRolldown = options.bundler === "rolldown";
 
@@ -643,6 +672,7 @@ function buildPackageJson(
     scripts,
     dependencies: sortObject({
       ...BASE_DEPENDENCIES,
+      ...adapterDependencies,
       ...exampleDependencies,
       ...nativeDependencies,
     }),
@@ -840,7 +870,85 @@ function createBadgeSvg(label: string, from: string, to: string): string {
   ].join("\n");
 }
 
-function createPluginEntrypoint(actionExports: string[], wrapperName?: string): string {
+// ── Custom Adapter Scaffolding ────────────────────────────────────────
+//
+// When adapter is "custom", generate a sample StreamDeckAdapter
+// implementation file (src/adapter.ts).  For "physical" no extra files
+// are needed because physicalDevice() is imported from the library.
+
+function createAdapterFiles(adapter: Adapter): Record<string, string> {
+  if (adapter !== "custom") return {};
+  return { "src/adapter.ts": createCustomAdapter() };
+}
+
+function createCustomAdapter(): string {
+  return [
+    'import type { StreamDeckAdapter } from "@fcannizzaro/streamdeck-react";',
+    "",
+    "// ── Custom Adapter ────────────────────────────────────────────────",
+    "//",
+    "// Implement the StreamDeckAdapter interface to connect your plugin",
+    "// to a custom backend (WebSocket server, test harness, web preview,",
+    "// etc.).  Replace the placeholder implementations below with your",
+    "// own logic.",
+    "",
+    "export function myAdapter(): StreamDeckAdapter {",
+    "  return {",
+    '    pluginUUID: "com.example.custom-adapter",',
+    "",
+    "    // ── Connection lifecycle ──────────────────────────────────",
+    "    async connect() {",
+    '      console.log("[adapter] connected");',
+    "    },",
+    "",
+    "    // ── Global settings ───────────────────────────────────────",
+    "    async getGlobalSettings() {",
+    "      return {};",
+    "    },",
+    "",
+    "    async setGlobalSettings(_settings) {",
+    "      // persist global settings",
+    "    },",
+    "",
+    "    onGlobalSettingsChanged(_callback) {",
+    "      // subscribe to external global settings changes",
+    "    },",
+    "",
+    "    // ── Action registration ───────────────────────────────────",
+    "    registerAction(uuid, callbacks) {",
+    "      console.log(`[adapter] registered action: ${uuid}`);",
+    "",
+    "      // Example: simulate a willAppear event after registration",
+    "      // callbacks.onWillAppear({",
+    "      //   action: { ... },",
+    '      //   payload: { settings: {}, controller: "Keypad", isInMultiAction: false },',
+    "      // });",
+    "      void callbacks;",
+    "    },",
+    "",
+    "    // ── SDK utilities ─────────────────────────────────────────",
+    "    async openUrl(url) {",
+    "      console.log(`[adapter] open URL: ${url}`);",
+    "    },",
+    "",
+    "    async switchToProfile(_deviceId, _profile) {",
+    "      // switch active Stream Deck profile",
+    "    },",
+    "",
+    "    async sendToPropertyInspector(_payload) {",
+    "      // forward payload to Property Inspector",
+    "    },",
+    "  };",
+    "}",
+    "",
+  ].join("\n");
+}
+
+function createPluginEntrypoint(
+  actionExports: string[],
+  wrapperName?: string,
+  adapter?: Adapter,
+): string {
   const imports = actionExports
     .map(
       (actionName) =>
@@ -850,10 +958,22 @@ function createPluginEntrypoint(actionExports: string[], wrapperName?: string): 
   const wrapperImport = wrapperName ? `import { ${wrapperName} } from "./wrapper.tsx";\n` : "";
   const wrapperConfig = wrapperName ? `,\n  wrapper: ${wrapperName}` : "";
 
+  // When using a custom adapter, import from the local adapter file
+  // and pass it to createPlugin.  The physical adapter is the default
+  // (physicalDevice()) so it needs an explicit import + config entry.
+  const useCustomAdapter = adapter === "custom";
+  const adapterImport = useCustomAdapter
+    ? 'import { myAdapter } from "./adapter.ts";\n'
+    : 'import { physicalDevice } from "@fcannizzaro/streamdeck-react";\n';
+  const adapterConfig = useCustomAdapter
+    ? ",\n  adapter: myAdapter()"
+    : ",\n  adapter: physicalDevice()";
+
   return [
     'import { createPlugin } from "@fcannizzaro/streamdeck-react";',
     imports,
     wrapperImport.trimEnd(),
+    adapterImport.trimEnd(),
     'import InterRegular from "@fontsource-variable/inter/files/inter-latin-wght-normal.woff2";',
     "",
     "const plugin = createPlugin({",
@@ -865,7 +985,7 @@ function createPluginEntrypoint(actionExports: string[], wrapperName?: string): 
     '      style: "normal",',
     "    },",
     "  ],",
-    `  actions: [${actionExports.join(", ")}]${wrapperConfig},`,
+    `  actions: [${actionExports.join(", ")}]${wrapperConfig}${adapterConfig},`,
     "});",
     "",
     "await plugin.connect();",

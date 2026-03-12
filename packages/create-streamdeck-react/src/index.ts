@@ -10,6 +10,7 @@ import {
   PACKAGE_MANAGER_OPTIONS,
   PLATFORM_OPTIONS,
   TARGET_OPTIONS,
+  ADAPTER_OPTIONS,
   buildProjectFiles,
   detectPackageManager,
   deriveDisplayName,
@@ -20,6 +21,7 @@ import {
   normalizeTargets,
   validatePlatformTargets,
   validatePluginUuid,
+  type Adapter,
   type Bundler,
   type NativeTargetId,
   type PackageManager,
@@ -43,6 +45,7 @@ type ParsedArgs = {
   platforms?: StreamDeckPlatform[];
   nativeTargets?: NativeTargetId[];
   reactCompiler?: boolean;
+  adapter?: Adapter;
 };
 
 function assertNotCancelled<T>(value: T | symbol): asserts value is T {
@@ -76,6 +79,7 @@ async function main(): Promise<void> {
   const packageManager = await collectPackageManager(args, skipPrompt);
   const example = await collectExample(args, skipPrompt);
   const bundler = await collectBundler(args, skipPrompt);
+  const adapter = await collectAdapter(args, skipPrompt);
   const platforms = await collectPlatforms(args, skipPrompt);
   const nativeTargets = await collectNativeTargets(args, platforms, skipPrompt);
   const reactCompiler = await collectReactCompiler(args, skipPrompt);
@@ -95,6 +99,7 @@ async function main(): Promise<void> {
     platforms,
     nativeTargets,
     reactCompiler,
+    adapter,
   };
 
   createProject(targetDirectory, options);
@@ -226,6 +231,9 @@ function parseArgs(argv: string[]): ParsedArgs {
         break;
       case "--react-compiler":
         parsed.reactCompiler = nextValue === "true" || nextValue === "yes";
+        break;
+      case "--adapter":
+        parsed.adapter = parseAdapter(nextValue);
         break;
       default:
         throw new Error(`Unknown argument: ${flag}`);
@@ -466,6 +474,31 @@ async function collectBundler(args: ParsedArgs, skipPrompt: boolean): Promise<Bu
   return answer;
 }
 
+async function collectAdapter(args: ParsedArgs, skipPrompt: boolean): Promise<Adapter> {
+  if (args.adapter) {
+    return args.adapter;
+  }
+
+  const fallback: Adapter = "physical";
+
+  if (skipPrompt) {
+    return fallback;
+  }
+
+  const answer = await p.select({
+    message: "Adapter",
+    options: ADAPTER_OPTIONS.map((option) => ({
+      value: option.value as Adapter,
+      label: option.label,
+      hint: option.description,
+    })),
+    initialValue: fallback,
+  });
+
+  assertNotCancelled(answer);
+  return answer;
+}
+
 async function collectPlatforms(
   args: ParsedArgs,
   skipPrompt: boolean,
@@ -635,6 +668,12 @@ function parseBundler(value: string | undefined): Bundler | undefined {
   throw new Error(`Unsupported bundler: ${value}. Use "rollup" or "rolldown".`);
 }
 
+function parseAdapter(value: string | undefined): Adapter | undefined {
+  if (!value) return undefined;
+  if (value === "physical" || value === "custom") return value;
+  throw new Error(`Unsupported adapter: ${value}. Use "physical" or "custom".`);
+}
+
 function parsePackageManager(value: string | undefined): PackageManager | undefined {
   if (!value) return undefined;
   if (value === "npm" || value === "pnpm" || value === "bun") return value;
@@ -662,6 +701,7 @@ Options:
   -h, --help                 Show this help message
   --example <name>           minimal | counter | zustand | jotai | pokemon
   --bundler <name>           rollup | rolldown
+  --adapter <type>           physical | custom
   --name <display-name>      Plugin display name
   --uuid <plugin-uuid>       Reverse-domain plugin UUID
   --author <name>            Manifest author

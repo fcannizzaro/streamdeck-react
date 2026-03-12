@@ -79,7 +79,10 @@ interface AdapterActionCallbacks {
   onSendToPlugin(actionId: string, payload: JsonValue): void;
   onPropertyInspectorDidAppear(actionId: string): void;
   onPropertyInspectorDidDisappear(actionId: string): void;
-  onTitleParametersDidChange(actionId: string, payload: { title: string; settings: JsonObject }): void;
+  onTitleParametersDidChange(
+    actionId: string,
+    payload: { title: string; settings: JsonObject },
+  ): void;
 }
 ```
 

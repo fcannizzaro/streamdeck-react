@@ -119,11 +119,7 @@ export class RootRegistry {
 
   // ── Create a React root for an action instance ────────────────
 
-  create(
-    ev: AdapterWillAppearEvent,
-    component: ComponentType,
-    definition: ActionDefinition,
-  ): void {
+  create(ev: AdapterWillAppearEvent, component: ComponentType, definition: ActionDefinition): void {
     const contextId = ev.action.id;
 
     // Don't recreate if already exists
@@ -207,10 +203,7 @@ export class RootRegistry {
 
   // ── Register an encoder column with the shared TouchStripRoot ───
 
-  private registerTouchStripColumn(
-    ev: AdapterWillAppearEvent,
-    definition: ActionDefinition,
-  ): void {
+  private registerTouchStripColumn(ev: AdapterWillAppearEvent, definition: ActionDefinition): void {
     const actionId = ev.action.id;
     const device = ev.action.device;
     const deviceId = device.id;

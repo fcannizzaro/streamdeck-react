@@ -271,9 +271,7 @@ export function physicalDevice(): StreamDeckAdapter {
           callbacks.onPropertyInspectorDidDisappear(ev.action.id);
         }
 
-        override onTitleParametersDidChange(
-          ev: TitleParametersDidChangeEvent<JsonObject>,
-        ): void {
+        override onTitleParametersDidChange(ev: TitleParametersDidChangeEvent<JsonObject>): void {
           callbacks.onTitleParametersDidChange(ev.action.id, {
             title: ev.payload.title,
             settings: ev.payload.settings,
