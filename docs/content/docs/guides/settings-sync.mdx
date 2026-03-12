@@ -6,16 +6,16 @@ description: Bi-directional settings sync and Property Inspector communication.
 ## Settings Sync Architecture
 
 ```
-┌──────────────┐       setSettings()        ┌──────────────────┐
-│  React Tree  │ ────────────────────────>   │  Stream Deck SDK │
-│  (useState)  │                             │  (persisted)     │
-│              │ <────────────────────────   │                  │
-└──────────────┘   onDidReceiveSettings      └──────────────────┘
-                                                      ↕
-                                             ┌──────────────────┐
-                                             │ Property Inspector│
-                                             │ (HTML/JS UI)     │
-                                             └──────────────────┘
+┌──────────────┐      setSettings()       ┌──────────────────┐
+│  React Tree  │ ───────────────────────> │  Stream Deck SDK │
+│  (useState)  │                          │  (persisted)     │
+│              │ <─────────────────────── │                  │
+└──────────────┘   onDidReceiveSettings   └──────────────────┘
+                                                   ↕
+                                          ┌──────────────────┐
+                                          │Property Inspector│
+                                          │   (HTML/JS UI)   │
+                                          └──────────────────┘
 ```
 
 1. **React to SDK**: calling `setSettings({ count: 5 })` updates the React state (triggers re-render) and calls `action.setSettings()` to persist.

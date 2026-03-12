@@ -65,16 +65,16 @@ Unlike standard per-action roots, there is **one TouchStripRoot per device**, sh
 
 ```
 TouchStripRoot (one per device)
-┌──────────────────────────────────────────────────┐
+┌───────────────────────────────────────────────────┐
 │ Single React tree renders at full width (800×100) │
-│                                                  │
-│  col 0      col 1      col 2      col 3          │
-│ ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐     │
-│ │ 200×100│ │ 200×100│ │ 200×100│ │ 200×100│     │
-│ └───┬────┘ └───┬────┘ └───┬────┘ └───┬────┘     │
-│     ▼          ▼          ▼          ▼           │
-│  setFeedback per encoder (sliced segments)       │
-└──────────────────────────────────────────────────┘
+│                                                   │
+│  col 0      col 1      col 2      col 3           │
+│ ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐       │
+│ │ 200×100│ │ 200×100│ │ 200×100│ │ 200×100│       │
+│ └───┬────┘ └───┬────┘ └───┬────┘ └───┬────┘       │
+│     ▼          ▼          ▼          ▼            │
+│  setFeedback per encoder (sliced segments)        │
+└───────────────────────────────────────────────────┘
 ```
 
 The rendering path performs one full-width Takumi render producing raw RGBA pixels, then each per-encoder segment is cropped and PNG-encoded independently. The buffer pool is used to avoid GC pressure from the large raw RGBA allocations.
