@@ -5,6 +5,20 @@ export type { RenderProfile } from "@/render/pipeline";
 export type { CacheStats } from "@/render/image-cache";
 export type { RenderMetrics } from "@/render/metrics";
 
+// ── Adapter ─────────────────────────────────────────────────────────
+export { physicalDevice } from "@/adapter/physical-device";
+export type {
+  StreamDeckAdapter,
+  AdapterActionHandle,
+  AdapterActionCallbacks,
+  AdapterWillAppearEvent,
+  AdapterActionDevice,
+  AdapterController,
+  AdapterCoordinates,
+  AdapterSize,
+  AdapterTriggerDescription,
+} from "@/adapter/types";
+
 // ── Hooks — Events ──────────────────────────────────────────────────
 export {
   useKeyDown,
@@ -87,6 +101,9 @@ export type {
   ManifestActions,
   EncoderLayout,
   WrapperComponent,
+  Controller,
+  Coordinates,
+  Size,
   DeviceInfo,
   ActionInfo,
   CanvasInfo,

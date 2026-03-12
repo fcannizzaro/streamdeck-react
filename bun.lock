@@ -41,7 +41,7 @@
     },
     "packages/create-streamdeck-react": {
       "name": "create-streamdeck-react",
-      "version": "0.1.8",
+      "version": "0.1.9",
       "bin": {
         "create-streamdeck-react": "./dist/index.js",
       },
@@ -55,7 +55,7 @@
     },
     "packages/devtools": {
       "name": "@fcannizzaro/streamdeck-react-devtools",
-      "version": "0.1.12",
+      "version": "0.1.13",
       "bin": {
         "streamdeck-react-devtools": "./bin/cli.mjs",
       },
@@ -79,9 +79,8 @@
     },
     "packages/streamdeck-react": {
       "name": "@fcannizzaro/streamdeck-react",
-      "version": "0.1.11",
+      "version": "0.1.12",
       "dependencies": {
-        "@elgato/streamdeck": "^2.0.2",
         "@takumi-rs/core": "^0.71.7",
         "@takumi-rs/helpers": "^0.71.7",
         "react-reconciler": "^0.33.0",
@@ -97,12 +96,14 @@
         "vite-plugin-dts": "^4.5.4",
       },
       "peerDependencies": {
+        "@elgato/streamdeck": "^2.0.2",
         "react": "^18.0.0 || ^19.0.0",
         "rollup": "^4.0.0",
         "typescript": "^5",
         "vite": "^7.0.0 || ^8.0.0",
       },
       "optionalPeers": [
+        "@elgato/streamdeck",
         "rollup",
         "vite",
       ],
@@ -386,10 +387,6 @@
     "@elgato/cli": ["@elgato/cli@1.7.1", "", { "dependencies": { "@elgato/schemas": "^0.4.1", "@humanwhocodes/momoa": "^3.0.0", "@zip.js/zip.js": "^2.7.54", "ajv": "^8.17.1", "chalk": "^5.4.1", "commander": "^13.0.0", "ejs": "^3.1.10", "find-process": "^1.4.10", "ignore": "^7.0.3", "inquirer": "^12.3.2", "is-interactive": "^2.0.0", "lodash": "^4.17.21", "log-symbols": "^7.0.0", "rage-edit": "^1.2.0", "semver": "^7.6.3", "tar": "^7.5.3" }, "bin": { "streamdeck": "bin/streamdeck.mjs", "sd": "bin/streamdeck.mjs" } }, "sha512-RJWjYi6hv/xhZpNr7TSnQ5h3n9dUr7CeCReiq1Bc6FOwsMH1hAn8MB9NQWhqGWTJZHPSubHp97K7x9+tsr2VBg=="],
 
     "@elgato/schemas": ["@elgato/schemas@0.4.13", "", {}, "sha512-96tinjod0P4OHAcosIm5X5915Y0zqfevTC9T8R1gCmSNcCEgIiDVzEdeAS54WgLrlnhQtXgrdIb2DtDol6FAjQ=="],
-
-    "@elgato/streamdeck": ["@elgato/streamdeck@2.0.2", "", { "dependencies": { "@elgato/schemas": "^0.4.10", "@elgato/utils": "^0.4.1", "ws": "^8.18.0" } }, "sha512-XKY0wEm492geMDdxEC0M7ayxXB6WQHQbnFoJl33cnq0T6QkImSrjLrCPu5jKe0TNo6suY5/0iM1TcREU+6kKQQ=="],
-
-    "@elgato/utils": ["@elgato/utils@0.4.2", "", { "dependencies": { "zod": "^3.25.24" } }, "sha512-zIMMrvTy4OeYYUD9bib7HzoeSfDHKtL1H3cHLXCZLlzov1vk1PMJ5welopaSr5n6H7VOrDkPQFR+893vYQJa1g=="],
 
     "@emnapi/core": ["@emnapi/core@1.8.1", "", { "dependencies": { "@emnapi/wasi-threads": "1.1.0", "tslib": "^2.4.0" } }, "sha512-AvT9QFpxK0Zd8J0jopedNm+w/2fIzvtPKPjqyw9jwvBaReTTqPBk9Hixaz7KbjimP+QNz605/XnjFcDAL2pqBg=="],
 
@@ -1898,8 +1895,6 @@
     "@babel/helper-create-class-features-plugin/semver": ["semver@6.3.1", "", { "bin": { "semver": "bin/semver.js" } }, "sha512-BR7VvDCVHO+q2xBEWskxS6DJE1qRnb7DxzUrogb71CWoSficBxYsiAGd+Kl0mmq/MprG9yArRkyrQxTO6XjMzA=="],
 
     "@elgato/cli/chalk": ["chalk@5.6.2", "", {}, "sha512-7NzBL0rN6fMUW+f7A6Io4h40qQlG+xGmtMxfbnH/K7TAtt8JQWVQK+6g0UXKMeVJoyV5EkkNsErQ8pVD3bLHbA=="],
-
-    "@elgato/utils/zod": ["zod@3.25.76", "", {}, "sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ=="],
 
     "@happy-dom/global-registrator/@types/node": ["@types/node@25.3.3", "", { "dependencies": { "undici-types": "~7.18.0" } }, "sha512-DpzbrH7wIcBaJibpKo9nnSQL0MTRdnWttGyE5haGwK86xgMOkFLp7vEyfQPGLOJh5wNYiJ3V9PmUMDhV9u8kkQ=="],
 

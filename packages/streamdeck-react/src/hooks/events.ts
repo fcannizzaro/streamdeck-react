@@ -9,7 +9,6 @@ import type {
   DialHints,
 } from "@/types";
 import { StreamDeckContext } from "@/context/providers";
-import type { DialAction } from "@elgato/streamdeck";
 import { useCallbackRef } from "./internal/useCallbackRef";
 
 // ── Hardware Event Hooks ────────────────────────────────────────────
@@ -78,14 +77,14 @@ export function useTouchTap(callback: (payload: TouchTapPayload) => void): void 
 export function useDialHint(hints: DialHints): void {
   const { action } = useContext(StreamDeckContext);
 
+  // The adapter action handle always has setTriggerDescription() — it
+  // no-ops internally for non-encoder surfaces.
   useEffect(() => {
-    if ("setTriggerDescription" in action) {
-      (action as DialAction).setTriggerDescription({
-        rotate: hints.rotate,
-        push: hints.press,
-        touch: hints.touch,
-        longTouch: hints.longTouch,
-      });
-    }
+    action.setTriggerDescription({
+      rotate: hints.rotate,
+      push: hints.press,
+      touch: hints.touch,
+      longTouch: hints.longTouch,
+    });
   }, [action, hints.rotate, hints.press, hints.touch, hints.longTouch]);
 }

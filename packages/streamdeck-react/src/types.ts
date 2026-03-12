@@ -1,14 +1,33 @@
 import type { ComponentType, ReactNode } from "react";
-import type {
-  Action,
-  Controller,
-  Coordinates,
-  DeviceType,
-  DialAction,
-  KeyAction,
-  Size,
-} from "@elgato/streamdeck";
 import type { JsonObject, JsonValue } from "@elgato/utils";
+import type { AdapterActionHandle, StreamDeckAdapter } from "@/adapter/types";
+
+// ── Local Type Aliases ──────────────────────────────────────────────
+//
+// These replace the SDK imports (Controller, Coordinates, DeviceType,
+// Size) with library-owned types.  This decouples the public API from
+// @elgato/streamdeck while maintaining the same shapes.
+//
+// Controller and Coordinates are re-exported as type aliases so that
+// existing consumer code that imports them continues to work.
+// DeviceType is replaced by plain `number` — the library only uses it
+// as a numeric lookup key in the KEY_SIZES table (registry.ts), never
+// as named enum members.
+
+/** Controller surface type. */
+export type Controller = "Keypad" | "Encoder";
+
+/** Grid coordinates for a key or encoder on a device. */
+export interface Coordinates {
+  column: number;
+  row: number;
+}
+
+/** Device grid size (number of key columns and rows). */
+export interface Size {
+  columns: number;
+  rows: number;
+}
 
 // ── Central Type Definitions ────────────────────────────────────────
 //
@@ -114,6 +133,8 @@ export type EncoderLayout = string | TouchStripLayout;
 // ── Plugin Configuration ────────────────────────────────────────────
 
 export interface PluginConfig {
+  /** Stream Deck adapter. Defaults to physicalDevice() (Elgato SDK). */
+  adapter?: StreamDeckAdapter;
   fonts: FontConfig[];
   actions: ActionDefinition[];
   wrapper?: WrapperComponent;
@@ -242,7 +263,8 @@ export interface ActionDefinition<S extends JsonObject = JsonObject> {
 
 export interface DeviceInfo {
   id: string;
-  type: DeviceType;
+  /** Numeric device type matching Elgato DeviceType enum values (e.g. 7 = StreamDeckPlus). */
+  type: number;
   size: Size;
   name: string;
 }
@@ -266,10 +288,14 @@ export interface CanvasInfo {
 }
 
 // ── StreamDeck Access ───────────────────────────────────────────────
+//
+// Provided via React context to hooks (useStreamDeck, useOpenUrl, etc.).
+// Previously held raw SDK types; now uses adapter interfaces so that
+// alternative backends (web simulator, test harness) work transparently.
 
 export interface StreamDeckAccess {
-  action: Action | DialAction | KeyAction;
-  sdk: typeof import("@elgato/streamdeck").default;
+  action: AdapterActionHandle;
+  adapter: StreamDeckAdapter;
 }
 
 // ── Event Payloads ──────────────────────────────────────────────────

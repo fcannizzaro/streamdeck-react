@@ -18,30 +18,31 @@ import type {
   StreamDeckAccess,
   WillAppearPayload,
 } from "@/types";
+import type { StreamDeckAdapter } from "@/adapter/types";
 
 // ── Helpers ─────────────────────────────────────────────────────────
 
-function createFakeSdk() {
+function createFakeAdapter() {
   return {
-    system: {
-      openUrl: async (_url: string) => {},
-    },
-    profiles: {
-      switchToProfile: async () => {},
-    },
-    ui: {
-      sendToPropertyInspector: async () => {},
-    },
-  } as unknown as StreamDeckAccess["sdk"];
+    pluginUUID: "com.example.test",
+    connect: async () => {},
+    getGlobalSettings: async () => ({}),
+    setGlobalSettings: async () => {},
+    onGlobalSettingsChanged: () => {},
+    registerAction: () => {},
+    openUrl: async (_url: string) => {},
+    switchToProfile: async () => {},
+    sendToPropertyInspector: async () => {},
+  } as unknown as StreamDeckAdapter;
 }
 
 function createRegistry(
-  fakeSdk: StreamDeckAccess["sdk"],
+  fakeAdapter: StreamDeckAdapter,
   onGlobalSettingsChange?: (settings: JsonObject) => Promise<void>,
 ) {
   return new RootRegistry(
     createRenderConfig(),
-    fakeSdk,
+    fakeAdapter,
     onGlobalSettingsChange ?? (async () => {}),
   );
 }
@@ -85,29 +86,29 @@ function createWillAppearEvent(overrides?: { settings?: JsonObject; actionId?: s
 // ── Tests ───────────────────────────────────────────────────────────
 
 describe("ReactRoot integration", () => {
-  test("provides sdk context and replays willAppear to hooks", async () => {
+  test("provides adapter context and replays willAppear to hooks", async () => {
     const openUrlCalls: string[] = [];
     let openUrlHook: ((url: string) => Promise<void>) | undefined;
-    let sdkFromHook: StreamDeckAccess["sdk"] | undefined;
+    let adapterFromHook: StreamDeckAccess["adapter"] | undefined;
     let willAppearPayload: WillAppearPayload | undefined;
 
-    const fakeSdk = {
-      system: {
-        openUrl: async (url: string) => {
-          openUrlCalls.push(url);
-        },
+    const fakeAdapter = {
+      pluginUUID: "com.example.test",
+      connect: async () => {},
+      getGlobalSettings: async () => ({}),
+      setGlobalSettings: async () => {},
+      onGlobalSettingsChanged: () => {},
+      registerAction: () => {},
+      openUrl: async (url: string) => {
+        openUrlCalls.push(url);
       },
-      profiles: {
-        switchToProfile: async () => {},
-      },
-      ui: {
-        sendToPropertyInspector: async () => {},
-      },
-    } as unknown as StreamDeckAccess["sdk"];
+      switchToProfile: async () => {},
+      sendToPropertyInspector: async () => {},
+    } as unknown as StreamDeckAdapter;
 
     function TestAction() {
       openUrlHook = useOpenUrl();
-      sdkFromHook = useStreamDeck().sdk;
+      adapterFromHook = useStreamDeck().adapter;
 
       useWillAppear((payload) => {
         willAppearPayload = payload;
@@ -122,7 +123,7 @@ describe("ReactRoot integration", () => {
       defaultSettings: {},
     };
 
-    const registry = new RootRegistry(createRenderConfig(), fakeSdk, async () => {});
+    const registry = new RootRegistry(createRenderConfig(), fakeAdapter, async () => {});
 
     await act(async () => {
       registry.create(
@@ -151,7 +152,7 @@ describe("ReactRoot integration", () => {
       await sleep(20);
     });
 
-    expect(sdkFromHook).toBe(fakeSdk);
+    expect(adapterFromHook).toBe(fakeAdapter);
     expect(willAppearPayload).toEqual({
       settings: { enabled: true },
       controller: "Keypad",
@@ -169,7 +170,7 @@ describe("ReactRoot integration", () => {
 
   test("StreamDeckContext value is referentially stable across settings changes", async () => {
     const sdkRefs: StreamDeckAccess[] = [];
-    const fakeSdk = createFakeSdk();
+    const fakeAdapter = createFakeAdapter();
 
     function TestAction() {
       const sdkValue = useStreamDeck();
@@ -184,7 +185,7 @@ describe("ReactRoot integration", () => {
       defaultSettings: {},
     };
 
-    const registry = createRegistry(fakeSdk);
+    const registry = createRegistry(fakeAdapter);
 
     await act(async () => {
       registry.create(createWillAppearEvent(), TestAction, definition);
@@ -216,7 +217,7 @@ describe("ReactRoot integration", () => {
   test("settings change does not create new GlobalSettingsContext value", async () => {
     type ContextValue = { settings: JsonObject; setSettings: unknown };
     const globalSettingsRefs: ContextValue[] = [];
-    const fakeSdk = createFakeSdk();
+    const fakeAdapter = createFakeAdapter();
 
     function TestAction() {
       const [globalSettings, setGlobalSettings] = useGlobalSettings();
@@ -236,7 +237,7 @@ describe("ReactRoot integration", () => {
       defaultSettings: {},
     };
 
-    const registry = createRegistry(fakeSdk);
+    const registry = createRegistry(fakeAdapter);
 
     await act(async () => {
       registry.create(createWillAppearEvent({ settings: { count: 0 } }), TestAction, definition);
@@ -264,7 +265,7 @@ describe("ReactRoot integration", () => {
 
   test("settings are updated correctly after external updateSettings", async () => {
     let currentSettings: JsonObject = {};
-    const fakeSdk = createFakeSdk();
+    const fakeAdapter = createFakeAdapter();
 
     function TestAction() {
       const [settings] = useSettings();
@@ -278,7 +279,7 @@ describe("ReactRoot integration", () => {
       defaultSettings: {},
     };
 
-    const registry = createRegistry(fakeSdk);
+    const registry = createRegistry(fakeAdapter);
 
     await act(async () => {
       registry.create(createWillAppearEvent({ settings: { volume: 50 } }), TestAction, definition);
@@ -301,7 +302,7 @@ describe("ReactRoot integration", () => {
   });
 
   test("external updateSettings with identical values does not rerender settings consumers", async () => {
-    const fakeSdk = createFakeSdk();
+    const fakeAdapter = createFakeAdapter();
     let renderCount = 0;
 
     function TestAction() {
@@ -316,7 +317,7 @@ describe("ReactRoot integration", () => {
       defaultSettings: {},
     };
 
-    const registry = createRegistry(fakeSdk);
+    const registry = createRegistry(fakeAdapter);
 
     await act(async () => {
       registry.create(createWillAppearEvent({ settings: { volume: 50 } }), TestAction, definition);
@@ -338,7 +339,7 @@ describe("ReactRoot integration", () => {
   });
 
   test("setSettings persists identical values without rerendering", async () => {
-    const fakeSdk = createFakeSdk();
+    const fakeAdapter = createFakeAdapter();
     let renderCount = 0;
     let persistCalls = 0;
     let setSettingsHook: ((partial: JsonObject) => void) | undefined;
@@ -356,7 +357,7 @@ describe("ReactRoot integration", () => {
       defaultSettings: {},
     };
 
-    const registry = new RootRegistry(createRenderConfig(), fakeSdk, async () => {});
+    const registry = new RootRegistry(createRenderConfig(), fakeAdapter, async () => {});
 
     const event = {
       action: {
@@ -405,7 +406,7 @@ describe("ReactRoot integration", () => {
     let dialRotateReceived = false;
     let willAppearPayload: WillAppearPayload | undefined;
 
-    const fakeSdk = createFakeSdk();
+    const fakeAdapter = createFakeAdapter();
 
     function DialTestAction() {
       useWillAppear((payload) => {
@@ -425,7 +426,7 @@ describe("ReactRoot integration", () => {
       defaultSettings: {},
     };
 
-    const registry = createRegistry(fakeSdk);
+    const registry = createRegistry(fakeAdapter);
 
     const encoderEvent = {
       action: {
@@ -497,7 +498,7 @@ describe("ReactRoot integration", () => {
 
   test("encoder root uses custom dialLayout when provided", async () => {
     const feedbackLayoutCalls: EncoderLayout[] = [];
-    const fakeSdk = createFakeSdk();
+    const fakeAdapter = createFakeAdapter();
 
     function DialTestAction() {
       return null;
@@ -510,7 +511,7 @@ describe("ReactRoot integration", () => {
       defaultSettings: {},
     };
 
-    const registry = createRegistry(fakeSdk);
+    const registry = createRegistry(fakeAdapter);
 
     const encoderEvent = {
       action: {
@@ -549,7 +550,7 @@ describe("ReactRoot integration", () => {
   });
 
   test("key root debounce clears a pending timer before scheduling the next flush", async () => {
-    const fakeSdk = createFakeSdk();
+    const fakeAdapter = createFakeAdapter();
     const originalClearTimeout = globalThis.clearTimeout;
     let clearCalls = 0;
     let root!: ReactRoot;
@@ -582,8 +583,14 @@ describe("ReactRoot integration", () => {
           {
             setSettings: async (_settings: JsonObject) => {},
             setImage: async (_dataUri: string) => {},
+            setTitle: async () => {},
+            showOk: async () => {},
+            showAlert: async () => {},
+            setFeedback: async () => {},
+            setFeedbackLayout: async () => {},
+            setTriggerDescription: async () => {},
           } as never,
-          fakeSdk,
+          fakeAdapter,
           createRenderConfig(),
           async () => {},
           async () => {},
@@ -618,7 +625,7 @@ describe("ReactRoot integration", () => {
 
   test("encoder root uses object dialLayout when provided", async () => {
     const feedbackLayoutCalls: EncoderLayout[] = [];
-    const fakeSdk = createFakeSdk();
+    const fakeAdapter = createFakeAdapter();
 
     function DialTestAction() {
       return null;
@@ -642,7 +649,7 @@ describe("ReactRoot integration", () => {
       defaultSettings: {},
     };
 
-    const registry = createRegistry(fakeSdk);
+    const registry = createRegistry(fakeAdapter);
 
     const encoderEvent = {
       action: {
@@ -682,7 +689,7 @@ describe("ReactRoot integration", () => {
 
   test("Galleon 100 SD (type 12) uses 144x144 key size", async () => {
     let canvasFromHook: { width: number; height: number; type: string } | undefined;
-    const fakeSdk = createFakeSdk();
+    const fakeAdapter = createFakeAdapter();
 
     function TestAction() {
       canvasFromHook = useCanvas();
@@ -695,7 +702,7 @@ describe("ReactRoot integration", () => {
       defaultSettings: {},
     };
 
-    const registry = createRegistry(fakeSdk);
+    const registry = createRegistry(fakeAdapter);
 
     const event = {
       action: {
@@ -730,7 +737,7 @@ describe("ReactRoot integration", () => {
 
   test("Stream Deck + XL (type 13) uses 144x144 key size", async () => {
     let canvasFromHook: { width: number; height: number; type: string } | undefined;
-    const fakeSdk = createFakeSdk();
+    const fakeAdapter = createFakeAdapter();
 
     function TestAction() {
       canvasFromHook = useCanvas();
@@ -743,7 +750,7 @@ describe("ReactRoot integration", () => {
       defaultSettings: {},
     };
 
-    const registry = createRegistry(fakeSdk);
+    const registry = createRegistry(fakeAdapter);
 
     const event = {
       action: {
@@ -779,7 +786,7 @@ describe("ReactRoot integration", () => {
   test("Stream Deck + XL encoder uses 200x100 dial size", async () => {
     const feedbackLayoutCalls: EncoderLayout[] = [];
     let canvasFromHook: { width: number; height: number; type: string } | undefined;
-    const fakeSdk = createFakeSdk();
+    const fakeAdapter = createFakeAdapter();
 
     function DialTestAction() {
       canvasFromHook = useCanvas();
@@ -792,7 +799,7 @@ describe("ReactRoot integration", () => {
       defaultSettings: {},
     };
 
-    const registry = createRegistry(fakeSdk);
+    const registry = createRegistry(fakeAdapter);
 
     const encoderEvent = {
       action: {

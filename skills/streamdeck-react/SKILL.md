@@ -17,21 +17,22 @@ Use when the user is:
 - Creating or modifying a Stream Deck plugin that uses `@fcannizzaro/streamdeck-react`
 - Asking about rendering React components on Stream Deck keys or dials, or handling touch input
 - Working with `@elgato/streamdeck` SDK in a React-based plugin
+- Implementing a custom adapter for web simulation or testing
 - Setting up Rollup bundling for a Stream Deck plugin with native Takumi bindings
 - Scaffolding a brand new plugin and needs a sensible project template or starter example
 
 ## Architecture (5-Stage Pipeline)
 
 ```
-React Tree --> Reconciler --> VNode Tree --> Takumi --> setImage/setFeedback
-(JSX+Hooks)   (host config)   (plain JS)   (JSX->PNG)   (hardware)
+React Tree --> Reconciler --> VNode Tree --> Takumi --> Adapter --> setImage/setFeedback
+(JSX+Hooks)   (host config)   (plain JS)   (JSX->PNG)  (bridge)    (hardware/simulator)
 ```
 
 1. Your components render standard React with hooks and state.
 2. A custom `react-reconciler` manages the fiber tree.
 3. On commit, host nodes form a virtual tree of `{ type, props, children }` with back-pointers for dirty propagation.
 4. The Takumi renderer converts the tree to a PNG/WebP image buffer via a direct VNode-to-Takumi bypass (skips createElement + fromJsx).
-5. The image is pushed to Stream Deck via `action.setImage()` or `action.setFeedback()`.
+5. The adapter pushes the image to the backend via `action.setImage()` or `action.setFeedback()`. The default `physicalDevice()` adapter wraps the Elgato SDK; custom adapters handle it differently.
 
 ### 4-Phase Skip Hierarchy
 
@@ -62,6 +63,16 @@ The bundler plugins (Rollup and Vite) auto-generate `src/streamdeck-env.d.ts` fr
 - Skips write if content unchanged (avoids unnecessary recompilation in watch mode)
 
 Each visible action instance on the hardware gets its own isolated React root. No shared state between roots unless you use an external store (Zustand, Jotai) or the wrapper API.
+
+## Adapter Layer
+
+The adapter layer abstracts the `@elgato/streamdeck` SDK behind a pluggable `StreamDeckAdapter` interface. This makes the SDK an optional peer dependency and enables alternative backends (web simulator, test harness).
+
+- `physicalDevice()` is the default adapter wrapping the real Elgato SDK. It is the **only** module that value-imports from `@elgato/streamdeck`.
+- Pass a custom adapter via `createPlugin({ adapter: myAdapter() })`.
+- All hooks (`useOpenUrl`, `useSwitchProfile`, `useSendToPI`, `useShowAlert`, `useShowOk`, `useTitle`, `useDialHint`) route through the adapter.
+- `AdapterActionHandle` is a flat interface unifying Key/Dial/Action. Inapplicable methods (e.g., `setImage` on dial) no-op.
+- See [references/adapter.md](references/adapter.md) for full interface definitions and custom adapter example.
 
 ## Project Setup
 
@@ -366,7 +377,7 @@ If your `package.json` has a `dev` script configured, you can also just run `bun
 | Settings  | `useSettings`, `useGlobalSettings`          | Bidirectional settings sync                               |
 | Lifecycle | `useWillAppear`, `useWillDisappear`         | Action mount/unmount                                      |
 | Context   | `useDevice`, `useAction`, `useCanvas`       | Device/action/canvas metadata                             |
-| Context   | `useStreamDeck`                             | Raw SDK escape hatch                                      |
+| Context   | `useStreamDeck`                             | Adapter and action handle                                 |
 | SDK       | `useOpenUrl`, `useSwitchProfile`            | System actions                                            |
 | SDK       | `useSendToPI`, `usePropertyInspector`       | PI communication                                          |
 | SDK       | `useShowAlert`, `useShowOk`, `useTitle`     | Key overlays                                              |
@@ -528,6 +539,7 @@ const plugin = createPlugin({
 ## Detailed References
 
 - [references/api-surface.md](references/api-surface.md) -- Full public API table
+- [references/adapter.md](references/adapter.md) -- Adapter layer interfaces and custom adapter guide
 - [references/plugin-setup.md](references/plugin-setup.md) -- `createPlugin` and `defineAction` details
 - [references/hooks.md](references/hooks.md) -- All hooks with signatures and payloads
 - [references/components.md](references/components.md) -- Component props tables

@@ -21,6 +21,7 @@ await plugin.connect();
 
 ```ts
 interface PluginConfig {
+  adapter?: StreamDeckAdapter; // Default: physicalDevice()
   fonts: FontConfig[];
   actions: ActionDefinition[];
   wrapper?: WrapperComponent;
@@ -38,6 +39,7 @@ interface PluginConfig {
 
 | Field                     | Required | Description                                                                                  |
 | ------------------------- | -------- | -------------------------------------------------------------------------------------------- |
+| `adapter`                 | No       | Stream Deck adapter. Defaults to `physicalDevice()` (Elgato SDK). See [adapter reference](adapter.md). |
 | `fonts`                   | Yes      | At least one font file. See FontConfig below.                                                |
 | `actions`                 | Yes      | Array of action definitions from `defineAction()`.                                           |
 | `wrapper`                 | No       | Component that wraps ALL action roots. Use for global providers.                             |
@@ -65,7 +67,7 @@ const plugin = createPlugin({
 
 ### connect()
 
-Must be called after `createPlugin()` and must be the last call in the entry file. It calls `streamDeck.connect()` to establish the WebSocket connection with the Stream Deck software.
+Must be called after `createPlugin()` and must be the last call in the entry file. It calls `adapter.connect()` to establish the connection with the Stream Deck backend (or custom adapter).
 
 Action registration, font initialization, renderer setup, and global settings loading all happen during the `createPlugin()` call itself -- `connect()` only opens the connection.
 
