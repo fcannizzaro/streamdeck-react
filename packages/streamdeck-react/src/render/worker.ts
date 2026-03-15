@@ -322,12 +322,19 @@ async function handleMessage(msg: WorkerMessage): Promise<void> {
         };
 
         // 2. Render to raster image
-        const buffer = await renderer.render(rootNode, {
-          width: msg.width,
-          height: msg.height,
-          format: msg.format as import("@takumi-rs/core").OutputFormat,
-          devicePixelRatio: msg.dpr,
-        });
+        // Cast: TakumiNode is a local structural duplicate of the
+        // @takumi-rs/helpers Node union — the shapes match at runtime
+        // but TypeScript can't verify the discriminated union members
+        // from the loose `type: string` index signature.
+        const buffer = await renderer.render(
+          rootNode as unknown as import("@takumi-rs/helpers").Node,
+          {
+            width: msg.width,
+            height: msg.height,
+            format: msg.format as import("@takumi-rs/core").OutputFormat,
+            devicePixelRatio: msg.dpr,
+          },
+        );
 
         // Transfer the buffer (zero-copy) back to the main thread
         const ab =

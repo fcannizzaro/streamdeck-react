@@ -52,4 +52,9 @@ function SpringBounce() {
 export const springBounceAction = defineAction({
   uuid: "com.example.react-animation.spring-bounce",
   key: SpringBounce,
+  info: {
+    name: "Spring Bounce",
+    icon: "imgs/actions/spring",
+    tooltip: "Spring physics: wobbly scale on press with hue shift.",
+  },
 });

@@ -33,12 +33,17 @@ export default {
       presets: ["@babel/preset-typescript", ["@babel/preset-react", { runtime: "automatic" }]],
     }),
     streamDeckReact({
-      targets: [
-        {
-          arch: "arm64",
-          platform: "darwin",
-        },
-      ],
+      targets: [{ arch: "arm64", platform: "darwin" }],
+      manifest: {
+        uuid: "com.example.snake",
+        name: "React Snake TouchStrip",
+        author: "Francesco Saverio Cannizzaro",
+        description:
+          "Snake game demo: classic snake rendered on the full Stream Deck+ touch strip with dial controls.",
+        icon: "imgs/plugin-icon",
+        version: "0.0.0.1",
+        nodejs: { version: "24", debug: "--inspect=127.0.0.1:8095" },
+      },
     }),
   ],
 };

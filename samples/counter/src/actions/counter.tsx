@@ -64,4 +64,9 @@ export const counterAction = defineAction<CounterSettings>({
   uuid: "com.example.react-counter.counter",
   key: CounterKey,
   defaultSettings: { count: 0 },
+  info: {
+    name: "Counter",
+    icon: "imgs/actions/counter",
+    tooltip: "A simple counter that increments on each key press.",
+  },
 });

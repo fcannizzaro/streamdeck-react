@@ -186,33 +186,19 @@ Every action root is automatically wrapped with providers:
 | `EventBusContext`       | Stable reference, never changes                                 |
 | `StreamDeckContext`     | Stable reference, never changes                                 |
 
-## Manifest Codegen
+## Manifest Generation
 
-The bundler plugins (both Rollup and Vite) include a build-time codegen step that reads your `manifest.json` and generates a TypeScript declaration file for compile-time type safety.
+The bundler plugins (both Rollup and Vite) auto-generate `manifest.json` at build time from two sources:
+
+1. **Plugin metadata** from the `manifest` option in the bundler plugin config.
+2. **Action metadata** auto-extracted from `defineAction({ info })` calls via AST analysis during the `moduleParsed` hook.
 
 ```
-manifest.json → parseManifest() → generateManifestDts() → src/streamdeck-env.d.ts
+defineAction({ uuid, key, info: { name, icon } })
+         ↓  build time
+    moduleParsed → parse AST → extract info
+         ↓
+    writeBundle → merge plugin info + extracted actions → validate → manifest.json
 ```
 
-The generated file augments the `ManifestActions` interface:
-
-```ts
-// src/streamdeck-env.d.ts (auto-generated, do not edit)
-declare module "@fcannizzaro/streamdeck-react" {
-  interface ManifestActions {
-    "com.example.counter": {
-      controllers: readonly ["Keypad"];
-    };
-    "com.example.dial": {
-      controllers: readonly ["Encoder"];
-    };
-  }
-}
-```
-
-This enables two features:
-
-1. **Type-safe UUIDs** -- the `uuid` field in `defineAction()` becomes a union of manifest UUIDs. Typos are caught at compile time.
-2. **Controller-aware props** -- if an action declares `"Controllers": ["Keypad"]`, then `key` is required. If `"Controllers": ["Encoder"]`, at least one of `dial` or `touchStrip` must be provided.
-
-The codegen auto-detects the `*.sdPlugin/manifest.json` in your project root. It skips the write if the generated content is unchanged, avoiding unnecessary TypeScript recompilation and HMR triggers during watch mode. Set `manifest: false` in the bundler plugin options to disable codegen.
+No hand-written `manifest.json` or codegen declaration files are needed. Action UUIDs must start with the plugin UUID prefix (e.g., `"com.example.plugin."`), which is validated at build time.

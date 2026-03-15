@@ -45,4 +45,9 @@ export const toggleAction = defineAction<ToggleSettings>({
   uuid: "com.example.react-counter.toggle",
   key: ToggleKey,
   defaultSettings: { mode: "off" },
+  info: {
+    name: "Toggle",
+    icon: "imgs/actions/toggle",
+    tooltip: "Cycles through Off, Auto, and On modes.",
+  },
 });

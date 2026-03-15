@@ -33,6 +33,10 @@ function CounterKey() {
 export const counterAction = defineAction({
   uuid: "com.example.plugin.counter",
   key: CounterKey,
+  info: {
+    name: "Counter",
+    icon: "imgs/actions/counter",
+  },
 });
 ```
 
@@ -47,12 +51,13 @@ interface ActionConfig<S extends JsonObject = JsonObject> {
   dialLayout?: EncoderLayout;
   wrapper?: WrapperComponent;
   defaultSettings?: Partial<S>;
+  info?: ActionManifestInfo;
 }
 ```
 
 ### `uuid` (required)
 
-The action UUID. Must match the UUID declared in your `manifest.json`.
+The action UUID. Must start with the plugin UUID prefix (e.g., `"com.example.plugin."`).
 
 ### `key`
 
@@ -101,6 +106,17 @@ export const volumeAction = defineAction<VolumeSettings>({
   key: VolumeKey, // Rendered on a key
   dial: VolumeDial, // Rendered on the dial display
   defaultSettings: { volume: 50, muted: false },
+  info: {
+    name: "Volume",
+    icon: "imgs/actions/volume",
+    encoder: {
+      layout: "$A0",
+      triggerDescription: {
+        rotate: "Adjust volume",
+        push: "Mute / Unmute",
+      },
+    },
+  },
 });
 ```
 
@@ -121,6 +137,59 @@ This wrapper is nested inside the global plugin wrapper (if any).
 ### `defaultSettings`
 
 Default settings for new instances. These are shallow-merged with the settings stored in the Stream Deck.
+
+### `info`
+
+Action manifest metadata used by the bundler plugin to auto-generate `manifest.json`. Required if you want the action included in the generated manifest.
+
+At minimum, provide `name` and `icon`:
+
+```tsx
+export const counterAction = defineAction({
+  uuid: "com.example.plugin.counter",
+  key: CounterKey,
+  info: {
+    name: "Counter",
+    icon: "imgs/actions/counter",
+  },
+});
+```
+
+For encoder actions, include the `encoder` block:
+
+```tsx
+export const volumeAction = defineAction({
+  uuid: "com.example.plugin.volume",
+  dial: VolumeDial,
+  info: {
+    name: "Volume",
+    icon: "imgs/actions/volume",
+    encoder: {
+      layout: "$A0",
+      triggerDescription: {
+        rotate: "Adjust volume",
+        push: "Mute / Unmute",
+      },
+    },
+  },
+});
+```
+
+To exclude an action from the manifest while keeping it functional at runtime, set `disabled: true`:
+
+```tsx
+export const debugAction = defineAction({
+  uuid: "com.example.plugin.debug",
+  key: DebugKey,
+  info: {
+    name: "Debug",
+    icon: "imgs/actions/debug",
+    disabled: true, // not included in manifest.json
+  },
+});
+```
+
+See [Manifest Generation](/plugin-setup/manifest) for the full `ActionManifestInfo` reference and how the auto-extraction pipeline works.
 
 ## Typed Settings
 

@@ -49,6 +49,10 @@ function CounterKey() {
 const counterAction = defineAction({
   uuid: "com.example.react-counter.counter",
   key: CounterKey,
+  info: {
+    name: "Counter",
+    icon: "imgs/actions/counter",
+  },
 });
 
 const inter = await googleFont("Inter");
@@ -64,9 +68,10 @@ await plugin.connect();
 ## Core Workflow
 
 1. Create a React component for a key or encoder surface.
-2. Register it with `defineAction()` using the UUID from your `manifest.json`.
+2. Register it with `defineAction()` using a UUID and `info` for manifest generation.
 3. Pass your actions and font files to `createPlugin()`.
 4. Call `await plugin.connect()` in your plugin entry file.
+5. The bundler plugin auto-generates `manifest.json` from your code at build time.
 
 ## What You Can Build
 

@@ -39,6 +39,14 @@ export default {
     esbuild({ target: "node20", jsx: "automatic" }),
     streamDeckReact({
       targets: [{ platform: "darwin", arch: "arm64" }],
+      manifest: {
+        uuid: "com.example.my-plugin",
+        name: "My Plugin",
+        author: "Your Name",
+        description: "A Stream Deck plugin.",
+        icon: "imgs/plugin-icon",
+        version: "0.0.0.1",
+      },
     }),
   ],
 };
@@ -82,6 +90,14 @@ export default {
     }),
     streamDeckReact({
       targets: [{ platform: "darwin", arch: "arm64" }],
+      manifest: {
+        uuid: "com.example.my-plugin",
+        name: "My Plugin",
+        author: "Your Name",
+        description: "A Stream Deck plugin.",
+        icon: "imgs/plugin-icon",
+        version: "0.0.0.1",
+      },
     }),
   ],
 };
@@ -115,7 +131,11 @@ For production builds, always pass explicit `targets`. In watch mode, `streamDec
 
 ### streamDeckReact()
 
-Copies the platform-specific `@takumi-rs/core` native binding (`.node` file) into the Rollup output directory. This is **required** when using the default `"native-binding"` backend -- without it, the plugin will crash on startup because the Takumi renderer can't find its native binary. When `takumi: "wasm"` is set, native binary copying is skipped entirely.
+Handles two build-time concerns:
+
+1. **Native bindings**: Copies the platform-specific `@takumi-rs/core` native binding (`.node` file) into the output directory. Required when using the default `"native-binding"` backend. When `takumi: "wasm"` is set, this is skipped.
+
+2. **Manifest generation**: Auto-generates `manifest.json` from the `manifest` option (plugin info) and `defineAction({ info })` calls (action info extracted via AST analysis at build time).
 
 ```ts
 type StreamDeckTargetOptions = {
@@ -123,13 +143,34 @@ type StreamDeckTargetOptions = {
     platform: "darwin" | "win32";
     arch: "arm64" | "x64";
   }>;
-  /**
-   * Takumi renderer backend. When `"wasm"`, native `.node` binding
-   * copying is skipped entirely during the build.
-   * @default "native-binding"
-   */
   takumi?: "native-binding" | "wasm";
+  manifest?: PluginManifestInfo;
 };
+
+interface PluginManifestInfo {
+  uuid: string;          // Plugin UUID (reverse-DNS)
+  name: string;          // Plugin display name
+  author: string;        // Author name
+  description: string;   // Plugin description
+  icon: string;          // Plugin icon path (extension omitted)
+  version: string;       // Plugin version (e.g. "1.0.0.0")
+  // Optional overrides (all have sensible defaults):
+  category?: string;       // Default: same as name
+  categoryIcon?: string;   // Default: same as icon
+  url?: string;
+  supportUrl?: string;
+  codePath?: string;       // Default: derived from bundler output
+  os?: [ManifestOSInfo, ManifestOSInfo?];  // Default: mac 13+ & windows 10+
+  nodejs?: ManifestNodejsInfo;  // Default: { version: "24" }
+  sdkVersion?: 2 | 3;     // Default: 2
+  software?: { minimumVersion: string };  // Default: "7.1"
+  profiles?: ManifestProfileInfo[];
+  applicationsToMonitor?: { mac?: string[]; windows?: string[] };
+  defaultWindowSize?: [number, number];
+  propertyInspectorPath?: string;
+  codePathMac?: string;
+  codePathWin?: string;
+}
 ```
 
 The plugin runs during `writeBundle` and:

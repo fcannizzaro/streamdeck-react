@@ -28,4 +28,9 @@ function IncrementAtomKey() {
 export const incrementAction = defineAction({
   uuid: "com.example.react-jotai.increment",
   key: IncrementAtomKey,
+  info: {
+    name: "Increment Atom",
+    icon: "imgs/actions/increment",
+    tooltip: "Writes to a shared Jotai atom.",
+  },
 });

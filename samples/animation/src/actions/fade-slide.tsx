@@ -47,4 +47,9 @@ function FadeSlide() {
 export const fadeSlideAction = defineAction({
   uuid: "com.example.react-animation.fade-slide",
   key: FadeSlide,
+  info: {
+    name: "Fade Slide",
+    icon: "imgs/actions/fade",
+    tooltip: "Tween animation: cycles through labels with eased transitions.",
+  },
 });

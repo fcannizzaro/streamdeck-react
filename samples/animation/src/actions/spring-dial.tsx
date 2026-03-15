@@ -102,4 +102,17 @@ function SpringDial() {
 export const springDialAction = defineAction({
   uuid: "com.example.react-animation.spring-dial",
   touchStrip: SpringDial,
+  info: {
+    name: "Spring Dial",
+    icon: "imgs/actions/spring",
+    tooltip: "Spring-animated ball on the touch strip controlled by dial.",
+    encoder: {
+      layout: "layouts/touchstrip.json",
+      triggerDescription: {
+        rotate: "Move ball",
+        push: "Toggle size",
+        touch: "Set position",
+      },
+    },
+  },
 });

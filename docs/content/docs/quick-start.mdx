@@ -9,9 +9,7 @@ If you want the scaffold generated for you, start with [`create-streamdeck-react
 
 ## 1. Create a Plugin Project
 
-Start with a normal Stream Deck plugin folder that contains a `manifest.json` and a plugin entry file.
-
-Your action UUID in `manifest.json` must match the UUID you register in `defineAction()`.
+Start with a normal Stream Deck plugin folder structure. You don't need to write a `manifest.json` by hand — it's auto-generated at build time from your `defineAction({ info })` calls and the bundler plugin's `manifest` option.
 
 ## 2. Install Dependencies
 
@@ -91,6 +89,10 @@ function CounterKey() {
 export const counterAction = defineAction({
   uuid: "com.example.react-counter.counter",
   key: CounterKey,
+  info: {
+    name: "Counter",
+    icon: "imgs/actions/counter",
+  },
 });
 ```
 
@@ -141,6 +143,14 @@ export default {
     esbuild({ target: "node20", jsx: "automatic" }),
     streamDeckReact({
       targets: [{ platform: "darwin", arch: "arm64" }],
+      manifest: {
+        uuid: "com.example.react-counter",
+        name: "React Counter",
+        author: "Your Name",
+        description: "A simple counter plugin.",
+        icon: "imgs/plugin-icon",
+        version: "0.0.0.1",
+      },
     }),
   ],
 };
@@ -167,6 +177,14 @@ export default defineConfig({
     streamDeckReact({
       uuid: "com.example.react-counter",
       targets: [{ platform: "darwin", arch: "arm64" }],
+      manifest: {
+        uuid: "com.example.react-counter",
+        name: "React Counter",
+        author: "Your Name",
+        description: "A simple counter plugin.",
+        icon: "imgs/plugin-icon",
+        version: "0.0.0.1",
+      },
     }),
   ],
   build: {
@@ -207,12 +225,13 @@ If your `package.json` has a `dev` script configured, you can also just run `bun
 
 ## What's Happening
 
-1. `defineAction()` maps your manifest UUID to a React component.
+1. `defineAction()` maps a UUID to a React component and provides `info` for manifest generation.
 2. `googleFont()` downloads the font from Google Fonts (cached to disk after the first run).
 3. `createPlugin()` prepares fonts, registers actions, and creates the shared runtime.
 4. `plugin.connect()` attaches to the Stream Deck SDK.
-5. When the action appears, `@fcannizzaro/streamdeck-react` mounts a React root for that hardware instance.
-6. State changes trigger re-renders, and the renderer pushes a new image to the device.
+5. During the build, the bundler plugin extracts `info` from each `defineAction()` call and generates `manifest.json` automatically.
+6. When the action appears, `@fcannizzaro/streamdeck-react` mounts a React root for that hardware instance.
+7. State changes trigger re-renders, and the renderer pushes a new image to the device.
 
 ## Next Steps
 

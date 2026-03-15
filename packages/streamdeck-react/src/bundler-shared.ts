@@ -1,6 +1,6 @@
 import { createRequire } from "node:module";
 import { copyFileSync, existsSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, relative } from "node:path";
 
 // ── Shared Build Infrastructure ─────────────────────────────────────
 //
@@ -312,4 +312,69 @@ export function copyNativeBindings(
       `[@fcannizzaro/streamdeck-react] Failed to copy native binding: ${String(err)}`,
     );
   }
+}
+
+// ── Manifest Path Resolution ────────────────────────────────────────
+//
+// The manifest.json must be written to the .sdPlugin directory root,
+// while the bundler output goes to a subdirectory (e.g. bin/).
+//
+// Output structure:
+//
+//   com.example.my-plugin.sdPlugin/
+//     manifest.json       ← written by generateManifest
+//     bin/
+//       plugin.mjs        ← bundler output
+//       core.*.node       ← native bindings
+//
+// We derive the .sdPlugin root from the bundler output directory
+// by walking up until we find a *.sdPlugin directory, or by using
+// the plugin UUID to construct the expected directory name.
+
+/**
+ * Resolve the .sdPlugin directory root from the bundler output directory.
+ *
+ * Strategy:
+ *   1. Walk up from outDir looking for a parent named `*.sdPlugin`
+ *   2. If not found, assume outDir's parent is the .sdPlugin root
+ *      (handles `<uuid>.sdPlugin/bin/` → `<uuid>.sdPlugin/`)
+ *
+ * @returns The .sdPlugin directory path, or `null` if unresolvable.
+ */
+export function resolvePluginDir(outDir: string): string | null {
+  // Walk up from outDir looking for *.sdPlugin
+  let dir = outDir;
+  const root = dirname(dir);
+
+  // Check outDir itself and its ancestors (max 3 levels up)
+  for (let i = 0; i < 4; i++) {
+    if (dir.endsWith(".sdPlugin")) {
+      return dir;
+    }
+    const parent = dirname(dir);
+    if (parent === dir) break; // filesystem root
+    dir = parent;
+  }
+
+  // Fallback: if outDir is something like `.../com.example.sdPlugin/bin`,
+  // the parent directory is the plugin root
+  const parent = dirname(outDir);
+  if (parent !== root && parent.endsWith(".sdPlugin")) {
+    return parent;
+  }
+
+  return null;
+}
+
+/**
+ * Derive the CodePath (manifest entry point) from the bundler output
+ * file path, relative to the .sdPlugin directory.
+ *
+ * Example:
+ *   outFile: "/project/com.example.sdPlugin/bin/plugin.mjs"
+ *   pluginDir: "/project/com.example.sdPlugin"
+ *   → "bin/plugin.mjs"
+ */
+export function deriveCodePath(outFile: string, pluginDir: string): string {
+  return relative(pluginDir, outFile).replace(/\\/g, "/");
 }

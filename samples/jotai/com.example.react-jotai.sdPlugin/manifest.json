@@ -1,54 +1,12 @@
 {
   "$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
-  "Actions": [
-    {
-      "Icon": "imgs/actions/display",
-      "Name": "Atom Display",
-      "States": [
-        {
-          "Image": "imgs/actions/display"
-        }
-      ],
-      "UUID": "com.example.react-jotai.display",
-      "Controllers": ["Keypad"],
-      "Tooltip": "Shows the current Jotai value shared by a plugin wrapper."
-    },
-    {
-      "Icon": "imgs/actions/increment",
-      "Name": "Increment Atom",
-      "States": [
-        {
-          "Image": "imgs/actions/increment"
-        }
-      ],
-      "UUID": "com.example.react-jotai.increment",
-      "Controllers": ["Keypad"],
-      "Tooltip": "Writes to a shared Jotai atom."
-    },
-    {
-      "Icon": "imgs/actions/reset",
-      "Name": "Reset Atom",
-      "States": [
-        {
-          "Image": "imgs/actions/reset"
-        }
-      ],
-      "UUID": "com.example.react-jotai.reset",
-      "Controllers": ["Keypad"],
-      "Tooltip": "Resets the shared Jotai atom state."
-    }
-  ],
+  "UUID": "com.example.react-jotai",
+  "Name": "React Jotai Sample",
   "Author": "Francesco Saverio Cannizzaro",
-  "Category": "React Jotai Sample",
-  "CategoryIcon": "imgs/plugin-icon",
-  "CodePath": "bin/plugin.mjs",
   "Description": "Sample plugin demonstrating shared cross-action state with Jotai and plugin wrappers.",
   "Icon": "imgs/plugin-icon",
-  "Name": "React Jotai Sample",
-  "Nodejs": {
-    "Version": "24",
-    "Debug": "--inspect=127.0.0.1:8092"
-  },
+  "Version": "0.0.0.1",
+  "CodePath": "bin/plugin.mjs",
   "OS": [
     {
       "Platform": "mac",
@@ -59,10 +17,58 @@
       "MinimumVersion": "10"
     }
   ],
-  "UUID": "com.example.react-jotai",
-  "Version": "0.0.0.1",
+  "Nodejs": {
+    "Version": "24",
+    "Debug": "--inspect=127.0.0.1:8092"
+  },
   "SDKVersion": 2,
   "Software": {
     "MinimumVersion": "7.1"
-  }
+  },
+  "Category": "React Jotai Sample",
+  "CategoryIcon": "imgs/plugin-icon",
+  "Actions": [
+    {
+      "UUID": "com.example.react-jotai.display",
+      "Name": "Atom Display",
+      "Icon": "imgs/actions/display",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "imgs/actions/display"
+        }
+      ],
+      "Tooltip": "Shows the current Jotai value shared by a plugin wrapper."
+    },
+    {
+      "UUID": "com.example.react-jotai.increment",
+      "Name": "Increment Atom",
+      "Icon": "imgs/actions/increment",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "imgs/actions/increment"
+        }
+      ],
+      "Tooltip": "Writes to a shared Jotai atom."
+    },
+    {
+      "UUID": "com.example.react-jotai.reset",
+      "Name": "Reset Atom",
+      "Icon": "imgs/actions/reset",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "imgs/actions/reset"
+        }
+      ],
+      "Tooltip": "Resets the shared Jotai atom state."
+    }
+  ]
 }

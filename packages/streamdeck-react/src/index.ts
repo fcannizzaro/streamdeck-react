@@ -100,10 +100,7 @@ export type {
   Plugin,
   FontConfig,
   ActionConfig,
-  ActionConfigInput,
   ActionDefinition,
-  ActionUUID,
-  ManifestActions,
   EncoderLayout,
   WrapperComponent,
   TakumiBackend,
@@ -127,6 +124,19 @@ export type {
   TouchStripDialRotatePayload,
   TouchStripDialPressPayload,
 } from "@/types";
+
+// ── Manifest Types ──────────────────────────────────────────────────
+export type {
+  PluginManifestInfo,
+  ActionManifestInfo,
+  ManifestController,
+  ManifestEncoderInfo,
+  ManifestTriggerDescription,
+  ManifestStateInfo,
+  ManifestOSInfo,
+  ManifestNodejsInfo,
+  ManifestProfileInfo,
+} from "@/manifest-types";
 
 export type { TapOptions, LongPressOptions, DoubleTapOptions } from "@/hooks/gestures";
 

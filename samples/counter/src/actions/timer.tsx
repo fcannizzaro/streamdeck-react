@@ -45,4 +45,9 @@ function TimerKey() {
 export const timerAction = defineAction({
   uuid: "com.example.react-counter.timer",
   key: TimerKey,
+  info: {
+    name: "Timer",
+    icon: "imgs/actions/timer",
+    tooltip: "A stopwatch timer toggled by key press.",
+  },
 });

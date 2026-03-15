@@ -83,6 +83,10 @@ import { defineAction } from "@fcannizzaro/streamdeck-react";
 export const myAction = defineAction({
   uuid: "com.example.plugin.my-action",
   key: MyKeyComponent,
+  info: {
+    name: "My Action",
+    icon: "imgs/actions/my-action",
+  },
 });
 ```
 
@@ -97,18 +101,73 @@ interface ActionConfig<S extends JsonObject = JsonObject> {
   dialLayout?: EncoderLayout;
   wrapper?: WrapperComponent;
   defaultSettings?: Partial<S>;
+  info?: ActionManifestInfo;
 }
 ```
 
 | Field             | Required | Description                                                                                                                   |
 | ----------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `uuid`            | Yes      | Must exactly match the `UUID` in `manifest.json`.                                                                             |
+| `uuid`            | Yes      | Must start with the plugin UUID prefix (e.g., `"com.example.plugin."`).                                                      |
 | `key`             | No       | Component for key (Keypad controller).                                                                                        |
 | `dial`            | No       | Component for encoder display (Stream Deck+). Falls back to `key` if not provided.                                            |
 | `touchStrip`      | No       | Full-strip TouchStrip component. Replaces per-encoder `dial` with a single shared React tree spanning the entire touch strip. |
 | `dialLayout`      | No       | Encoder feedback layout. Defaults to a full-width canvas `pixmap` layout keyed as `canvas`.                                   |
 | `wrapper`         | No       | Component that wraps this action's root (nested inside plugin wrapper).                                                       |
 | `defaultSettings` | No       | Default settings shallow-merged with stored settings.                                                                         |
+| `info`            | No*      | Action manifest metadata. Required for manifest generation. See ActionManifestInfo below.                                     |
+
+*`info` is optional at the type level but required if you want the action included in the auto-generated `manifest.json`.
+
+### ActionManifestInfo
+
+```ts
+interface ActionManifestInfo {
+  name: string;         // Action display name in Stream Deck's action list
+  icon: string;         // Path to action icon (extension omitted)
+  disabled?: boolean;   // Skip this action from manifest generation
+  tooltip?: string;     // Hover tooltip in the actions list
+  states?: ManifestStateInfo[];  // Custom states (defaults to [{ image: icon }])
+  encoder?: ManifestEncoderInfo; // Encoder config (layout, triggerDescription)
+  disableAutomaticStates?: boolean;
+  disableCaching?: boolean;
+  supportedInMultiActions?: boolean;
+  supportedInKeyLogicActions?: boolean;
+  visibleInActionsList?: boolean;
+  userTitleEnabled?: boolean;
+  propertyInspectorPath?: string;
+  supportUrl?: string;
+  os?: ("mac" | "windows")[];
+  controllers?: [ManifestController, ManifestController?]; // Auto-derived, rarely needed
+}
+```
+
+### Encoder Info
+
+For encoder actions, define `info.encoder` for the touch display layout and trigger descriptions:
+
+```tsx
+export const volumeAction = defineAction({
+  uuid: "com.example.plugin.volume",
+  dial: VolumeDial,
+  info: {
+    name: "Volume",
+    icon: "imgs/actions/volume",
+    encoder: {
+      layout: "$A0",
+      triggerDescription: {
+        rotate: "Adjust volume",
+        push: "Mute / Unmute",
+      },
+    },
+  },
+});
+```
+
+Controllers are auto-derived from the action's components:
+- `key` present → includes `"Keypad"`
+- `dial` or `touchStrip` present → includes `"Encoder"`
+- Both → `["Keypad", "Encoder"]`
+- Neither → defaults to `["Keypad"]`
 
 ### Typed Settings
 
@@ -189,27 +248,21 @@ const fonts: FontConfig[] = [
 - Font is matched by `fontFamily`, `fontWeight`, and `fontStyle`. If the requested weight isn't loaded, the nearest available weight is used.
 - Each font weight/style is a separate file. Minimize variants to reduce bundle size.
 
-## manifest.json Alignment
+## Manifest Generation
 
-Critical rules for the manifest:
+`manifest.json` is **auto-generated** during the build. No hand-written manifest is needed.
 
-1. **UUID match**: Every action's `UUID` in the manifest must match the `uuid` in `defineAction()`.
-2. **CodePath**: Must point to the Rollup output file (e.g., `"CodePath": "bin/plugin.mjs"`).
-3. **Nodejs**: Must declare `"Nodejs": { "Version": "20" }`.
-4. **Controllers**: Use `["Keypad"]` for key actions, `["Encoder"]` for dial actions.
-5. **Encoder block**: Required for encoder actions:
-   ```json
-   {
-     "Controllers": ["Encoder"],
-     "Encoder": {
-       "layout": "$B1",
-       "TriggerDescription": {
-         "Rotate": "Description",
-         "Push": "Description"
-       }
-     }
-   }
-   ```
+- **Plugin info** comes from the bundler plugin's `manifest` option.
+- **Action info** is auto-extracted from `defineAction({ info })` calls in your source code.
+- **Controllers** are auto-derived from key/dial/touchStrip presence.
+- **Defaults** are applied for OS, Nodejs, SDKVersion, Software, CodePath, Category, States.
+
+Critical rules:
+
+1. **UUID prefix**: Every action's `uuid` must start with the plugin UUID (e.g., `"com.example.plugin."` prefix).
+2. **info required**: Each `defineAction()` must have `info: { name, icon }` for manifest generation.
+3. **Encoder block**: Encoder actions need `info.encoder` with layout and triggerDescription.
+4. **disabled flag**: Set `info.disabled: true` to exclude an action from the manifest while keeping it functional at runtime.
 
 ## Context Provider Tree
 

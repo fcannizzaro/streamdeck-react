@@ -21,13 +21,22 @@ export default defineConfig({
     react(),
     babel({ presets: [reactCompilerPreset()] }),
     streamDeckReact({
-      uuid: "com.example.react-pokemon",
       targets: [
         {
           platform: process.platform as StreamDeckPlatform,
           arch: process.arch as StreamDeckArch,
         },
       ],
+      manifest: {
+        uuid: "com.example.react-pokemon",
+        name: "React Pokemon Sample",
+        author: "Francesco Saverio Cannizzaro",
+        description:
+          "Sample plugin demonstrating @fcannizzaro/streamdeck-react with TanStack React Query and the PokeAPI.",
+        icon: "imgs/plugin-icon",
+        version: "0.0.0.1",
+        nodejs: { version: "24", debug: "--inspect=127.0.0.1:8093" },
+      },
     }),
   ],
   build: {

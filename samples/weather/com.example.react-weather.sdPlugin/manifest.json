@@ -1,38 +1,12 @@
 {
   "$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
-  "Actions": [
-    {
-      "Icon": "imgs/actions/weather",
-      "Name": "Weather Forecast",
-      "States": [
-        {
-          "Image": "imgs/actions/weather"
-        }
-      ],
-      "UUID": "com.example.react-weather.forecast",
-      "Controllers": ["Encoder"],
-      "Encoder": {
-        "layout": "layouts/touchstrip.json",
-        "TriggerDescription": {
-          "Rotate": "Scroll forecast",
-          "Push": "Toggle details",
-          "Touch": "Select forecast"
-        }
-      },
-      "Tooltip": "Shows weather forecast on the touch strip. Rotate to scroll, press to expand details, tap to select."
-    }
-  ],
+  "UUID": "com.example.react-weather",
+  "Name": "React Weather Sample",
   "Author": "Francesco Saverio Cannizzaro",
-  "Category": "React Weather Sample",
-  "CategoryIcon": "imgs/plugin-icon",
-  "CodePath": "bin/plugin.mjs",
   "Description": "Sample plugin demonstrating @fcannizzaro/streamdeck-react with a weather forecast touchstrip action using Open-Meteo API.",
   "Icon": "imgs/plugin-icon",
-  "Name": "React Weather Sample",
-  "Nodejs": {
-    "Version": "24",
-    "Debug": "--inspect=127.0.0.1:8095"
-  },
+  "Version": "0.0.0.1",
+  "CodePath": "bin/plugin.mjs",
   "OS": [
     {
       "Platform": "mac",
@@ -43,10 +17,38 @@
       "MinimumVersion": "10"
     }
   ],
-  "UUID": "com.example.react-weather",
-  "Version": "0.0.0.1",
+  "Nodejs": {
+    "Version": "24",
+    "Debug": "--inspect=127.0.0.1:8095"
+  },
   "SDKVersion": 2,
   "Software": {
     "MinimumVersion": "7.1"
-  }
+  },
+  "Category": "React Weather Sample",
+  "CategoryIcon": "imgs/plugin-icon",
+  "Actions": [
+    {
+      "UUID": "com.example.react-weather.forecast",
+      "Name": "Weather Forecast",
+      "Icon": "imgs/actions/weather",
+      "Controllers": [
+        "Encoder"
+      ],
+      "States": [
+        {
+          "Image": "imgs/actions/weather"
+        }
+      ],
+      "Tooltip": "Shows weather forecast on the touch strip. Rotate to scroll, press to expand details, tap to select.",
+      "Encoder": {
+        "layout": "layouts/touchstrip.json",
+        "TriggerDescription": {
+          "Rotate": "Scroll forecast",
+          "Push": "Toggle details",
+          "Touch": "Select forecast"
+        }
+      }
+    }
+  ]
 }

@@ -1,6 +1,7 @@
 import type { ComponentType, ReactNode } from "react";
 import type { JsonObject, JsonValue } from "@elgato/utils";
 import type { AdapterActionHandle, StreamDeckAdapter } from "@/adapter/types";
+import type { ActionManifestInfo, PluginManifestInfo } from "@/manifest-types";
 
 // ── Local Type Aliases ──────────────────────────────────────────────
 //
@@ -31,27 +32,17 @@ export interface Size {
 
 // ── Central Type Definitions ────────────────────────────────────────
 //
-// This module contains all shared types plus a type-level safety
-// engine that enforces correct action configuration based on the
-// plugin manifest.
+// This module contains all shared types for the library's public API.
 //
-// Type-level safety flow:
+// Manifest generation is code-first: action metadata is defined via
+// `info` on each `defineAction()` call and auto-extracted from the
+// source code at build time.  The bundler plugin's `manifest` option
+// only contains plugin-level info (uuid, name, author, etc.).
 //
-//   manifest.json (parsed at build time by manifest-codegen.ts)
-//     ↓ generates
-//   src/streamdeck-env.d.ts (declare module augmentation)
-//     ↓ populates
-//   ManifestActions interface { "com.example.counter": { controllers: ["Keypad"] } }
-//     ↓ consumed by
-//   ActionUUID = "com.example.counter" | "com.example.dial" | ...
-//     ↓ used in
-//   ActionConfigInput<S> = discriminated union per UUID
-//     ↓ enforces at defineAction() call site
-//   { uuid: "com.example.counter", key: ComponentType }  ← key REQUIRED (Keypad controller)
-//   { uuid: "com.example.dial", dial: ComponentType }     ← dial REQUIRED (Encoder controller)
-//
-// When ManifestActions is empty (no streamdeck-env.d.ts), all types
-// fall back to permissive string-based configuration (no enforcement).
+// UUID validation:
+//   Action UUIDs must be prefixed with the plugin UUID (e.g.
+//   "com.example.plugin.my-action" starts with "com.example.plugin").
+//   This is validated at build time by the bundler plugin.
 
 // ── Font Configuration ─────────────────────────────────────────────
 
@@ -145,6 +136,13 @@ export interface PluginConfig {
   wrapper?: WrapperComponent;
 
   /**
+   * Plugin manifest metadata.  Optional — used for runtime
+   * documentation.  For manifest generation, provide plugin-level
+   * info via the bundler plugin's `manifest` option.
+   */
+  info?: PluginManifestInfo;
+
+  /**
    * Takumi renderer backend.
    *
    * - `"native-binding"` — uses `@takumi-rs/core` (native Rust NAPI addon).
@@ -176,64 +174,6 @@ export interface Plugin {
   connect(): Promise<void>;
 }
 
-// ── Manifest Type Registry ──────────────────────────────────────────
-// This interface is augmented by the generated `streamdeck-env.d.ts`
-// file via `declare module "@fcannizzaro/streamdeck-react"`.
-//
-// When populated, it enables:
-//   1. Type-safe action UUIDs (typos caught at compile time)
-//   2. Controller-based property requirements in defineAction()
-//
-// The `[keyof ManifestActions] extends [never]` idiom used throughout
-// this file tests whether the interface has any members.  When empty
-// (no augmentation), it evaluates to `true` and types fall back to
-// permissive mode (plain string UUIDs, all props optional).
-
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface ManifestActions {}
-
-/** Action UUID — a union of manifest UUIDs when available, plain `string` otherwise. */
-export type ActionUUID = [keyof ManifestActions] extends [never]
-  ? string
-  : Extract<keyof ManifestActions, string>;
-
-// ── Controller-aware Helpers ────────────────────────────────────────
-// These conditional types inspect the controllers tuple from
-// ManifestActions to determine which surface props (key/dial/touchStrip)
-// should be required vs optional.
-//
-// HasController<UUID, C>:
-//   Extracts the `controllers` tuple for a UUID, then checks if C
-//   is a member via `C extends Item`.  Returns `true` or `false`
-//   at the type level.
-//
-// KeySurface<UUID>:
-//   If the action has "Keypad" controller → { key: ComponentType }  (required)
-//   Otherwise → { key?: ComponentType }  (optional)
-//
-// EncoderSurface<UUID>:
-//   If the action has "Encoder" controller → at least one of dial or
-//   touchStrip must be provided (union of two shapes).
-//   Otherwise → both optional.
-
-type HasController<UUID extends string, C extends string> = UUID extends keyof ManifestActions
-  ? ManifestActions[UUID] extends { controllers: readonly (infer Item)[] }
-    ? C extends Item
-      ? true
-      : false
-    : false
-  : false;
-
-type KeySurface<UUID extends string> =
-  HasController<UUID, "Keypad"> extends true ? { key: ComponentType } : { key?: ComponentType };
-
-type EncoderSurface<UUID extends string> =
-  HasController<UUID, "Encoder"> extends true
-    ?
-        | { dial: ComponentType; touchStrip?: ComponentType }
-        | { dial?: ComponentType; touchStrip: ComponentType }
-    : { dial?: ComponentType; touchStrip?: ComponentType };
-
 // ── Action Definition ───────────────────────────────────────────────
 
 export interface ActionConfig<S extends JsonObject = JsonObject> {
@@ -246,23 +186,16 @@ export interface ActionConfig<S extends JsonObject = JsonObject> {
   dialLayout?: EncoderLayout;
   wrapper?: WrapperComponent;
   defaultSettings?: Partial<S>;
-}
 
-/** Resolved action config shape. When `ManifestActions` is populated (via `streamdeck-env.d.ts`), this becomes a mapped type that iterates over every UUID in the manifest and produces a discriminated union. Each member intersects `KeySurface<UUID>` and `EncoderSurface<UUID>` to enforce controller-specific requirements. When `ManifestActions` is empty, it falls back to the permissive `ActionConfig<S>`. */
-export type ActionConfigInput<S extends JsonObject = JsonObject> = [keyof ManifestActions] extends [
-  never,
-]
-  ? ActionConfig<S>
-  : {
-      [UUID in ActionUUID]: {
-        uuid: UUID;
-        /** Encoder feedback layout. Defaults to a full-width `pixmap` canvas layout. Custom layouts should include a `pixmap` item keyed as `canvas`. */
-        dialLayout?: EncoderLayout;
-        wrapper?: WrapperComponent;
-        defaultSettings?: Partial<S>;
-      } & KeySurface<UUID> &
-        EncoderSurface<UUID>;
-    }[ActionUUID];
+  /**
+   * Action manifest metadata.  This is the **primary source** for
+   * manifest.json generation — the bundler plugin auto-extracts
+   * `info` from each `defineAction()` call at build time.
+   *
+   * Set `disabled: true` to exclude this action from the manifest.
+   */
+  info?: ActionManifestInfo;
+}
 
 export interface ActionDefinition<S extends JsonObject = JsonObject> {
   uuid: string;
@@ -274,6 +207,12 @@ export interface ActionDefinition<S extends JsonObject = JsonObject> {
   dialLayout?: EncoderLayout;
   wrapper?: WrapperComponent;
   defaultSettings: Partial<S>;
+
+  /**
+   * Action manifest metadata.  Carried through from defineAction()
+   * for runtime access and manifest generation.
+   */
+  info?: ActionManifestInfo;
 }
 
 // ── Device Info ─────────────────────────────────────────────────────

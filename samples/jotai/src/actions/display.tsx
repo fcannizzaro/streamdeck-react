@@ -24,4 +24,9 @@ function AtomDisplayKey() {
 export const displayAction = defineAction({
   uuid: "com.example.react-jotai.display",
   key: AtomDisplayKey,
+  info: {
+    name: "Atom Display",
+    icon: "imgs/actions/display",
+    tooltip: "Shows the current Jotai value shared by a plugin wrapper.",
+  },
 });

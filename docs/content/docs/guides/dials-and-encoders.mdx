@@ -66,6 +66,17 @@ export const volumeAction = defineAction<VolumeSettings>({
   uuid: "com.example.plugin.volume",
   dial: VolumeDial,
   defaultSettings: { volume: 50, muted: false },
+  info: {
+    name: "Volume",
+    icon: "imgs/actions/volume",
+    encoder: {
+      layout: "$A0",
+      triggerDescription: {
+        rotate: "Adjust volume",
+        push: "Toggle mute",
+      },
+    },
+  },
 });
 ```
 
@@ -108,6 +119,17 @@ export const volumeAction = defineAction<VolumeSettings>({
   key: VolumeKey, // Rendered when placed on a key
   dial: VolumeDial, // Rendered when placed on an encoder
   defaultSettings: { volume: 50, muted: false },
+  info: {
+    name: "Volume",
+    icon: "imgs/actions/volume",
+    encoder: {
+      layout: "$A0",
+      triggerDescription: {
+        rotate: "Adjust volume",
+        push: "Toggle mute",
+      },
+    },
+  },
 });
 ```
 

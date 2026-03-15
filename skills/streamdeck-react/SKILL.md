@@ -54,13 +54,19 @@ When multiple roots request flushes in the same tick, the FlushCoordinator batch
 - Priority 0 (animating) → 1 (interactive) → 2 (normal) → 3 (idle)
 - Sequential execution ensures higher-priority roots get first access to the USB bus.
 
-### Manifest Codegen
+### Code-First Manifest Generation
 
-The bundler plugins (Rollup and Vite) auto-generate `src/streamdeck-env.d.ts` from `manifest.json`:
+The bundler plugins (Rollup and Vite) **auto-generate** `manifest.json` from code:
 
-- Enables compile-time UUID validation (typos caught by TypeScript)
-- Enforces controller-aware `defineAction()` types (Keypad → `key` required, Encoder → `dial` or `touchStrip` required)
-- Skips write if content unchanged (avoids unnecessary recompilation in watch mode)
+- **Action metadata** is defined in `defineAction({ info: { name, icon, ... } })` — the bundler plugin auto-extracts it from the module graph at build time via AST analysis.
+- **Plugin metadata** (uuid, name, author, description, icon, version) is provided via the `manifest` option in the bundler plugin config.
+- **Controllers** are auto-derived from key/dial/touchStrip presence on each action.
+- **Defaults** are applied for OS, Nodejs, SDKVersion, Software, CodePath, Category, States.
+- Actions with `info.disabled: true` are excluded from the manifest but still work at runtime.
+- The manifest is written to the `.sdPlugin` directory during `writeBundle`.
+- Skips write if content unchanged (avoids unnecessary recompilation in watch mode).
+
+No hand-written `manifest.json` is needed.
 
 Each visible action instance on the hardware gets its own isolated React root. No shared state between roots unless you use an external store (Zustand, Jotai) or the wrapper API.
 
@@ -103,9 +109,8 @@ my-plugin/
   src/
     plugin.ts           # Entry point
     actions/
-      my-action.tsx     # Action component
+      my-action.tsx     # Action component + defineAction with info
   com.example.my-plugin.sdPlugin/
-    manifest.json       # Stream Deck manifest
     bin/                # Rollup output goes here
     imgs/               # Action and plugin icons
   rollup.config.mjs
@@ -216,6 +221,10 @@ function CounterKey() {
 export const counterAction = defineAction({
   uuid: "com.example.my-plugin.counter",
   key: CounterKey,
+  info: {
+    name: "Counter",
+    icon: "imgs/actions/counter",
+  },
 });
 ```
 
@@ -268,6 +277,14 @@ export default {
     esbuild({ target: "node20", jsx: "automatic" }),
     streamDeckReact({
       targets: [{ platform: "darwin", arch: "arm64" }],
+      manifest: {
+        uuid: "com.example.my-plugin",
+        name: "My Plugin",
+        author: "Your Name",
+        description: "A Stream Deck plugin built with React.",
+        icon: "imgs/plugin-icon",
+        version: "0.0.0.1",
+      },
     }),
   ],
 };
@@ -309,6 +326,14 @@ export default {
     }),
     streamDeckReact({
       targets: [{ platform: "darwin", arch: "arm64" }],
+      manifest: {
+        uuid: "com.example.my-plugin",
+        name: "My Plugin",
+        author: "Your Name",
+        description: "A Stream Deck plugin built with React.",
+        icon: "imgs/plugin-icon",
+        version: "0.0.0.1",
+      },
     }),
   ],
 };
@@ -316,33 +341,13 @@ export default {
 
 For production builds, pass explicit `targets`. In watch mode, `streamDeckReact()` can infer the current supported host target.
 
-### Step 4: Set Up manifest.json
+> **manifest.json is auto-generated.** You do not need to write or maintain it by hand. Action metadata is extracted from `defineAction({ info })` calls at build time.
 
-```json
-{
-  "$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
-  "Actions": [
-    {
-      "UUID": "com.example.my-plugin.counter",
-      "Name": "Counter",
-      "Icon": "imgs/actions/counter",
-      "Controllers": ["Keypad"],
-      "States": [{ "Image": "imgs/actions/counter" }]
-    }
-  ],
-  "Author": "Your Name",
-  "CodePath": "bin/plugin.mjs",
-  "Icon": "imgs/plugin-icon",
-  "Name": "My Plugin",
-  "Nodejs": { "Version": "20" },
-  "UUID": "com.example.my-plugin",
-  "Version": "0.0.0.1",
-  "SDKVersion": 2,
-  "Software": { "MinimumVersion": "7.1" }
-}
-```
+### Step 4: Build and Verify
 
-> **Critical**: The `UUID` in each manifest action must exactly match the `uuid` passed to `defineAction()`.
+The `manifest.json` is **auto-generated** during the build. Action metadata comes from `defineAction({ info })` calls, and plugin metadata from the bundler plugin's `manifest` option.
+
+> **Critical**: The `uuid` in each `defineAction()` must start with the plugin UUID prefix (e.g., `"com.example.my-plugin."`).
 
 ### Step 5: Dev
 
@@ -435,24 +440,21 @@ export const volumeAction = defineAction({
   uuid: "com.example.my-plugin.volume",
   key: VolumeKey,
   dial: VolumeDial,
+  info: {
+    name: "Volume",
+    icon: "imgs/actions/volume",
+    encoder: {
+      layout: "$A0",
+      triggerDescription: {
+        rotate: "Adjust volume",
+        push: "Mute / Unmute",
+      },
+    },
+  },
 });
 ```
 
-In `manifest.json`, encoder actions use `"Controllers": ["Encoder"]` and require an `"Encoder"` block:
-
-```json
-{
-  "UUID": "com.example.my-plugin.volume",
-  "Controllers": ["Encoder"],
-  "Encoder": {
-    "layout": "$B1",
-    "TriggerDescription": {
-      "Rotate": "Adjust volume",
-      "Push": "Mute / Unmute"
-    }
-  }
-}
-```
+The `info.encoder` block tells the Stream Deck UI about dial interactions. `Controllers` are auto-derived: if `dial` or `touchStrip` is present, `["Encoder"]` is used; if `key` is also present, `["Keypad", "Encoder"]`.
 
 For touch interaction on Stream Deck+, use `useTouchTap()` inside the mounted action root. Treat touch as input handling, not as a separate primary rendering surface.
 
@@ -460,7 +462,7 @@ For touch interaction on Stream Deck+, use `useTouchTap()` inside the mounted ac
 
 1. **Fonts are mandatory** -- the renderer cannot access system fonts. Use `googleFont("Inter")` to download TTF fonts from Google Fonts (cached to `.google-fonts/` on disk). Alternatively, load font files manually via `readFile`. Supported formats depend on the backend: native-binding supports `.ttf`, `.otf`, `.woff`, `.woff2`; WASM mode only supports `.ttf` and `.otf`.
 2. **`plugin.connect()` must be called last** -- after `createPlugin()` and all setup.
-3. **UUID mismatch** -- the `uuid` in `defineAction()` must exactly match the `UUID` in `manifest.json`.
+3. **UUID prefix** -- every action `uuid` in `defineAction()` must start with the plugin UUID prefix (e.g., `"com.example.my-plugin."`). The manifest is auto-generated from these.
 4. **`streamDeckReact({ targets })` is required for production builds** -- it copies the Takumi `.node` binaries into output. Without them, the plugin crashes on startup.
 5. **Install `ws` and matching `@takumi-rs/core-*` packages** -- they must line up with the targets passed to `streamDeckReact({ targets })`. When using the WASM backend (`takumi: "wasm"`), install `@takumi-rs/wasm` instead and native binding packages are not needed.
 6. **No animated images** -- each `setImage` call is a static frame. Use `useTick` for manual animation loops, or the higher-level `useSpring` and `useTween` hooks for physics-based and easing-based animation.
@@ -479,13 +481,14 @@ When scaffolding or modifying a @fcannizzaro/streamdeck-react plugin, verify:
 - [ ] `package.json` has `"type": "module"`
 - [ ] `tsconfig.json` has `"jsx": "react-jsx"`
 - [ ] At least one font is loaded via `googleFont()` or manual `readFile` and passed to `createPlugin()`
-- [ ] Every `defineAction()` UUID matches its `manifest.json` UUID
-- [ ] `rollup.config.mjs` uses `streamDeckReact({ targets })` for production builds
-- [ ] `manifest.json` `CodePath` points to the Rollup output (e.g., `bin/plugin.mjs`)
-- [ ] `manifest.json` declares `"Nodejs": { "Version": "20" }`
-- [ ] Encoder actions have `"Controllers": ["Encoder"]` and an `"Encoder"` block in manifest
+- [ ] Every `defineAction()` has `info: { name, icon }` for manifest generation
+- [ ] Every `defineAction()` UUID starts with the plugin UUID prefix
+- [ ] `rollup.config.mjs` or `vite.config.ts` includes `streamDeckReact({ manifest: { uuid, name, author, ... } })`
+- [ ] `streamDeckReact({ targets })` is set for production builds
+- [ ] Encoder actions have `info.encoder` with layout and triggerDescription
 - [ ] `plugin.connect()` is called after `createPlugin()`
 - [ ] Build completes without errors: `npx rollup -c`
+- [ ] `manifest.json` is auto-generated in the `.sdPlugin` directory after build
 - [ ] If React Compiler is enabled: output bundle contains `react.memo_cache_sentinel` (proof compiler is active)
 
 ## DevTools

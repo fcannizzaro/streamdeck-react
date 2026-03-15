@@ -1,54 +1,12 @@
 {
   "$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
-  "Actions": [
-    {
-      "Icon": "imgs/actions/display",
-      "Name": "Shared Display",
-      "States": [
-        {
-          "Image": "imgs/actions/display"
-        }
-      ],
-      "UUID": "com.example.react-zustand.display",
-      "Controllers": ["Keypad"],
-      "Tooltip": "Shows the current Zustand count shared across actions."
-    },
-    {
-      "Icon": "imgs/actions/increment",
-      "Name": "Increment",
-      "States": [
-        {
-          "Image": "imgs/actions/increment"
-        }
-      ],
-      "UUID": "com.example.react-zustand.increment",
-      "Controllers": ["Keypad"],
-      "Tooltip": "Increments the shared Zustand store."
-    },
-    {
-      "Icon": "imgs/actions/reset",
-      "Name": "Reset",
-      "States": [
-        {
-          "Image": "imgs/actions/reset"
-        }
-      ],
-      "UUID": "com.example.react-zustand.reset",
-      "Controllers": ["Keypad"],
-      "Tooltip": "Resets the shared Zustand store."
-    }
-  ],
+  "UUID": "com.example.react-zustand",
+  "Name": "React Zustand Sample",
   "Author": "Francesco Saverio Cannizzaro",
-  "Category": "React Zustand Sample",
-  "CategoryIcon": "imgs/plugin-icon",
-  "CodePath": "bin/plugin.mjs",
   "Description": "Sample plugin demonstrating shared cross-action state with Zustand.",
   "Icon": "imgs/plugin-icon",
-  "Name": "React Zustand Sample",
-  "Nodejs": {
-    "Version": "24",
-    "Debug": "--inspect=127.0.0.1:8091"
-  },
+  "Version": "0.0.0.1",
+  "CodePath": "bin/plugin.mjs",
   "OS": [
     {
       "Platform": "mac",
@@ -59,10 +17,58 @@
       "MinimumVersion": "10"
     }
   ],
-  "UUID": "com.example.react-zustand",
-  "Version": "0.0.0.1",
+  "Nodejs": {
+    "Version": "24",
+    "Debug": "--inspect=127.0.0.1:8091"
+  },
   "SDKVersion": 2,
   "Software": {
     "MinimumVersion": "7.1"
-  }
+  },
+  "Category": "React Zustand Sample",
+  "CategoryIcon": "imgs/plugin-icon",
+  "Actions": [
+    {
+      "UUID": "com.example.react-zustand.display",
+      "Name": "Shared Display",
+      "Icon": "imgs/actions/display",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "imgs/actions/display"
+        }
+      ],
+      "Tooltip": "Shows the current Zustand count shared across actions."
+    },
+    {
+      "UUID": "com.example.react-zustand.reset",
+      "Name": "Reset",
+      "Icon": "imgs/actions/reset",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "imgs/actions/reset"
+        }
+      ],
+      "Tooltip": "Resets the shared Zustand store."
+    },
+    {
+      "UUID": "com.example.react-zustand.increment",
+      "Name": "Increment",
+      "Icon": "imgs/actions/increment",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "imgs/actions/increment"
+        }
+      ],
+      "Tooltip": "Increments the shared Zustand store."
+    }
+  ]
 }

@@ -27,4 +27,9 @@ function ResetKey() {
 export const resetAction = defineAction({
   uuid: "com.example.react-zustand.reset",
   key: ResetKey,
+  info: {
+    name: "Reset",
+    icon: "imgs/actions/reset",
+    tooltip: "Resets the shared Zustand store.",
+  },
 });

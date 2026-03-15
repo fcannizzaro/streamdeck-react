@@ -453,4 +453,18 @@ function SnakeTouchStrip() {
 export const snakeAction = defineAction({
   uuid: "com.example.snake.touchstrip",
   touchStrip: SnakeTouchStrip,
+  info: {
+    name: "Snake Game",
+    icon: "imgs/actions/touchstrip",
+    tooltip:
+      "Snake game on the Stream Deck+ touch strip. Use dials to steer, control speed, pause, and restart.",
+    encoder: {
+      layout: "layouts/touchstrip.json",
+      triggerDescription: {
+        rotate: "Steer / Speed",
+        push: "Pause / Restart",
+        touch: "Steer snake",
+      },
+    },
+  },
 });

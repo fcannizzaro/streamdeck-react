@@ -28,4 +28,9 @@ function ResetAtomKey() {
 export const resetAction = defineAction({
   uuid: "com.example.react-jotai.reset",
   key: ResetAtomKey,
+  info: {
+    name: "Reset Atom",
+    icon: "imgs/actions/reset",
+    tooltip: "Resets the shared Jotai atom state.",
+  },
 });

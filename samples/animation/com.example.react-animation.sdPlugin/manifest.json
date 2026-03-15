@@ -1,62 +1,12 @@
 {
   "$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
-  "Actions": [
-    {
-      "Icon": "imgs/actions/spring",
-      "Name": "Spring Bounce",
-      "States": [
-        {
-          "Image": "imgs/actions/spring"
-        }
-      ],
-      "UUID": "com.example.react-animation.spring-bounce",
-      "Controllers": ["Keypad"],
-      "Tooltip": "Spring physics: wobbly scale on press with hue shift."
-    },
-    {
-      "Icon": "imgs/actions/fade",
-      "Name": "Fade Slide",
-      "States": [
-        {
-          "Image": "imgs/actions/fade"
-        }
-      ],
-      "UUID": "com.example.react-animation.fade-slide",
-      "Controllers": ["Keypad"],
-      "Tooltip": "Tween animation: cycles through labels with eased transitions."
-    },
-    {
-      "Icon": "imgs/actions/spring",
-      "Name": "Spring Dial",
-      "States": [
-        {
-          "Image": "imgs/actions/spring"
-        }
-      ],
-      "UUID": "com.example.react-animation.spring-dial",
-      "Controllers": ["Encoder"],
-      "Encoder": {
-        "layout": "layouts/touchstrip.json",
-        "TriggerDescription": {
-          "Rotate": "Move ball",
-          "Push": "Toggle size",
-          "Touch": "Set position"
-        }
-      },
-      "Tooltip": "Spring-animated ball on the touch strip controlled by dial."
-    }
-  ],
+  "UUID": "com.example.react-animation",
+  "Name": "React Animation Sample",
   "Author": "Francesco Saverio Cannizzaro",
-  "Category": "React Animation Sample",
-  "CategoryIcon": "imgs/plugin-icon",
-  "CodePath": "bin/plugin.mjs",
   "Description": "Sample plugin demonstrating useSpring and useTween animation hooks from @fcannizzaro/streamdeck-react.",
   "Icon": "imgs/plugin-icon",
-  "Name": "React Animation Sample",
-  "Nodejs": {
-    "Version": "24",
-    "Debug": "--inspect=127.0.0.1:8092"
-  },
+  "Version": "0.0.0.1",
+  "CodePath": "bin/plugin.mjs",
   "OS": [
     {
       "Platform": "mac",
@@ -67,10 +17,66 @@
       "MinimumVersion": "10"
     }
   ],
-  "UUID": "com.example.react-animation",
-  "Version": "0.0.0.1",
+  "Nodejs": {
+    "Version": "24",
+    "Debug": "--inspect=127.0.0.1:8092"
+  },
   "SDKVersion": 2,
   "Software": {
     "MinimumVersion": "7.1"
-  }
+  },
+  "Category": "React Animation Sample",
+  "CategoryIcon": "imgs/plugin-icon",
+  "Actions": [
+    {
+      "UUID": "com.example.react-animation.fade-slide",
+      "Name": "Fade Slide",
+      "Icon": "imgs/actions/fade",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "imgs/actions/fade"
+        }
+      ],
+      "Tooltip": "Tween animation: cycles through labels with eased transitions."
+    },
+    {
+      "UUID": "com.example.react-animation.spring-dial",
+      "Name": "Spring Dial",
+      "Icon": "imgs/actions/spring",
+      "Controllers": [
+        "Encoder"
+      ],
+      "States": [
+        {
+          "Image": "imgs/actions/spring"
+        }
+      ],
+      "Tooltip": "Spring-animated ball on the touch strip controlled by dial.",
+      "Encoder": {
+        "layout": "layouts/touchstrip.json",
+        "TriggerDescription": {
+          "Rotate": "Move ball",
+          "Push": "Toggle size",
+          "Touch": "Set position"
+        }
+      }
+    },
+    {
+      "UUID": "com.example.react-animation.spring-bounce",
+      "Name": "Spring Bounce",
+      "Icon": "imgs/actions/spring",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "imgs/actions/spring"
+        }
+      ],
+      "Tooltip": "Spring physics: wobbly scale on press with hue shift."
+    }
+  ]
 }

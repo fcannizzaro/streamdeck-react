@@ -14,7 +14,7 @@
     },
     "packages/create-streamdeck-react": {
       "name": "create-streamdeck-react",
-      "version": "0.1.10",
+      "version": "0.1.11",
       "bin": {
         "create-streamdeck-react": "./dist/index.js",
       },
@@ -28,7 +28,7 @@
     },
     "packages/devtools": {
       "name": "@fcannizzaro/streamdeck-react-devtools",
-      "version": "0.1.13",
+      "version": "0.1.14",
       "bin": {
         "streamdeck-react-devtools": "./bin/cli.mjs",
       },
@@ -53,7 +53,7 @@
     },
     "packages/streamdeck-react": {
       "name": "@fcannizzaro/streamdeck-react",
-      "version": "0.1.12",
+      "version": "0.1.13",
       "dependencies": {
         "@takumi-rs/core": "^0.73.1",
         "@takumi-rs/helpers": "^0.73.1",
@@ -88,7 +88,6 @@
       "name": "sample-animation",
       "dependencies": {
         "@fcannizzaro/streamdeck-react": "workspace:*",
-        "@fontsource-variable/inter": "^5.2.8",
         "@takumi-rs/core-darwin-arm64": "^0.71.7",
         "react": "^19.2.4",
         "ws": "^8.19.0",
@@ -111,8 +110,6 @@
       "name": "sample-counter",
       "dependencies": {
         "@fcannizzaro/streamdeck-react": "workspace:*",
-        "@fontsource-variable/inter": "^5.2.8",
-        "@fontsource-variable/spline-sans-mono": "^5.2.8",
         "@takumi-rs/core-darwin-arm64": "^0.71.7",
         "react": "^19.2.4",
         "ws": "^8.19.0",
@@ -135,7 +132,6 @@
       "name": "sample-jotai",
       "dependencies": {
         "@fcannizzaro/streamdeck-react": "workspace:*",
-        "@fontsource-variable/inter": "^5.2.8",
         "@takumi-rs/core-darwin-arm64": "^0.71.7",
         "jotai": "^2.18.1",
         "react": "^19.2.4",
@@ -159,7 +155,6 @@
       "name": "sample-pokemon",
       "dependencies": {
         "@fcannizzaro/streamdeck-react": "workspace:*",
-        "@fontsource-variable/inter": "^5.2.8",
         "@takumi-rs/core-darwin-arm64": "^0.71.7",
         "@tanstack/react-query": "^5.72.2",
         "react": "^19.2.4",
@@ -179,7 +174,6 @@
       "name": "sample-snake",
       "dependencies": {
         "@fcannizzaro/streamdeck-react": "workspace:*",
-        "@fontsource-variable/inter": "^5.2.8",
         "@takumi-rs/core-darwin-arm64": "^0.71.7",
         "react": "^19.2.4",
         "ws": "^8.19.0",
@@ -202,7 +196,6 @@
       "name": "sample-weather",
       "dependencies": {
         "@fcannizzaro/streamdeck-react": "workspace:*",
-        "@fontsource-variable/inter": "^5.2.8",
         "@takumi-rs/core-darwin-arm64": "^0.71.7",
         "react": "^19.2.4",
         "ws": "^8.19.0",
@@ -226,7 +219,6 @@
       "name": "sample-zustand",
       "dependencies": {
         "@fcannizzaro/streamdeck-react": "workspace:*",
-        "@fontsource-variable/inter": "^5.2.8",
         "@takumi-rs/core-darwin-arm64": "^0.71.7",
         "react": "^19.2.4",
         "ws": "^8.19.0",
@@ -427,10 +419,6 @@
     "@floating-ui/react-dom": ["@floating-ui/react-dom@2.1.8", "", { "dependencies": { "@floating-ui/dom": "^1.7.6" }, "peerDependencies": { "react": ">=16.8.0", "react-dom": ">=16.8.0" } }, "sha512-cC52bHwM/n/CxS87FH0yWdngEZrjdtLW/qVruo68qg+prK7ZQ4YGdut2GyDVpoGeAYe/h899rVeOVm6Oi40k2A=="],
 
     "@floating-ui/utils": ["@floating-ui/utils@0.2.11", "", {}, "sha512-RiB/yIh78pcIxl6lLMG0CgBXAZ2Y0eVHqMPYugu+9U0AeT6YBeiJpf7lbdJNIugFP5SIjwNRgo4DhR1Qxi26Gg=="],
-
-    "@fontsource-variable/inter": ["@fontsource-variable/inter@5.2.8", "", {}, "sha512-kOfP2D+ykbcX/P3IFnokOhVRNoTozo5/JxhAIVYLpea/UBmCQ/YWPBfWIDuBImXX/15KH+eKh4xpEUyS2sQQGQ=="],
-
-    "@fontsource-variable/spline-sans-mono": ["@fontsource-variable/spline-sans-mono@5.2.8", "", {}, "sha512-Z1yYiEtP+8Gll5BJaR9dICK/ZTxoTWH+ZBH6rOTMWajPSOxwl7IZplkwX2J1QhMxqulhhdMrkRx6SkkLM+jLQw=="],
 
     "@happy-dom/global-registrator": ["@happy-dom/global-registrator@20.8.4", "", { "dependencies": { "@types/node": ">=20.0.0", "happy-dom": "^20.8.4" } }, "sha512-cXGYd3xIAcviiGO6lPXdG6Yg244xwRgtY2dicAQ6HiB87E2IL2ekgfR5QIos18UtjiAsnCpLS3m78JfDorJcYg=="],
 
@@ -1361,8 +1349,6 @@
     "read-yaml-file/js-yaml": ["js-yaml@3.14.2", "", { "dependencies": { "argparse": "^1.0.7", "esprima": "^4.0.0" }, "bin": { "js-yaml": "bin/js-yaml.js" } }, "sha512-PMSmkqxr106Xa156c2M265Z+FTrPl+oxd/rgOQy2tijQeK5TxQ43psO1ZCwhVOSdnn+RzkzlRz/eY4BgJBYVpg=="],
 
     "rolldown/@rolldown/pluginutils": ["@rolldown/pluginutils@1.0.0-rc.9", "", {}, "sha512-w6oiRWgEBl04QkFZgmW+jnU1EC9b57Oihi2ot3HNWIQRqgHp5PnYDia5iZ5FF7rpa4EQdiqMDXjlqKGXBhsoXw=="],
-
-    "sample-pokemon/@rolldown/plugin-babel": ["@rolldown/plugin-babel@0.2.0", "", { "dependencies": { "picomatch": "^4.0.3" }, "peerDependencies": { "@babel/core": "^7.29.0 || ^8.0.0-rc.1", "@babel/plugin-transform-runtime": "^7.29.0 || ^8.0.0-rc.1", "@babel/runtime": "^7.27.0 || ^8.0.0-rc.1", "rolldown": "^1.0.0-rc.5", "vite": "^8.0.0" }, "optionalPeers": ["@babel/plugin-transform-runtime", "@babel/runtime", "vite"] }, "sha512-ZkajPtfcBTfLSZTmm40k2E0cwT5HDosBcj71fdUURXl7FfETb50jEbV39ujPw2RFp3ZpOugK3ATdX+HuFfWr9Q=="],
 
     "@microsoft/api-extractor/semver/lru-cache": ["lru-cache@6.0.0", "", { "dependencies": { "yallist": "^4.0.0" } }, "sha512-Jo6dJ04CmSjuznwJSS3pUeWmd/H0ffTlkXXgwZi+eq1UCmqQwCh+eLsYOYCwY991i2Fah4h1BEMCx4qThGbsiA=="],
 

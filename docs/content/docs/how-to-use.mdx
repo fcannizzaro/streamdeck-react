@@ -23,14 +23,18 @@ function StatusKey() {
 }
 ```
 
-## 2. Map Components to Manifest Actions
+## 2. Map Components to Actions
 
-Use `defineAction()` to connect a manifest UUID to one or more surfaces.
+Use `defineAction()` to connect a UUID to one or more surfaces. Add `info` with `name` and `icon` so the bundler can auto-generate `manifest.json`.
 
 ```tsx
 export const statusAction = defineAction({
   uuid: "com.example.plugin.status",
   key: StatusKey,
+  info: {
+    name: "Status",
+    icon: "imgs/actions/status",
+  },
 });
 ```
 
@@ -85,7 +89,8 @@ The samples show all three approaches:
 
 The sample projects use Rollup plus the helpers exported from `@fcannizzaro/streamdeck-react/rollup`:
 
-- `streamDeckReact({ targets: [...] })` copies the Takumi native binaries you want to ship into your output directory.
+- `streamDeckReact({ targets: [...], manifest: { ... } })` copies the Takumi native binaries and **auto-generates** `manifest.json`.
+- Action metadata is extracted from `defineAction({ info })` calls at build time — no hand-written manifest needed.
 - In watch mode, `streamDeckReact()` can infer the current supported host target. For production builds, prefer explicit `targets`.
 
 This is the easiest way to match the working sample setup.

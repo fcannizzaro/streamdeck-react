@@ -1,0 +1,206 @@
+---
+title: Manifest Generation
+description: How manifest.json is auto-generated from defineAction() calls and bundler plugin config.
+---
+
+`manifest.json` is **auto-generated** at build time. You don't need to write or maintain it by hand.
+
+## How It Works
+
+The bundler plugin (`streamDeckReact()`) combines two sources of information:
+
+1. **Plugin metadata** from the `manifest` option in your Rollup or Vite config.
+2. **Action metadata** auto-extracted from `defineAction({ info })` calls in your source code via AST analysis.
+
+```
+defineAction({ uuid, key, info: { name, icon } })
+         ↓  build time
+    moduleParsed hook → parse AST → extract info
+         ↓
+    writeBundle → merge with plugin manifest → validate → write manifest.json
+```
+
+The generated `manifest.json` is written to your `.sdPlugin` directory alongside the bundled output.
+
+## Plugin Metadata
+
+Provide plugin-level info in the bundler plugin's `manifest` option:
+
+```ts
+streamDeckReact({
+  targets: [{ platform: "darwin", arch: "arm64" }],
+  manifest: {
+    uuid: "com.example.my-plugin",
+    name: "My Plugin",
+    author: "Your Name",
+    description: "A Stream Deck plugin built with React.",
+    icon: "imgs/plugin-icon",
+    version: "0.0.0.1",
+  },
+})
+```
+
+### PluginManifestInfo
+
+| Field                    | Required | Description                                         |
+| ------------------------ | -------- | --------------------------------------------------- |
+| `uuid`                   | Yes      | Plugin UUID in reverse-DNS format.                  |
+| `name`                   | Yes      | Plugin display name.                                |
+| `author`                 | Yes      | Author name shown on Marketplace.                   |
+| `description`            | Yes      | Plugin description.                                 |
+| `icon`                   | Yes      | Path to plugin icon (extension omitted).            |
+| `version`                | Yes      | Plugin version (e.g. `"1.0.0.0"`).                 |
+| `category`               | No       | Actions list group name. Default: same as `name`.   |
+| `categoryIcon`           | No       | Category icon path. Default: same as `icon`.        |
+| `url`                    | No       | Plugin website URL.                                 |
+| `supportUrl`             | No       | Support website URL.                                |
+| `propertyInspectorPath`  | No       | Global property inspector HTML path.                |
+| `profiles`               | No       | Pre-defined profiles distributed with the plugin.   |
+| `applicationsToMonitor`  | No       | Applications to monitor on Mac/Windows.             |
+| `defaultWindowSize`      | No       | Default window size for PI `window.open()`.         |
+| `codePath`               | No       | Plugin entry point. Default: derived from output.   |
+| `codePathMac`            | No       | macOS-specific entry point override.                |
+| `codePathWin`            | No       | Windows-specific entry point override.              |
+| `os`                     | No       | OS requirements. Default: mac 13+ and windows 10+.  |
+| `nodejs`                 | No       | Node.js config. Default: `{ version: "24" }`.       |
+| `sdkVersion`             | No       | SDK version. Default: `2`.                          |
+| `software`               | No       | Software requirements. Default: `"7.1"`.            |
+
+## Action Metadata
+
+Each action's manifest entry comes from the `info` field on `defineAction()`:
+
+```tsx
+export const counterAction = defineAction({
+  uuid: "com.example.my-plugin.counter",
+  key: CounterKey,
+  info: {
+    name: "Counter",
+    icon: "imgs/actions/counter",
+  },
+});
+```
+
+### ActionManifestInfo
+
+| Field                         | Required | Description                                                    |
+| ----------------------------- | -------- | -------------------------------------------------------------- |
+| `name`                        | Yes      | Action display name in Stream Deck's action list.              |
+| `icon`                        | Yes      | Path to action icon (extension omitted).                       |
+| `disabled`                    | No       | Skip this action from manifest generation. Default: `false`.   |
+| `tooltip`                     | No       | Hover tooltip in the actions list.                             |
+| `states`                      | No       | Custom states. Default: `[{ image: icon }]`.                   |
+| `encoder`                     | No       | Encoder config (layout, triggerDescription, background).       |
+| `disableAutomaticStates`      | No       | Disable automatic state toggling.                              |
+| `disableCaching`              | No       | Disable Stream Deck image caching.                             |
+| `supportedInMultiActions`     | No       | Available in multi-actions. Default: `true`.                   |
+| `supportedInKeyLogicActions`  | No       | Available in key logic actions (SD 7.0+). Default: `true`.     |
+| `visibleInActionsList`        | No       | Visible in the actions list. Default: `true`.                  |
+| `userTitleEnabled`            | No       | Allow user to edit title. Default: `true`.                     |
+| `propertyInspectorPath`       | No       | Action-specific property inspector HTML path.                  |
+| `supportUrl`                  | No       | Action support URL.                                            |
+| `os`                          | No       | OS restriction for this action.                                |
+| `controllers`                 | No       | Controller types. Auto-derived (see below).                    |
+
+## Controllers Auto-Derivation
+
+You don't need to specify `controllers` manually. The bundler plugin infers them from the components defined on each action:
+
+- `key` present → includes `"Keypad"`
+- `dial` or `touchStrip` present → includes `"Encoder"`
+- Both `key` and `dial`/`touchStrip` → `["Keypad", "Encoder"]`
+- Neither → defaults to `["Keypad"]`
+
+If you explicitly set `controllers` on `info`, it overrides the auto-derivation.
+
+## Encoder Info
+
+For encoder actions, include `info.encoder` with the layout and trigger descriptions:
+
+```tsx
+export const volumeAction = defineAction({
+  uuid: "com.example.my-plugin.volume",
+  key: VolumeKey,
+  dial: VolumeDial,
+  info: {
+    name: "Volume",
+    icon: "imgs/actions/volume",
+    encoder: {
+      layout: "$A0",
+      triggerDescription: {
+        rotate: "Adjust volume",
+        push: "Mute / Unmute",
+      },
+    },
+  },
+});
+```
+
+The `encoder` block maps to the Elgato manifest's `Encoder` field. Available options:
+
+| Field                | Description                                            |
+| -------------------- | ------------------------------------------------------ |
+| `layout`             | Pre-defined (`$X1`, `$A0`, `$A1`, `$B1`, etc.) or custom `.json` path. |
+| `icon`               | Encoder icon path (extension omitted).                 |
+| `stackColor`         | Background color for dial stack (hex).                 |
+| `background`         | Touchscreen background image (extension omitted).      |
+| `triggerDescription`  | Descriptions for `rotate`, `push`, `touch`, `longTouch`. |
+
+## Disabled Actions
+
+Set `info.disabled: true` to exclude an action from the generated manifest while keeping it functional at runtime. This is useful for debug or development-only actions:
+
+```tsx
+export const debugAction = defineAction({
+  uuid: "com.example.my-plugin.debug",
+  key: DebugKey,
+  info: {
+    name: "Debug",
+    icon: "imgs/actions/debug",
+    disabled: true,
+  },
+});
+```
+
+## States
+
+When `states` is not provided, a single default state is generated using the `icon` field:
+
+```json
+"States": [{ "Image": "imgs/actions/counter" }]
+```
+
+For custom states (e.g., multi-state toggles):
+
+```tsx
+info: {
+  name: "Toggle",
+  icon: "imgs/actions/toggle",
+  states: [
+    { image: "imgs/actions/toggle-off", name: "Off" },
+    { image: "imgs/actions/toggle-on", name: "On" },
+  ],
+}
+```
+
+## Validation
+
+The bundler plugin validates the manifest at build time:
+
+1. **UUID format** — The plugin UUID must be a valid reverse-DNS identifier.
+2. **UUID prefix** — Every action UUID must start with the plugin UUID prefix (e.g., `"com.example.my-plugin."`).
+3. **Duplicate UUIDs** — No two actions can share the same UUID.
+4. **Required fields** — Every action must have `info.name` and `info.icon`.
+5. **Static values** — All `info` values must be static literals (no variable references or computed values). The AST extractor needs to evaluate them at build time.
+
+Validation errors are reported as build warnings.
+
+## Skip Behavior
+
+The manifest file is only written when its content has changed. This avoids unnecessary rebuilds when using `rollup -c -w` or `vite build --watch`.
+
+<Cards>
+  <Card title="defineAction" href="/plugin-setup/define-action" />
+  <Card title="Bundler Config" href="/quick-start#5-add-a-bundler-config" />
+  <Card title="Dials & Encoders" href="/guides/dials-and-encoders" />
+</Cards>

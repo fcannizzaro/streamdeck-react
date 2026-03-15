@@ -29,4 +29,9 @@ function IncrementKey() {
 export const incrementAction = defineAction({
   uuid: "com.example.react-zustand.increment",
   key: IncrementKey,
+  info: {
+    name: "Increment",
+    icon: "imgs/actions/increment",
+    tooltip: "Increments the shared Zustand store.",
+  },
 });

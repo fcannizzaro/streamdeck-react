@@ -142,4 +142,9 @@ function PokemonKey() {
 export const pokemonAction = defineAction({
   uuid: "com.example.react-pokemon.pokemon",
   key: PokemonKey,
+  info: {
+    name: "Random Pokemon",
+    icon: "imgs/actions/pokemon",
+    tooltip: "Fetches and displays a random Pokemon sprite on each key press.",
+  },
 });

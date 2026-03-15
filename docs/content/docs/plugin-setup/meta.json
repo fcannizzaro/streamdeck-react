@@ -1,4 +1,4 @@
 {
   "title": "Plugin Setup",
-  "pages": ["create-plugin", "define-action", "fonts"]
+  "pages": ["create-plugin", "define-action", "manifest", "fonts"]
 }

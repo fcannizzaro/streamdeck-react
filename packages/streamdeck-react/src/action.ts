@@ -1,4 +1,4 @@
-import type { ActionConfigInput, ActionDefinition } from "./types";
+import type { ActionConfig, ActionDefinition } from "./types";
 import type { JsonObject } from "@elgato/utils";
 
 // ── defineAction ────────────────────────────────────────────────────
@@ -6,18 +6,10 @@ import type { JsonObject } from "@elgato/utils";
 // Factory function that creates an ActionDefinition from user config.
 // Used by createPlugin to register actions with the SDK.
 //
-// Type narrowing:
-//   The `config` parameter uses `ActionConfigInput<S>` which, when
-//   ManifestActions is populated, becomes a discriminated union that
-//   enforces UUID validity and requires key/dial/touchStrip based on
-//   the manifest's Controllers array.  This means TypeScript will
-//   error at the call site if:
-//     - The UUID is not in the manifest
-//     - A Keypad action is missing `key`
-//     - An Encoder action is missing both `dial` and `touchStrip`
-//
-//   When ManifestActions is empty (no streamdeck-env.d.ts), all
-//   properties are optional and UUID is a plain string.
+// The `info` field carries manifest metadata and is the primary source
+// for manifest.json generation.  The bundler plugin auto-extracts
+// `info` from each defineAction() call at build time via AST analysis.
+// Set `info.disabled: true` to exclude an action from the manifest.
 //
 // defaultSettings fallback:
 //   If the user doesn't provide defaultSettings, it defaults to an
@@ -25,7 +17,7 @@ import type { JsonObject } from "@elgato/utils";
 //   settings when a root is created.
 
 export function defineAction<S extends JsonObject = JsonObject>(
-  config: ActionConfigInput<S>,
+  config: ActionConfig<S>,
 ): ActionDefinition<S> {
   return {
     uuid: config.uuid,
@@ -35,5 +27,6 @@ export function defineAction<S extends JsonObject = JsonObject>(
     dialLayout: config.dialLayout,
     wrapper: config.wrapper,
     defaultSettings: config.defaultSettings ?? ({} as Partial<S>),
+    info: config.info,
   };
 }

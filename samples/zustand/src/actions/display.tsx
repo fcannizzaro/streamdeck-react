@@ -23,4 +23,9 @@ function SharedDisplayKey() {
 export const displayAction = defineAction({
   uuid: "com.example.react-zustand.display",
   key: SharedDisplayKey,
+  info: {
+    name: "Shared Display",
+    icon: "imgs/actions/display",
+    tooltip: "Shows the current Zustand count shared across actions.",
+  },
 });

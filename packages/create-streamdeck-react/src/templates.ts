@@ -485,7 +485,7 @@ export function buildProjectFiles(options: ScaffoldOptions): Record<string, stri
 }
 
 export function buildRollupConfig(
-  options: Pick<ScaffoldOptions, "pluginUuid" | "nativeTargets" | "reactCompiler">,
+  options: Pick<ScaffoldOptions, "pluginUuid" | "displayName" | "author" | "description" | "category" | "nativeTargets" | "reactCompiler">,
 ): string {
   const renderedTargets = options.nativeTargets
     .map((target) => {
@@ -542,6 +542,15 @@ export function buildRollupConfig(
     "      targets: [",
     renderedTargets,
     "      ],",
+    "      manifest: {",
+    `        uuid: "${options.pluginUuid}",`,
+    `        name: "${options.displayName}",`,
+    `        author: "${options.author}",`,
+    `        description: "${options.description}",`,
+    '        icon: "imgs/plugin-icon",',
+    '        version: "0.0.0.1",',
+    `        category: "${options.category}",`,
+    "      },",
     "    }),",
     "  ],",
     "};",
@@ -550,7 +559,7 @@ export function buildRollupConfig(
 }
 
 export function buildViteConfig(
-  options: Pick<ScaffoldOptions, "pluginUuid" | "nativeTargets" | "reactCompiler">,
+  options: Pick<ScaffoldOptions, "pluginUuid" | "displayName" | "author" | "description" | "category" | "nativeTargets" | "reactCompiler">,
 ): string {
   const renderedTargets = options.nativeTargets
     .map((target) => {
@@ -598,6 +607,15 @@ export function buildViteConfig(
     "      targets: [",
     renderedTargets,
     "      ],",
+    "      manifest: {",
+    `        uuid: "${options.pluginUuid}",`,
+    `        name: "${options.displayName}",`,
+    `        author: "${options.author}",`,
+    `        description: "${options.description}",`,
+    '        icon: "imgs/plugin-icon",',
+    '        version: "0.0.0.1",',
+    `        category: "${options.category}",`,
+    "      },",
     "    }),",
     "  ],",
     "  build: {",
@@ -1017,6 +1035,10 @@ function createMinimalAction(pluginUuid: string): string {
     "export const statusAction = defineAction({",
     `  uuid: "${pluginUuid}.status",`,
     "  key: StatusKey,",
+    "  info: {",
+    '    name: "Status",',
+    '    icon: "imgs/actions/status",',
+    "  },",
     "});",
     "",
   ].join("\n");
@@ -1058,6 +1080,10 @@ function createCounterAction(pluginUuid: string): string {
     "export const counterAction = defineAction({",
     `  uuid: "${pluginUuid}.counter",`,
     "  key: CounterKey,",
+    "  info: {",
+    '    name: "Counter",',
+    '    icon: "imgs/actions/counter",',
+    "  },",
     "});",
     "",
   ].join("\n");
@@ -1104,6 +1130,10 @@ function createTimerAction(pluginUuid: string): string {
     "export const timerAction = defineAction({",
     `  uuid: "${pluginUuid}.timer",`,
     "  key: TimerKey,",
+    "  info: {",
+    '    name: "Timer",',
+    '    icon: "imgs/actions/timer",',
+    "  },",
     "});",
     "",
   ].join("\n");
@@ -1158,6 +1188,10 @@ function createToggleAction(pluginUuid: string): string {
     `  uuid: "${pluginUuid}.toggle",`,
     "  key: ToggleKey,",
     '  defaultSettings: { mode: "off" },',
+    "  info: {",
+    '    name: "Toggle",',
+    '    icon: "imgs/actions/toggle",',
+    "  },",
     "});",
     "",
   ].join("\n");
@@ -1211,6 +1245,17 @@ function createVolumeAction(pluginUuid: string): string {
     "export const volumeAction = defineAction({",
     `  uuid: "${pluginUuid}.volume",`,
     "  dial: VolumeDial,",
+    "  info: {",
+    '    name: "Volume",',
+    '    icon: "imgs/actions/volume",',
+    "    encoder: {",
+    '      layout: "$A0",',
+    "      triggerDescription: {",
+    '        rotate: "Adjust volume",',
+    '        push: "Mute / Unmute",',
+    "      },",
+    "    },",
+    "  },",
     "});",
     "",
   ].join("\n");
@@ -1373,6 +1418,18 @@ function createEqualizerAction(pluginUuid: string): string {
     "export const equalizerAction = defineAction({",
     `  uuid: "${pluginUuid}.equalizer",`,
     "  touchStrip: EqualizerTouchStrip,",
+    "  info: {",
+    '    name: "Equalizer",',
+    '    icon: "imgs/actions/equalizer",',
+    "    encoder: {",
+    '      layout: "layouts/touchstrip.json",',
+    "      triggerDescription: {",
+    '        rotate: "Adjust speed / amplitude",',
+    '        push: "Pause / Reset",',
+    '        touch: "Change color theme",',
+    "      },",
+    "    },",
+    "  },",
     "});",
     "",
   ].join("\n");
@@ -1445,6 +1502,10 @@ function createZustandDisplayAction(pluginUuid: string): string {
     "export const displayAction = defineAction({",
     `  uuid: "${pluginUuid}.display",`,
     "  key: SharedDisplayKey,",
+    "  info: {",
+    '    name: "Shared Display",',
+    '    icon: "imgs/actions/display",',
+    "  },",
     "});",
     "",
   ].join("\n");
@@ -1480,6 +1541,10 @@ function createZustandIncrementAction(pluginUuid: string): string {
     "export const incrementAction = defineAction({",
     `  uuid: "${pluginUuid}.increment",`,
     "  key: IncrementKey,",
+    "  info: {",
+    '    name: "Increment",',
+    '    icon: "imgs/actions/increment",',
+    "  },",
     "});",
     "",
   ].join("\n");
@@ -1514,6 +1579,10 @@ function createZustandResetAction(pluginUuid: string): string {
     "export const resetAction = defineAction({",
     `  uuid: "${pluginUuid}.reset",`,
     "  key: ResetKey,",
+    "  info: {",
+    '    name: "Reset",',
+    '    icon: "imgs/actions/reset",',
+    "  },",
     "});",
     "",
   ].join("\n");
@@ -1581,6 +1650,10 @@ function createJotaiDisplayAction(pluginUuid: string): string {
     "export const displayAction = defineAction({",
     `  uuid: "${pluginUuid}.display",`,
     "  key: AtomDisplayKey,",
+    "  info: {",
+    '    name: "Atom Display",',
+    '    icon: "imgs/actions/display",',
+    "  },",
     "});",
     "",
   ].join("\n");
@@ -1618,6 +1691,10 @@ function createJotaiIncrementAction(pluginUuid: string): string {
     "export const incrementAction = defineAction({",
     `  uuid: "${pluginUuid}.increment",`,
     "  key: IncrementAtomKey,",
+    "  info: {",
+    '    name: "Increment Atom",',
+    '    icon: "imgs/actions/increment",',
+    "  },",
     "});",
     "",
   ].join("\n");
@@ -1653,6 +1730,10 @@ function createJotaiResetAction(pluginUuid: string): string {
     "export const resetAction = defineAction({",
     `  uuid: "${pluginUuid}.reset",`,
     "  key: ResetAtomKey,",
+    "  info: {",
+    '    name: "Reset Atom",',
+    '    icon: "imgs/actions/reset",',
+    "  },",
     "});",
     "",
   ].join("\n");
@@ -1813,6 +1894,10 @@ function createPokemonAction(pluginUuid: string): string {
     "export const pokemonAction = defineAction({",
     `  uuid: "${pluginUuid}.pokemon",`,
     "  key: PokemonKey,",
+    "  info: {",
+    '    name: "Random Pokemon",',
+    '    icon: "imgs/actions/pokemon",',
+    "  },",
     "});",
     "",
   ].join("\n");

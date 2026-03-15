@@ -32,6 +32,17 @@ export default {
       plugins: ["babel-plugin-react-compiler"],
       presets: ["@babel/preset-typescript", ["@babel/preset-react", { runtime: "automatic" }]],
     }),
-    streamDeckReact(),
+    streamDeckReact({
+      manifest: {
+        uuid: "com.example.react-jotai",
+        name: "React Jotai Sample",
+        author: "Francesco Saverio Cannizzaro",
+        description:
+          "Sample plugin demonstrating shared cross-action state with Jotai and plugin wrappers.",
+        icon: "imgs/plugin-icon",
+        version: "0.0.0.1",
+        nodejs: { version: "24", debug: "--inspect=127.0.0.1:8092" },
+      },
+    }),
   ],
 };

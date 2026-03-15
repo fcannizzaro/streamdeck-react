@@ -213,4 +213,17 @@ function EqualizerTouchStrip() {
 export const equalizerAction = defineAction({
   uuid: "com.example.react-counter.equalizer",
   touchStrip: EqualizerTouchStrip,
+  info: {
+    name: "Equalizer",
+    icon: "imgs/actions/volume",
+    tooltip: "Animated equalizer across the full touch strip.",
+    encoder: {
+      layout: "layouts/touchstrip.json",
+      triggerDescription: {
+        rotate: "Adjust speed / amplitude",
+        push: "Pause / Reset",
+        touch: "Change color theme",
+      },
+    },
+  },
 });

@@ -208,32 +208,32 @@ interface RenderMetrics {
 
 ## Manifest Types
 
-These types support the [manifest codegen](/concepts/architecture#manifest-codegen) system for compile-time UUID validation.
+These types support the [manifest generation](/plugin-setup/manifest) system. Action metadata is defined via `defineAction({ info })` and auto-extracted at build time.
 
 ```ts
-/**
- * Augmented by the auto-generated streamdeck-env.d.ts file.
- * Empty by default — when populated, it enables type-safe defineAction() calls.
- */
-interface ManifestActions {}
+/** Per-action manifest metadata provided via defineAction({ info }). */
+interface ActionManifestInfo {
+  name: string;
+  icon: string;
+  disabled?: boolean;
+  tooltip?: string;
+  states?: ManifestStateInfo[];
+  encoder?: ManifestEncoderInfo;
+  controllers?: [ManifestController, ManifestController?];
+  // ... additional optional fields
+}
 
-/** Union of all manifest action UUIDs when available, plain `string` otherwise. */
-type ActionUUID = [keyof ManifestActions] extends [never]
-  ? string
-  : Extract<keyof ManifestActions, string>;
-
-/**
- * Manifest-derived discriminated union for defineAction().
- * When ManifestActions is populated, each member enforces controller-specific
- * requirements (e.g., Keypad actions must provide `key`, Encoder actions must
- * provide `dial` or `touchStrip`). Falls back to the permissive ActionConfig
- * when no manifest codegen is active.
- */
-type ActionConfigInput<S extends JsonObject = JsonObject> = [keyof ManifestActions] extends [never]
-  ? ActionConfig<S>
-  : {
-      [UUID in ActionUUID]: { uuid: UUID /* ... */ } & KeySurface<UUID> & EncoderSurface<UUID>;
-    }[ActionUUID];
+/** Plugin-level manifest metadata provided via streamDeckReact({ manifest }). */
+interface PluginManifestInfo {
+  uuid: string;
+  name: string;
+  author: string;
+  description: string;
+  icon: string;
+  version: string;
+  category?: string;
+  // ... additional optional fields with sensible defaults
+}
 ```
 
 ## Takumi Backend

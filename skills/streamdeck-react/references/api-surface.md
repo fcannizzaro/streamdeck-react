@@ -202,9 +202,9 @@ Complete public API exported from `@fcannizzaro/streamdeck-react`.
 | `Controller`                  | Type      | `"Keypad" \| "Encoder"`. Controller surface type.                                                                    |
 | `Coordinates`                 | Interface | `{ column, row }`. Grid coordinates for a key or encoder.                                                            |
 | `Size`                        | Interface | `{ columns, rows }`. Device grid size.                                                                               |
-| `ActionConfigInput<S>`        | Type      | Manifest-derived discriminated union for `defineAction()`. Falls back to `ActionConfig<S>` when no manifest codegen. |
+| `ActionConfigInput<S>`        | Type      | Discriminated union for `defineAction()`. Falls back to `ActionConfig<S>` when `ManifestActions` is empty.            |
 | `ActionUUID`                  | Type      | Union of all manifest action UUIDs when available, plain `string` otherwise.                                         |
-| `ManifestActions`             | Interface | Augmented by auto-generated `streamdeck-env.d.ts`. Empty by default.                                                 |
+| `ManifestActions`             | Interface | Empty by default. Can be augmented for compile-time UUID validation.                                                  |
 
 ## Component Props Types
 

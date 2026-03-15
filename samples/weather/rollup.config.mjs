@@ -33,12 +33,17 @@ export default {
       presets: ["@babel/preset-typescript", ["@babel/preset-react", { runtime: "automatic" }]],
     }),
     streamDeckReact({
-      targets: [
-        {
-          arch: "arm64",
-          platform: "darwin",
-        },
-      ],
+      targets: [{ arch: "arm64", platform: "darwin" }],
+      manifest: {
+        uuid: "com.example.react-weather",
+        name: "React Weather Sample",
+        author: "Francesco Saverio Cannizzaro",
+        description:
+          "Sample plugin demonstrating @fcannizzaro/streamdeck-react with a weather forecast touchstrip action using Open-Meteo API.",
+        icon: "imgs/plugin-icon",
+        version: "0.0.0.1",
+        nodejs: { version: "24", debug: "--inspect=127.0.0.1:8095" },
+      },
     }),
   ],
 };

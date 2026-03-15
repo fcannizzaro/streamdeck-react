@@ -361,4 +361,18 @@ function WeatherTouchStrip() {
 export const weatherAction = defineAction({
   uuid: "com.example.react-weather.forecast",
   touchStrip: WeatherTouchStrip,
+  info: {
+    name: "Weather Forecast",
+    icon: "imgs/actions/weather",
+    tooltip:
+      "Shows weather forecast on the touch strip. Rotate to scroll, press to expand details, tap to select.",
+    encoder: {
+      layout: "layouts/touchstrip.json",
+      triggerDescription: {
+        rotate: "Scroll forecast",
+        push: "Toggle details",
+        touch: "Select forecast",
+      },
+    },
+  },
 });

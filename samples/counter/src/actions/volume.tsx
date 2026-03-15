@@ -54,4 +54,16 @@ function VolumeDial() {
 export const volumeAction = defineAction({
   uuid: "com.example.react-counter.volume",
   dial: VolumeDial,
+  info: {
+    name: "Volume",
+    icon: "imgs/actions/volume",
+    tooltip: "Adjust volume with the dial, press to mute.",
+    encoder: {
+      layout: "$A0",
+      triggerDescription: {
+        rotate: "Adjust volume",
+        push: "Mute / Unmute",
+      },
+    },
+  },
 });
