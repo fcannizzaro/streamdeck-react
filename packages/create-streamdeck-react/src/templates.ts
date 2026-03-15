@@ -62,7 +62,6 @@ const ELGATO_SDK_VERSION = "^1.3.0";
 
 const BASE_DEPENDENCIES = {
   "@fcannizzaro/streamdeck-react": STREAMDECK_REACT_VERSION,
-  "@fontsource-variable/inter": "^5.2.5",
   react: "^19.2.4",
   ws: "^8.19.0",
 } satisfies Record<string, string>;
@@ -95,17 +94,17 @@ const ROLLDOWN_BASE_DEV_DEPENDENCIES = {
   "@types/node": "^25.3.3",
   "@types/react": "^19.2.14",
   typescript: "^5.9.3",
-  vite: "8.0.0-beta.16",
+  vite: "8.0.0",
 } satisfies Record<string, string>;
 
 const ROLLDOWN_ESBUILD_DEV_DEPENDENCIES = {
-  "@vitejs/plugin-react": "6.0.0-beta.0",
+  "@vitejs/plugin-react": "6.0.1",
 } satisfies Record<string, string>;
 
 const ROLLDOWN_COMPILER_DEV_DEPENDENCIES = {
   "@babel/core": "^7.29.0",
   "@rolldown/plugin-babel": "^0.2.0",
-  "@vitejs/plugin-react": "6.0.0-beta.0",
+  "@vitejs/plugin-react": "6.0.1",
   "babel-plugin-react-compiler": "^1.0.0",
 } satisfies Record<string, string>;
 
@@ -120,27 +119,27 @@ export const EXAMPLE_OPTIONS: ExampleOption[] = [
   {
     id: "minimal",
     label: "Minimal",
-    description: "A single action starter with local component state.",
+    description: "One key action with local state — best starting point to learn the basics.",
   },
   {
     id: "counter",
     label: "Counter Pack",
-    description: "A richer starter with key, timer, settings, and encoder examples.",
+    description: "Keys, timer, persisted settings, encoder dial, and animated TouchStrip equalizer.",
   },
   {
     id: "zustand",
     label: "Zustand",
-    description: "Shared state across multiple actions with a module-scope store.",
+    description: "Shared state across keys via Zustand — display, increment, and reset actions.",
   },
   {
     id: "jotai",
     label: "Jotai",
-    description: "Shared atom state with a plugin-level wrapper.",
+    description: "Shared atom state via Jotai with a plugin-level Provider wrapper.",
   },
   {
     id: "pokemon",
     label: "Pokemon",
-    description: "A data-fetching example using TanStack Query and remote images.",
+    description: "Data fetching with TanStack Query — loads remote Pokemon sprites on key press.",
   },
 ];
 
@@ -152,14 +151,14 @@ export const PACKAGE_MANAGER_OPTIONS: Array<ChoiceOption<PackageManager>> = [
 
 export const BUNDLER_OPTIONS: Array<ChoiceOption<Bundler>> = [
   {
+    value: "rolldown",
+    label: "Rolldown (Vite 8+)",
+    description: "Vite 8+ with Rolldown and Oxc transforms.",
+  },
+  {
     value: "rollup",
     label: "Rollup",
     description: "Stable Rollup-based build with esbuild or Babel.",
-  },
-  {
-    value: "rolldown",
-    label: "Rolldown (Vite 8 beta)",
-    description: "Vite 8 with Rolldown and Oxc transforms.",
   },
 ];
 
@@ -474,7 +473,6 @@ export function buildProjectFiles(options: ScaffoldOptions): Record<string, stri
     ".gitignore": createGitignore(),
     "package.json": buildPackageJson(options, preset.dependencies),
     "tsconfig.json": createProjectTsconfig(),
-    "src/env.d.ts": createFontTypeDeclarations(),
     ...configFile,
     "README.md": createProjectReadme(options),
     [`${pluginDir}/manifest.json`]: buildManifest(options, preset.actions),
@@ -767,6 +765,7 @@ function createGitignore(): string {
     "*.tsbuildinfo",
     "*.sdPlugin/bin/",
     "*.sdPlugin/logs/",
+    ".google-fonts/",
     "",
   ].join("\n");
 }
@@ -797,10 +796,6 @@ function createProjectTsconfig(): string {
     null,
     2,
   )}\n`;
-}
-
-function createFontTypeDeclarations(): string {
-  return '/// <reference types="@fcannizzaro/streamdeck-react/font" />\n';
 }
 
 function createProjectReadme(options: ScaffoldOptions): string {
@@ -970,21 +965,15 @@ function createPluginEntrypoint(
     : ",\n  adapter: physicalDevice()";
 
   return [
-    'import { createPlugin } from "@fcannizzaro/streamdeck-react";',
+    'import { createPlugin, googleFont } from "@fcannizzaro/streamdeck-react";',
     imports,
     wrapperImport.trimEnd(),
     adapterImport.trimEnd(),
-    'import InterRegular from "@fontsource-variable/inter/files/inter-latin-wght-normal.woff2";',
+    "",
+    'const inter = await googleFont("Inter");',
     "",
     "const plugin = createPlugin({",
-    "  fonts: [",
-    "    {",
-    '      name: "Inter",',
-    "      data: InterRegular,",
-    "      weight: 400,",
-    '      style: "normal",',
-    "    },",
-    "  ],",
+    "  fonts: [inter],",
     `  actions: [${actionExports.join(", ")}]${wrapperConfig}${adapterConfig},`,
     "});",
     "",

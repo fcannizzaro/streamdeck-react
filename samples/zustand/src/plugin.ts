@@ -1,18 +1,12 @@
-import { createPlugin } from "@fcannizzaro/streamdeck-react";
+import { createPlugin, googleFont } from "@fcannizzaro/streamdeck-react";
 import { displayAction } from "./actions/display";
 import { incrementAction } from "./actions/increment";
 import { resetAction } from "./actions/reset";
-import InterRegular from "@fontsource-variable/inter/files/inter-latin-wght-normal.woff2";
+
+const inter = await googleFont("Inter");
 
 const plugin = createPlugin({
-  fonts: [
-    {
-      name: "Inter",
-      data: InterRegular,
-      weight: 400,
-      style: "normal",
-    },
-  ],
+  fonts: [inter],
   devtools: true,
   actions: [displayAction, incrementAction, resetAction],
 });

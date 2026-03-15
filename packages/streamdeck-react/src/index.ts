@@ -90,9 +90,14 @@ export { ErrorBoundary } from "@/components/ErrorBoundary";
 // ── Tailwind Utility ────────────────────────────────────────────────
 export { tw } from "@/tw/index";
 
+// ── Google Font Helper ─────────────────────────────────────────────
+export { googleFont } from "@/google-font";
+export type { GoogleFontVariant } from "@/google-font";
+
 // ── Types ───────────────────────────────────────────────────────────
 export type {
   PluginConfig,
+  Plugin,
   FontConfig,
   ActionConfig,
   ActionConfigInput,
@@ -101,6 +106,7 @@ export type {
   ManifestActions,
   EncoderLayout,
   WrapperComponent,
+  TakumiBackend,
   Controller,
   Coordinates,
   Size,

@@ -5,9 +5,101 @@ description: How to load and configure fonts for rendered Stream Deck UI.
 
 ## Why Fonts Are Required
 
-The renderer cannot access system fonts from the Stream Deck runtime. It needs font file data (`ArrayBuffer` or `Buffer`) in `.ttf`, `.otf`, or `.woff` format. **WOFF2 is not supported.**
+The renderer cannot access system fonts from the Stream Deck runtime. It needs font file data (`ArrayBuffer` or `Buffer`) passed explicitly.
 
-## Loading Fonts
+**Supported formats by backend:**
+
+| Format | Native Binding (default) | WASM |
+| ------ | :----------------------: | :--: |
+| `.ttf` | ✅ | ✅ |
+| `.otf` | ✅ | ✅ |
+| `.woff` | ✅ | ❌ |
+| `.woff2` | ✅ | ❌ |
+
+If you're using the WASM backend (`takumi: "wasm"`), only TTF and OTF fonts are supported.
+
+## Google Fonts (Recommended)
+
+The `googleFont()` helper downloads TTF fonts directly from [Google Fonts](https://fonts.google.com) — no npm package needed. Font files are cached to `.google-fonts/` in your project directory, so only the first run requires network access.
+
+```ts
+import { createPlugin, googleFont } from "@fcannizzaro/streamdeck-react";
+
+const inter = await googleFont("Inter");
+
+const plugin = createPlugin({
+  fonts: [inter],
+  actions: [...],
+});
+```
+
+### Multiple Weights
+
+```ts
+const fonts = await googleFont("Inter", [
+  { weight: 400 },
+  { weight: 700 },
+]);
+
+const plugin = createPlugin({ fonts, actions: [...] });
+```
+
+### Single Variant
+
+```ts
+const bold = await googleFont("Inter", { weight: 700 });
+const italic = await googleFont("Inter", { weight: 400, style: "italic" });
+```
+
+### Multiple Families
+
+```ts
+const [inter, robotoMono] = await Promise.all([
+  googleFont("Inter"),
+  googleFont("Roboto Mono"),
+]);
+
+const plugin = createPlugin({
+  fonts: [inter, robotoMono],
+  actions: [...],
+});
+```
+
+### Disk Cache
+
+Downloaded fonts are saved to `.google-fonts/` in the current working directory. Subsequent calls read from disk without any network access. Add this directory to your `.gitignore`:
+
+```gitignore
+.google-fonts/
+```
+
+To force a re-download, delete the cache directory.
+
+### GoogleFontVariant
+
+```ts
+interface GoogleFontVariant {
+  weight?: 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900;
+  style?: "normal" | "italic";
+}
+```
+
+Both fields are optional. Defaults: `weight: 400`, `style: "normal"`.
+
+## FontConfig Interface
+
+```ts
+interface FontConfig {
+  name: string;
+  data: ArrayBuffer | Buffer;
+  weight: 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900;
+  style: "normal" | "italic";
+}
+```
+
+## Loading Fonts Manually
+
+If you need fonts not available on Google Fonts, you can load them manually via `readFile`:
 
 ```ts
 import { readFile } from "node:fs/promises";
@@ -28,60 +120,10 @@ const fonts = [
 ];
 ```
 
-### FontConfig Interface
-
-```ts
-interface FontConfig {
-  name: string;
-  data: ArrayBuffer | Buffer;
-  weight: 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900;
-  style: "normal" | "italic";
-}
-```
-
-### Using @fontsource
-
-You can install fonts from [fontsource](https://fontsource.org/) instead of bundling `.ttf` files manually. Each package ships individual weight files you can import directly:
-
-```bash tab="bun"
-bun add @fontsource/inter
-```
-
-```bash tab="pnpm"
-pnpm add @fontsource/inter
-```
-
-```bash tab="npm"
-npm install @fontsource/inter
-```
-
-Then resolve the font file from the package:
-
-```ts
-import { readFile } from "node:fs/promises";
-import { createRequire } from "node:module";
-
-const require = createRequire(import.meta.url);
-
-const fonts = [
-  {
-    name: "Inter",
-    data: await readFile(require.resolve("@fontsource/inter/files/inter-latin-400-normal.woff")),
-    weight: 400 as const,
-    style: "normal" as const,
-  },
-  {
-    name: "Inter",
-    data: await readFile(require.resolve("@fontsource/inter/files/inter-latin-700-normal.woff")),
-    weight: 700 as const,
-    style: "normal" as const,
-  },
-];
-```
-
 <Callout type="warn">
-  Use `.woff` or `.ttf` files from `@fontsource` packages. WOFF2 (`.woff2`) is **not supported** by
-  the renderer.
+  If using the WASM backend (`takumi: "wasm"`), use `.ttf` or `.otf` files only. WOFF and WOFF2 are
+  not supported in WASM mode. The default native-binding backend supports all formats including
+  `.woff` and `.woff2`.
 </Callout>
 
 ## Using Fonts in Components

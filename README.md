@@ -63,11 +63,13 @@ export const counterAction = defineAction({
 Register it in your plugin entrypoint:
 
 ```ts
-import { createPlugin } from "@fcannizzaro/streamdeck-react";
+import { createPlugin, googleFont } from "@fcannizzaro/streamdeck-react";
 import { counterAction } from "./actions/counter.tsx";
 
+const inter = await googleFont("Inter");
+
 const plugin = createPlugin({
-  fonts: [],
+  fonts: [inter],
   actions: [counterAction],
 });
 
@@ -83,12 +85,13 @@ await plugin.connect();
 
 ## Samples
 
-- `samples/counter/` - local state, settings hook, dial interaction
-- `samples/zustand/` - shared external store across multiple actions
-- `samples/jotai/` - shared atom state with a plugin-level wrapper
-- `samples/pokemon/` - richer plugin example with custom wrappers
-- `samples/snake/` - snake game on the Stream Deck+ touch strip using dial controls and touch tap
-- `samples/weather/` - weather forecast dials with animated detail panels and a shared Zustand store
+- `samples/counter/` — local state, persisted settings, dial interaction
+- `samples/zustand/` — shared state across keys via a module-scope Zustand store
+- `samples/jotai/` — shared atom state with a plugin-level Jotai Provider wrapper
+- `samples/pokemon/` — data fetching with TanStack Query and remote image rendering
+- `samples/animation/` — spring bounce, fade-slide, and spring dial animations
+- `samples/snake/` — snake game on the Stream Deck+ TouchStrip using dial controls and touch tap
+- `samples/weather/` — weather forecast dials with animated detail panels and a shared Zustand store
 
 ## DevTools
 

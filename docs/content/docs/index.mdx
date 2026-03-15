@@ -21,8 +21,7 @@ The `@elgato/streamdeck` SDK is powerful but low-level. You track state manually
 ## Quick Example
 
 ```tsx
-import { readFile } from "node:fs/promises";
-import { createPlugin, defineAction, useKeyDown, tw } from "@fcannizzaro/streamdeck-react";
+import { createPlugin, defineAction, useKeyDown, googleFont, tw } from "@fcannizzaro/streamdeck-react";
 import { useState } from "react";
 
 function CounterKey() {
@@ -52,15 +51,10 @@ const counterAction = defineAction({
   key: CounterKey,
 });
 
+const inter = await googleFont("Inter");
+
 const plugin = createPlugin({
-  fonts: [
-    {
-      name: "Inter",
-      data: await readFile("./fonts/Inter-Regular.ttf"),
-      weight: 400,
-      style: "normal",
-    },
-  ],
+  fonts: [inter],
   actions: [counterAction],
 });
 

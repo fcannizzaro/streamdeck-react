@@ -34,8 +34,17 @@ export interface StreamDeckTarget {
   arch: StreamDeckArch;
 }
 
+/** Takumi renderer backend selection. Mirrors the runtime `TakumiBackend` type for build-time configuration. */
+export type TakumiBackend = "native-binding" | "wasm";
+
 export interface StreamDeckTargetOptions {
   targets?: StreamDeckTarget[];
+  /**
+   * Takumi renderer backend. When `"wasm"`, native `.node` binding
+   * copying is skipped entirely during the build.
+   * @default "native-binding"
+   */
+  takumi?: TakumiBackend;
 }
 
 export interface ResolvedTarget extends StreamDeckTarget {
@@ -93,6 +102,51 @@ export function isDevelopmentMode(watchMode: boolean | undefined): boolean {
 export const NOOP_DEVTOOLS_ID = "\0streamdeck-react:noop-devtools";
 export const NOOP_DEVTOOLS_CODE = "export function startDevtoolsServer() {}";
 const DEVTOOLS_IMPORT_SOURCE = "./devtools/index.js";
+
+// ── Takumi native loader virtual module ─────────────────────────────
+//
+// When bundlers inline dynamic imports (Rollup's inlineDynamicImports),
+// the @takumi-rs/core NAPI-RS loader (~585 lines) gets placed AFTER the
+// entry point's top-level `await plugin.connect()`.  Since top-level
+// await suspends module evaluation, the loader code never runs before
+// initializeRenderer() tries to access the Renderer class.
+//
+// To fix this, the bundler plugin replaces `@takumi-rs/core` with a
+// lightweight virtual module that loads the platform-specific .node
+// binary directly.  As a static dependency, the bundler places it at
+// the top of the bundle — before any top-level await.
+
+export const TAKUMI_NATIVE_LOADER_ID = "\0streamdeck-react:takumi-native";
+
+// Simplified native binding loader that only covers Stream Deck
+// platforms (darwin/win32 × arm64/x64).  Uses createRequire(import.meta.url)
+// so the .node file is resolved relative to the bundled output, where
+// copyNativeBindings() places it.
+export const TAKUMI_NATIVE_LOADER_CODE = `
+import { createRequire } from "node:module";
+const require = createRequire(import.meta.url);
+let binding = null;
+if (process.platform === "darwin") {
+  if (process.arch === "arm64") {
+    try { binding = require("./core.darwin-arm64.node"); } catch {}
+  } else if (process.arch === "x64") {
+    try { binding = require("./core.darwin-x64.node"); } catch {}
+  }
+} else if (process.platform === "win32") {
+  if (process.arch === "arm64") {
+    try { binding = require("./core.win32-arm64-msvc.node"); } catch {}
+  } else if (process.arch === "x64") {
+    try { binding = require("./core.win32-x64-msvc.node"); } catch {}
+  }
+}
+if (!binding) {
+  throw new Error(
+    "[@fcannizzaro/streamdeck-react] Failed to load @takumi-rs/core native binding for " +
+    process.platform + "-" + process.arch
+  );
+}
+export const { Renderer, OutputFormat, DitheringAlgorithm, AnimationOutputFormat, extractResourceUrls } = binding;
+`.trim();
 
 /**
  * Returns true when devtools should be stripped from the bundle.
@@ -181,6 +235,10 @@ export function copyNativeBindings(
   options: StreamDeckTargetOptions,
   warn: (message: string) => void,
 ): void {
+  // WASM mode: no native bindings to copy — the renderer runs entirely
+  // in WebAssembly via @takumi-rs/wasm.
+  if (options.takumi === "wasm") return;
+
   try {
     const requestedTargets = normalizeTargetRequests(options, isDevelopment);
     if (requestedTargets.length === 0) {

@@ -577,7 +577,7 @@ describe("ReactRoot integration", () => {
             size: { columns: 5, rows: 3 },
             name: "Stream Deck",
           },
-          { width: 72, height: 72, type: "key" },
+          { width: 144, height: 144, type: "key" },
           {},
           {},
           {

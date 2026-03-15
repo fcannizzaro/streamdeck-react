@@ -6,8 +6,8 @@ The renderer is NOT a browser DOM. Keep layouts simple and explicit.
 
 - Use inline styles, `className` with Tailwind classes, or `tw()` utility strings.
 - Prefer fixed sizes, percentages, and straightforward flex layouts.
-- Load every font you plan to render explicitly -- the renderer cannot access system fonts.
-- Supported font formats: `.ttf`, `.otf`, `.woff`, `.woff2`.
+- Load every font you plan to render explicitly via `googleFont()` or manual `readFile` -- the renderer cannot access system fonts.
+- Supported font formats: `.ttf`, `.otf`, `.woff`, `.woff2` (WASM mode: `.ttf` and `.otf` only).
 
 ## Supported JSX Elements
 

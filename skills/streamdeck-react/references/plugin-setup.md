@@ -25,6 +25,7 @@ interface PluginConfig {
   fonts: FontConfig[];
   actions: ActionDefinition[];
   wrapper?: WrapperComponent;
+  takumi?: TakumiBackend; // Default: "native-binding"
   imageFormat?: "png" | "webp"; // Default: 'png'
   caching?: boolean; // Default: true
   devicePixelRatio?: number; // Default: 1
@@ -33,7 +34,7 @@ interface PluginConfig {
   debug?: boolean; // Default: NODE_ENV !== 'production'
   imageCacheMaxBytes?: number; // Default: 16777216 (16 MB)
   touchStripCacheMaxBytes?: number; // Default: 8388608 (8 MB)
-  useWorker?: boolean; // Default: true
+  useWorker?: boolean; // Default: true (force-disabled when takumi is "wasm")
 }
 ```
 
@@ -43,6 +44,7 @@ interface PluginConfig {
 | `fonts`                   | Yes      | At least one font file. See FontConfig below.                                                          |
 | `actions`                 | Yes      | Array of action definitions from `defineAction()`.                                                     |
 | `wrapper`                 | No       | Component that wraps ALL action roots. Use for global providers.                                       |
+| `takumi`                  | No       | Renderer backend: `"native-binding"` (default) or `"wasm"`. WASM mode disables workers and WOFF fonts.|
 | `imageFormat`             | No       | Output format. PNG is default and most compatible.                                                     |
 | `caching`                 | No       | Output hash caching (xxHash-wasm) to skip duplicate `setImage()` calls.                                |
 | `devicePixelRatio`        | No       | Device pixel ratio used by the Takumi renderer. Default: `1`.                                          |
@@ -51,7 +53,7 @@ interface PluginConfig {
 | `debug`                   | No       | Enable render counters, duplicate detection, and depth warnings. Defaults to non-production.           |
 | `imageCacheMaxBytes`      | No       | Max bytes for the key/dial image cache (LRU). Set to 0 to disable. Default: 16 MB.                     |
 | `touchStripCacheMaxBytes` | No       | Max bytes for the TouchStrip raw buffer cache (LRU). Set to 0 to disable. Default: 8 MB.               |
-| `useWorker`               | No       | Offload Takumi rendering to a worker thread. Transparent fallback if worker fails.                     |
+| `useWorker`               | No       | Offload Takumi rendering to a worker thread. Transparent fallback if worker fails. Force-disabled when `takumi` is `"wasm"`. |
 
 ### Plugin-Level Wrapper
 
@@ -140,19 +142,26 @@ interface FontConfig {
 
 ### Loading Fonts
 
-The recommended approach is to install a `@fontsource` or `@fontsource-variable` package and import the font file directly. The bundler plugin (`streamDeckReact()`) inlines the font data as a `Buffer` at build time.
+The recommended approach is to use `googleFont()` which downloads TTF fonts directly from Google Fonts and caches them to `.google-fonts/` on disk. No npm font package needed.
 
 ```ts
-import InterRegular from "@fontsource-variable/inter/files/inter-latin-wght-normal.woff2";
+import { createPlugin, googleFont } from "@fcannizzaro/streamdeck-react";
 
-const fonts: FontConfig[] = [
-  {
-    name: "Inter",
-    data: InterRegular,
-    weight: 400,
-    style: "normal",
-  },
-];
+const inter = await googleFont("Inter");
+
+const plugin = createPlugin({
+  fonts: [inter],
+  actions: [...],
+});
+```
+
+For multiple weights:
+
+```ts
+const fonts = await googleFont("Inter", [
+  { weight: 400 },
+  { weight: 700 },
+]);
 ```
 
 You can also load fonts manually via `readFile` if needed:
@@ -173,7 +182,9 @@ const fonts: FontConfig[] = [
 ### Font Rules
 
 - At least one font is required in `createPlugin()`.
-- Supported formats: `.ttf`, `.otf`, `.woff`, `.woff2`.
+- Supported formats depend on the backend:
+  - **Native binding** (default): `.ttf`, `.otf`, `.woff`, `.woff2`
+  - **WASM**: `.ttf`, `.otf` only (WOFF/WOFF2 not supported)
 - The renderer cannot access system fonts. Every font used must be explicitly loaded.
 - Font is matched by `fontFamily`, `fontWeight`, and `fontStyle`. If the requested weight isn't loaded, the nearest available weight is used.
 - Each font weight/style is a separate file. Minimize variants to reduce bundle size.

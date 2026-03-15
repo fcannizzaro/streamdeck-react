@@ -27,6 +27,8 @@ import {
   isLibraryDevtoolsImport,
   NOOP_DEVTOOLS_ID,
   NOOP_DEVTOOLS_CODE,
+  TAKUMI_NATIVE_LOADER_ID,
+  TAKUMI_NATIVE_LOADER_CODE,
 } from "./bundler-shared";
 import { resolveFontId, loadFont } from "./font-inline";
 import { generateManifestTypes } from "./manifest-codegen";
@@ -36,6 +38,7 @@ export type {
   StreamDeckArch,
   StreamDeckTarget,
   StreamDeckTargetOptions,
+  TakumiBackend,
 } from "./bundler-shared";
 
 import type { StreamDeckTargetOptions } from "./bundler-shared";
@@ -94,6 +97,11 @@ export function streamDeckReact(options: StreamDeckRollupOptions = {}): Plugin {
         if (shouldStripDevtools(this.meta.watchMode) && isLibraryDevtoolsImport(source, importer)) {
           return NOOP_DEVTOOLS_ID;
         }
+        // Replace @takumi-rs/core with a lightweight native loader to avoid
+        // the inlineDynamicImports ordering issue (see bundler-shared.ts).
+        if (options.takumi !== "wasm" && source === "@takumi-rs/core") {
+          return TAKUMI_NATIVE_LOADER_ID;
+        }
         return resolveFontId(source, importer);
       },
     },
@@ -101,6 +109,7 @@ export function streamDeckReact(options: StreamDeckRollupOptions = {}): Plugin {
       order: "pre" as const,
       handler(id: string) {
         if (id === NOOP_DEVTOOLS_ID) return NOOP_DEVTOOLS_CODE;
+        if (id === TAKUMI_NATIVE_LOADER_ID) return TAKUMI_NATIVE_LOADER_CODE;
         return loadFont(id);
       },
     },

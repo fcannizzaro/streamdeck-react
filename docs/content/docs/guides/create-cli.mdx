@@ -34,7 +34,7 @@ npm create streamdeck-react@latest my-plugin
 - Description and category
 - Package manager
 - Starter example
-- Bundler (`Rollup` stable or `Rolldown` via Vite 8 beta)
+- Bundler (`Rolldown` via Vite 8+ or `Rollup` stable)
 - Supported Stream Deck platforms (`mac`, `windows`)
 - Native targets
 - Whether to use [React Compiler](/guides/react-compiler)
@@ -55,7 +55,7 @@ The scaffold includes:
 - a bundler config (`rollup.config.mjs` or `vite.config.ts`) with native targets
 - starter `src/` files for the selected example
 - default SVG icons for the plugin and each action
-- an `Inter-Regular.ttf` font ready for `createPlugin()`
+- an `Inter-Regular.ttf` font ready for `createPlugin()` via `googleFont("Inter")`
 
 ## After Generation
 

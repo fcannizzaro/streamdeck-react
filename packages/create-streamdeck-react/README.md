@@ -22,8 +22,8 @@ The interactive CLI walks you through the setup:
 - **Plugin UUID** (reverse-domain format) and **author**
 - **Description** and **category**
 - **Package manager** (`npm`, `pnpm`, `bun`)
+- **Bundler** (`rolldown` via Vite 8+ or `rollup`)
 - **Starter example** (`minimal`, `counter`, `zustand`, `jotai`, `pokemon`)
-- **Bundler** (`rollup` or `rolldown` via Vite 8 beta)
 - **Supported platforms** (`mac`, `windows`)
 - **Native targets** for the selected bundler
 - **React Compiler** opt-in (enabled by default)
@@ -60,4 +60,4 @@ The generated project includes:
 - Stream Deck manifest (`<uuid>.sdPlugin/manifest.json`)
 - Starter source files based on the chosen example
 - Auto-generated plugin and action icons
-- Bundled Inter font for text rendering
+- Inter font via `googleFont("Inter")` for text rendering

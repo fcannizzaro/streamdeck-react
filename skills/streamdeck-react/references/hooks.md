@@ -246,7 +246,7 @@ function useDevice(): DeviceInfo;
 
 interface DeviceInfo {
   id: string;
-  type: DeviceType; // e.g. 0 (StreamDeck), 2 (StreamDeckXL), 7 (StreamDeckPlus)
+  type: number; // e.g. 0 (StreamDeck), 2 (StreamDeckXL), 7 (StreamDeckPlus)
   size: { columns: number; rows: number };
   name: string;
 }

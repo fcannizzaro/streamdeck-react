@@ -24,21 +24,31 @@ import type { RegistryObserver } from "@/devtools/observers/lifecycle";
 const SEGMENT_WIDTH = 200;
 
 // ── Device key size lookup ──────────────────────────────────────────
-// Maps Elgato DeviceType enum values to key pixel dimensions.
-// Each Stream Deck model renders keys at a specific resolution.
+// All key surfaces use a unified 144×144 CSS layout viewport.
+//
+// Why 144:
+//   Native resolution of the most common modern devices (SD+, Studio,
+//   PlusXL) and exactly 2× the original Stream Deck resolution (72).
+//   Normalizing all devices to a single viewport means content designed
+//   with explicit pixel sizes (e.g. text-[30px]) looks identical on
+//   every device.  The Elgato SDK's setImage() accepts images of any
+//   size and downscales to the hardware's native resolution (72, 80,
+//   96, or 144), so pushing a 144×144 PNG to a 72×72 key is safe and
+//   actually produces better anti-aliasing.
+//
 // Dial size (200×100) is constant across all encoder-capable devices.
 
 const KEY_SIZES: Record<number, { width: number; height: number }> = {
-  0: { width: 72, height: 72 }, // StreamDeck
-  1: { width: 80, height: 80 }, // StreamDeckMini
-  2: { width: 96, height: 96 }, // StreamDeckXL
-  3: { width: 72, height: 72 }, // StreamDeckMobile
-  4: { width: 72, height: 72 }, // CorsairGKeys
-  5: { width: 72, height: 72 }, // StreamDeckPedal (no display, but default)
-  6: { width: 72, height: 72 }, // CorsairVoyager
+  0: { width: 144, height: 144 }, // StreamDeck (MK2)
+  1: { width: 144, height: 144 }, // StreamDeckMini
+  2: { width: 144, height: 144 }, // StreamDeckXL
+  3: { width: 144, height: 144 }, // StreamDeckMobile
+  4: { width: 144, height: 144 }, // CorsairGKeys
+  5: { width: 144, height: 144 }, // StreamDeckPedal (no display, but default)
+  6: { width: 144, height: 144 }, // CorsairVoyager
   7: { width: 144, height: 144 }, // StreamDeckPlus
-  8: { width: 72, height: 72 }, // SCUFController
-  9: { width: 72, height: 72 }, // StreamDeckNeo
+  8: { width: 144, height: 144 }, // SCUFController
+  9: { width: 144, height: 144 }, // StreamDeckNeo
   10: { width: 144, height: 144 }, // StreamDeckStudio
   11: { width: 144, height: 144 }, // VirtualStreamDeck
   12: { width: 144, height: 144 }, // Galleon100SD
@@ -51,7 +61,7 @@ function getCanvasInfo(deviceType: number, surfaceType: "key" | "dial"): CanvasI
   if (surfaceType === "dial") {
     return { ...DIAL_SIZE, type: "dial" };
   }
-  const size = KEY_SIZES[deviceType as number] ?? { width: 72, height: 72 };
+  const size = KEY_SIZES[deviceType as number] ?? { width: 144, height: 144 };
   return { ...size, type: "key" };
 }
 

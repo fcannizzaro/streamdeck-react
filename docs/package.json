@@ -10,10 +10,10 @@
   },
   "dependencies": {
     "@orama/orama": "^3.1.18",
-    "@takumi-rs/image-response": "^0.71.7",
-    "fumadocs-core": "16.6.16",
-    "fumadocs-mdx": "14.2.9",
-    "fumadocs-ui": "16.6.16",
+    "@takumi-rs/image-response": "^0.73.1",
+    "fumadocs-core": "16.6.17",
+    "fumadocs-mdx": "14.2.10",
+    "fumadocs-ui": "16.6.17",
     "lucide-react": "^0.577.0",
     "next": "16.1.6",
     "react": "^19.2.4",
@@ -21,7 +21,6 @@
     "tailwind-merge": "^3.5.0"
   },
   "devDependencies": {
-    "@fcannizzaro/streamdeck-react-devtools": "workspace:*",
     "@tailwindcss/postcss": "^4.2.1",
     "@types/mdx": "^2.0.13",
     "@types/node": "^25.4.0",

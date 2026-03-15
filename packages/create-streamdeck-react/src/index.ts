@@ -77,8 +77,8 @@ async function main(): Promise<void> {
   const description = await collectDescription(args, displayName, skipPrompt);
   const category = await collectCategory(args, displayName, skipPrompt);
   const packageManager = await collectPackageManager(args, skipPrompt);
-  const example = await collectExample(args, skipPrompt);
   const bundler = await collectBundler(args, skipPrompt);
+  const example = await collectExample(args, skipPrompt);
   const adapter = await collectAdapter(args, skipPrompt);
   const platforms = await collectPlatforms(args, skipPrompt);
   const nativeTargets = await collectNativeTargets(args, platforms, skipPrompt);
@@ -454,7 +454,7 @@ async function collectBundler(args: ParsedArgs, skipPrompt: boolean): Promise<Bu
     return args.bundler;
   }
 
-  const fallback: Bundler = "rollup";
+  const fallback: Bundler = "rolldown";
 
   if (skipPrompt) {
     return fallback;

@@ -6,12 +6,11 @@
     "dev": "bunx --bun rollup -c -w --watch.onEnd=\"streamdeck restart com.example.react-counter\"",
     "build": "rollup -c",
     "check-types": "tsc --noEmit",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "link": "streamdeck link com.example.react-counter.sdPlugin"
   },
   "dependencies": {
     "@fcannizzaro/streamdeck-react": "workspace:*",
-    "@fontsource-variable/inter": "^5.2.8",
-    "@fontsource-variable/spline-sans-mono": "^5.2.8",
     "@takumi-rs/core-darwin-arm64": "^0.71.7",
     "react": "^19.2.4",
     "ws": "^8.19.0"

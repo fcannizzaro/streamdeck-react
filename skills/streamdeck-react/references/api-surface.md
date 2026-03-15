@@ -8,6 +8,7 @@ Complete public API exported from `@fcannizzaro/streamdeck-react`.
 | ---------------------- | -------- | --------------------------------------------------------------------------------------------------------- |
 | `createPlugin(config)` | Function | Creates and configures the plugin runtime. Returns `{ connect() }`.                                       |
 | `defineAction(config)` | Function | Maps a manifest UUID to React components for key and dial rendering, plus touch-aware action definitions. |
+| `googleFont(family, variants?)` | Function | Downloads TTF fonts from Google Fonts. Returns `FontConfig` or `FontConfig[]`. Cached to `.google-fonts/` on disk. |
 
 ## Adapter
 
@@ -74,7 +75,7 @@ Complete public API exported from `@fcannizzaro/streamdeck-react`.
 | `useInterval` | `(cb: () => void, delayMs: number \| null) => IntervalControls`            | Auto-cleaning interval. Pass `null` to pause. Returns `{ reset }`.         |
 | `useTimeout`  | `(cb: () => void, delayMs: number \| null) => TimeoutControls`             | Auto-cleaning timeout. Pass `null` to cancel. Returns `{ cancel, reset }`. |
 | `usePrevious` | `<T>(value: T) => T \| undefined`                                          | Returns the value from the previous render.                                |
-| `useTick`     | `(cb: (deltaMs: number) => void, fpsOrActive?: number \| boolean) => void` | Animation frame loop. Default 60fps. Pass `false` to pause.                |
+| `useTick`     | `(cb: (deltaMs: number) => void, fpsOrActive?: number \| boolean) => void` | Animation frame loop. Default 30fps, max 30fps. Pass `false` to pause.     |
 
 ## Animation Hooks
 
@@ -101,7 +102,7 @@ Complete public API exported from `@fcannizzaro/streamdeck-react`.
 
 | Export                    | Signature                                                      | Description                                                            |
 | ------------------------- | -------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| `useTouchStrip`           | `() => TouchStripInfo`                                         | Returns touch bar metadata: width, height, columns, segmentWidth, fps. |
+| `useTouchStrip`           | `() => TouchStripInfo`                                         | Returns touch bar metadata: width, height, columns, segmentWidth.      |
 | `useTouchStripTap`        | `(cb: (payload: TouchStripTapPayload) => void) => void`        | Touch events with absolute coordinates across the full strip.          |
 | `useTouchStripDialRotate` | `(cb: (payload: TouchStripDialRotatePayload) => void) => void` | Dial rotation events with column info.                                 |
 | `useTouchStripDialDown`   | `(cb: (payload: TouchStripDialPressPayload) => void) => void`  | Dial press events with column info.                                    |
@@ -135,7 +136,7 @@ Complete public API exported from `@fcannizzaro/streamdeck-react`.
 
 | Export                    | Description                                   |
 | ------------------------- | --------------------------------------------- |
-| `StreamDeckTargetOptions` | Rollup helper options with a `targets` array. |
+| `StreamDeckTargetOptions` | Rollup helper options with a `targets` array and optional `takumi` backend. |
 | `StreamDeckTarget`        | One native copy target: `{ platform, arch }`. |
 | `StreamDeckPlatform`      | `'darwin' \| 'win32'`.                        |
 | `StreamDeckArch`          | `'arm64' \| 'x64'`.                           |
@@ -151,7 +152,7 @@ Complete public API exported from `@fcannizzaro/streamdeck-react`.
 | Export                    | Description                                                                              |
 | ------------------------- | ---------------------------------------------------------------------------------------- |
 | `StreamDeckReactOptions`  | Extends `StreamDeckTargetOptions` with `uuid?: string` and `manifest?: string \| false`. |
-| `StreamDeckTargetOptions` | Shared options with a `targets` array.                                                   |
+| `StreamDeckTargetOptions` | Shared options with a `targets` array and optional `takumi` backend.             |
 | `StreamDeckTarget`        | One native copy target: `{ platform, arch }`.                                            |
 | `StreamDeckPlatform`      | `'darwin' \| 'win32'`.                                                                   |
 | `StreamDeckArch`          | `'arm64' \| 'x64'`.                                                                      |
@@ -162,6 +163,7 @@ Complete public API exported from `@fcannizzaro/streamdeck-react`.
 | ----------------------------- | --------- | -------------------------------------------------------------------------------------------------------------------- |
 | `PluginConfig`                | Interface | Configuration for `createPlugin()`.                                                                                  |
 | `FontConfig`                  | Interface | Font file descriptor: `name`, `data`, `weight`, `style`.                                                             |
+| `GoogleFontVariant`           | Interface | Google Font variant options: `weight?`, `style?`. Used with `googleFont()`.                                           |
 | `ActionConfig`                | Interface | Configuration for `defineAction()`.                                                                                  |
 | `ActionDefinition`            | Interface | Resolved action definition (output of `defineAction`).                                                               |
 | `EncoderLayout`               | Type      | `string \| TouchStripLayout`.                                                                                        |
@@ -176,7 +178,7 @@ Complete public API exported from `@fcannizzaro/streamdeck-react`.
 | `TouchTapPayload`             | Interface | `{ tapPos: [x, y], hold, settings }`.                                                                                |
 | `DialHints`                   | Interface | `{ rotate?, press?, touch?, longTouch? }`.                                                                           |
 | `StreamDeckAccess`            | Interface | `{ action: AdapterActionHandle, adapter: StreamDeckAdapter }`.                                                       |
-| `TouchStripInfo`              | Interface | `{ width, height, columns, segmentWidth, fps }`.                                                                     |
+| `TouchStripInfo`              | Interface | `{ width, height, columns, segmentWidth }`.                                                                          |
 | `TouchStripTapPayload`        | Interface | `{ tapPos: [x, y], hold, column }`.                                                                                  |
 | `TouchStripDialRotatePayload` | Interface | `{ column, ticks, pressed }`.                                                                                        |
 | `TouchStripDialPressPayload`  | Interface | `{ column }`.                                                                                                        |
@@ -196,6 +198,10 @@ Complete public API exported from `@fcannizzaro/streamdeck-react`.
 | `RenderProfile`               | Interface | Per-render timing and diagnostic data: timing breakdowns, skipped, cacheHit, treeDepth, nodeCount.                   |
 | `CacheStats`                  | Interface | Image cache statistics: entries, bytes, maxBytes, hits, misses.                                                      |
 | `RenderMetrics`               | Interface | Rolling-window render pipeline statistics: flush/skip counts, avg/peak render time, cache bytes.                     |
+| `TakumiBackend`               | Type      | `"native-binding" \| "wasm"`. Renderer backend selection.                                                            |
+| `Controller`                  | Type      | `"Keypad" \| "Encoder"`. Controller surface type.                                                                    |
+| `Coordinates`                 | Interface | `{ column, row }`. Grid coordinates for a key or encoder.                                                            |
+| `Size`                        | Interface | `{ columns, rows }`. Device grid size.                                                                               |
 | `ActionConfigInput<S>`        | Type      | Manifest-derived discriminated union for `defineAction()`. Falls back to `ActionConfig<S>` when no manifest codegen. |
 | `ActionUUID`                  | Type      | Union of all manifest action UUIDs when available, plain `string` otherwise.                                         |
 | `ManifestActions`             | Interface | Augmented by auto-generated `streamdeck-env.d.ts`. Empty by default.                                                 |

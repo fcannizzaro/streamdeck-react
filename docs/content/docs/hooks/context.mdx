@@ -14,7 +14,8 @@ function useDevice(): DeviceInfo;
 ```ts
 interface DeviceInfo {
   id: string;
-  type: DeviceType; // e.g. 0 (StreamDeck), 2 (StreamDeckXL), 7 (StreamDeckPlus), etc.
+  /** Numeric device type matching Elgato DeviceType enum values (e.g. 7 = StreamDeckPlus). */
+  type: number;
   size: { columns: number; rows: number };
   name: string;
 }

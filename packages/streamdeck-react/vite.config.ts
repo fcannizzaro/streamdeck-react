@@ -9,6 +9,7 @@ const externalPackages = [
   "@elgato/streamdeck",
   "@takumi-rs/core",
   "@takumi-rs/helpers",
+  "@takumi-rs/wasm",
   "react",
   "react-reconciler",
   "rollup",

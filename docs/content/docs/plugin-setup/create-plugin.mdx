@@ -8,19 +8,13 @@ description: Configure and initialize the @fcannizzaro/streamdeck-react plugin.
 ## Basic Usage
 
 ```ts
-import { createPlugin } from "@fcannizzaro/streamdeck-react";
-import InterRegular from "@fontsource-variable/inter/files/inter-latin-wght-normal.woff2";
+import { createPlugin, googleFont } from "@fcannizzaro/streamdeck-react";
 import { counterAction } from "./actions/counter";
 
+const inter = await googleFont("Inter");
+
 const plugin = createPlugin({
-  fonts: [
-    {
-      name: "Inter",
-      data: InterRegular,
-      weight: 400,
-      style: "normal",
-    },
-  ],
+  fonts: [inter],
   actions: [counterAction],
 });
 
@@ -35,6 +29,7 @@ interface PluginConfig {
   fonts: FontConfig[];
   actions: ActionDefinition[];
   wrapper?: WrapperComponent;
+  takumi?: TakumiBackend;
   imageFormat?: "png" | "webp";
   caching?: boolean;
   devicePixelRatio?: number;
@@ -80,6 +75,29 @@ const plugin = createPlugin({
   fonts: [...],
   actions: [...],
   wrapper: ({ children }) => <MyGlobalProvider>{children}</MyGlobalProvider>,
+});
+```
+
+### `takumi`
+
+Selects the Takumi renderer backend. Default: `'native-binding'`.
+
+- **`'native-binding'`** — Uses the native Rust NAPI addon (`@takumi-rs/core`). Requires platform-specific binary packages (e.g. `@takumi-rs/core-darwin-arm64`). This is the fastest and most capable mode, supporting all font formats including WOFF/WOFF2.
+- **`'wasm'`** — Uses the WebAssembly build (`@takumi-rs/wasm`). Useful for WebContainer and browser-based environments where native addons cannot load. WOFF/WOFF2 fonts are **not supported** in this mode — use TTF or OTF only. Worker threads are automatically disabled.
+
+```ts
+const plugin = createPlugin({
+  takumi: "wasm", // use WASM renderer instead of native binding
+  fonts: [...],
+  actions: [...],
+});
+```
+
+When using the bundler plugin (`streamDeckReact()`), pass the matching `takumi` option to skip native binary copying:
+
+```ts
+streamDeckReact({
+  takumi: "wasm", // skips .node file copying
 });
 ```
 
@@ -132,4 +150,4 @@ Offload Takumi rendering to a worker thread. This prevents the native rasterizat
 
 `connect()` must be the last call in your entry file. It calls `adapter.connect()` to establish the connection with the Stream Deck backend (or custom adapter).
 
-The action registration, font initialization, and renderer setup all happen during the `createPlugin()` call itself — `connect()` only opens the connection.
+The action registration, font initialization, and renderer setup all happen during the `connect()` call — `createPlugin()` prepares the configuration, `connect()` performs the actual initialization and opens the connection.

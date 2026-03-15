@@ -9,9 +9,19 @@ All types are exported from the main `@fcannizzaro/streamdeck-react` package.
 
 ```ts
 interface PluginConfig {
+  /** Stream Deck adapter. Defaults to physicalDevice() (Elgato SDK). */
+  adapter?: StreamDeckAdapter;
   fonts: FontConfig[];
   actions: ActionDefinition[];
   wrapper?: WrapperComponent;
+  /**
+   * Takumi renderer backend.
+   * - `"native-binding"` — uses `@takumi-rs/core` (native Rust NAPI addon).
+   * - `"wasm"` — uses `@takumi-rs/wasm` (WebAssembly build). WOFF fonts are
+   *   not supported in this mode — use TTF/OTF only. Workers are force-disabled.
+   * @default "native-binding"
+   */
+  takumi?: TakumiBackend;
   imageFormat?: "png" | "webp";
   caching?: boolean;
   devicePixelRatio?: number;
@@ -23,7 +33,7 @@ interface PluginConfig {
   imageCacheMaxBytes?: number;
   /** Maximum TouchStrip raw buffer cache size in bytes. Set to 0 to disable. @default 8388608 (8 MB) */
   touchStripCacheMaxBytes?: number;
-  /** Offload Takumi rendering to a worker thread. @default true */
+  /** Offload Takumi rendering to a worker thread. Automatically disabled when `takumi` is `"wasm"`. @default true */
   useWorker?: boolean;
 }
 
@@ -32,6 +42,11 @@ interface FontConfig {
   data: ArrayBuffer | Buffer;
   weight: 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900;
   style: "normal" | "italic";
+}
+
+interface GoogleFontVariant {
+  weight?: 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900;
+  style?: "normal" | "italic";
 }
 
 interface ActionConfig<S extends JsonObject = JsonObject> {
@@ -221,12 +236,39 @@ type ActionConfigInput<S extends JsonObject = JsonObject> = [keyof ManifestActio
     }[ActionUUID];
 ```
 
+## Takumi Backend
+
+```ts
+/** Takumi renderer backend selection. */
+type TakumiBackend = "native-binding" | "wasm";
+```
+
+## Library-Owned Primitives
+
+```ts
+/** Controller surface type. */
+type Controller = "Keypad" | "Encoder";
+
+/** Grid coordinates for a key or encoder on a device. */
+interface Coordinates {
+  column: number;
+  row: number;
+}
+
+/** Device grid size (number of key columns and rows). */
+interface Size {
+  columns: number;
+  rows: number;
+}
+```
+
 ## Context Types
 
 ```ts
 interface DeviceInfo {
   id: string;
-  type: DeviceType;
+  /** Numeric device type matching Elgato DeviceType enum values (e.g. 7 = StreamDeckPlus). */
+  type: number;
   size: { columns: number; rows: number };
   name: string;
 }
@@ -246,8 +288,8 @@ interface CanvasInfo {
 }
 
 interface StreamDeckAccess {
-  action: Action | DialAction | KeyAction;
-  sdk: typeof streamDeck;
+  action: AdapterActionHandle;
+  adapter: StreamDeckAdapter;
 }
 ```
 
@@ -480,6 +522,8 @@ interface TweenConfig {
   duration: number;
   /** Easing function name or custom function. @default "easeOut" */
   easing: EasingName | EasingFn;
+  /** Target FPS for the animation tick loop. @default 30 */
+  fps: number;
 }
 
 interface TweenResult<T extends AnimationTarget> {

@@ -30,7 +30,7 @@ The CLI will ask **"Use React Compiler?"** during setup. You can also pass it as
 npm create streamdeck-react@latest --react-compiler true
 ```
 
-When enabled, the generated config uses `babel-plugin-react-compiler` -- via `@rollup/plugin-babel` for Rollup or `@rolldown/plugin-babel` for Vite 8.
+When enabled, the generated config uses `babel-plugin-react-compiler` -- via `@rollup/plugin-babel` for Rollup or `@rolldown/plugin-babel` for Vite 8+.
 
 ## Manual Setup
 
@@ -118,9 +118,9 @@ Key differences from the esbuild config:
 - `babel-plugin-react-compiler` must be listed in `plugins` (runs first)
 - `@babel/preset-typescript` and `@babel/preset-react` handle TypeScript and JSX
 
-### Vite 8 (Rolldown)
+### Vite 8+ (Rolldown)
 
-If you have an existing Vite 8 project, add the Babel plugin:
+If you have an existing Vite 8+ project, add the Babel plugin:
 
 #### 1. Install Dependencies
 

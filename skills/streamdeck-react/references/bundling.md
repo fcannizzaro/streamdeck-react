@@ -115,7 +115,7 @@ For production builds, always pass explicit `targets`. In watch mode, `streamDec
 
 ### streamDeckReact()
 
-Copies the platform-specific `@takumi-rs/core` native binding (`.node` file) into the Rollup output directory. This is **required** -- without it, the plugin will crash on startup because the Takumi renderer can't find its native binary.
+Copies the platform-specific `@takumi-rs/core` native binding (`.node` file) into the Rollup output directory. This is **required** when using the default `"native-binding"` backend -- without it, the plugin will crash on startup because the Takumi renderer can't find its native binary. When `takumi: "wasm"` is set, native binary copying is skipped entirely.
 
 ```ts
 type StreamDeckTargetOptions = {
@@ -123,6 +123,12 @@ type StreamDeckTargetOptions = {
     platform: "darwin" | "win32";
     arch: "arm64" | "x64";
   }>;
+  /**
+   * Takumi renderer backend. When `"wasm"`, native `.node` binding
+   * copying is skipped entirely during the build.
+   * @default "native-binding"
+   */
+  takumi?: "native-binding" | "wasm";
 };
 ```
 
@@ -300,13 +306,13 @@ export default defineConfig({
 **Default**:
 
 ```bash
-npm install -D vite@8.0.0-beta.16 @vitejs/plugin-react@6.0.0-beta.0
+npm install -D vite@8.0.0 @vitejs/plugin-react@6.0.1
 ```
 
 **With React Compiler**:
 
 ```bash
-npm install -D vite@8.0.0-beta.16 @vitejs/plugin-react@6.0.0-beta.0 @rolldown/plugin-babel @babel/core babel-plugin-react-compiler
+npm install -D vite@8.0.0 @vitejs/plugin-react@6.0.1 @rolldown/plugin-babel @babel/core babel-plugin-react-compiler
 ```
 
 ## Vite-Specific Notes

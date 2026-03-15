@@ -9,8 +9,8 @@ Rendered UI is not a browser DOM. Keep layouts simple and explicit.
 
 - Use inline styles or `className`/`tw()` utility strings.
 - Prefer fixed sizes, percentages, and straightforward flex layouts.
-- Load every font you plan to render explicitly.
-- Use `.ttf`, `.otf`, or `.woff` fonts, not `.woff2`.
+- Load every font you plan to render explicitly via `googleFont()` or manual `readFile`.
+- Use `.ttf` or `.otf` fonts for maximum compatibility across backends.
 
 ## Performance
 

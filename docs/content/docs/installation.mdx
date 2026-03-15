@@ -46,7 +46,7 @@ The CLI asks for your plugin UUID, author, supported platforms, native targets, 
 
 ## Add a Bundler
 
-You can use either **Rollup** (stable) or **Vite 8 with Rolldown** (beta).
+You can use either **Vite 8+ with Rolldown** (recommended) or **Rollup** (stable).
 
 ### Rollup (stable)
 
@@ -76,18 +76,18 @@ pnpm add -D rollup @rollup/plugin-node-resolve @rollup/plugin-commonjs @rollup/p
 npm install -D rollup @rollup/plugin-node-resolve @rollup/plugin-commonjs @rollup/plugin-json @rollup/plugin-babel @babel/core @babel/preset-typescript @babel/preset-react babel-plugin-react-compiler
 ```
 
-### Vite 8 with Rolldown (beta)
+### Vite 8+ with Rolldown
 
 ```bash tab="bun"
-bun add -d vite@8.0.0-beta.16 @vitejs/plugin-react@6.0.0-beta.0
+bun add -d vite@8.0.0 @vitejs/plugin-react@6.0.1
 ```
 
 ```bash tab="pnpm"
-pnpm add -D vite@8.0.0-beta.16 @vitejs/plugin-react@6.0.0-beta.0
+pnpm add -D vite@8.0.0 @vitejs/plugin-react@6.0.1
 ```
 
 ```bash tab="npm"
-npm install -D vite@8.0.0-beta.16 @vitejs/plugin-react@6.0.0-beta.0
+npm install -D vite@8.0.0 @vitejs/plugin-react@6.0.1
 ```
 
 If you want to use [React Compiler](/guides/react-compiler) with Vite, also add:
@@ -137,24 +137,33 @@ npm install @takumi-rs/core-darwin-arm64
 
 ## Fonts
 
-You must provide at least one font file to `createPlugin()`.
+You must provide at least one font to `createPlugin()`. The easiest approach is `googleFont()` which downloads TTF fonts directly from Google Fonts and caches them to disk:
 
-- Supported formats: `.ttf`, `.otf`, `.woff`
-- Not supported: `.woff2`
-- Source: local file loaded as `Buffer` or `ArrayBuffer`
+```ts
+import { createPlugin, googleFont } from "@fcannizzaro/streamdeck-react";
+
+const inter = await googleFont("Inter");
+
+const plugin = createPlugin({
+  fonts: [inter],
+  actions: [...],
+});
+```
+
+For fonts not available on Google Fonts, load them manually via `readFile`:
 
 ```ts
 import { readFile } from "node:fs/promises";
 
 const font = {
-  name: "Inter",
-  data: await readFile(new URL("../fonts/Inter-Regular.ttf", import.meta.url)),
+  name: "MyFont",
+  data: await readFile(new URL("../fonts/MyFont-Regular.ttf", import.meta.url)),
   weight: 400,
   style: "normal" as const,
 };
 ```
 
-See [Font Management](/plugin-setup/fonts) for the full shape and loading strategy.
+See [Font Management](/plugin-setup/fonts) for the full API and caching details.
 
 ## Next Steps
 

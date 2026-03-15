@@ -6,11 +6,11 @@
     "dev": "bunx --bun rollup -c -w --watch.onEnd=\"streamdeck restart com.example.react-jotai\"",
     "build": "rollup -c",
     "check-types": "tsc --noEmit",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "link": "streamdeck link com.example.react-jotai.sdPlugin"
   },
   "dependencies": {
     "@fcannizzaro/streamdeck-react": "workspace:*",
-    "@fontsource-variable/inter": "^5.2.8",
     "@takumi-rs/core-darwin-arm64": "^0.71.7",
     "jotai": "^2.18.1",
     "react": "^19.2.4",

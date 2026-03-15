@@ -83,7 +83,7 @@ Calls the callback repeatedly with delta time using timer-driven ticks. Pass a n
 function useTick(callback: (deltaMs: number) => void, fpsOrActive?: number | boolean): void;
 ```
 
-Default FPS is 30. The callback receives the elapsed milliseconds since the last tick.
+Default FPS is 30. Maximum FPS is capped at 30 — Stream Deck hardware does not display updates faster than 30Hz, so higher tick rates would only create extra React/state churn with no visible benefit. The callback receives the elapsed milliseconds since the last tick.
 
 ```tsx
 function AnimatedKey() {

@@ -1,5 +1,11 @@
 # @fcannizzaro/streamdeck-react-devtools
 
+## 0.1.14
+
+### Patch Changes
+
+- add google font helper, add wasm support (for takumi render)
+
 ## 0.1.13
 
 ### Patch Changes

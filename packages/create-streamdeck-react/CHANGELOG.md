@@ -1,5 +1,11 @@
 # create-streamdeck-react
 
+## 0.1.11
+
+### Patch Changes
+
+- add google font helper, add wasm support (for takumi render)
+
 ## 0.1.10
 
 ### Patch Changes

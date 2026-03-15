@@ -130,6 +130,11 @@ export interface TouchStripLayout {
 
 export type EncoderLayout = string | TouchStripLayout;
 
+// ── Takumi Backend ──────────────────────────────────────────────────
+
+/** Takumi renderer backend selection. `"native-binding"` uses the native Rust NAPI addon (`@takumi-rs/core`). `"wasm"` uses the WebAssembly build (`@takumi-rs/wasm`), suitable for WebContainer and browser environments. */
+export type TakumiBackend = "native-binding" | "wasm";
+
 // ── Plugin Configuration ────────────────────────────────────────────
 
 export interface PluginConfig {
@@ -139,6 +144,18 @@ export interface PluginConfig {
   actions: ActionDefinition[];
   wrapper?: WrapperComponent;
 
+  /**
+   * Takumi renderer backend.
+   *
+   * - `"native-binding"` — uses `@takumi-rs/core` (native Rust NAPI addon).
+   *   Requires a platform-specific binary (e.g. `@takumi-rs/core-darwin-arm64`).
+   * - `"wasm"` — uses `@takumi-rs/wasm` (WebAssembly build).
+   *   Requires `@takumi-rs/wasm` to be installed. WOFF fonts are not supported
+   *   in this mode — use TTF/OTF only. Worker threads are force-disabled.
+   *
+   * @default "native-binding"
+   */
+  takumi?: TakumiBackend;
   imageFormat?: "png" | "webp";
   caching?: boolean;
   devicePixelRatio?: number;
@@ -151,7 +168,7 @@ export interface PluginConfig {
   imageCacheMaxBytes?: number;
   /** Maximum TouchStrip raw buffer cache size in bytes. Set to 0 to disable. @default 8388608 (8 MB) */
   touchStripCacheMaxBytes?: number;
-  /** Offload Takumi rendering to a worker thread. Set to false to disable. @default true */
+  /** Offload Takumi rendering to a worker thread. Set to false to disable. Automatically disabled when `takumi` is `"wasm"`. @default true */
   useWorker?: boolean;
 }
 

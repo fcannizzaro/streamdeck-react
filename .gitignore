@@ -42,11 +42,10 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 **/bin/plugin.mjs
 **/plugin.mjs.map
 streamdeck-env.d.ts
+samples/**/.google-fonts/
 
 # Native modules
 *.node
 
-
 # AI Agent
 .opencode
-

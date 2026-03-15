@@ -122,9 +122,6 @@ npm install @fcannizzaro/streamdeck-react react
 # Runtime support used by the Stream Deck SDK
 npm install ws
 
-# Fonts (use any @fontsource or @fontsource-variable package)
-npm install @fontsource-variable/inter
-
 # Build tooling (default -- esbuild)
 npm install -D rollup @rollup/plugin-node-resolve @rollup/plugin-commonjs @rollup/plugin-json rollup-plugin-esbuild
 
@@ -226,19 +223,13 @@ export const counterAction = defineAction({
 
 ```ts
 // src/plugin.ts
-import { createPlugin } from "@fcannizzaro/streamdeck-react";
-import InterRegular from "@fontsource-variable/inter/files/inter-latin-wght-normal.woff2";
+import { createPlugin, googleFont } from "@fcannizzaro/streamdeck-react";
 import { counterAction } from "./actions/counter.tsx";
 
+const inter = await googleFont("Inter");
+
 const plugin = createPlugin({
-  fonts: [
-    {
-      name: "Inter",
-      data: InterRegular,
-      weight: 400,
-      style: "normal",
-    },
-  ],
+  fonts: [inter],
   actions: [counterAction],
 });
 
@@ -467,12 +458,13 @@ For touch interaction on Stream Deck+, use `useTouchTap()` inside the mounted ac
 
 ## Critical Gotchas
 
-1. **Fonts are mandatory** -- the renderer cannot access system fonts. Install a font package (e.g. `@fontsource-variable/inter`) and import the font file directly. The bundler plugin inlines it as a `Buffer`. Supported formats: `.ttf`, `.otf`, `.woff`, `.woff2`.
+1. **Fonts are mandatory** -- the renderer cannot access system fonts. Use `googleFont("Inter")` to download TTF fonts from Google Fonts (cached to `.google-fonts/` on disk). Alternatively, load font files manually via `readFile`. Supported formats depend on the backend: native-binding supports `.ttf`, `.otf`, `.woff`, `.woff2`; WASM mode only supports `.ttf` and `.otf`.
 2. **`plugin.connect()` must be called last** -- after `createPlugin()` and all setup.
 3. **UUID mismatch** -- the `uuid` in `defineAction()` must exactly match the `UUID` in `manifest.json`.
 4. **`streamDeckReact({ targets })` is required for production builds** -- it copies the Takumi `.node` binaries into output. Without them, the plugin crashes on startup.
-5. **Install `ws` and matching `@takumi-rs/core-*` packages** -- they must line up with the targets passed to `streamDeckReact({ targets })`.
+5. **Install `ws` and matching `@takumi-rs/core-*` packages** -- they must line up with the targets passed to `streamDeckReact({ targets })`. When using the WASM backend (`takumi: "wasm"`), install `@takumi-rs/wasm` instead and native binding packages are not needed.
 6. **No animated images** -- each `setImage` call is a static frame. Use `useTick` for manual animation loops, or the higher-level `useSpring` and `useTween` hooks for physics-based and easing-based animation.
+7. **WASM backend limitations** -- `takumi: "wasm"` is available for environments where native addons can't load (WebContainers, browsers). It force-disables worker threads and does not support WOFF/WOFF2 fonts (use TTF/OTF only). Pass `takumi: "wasm"` to both `createPlugin()` and `streamDeckReact()` to skip native binary copying at build time.
 7. **Design for 72x72 minimum** -- smallest key size. Use `useCanvas()` to adapt to larger devices.
 8. **Use simple layouts** -- this is not a browser DOM. Stick to flex layouts, fixed sizes, and simple elements (`div`, `span`, `img`, `svg`, `p`).
 9. **Animation FPS** -- Stream Deck hardware refreshes at max 30Hz. The `useTick`, `useSpring`, and `useTween` hooks default to 30fps (clamped). Design animations accordingly.
@@ -486,7 +478,7 @@ When scaffolding or modifying a @fcannizzaro/streamdeck-react plugin, verify:
 - [ ] Matching `@takumi-rs/core-*` packages are installed for every `streamDeckReact({ targets })` entry
 - [ ] `package.json` has `"type": "module"`
 - [ ] `tsconfig.json` has `"jsx": "react-jsx"`
-- [ ] At least one font is installed (e.g. `@fontsource-variable/inter`) and imported in `createPlugin()`
+- [ ] At least one font is loaded via `googleFont()` or manual `readFile` and passed to `createPlugin()`
 - [ ] Every `defineAction()` UUID matches its `manifest.json` UUID
 - [ ] `rollup.config.mjs` uses `streamDeckReact({ targets })` for production builds
 - [ ] `manifest.json` `CodePath` points to the Rollup output (e.g., `bin/plugin.mjs`)

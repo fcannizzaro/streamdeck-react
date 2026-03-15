@@ -3,7 +3,7 @@ title: Quick Start
 description: Build your first Stream Deck plugin with @fcannizzaro/streamdeck-react.
 ---
 
-This guide creates a minimal counter action, bundles it, and connects it to the Stream Deck runtime. You can use either **Rollup** or **Rolldown (Vite 8)** as the bundler.
+This guide creates a minimal counter action, bundles it, and connects it to the Stream Deck runtime. You can use either **Rolldown (Vite 8+)** or **Rollup** as the bundler.
 
 If you want the scaffold generated for you, start with [`create-streamdeck-react`](/guides/create-cli). The steps below show the manual setup.
 
@@ -32,21 +32,21 @@ npm install @fcannizzaro/streamdeck-react react @takumi-rs/core-darwin-arm64
 npm install -D rollup @rollup/plugin-node-resolve @rollup/plugin-commonjs @rollup/plugin-json rollup-plugin-esbuild
 ```
 
-### Rolldown (Vite 8)
+### Rolldown (Vite 8+)
 
 ```bash tab="bun"
 bun add @fcannizzaro/streamdeck-react react @takumi-rs/core-darwin-arm64
-bun add -d vite@8.0.0-beta.16 @vitejs/plugin-react@6.0.0-beta.0
+bun add -d vite@8.0.0 @vitejs/plugin-react@6.0.1
 ```
 
 ```bash tab="pnpm"
 pnpm add @fcannizzaro/streamdeck-react react @takumi-rs/core-darwin-arm64
-pnpm add -D vite@8.0.0-beta.16 @vitejs/plugin-react@6.0.0-beta.0
+pnpm add -D vite@8.0.0 @vitejs/plugin-react@6.0.1
 ```
 
 ```bash tab="npm"
 npm install @fcannizzaro/streamdeck-react react @takumi-rs/core-darwin-arm64
-npm install -D vite@8.0.0-beta.16 @vitejs/plugin-react@6.0.0-beta.0
+npm install -D vite@8.0.0 @vitejs/plugin-react@6.0.1
 ```
 
 This example targets macOS Apple Silicon. Swap the `@takumi-rs/core-*` package and targets to match the platforms you want to ship.
@@ -98,19 +98,13 @@ export const counterAction = defineAction({
 
 ```ts
 // src/plugin.ts
-import { readFile } from "node:fs/promises";
-import { createPlugin } from "@fcannizzaro/streamdeck-react";
+import { createPlugin, googleFont } from "@fcannizzaro/streamdeck-react";
 import { counterAction } from "./actions/counter.tsx";
 
+const inter = await googleFont("Inter");
+
 const plugin = createPlugin({
-  fonts: [
-    {
-      name: "Inter",
-      data: await readFile(new URL("../fonts/Inter-Regular.ttf", import.meta.url)),
-      weight: 400,
-      style: "normal",
-    },
-  ],
+  fonts: [inter],
   actions: [counterAction],
 });
 
@@ -152,7 +146,7 @@ export default {
 };
 ```
 
-```ts tab="Rolldown (Vite 8)"
+```ts tab="Rolldown (Vite 8+)"
 // vite.config.ts
 import { builtinModules } from "node:module";
 import { resolve } from "node:path";
@@ -203,7 +197,7 @@ For production builds, pass explicit `targets`. In watch mode, `streamDeckReact(
 npx rollup -c -w
 ```
 
-```bash tab="Rolldown (Vite 8)"
+```bash tab="Rolldown (Vite 8+)"
 npx vite build --watch
 ```
 
@@ -214,10 +208,11 @@ If your `package.json` has a `dev` script configured, you can also just run `bun
 ## What's Happening
 
 1. `defineAction()` maps your manifest UUID to a React component.
-2. `createPlugin()` prepares fonts, registers actions, and creates the shared runtime.
-3. `plugin.connect()` attaches to the Stream Deck SDK.
-4. When the action appears, `@fcannizzaro/streamdeck-react` mounts a React root for that hardware instance.
-5. State changes trigger re-renders, and the renderer pushes a new image to the device.
+2. `googleFont()` downloads the font from Google Fonts (cached to disk after the first run).
+3. `createPlugin()` prepares fonts, registers actions, and creates the shared runtime.
+4. `plugin.connect()` attaches to the Stream Deck SDK.
+5. When the action appears, `@fcannizzaro/streamdeck-react` mounts a React root for that hardware instance.
+6. State changes trigger re-renders, and the renderer pushes a new image to the device.
 
 ## Next Steps
 
