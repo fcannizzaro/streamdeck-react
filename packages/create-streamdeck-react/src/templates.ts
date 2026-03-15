@@ -19,6 +19,7 @@ export interface ScaffoldOptions {
   nativeTargets: NativeTargetId[];
   reactCompiler: boolean;
   adapter: Adapter;
+  streamdeckReactVersion: string;
 }
 
 interface ExampleOption {
@@ -56,15 +57,37 @@ interface ExamplePreset {
   actions: ManifestActionTemplate[];
 }
 
-const STREAMDECK_REACT_VERSION = "latest";
 const TAKUMI_VERSION = "^0.71.7";
-const ELGATO_SDK_VERSION = "^1.3.0";
+const ELGATO_SDK_VERSION = "^2.0.0";
 
-const BASE_DEPENDENCIES = {
-  "@fcannizzaro/streamdeck-react": STREAMDECK_REACT_VERSION,
-  react: "^19.2.4",
-  ws: "^8.19.0",
-} satisfies Record<string, string>;
+// ── Version Resolution ──────────────────────────────────────────────
+//
+// Queries the npm registry at scaffold time so the generated
+// package.json pins a real semver range (^x.y.z) instead of the
+// "latest" dist-tag.  Falls back to "latest" when the registry is
+// unreachable (offline scaffolding, corporate firewall, etc.).
+
+export async function resolveLatestVersion(packageName: string): Promise<string> {
+  try {
+    const url = `https://registry.npmjs.org/${packageName}/latest`;
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      return "latest";
+    }
+
+    const data = (await response.json()) as { version?: string };
+    const version = data.version;
+
+    if (typeof version === "string" && version.length > 0) {
+      return `^${version}`;
+    }
+
+    return "latest";
+  } catch {
+    return "latest";
+  }
+}
 
 const BASE_DEV_DEPENDENCIES = {
   "@elgato/cli": "^1.7.1",
@@ -643,7 +666,7 @@ export function buildViteConfig(
 function buildPackageJson(
   options: Pick<
     ScaffoldOptions,
-    "packageName" | "description" | "nativeTargets" | "reactCompiler" | "bundler" | "adapter"
+    "packageName" | "description" | "nativeTargets" | "reactCompiler" | "bundler" | "adapter" | "streamdeckReactVersion"
   >,
   exampleDependencies: Record<string, string>,
 ): string {
@@ -687,7 +710,9 @@ function buildPackageJson(
     type: "module",
     scripts,
     dependencies: sortObject({
-      ...BASE_DEPENDENCIES,
+      "@fcannizzaro/streamdeck-react": options.streamdeckReactVersion,
+      react: "^19.2.4",
+      ws: "^8.19.0",
       ...adapterDependencies,
       ...exampleDependencies,
       ...nativeDependencies,

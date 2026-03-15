@@ -1,6 +1,6 @@
 {
   "name": "create-streamdeck-react",
-  "version": "0.1.12",
+  "version": "0.1.13",
   "description": "Scaffold a Stream Deck plugin powered by @fcannizzaro/streamdeck-react",
   "keywords": [
     "cli",

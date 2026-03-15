@@ -1,5 +1,11 @@
 # create-streamdeck-react
 
+## 0.1.13
+
+### Patch Changes
+
+- add version resolution for @fcannizzaro/streamdeck-react library
+
 ## 0.1.12
 
 ### Patch Changes

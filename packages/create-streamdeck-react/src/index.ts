@@ -19,6 +19,7 @@ import {
   derivePluginUuid,
   normalizePlatforms,
   normalizeTargets,
+  resolveLatestVersion,
   validatePlatformTargets,
   validatePluginUuid,
   type Adapter,
@@ -86,6 +87,8 @@ async function main(): Promise<void> {
 
   validatePlatformTargets(platforms, nativeTargets);
 
+  const streamdeckReactVersion = await resolveStreamDeckReactVersion(skipPrompt);
+
   const options: ScaffoldOptions = {
     packageName,
     displayName,
@@ -100,6 +103,7 @@ async function main(): Promise<void> {
     nativeTargets,
     reactCompiler,
     adapter,
+    streamdeckReactVersion,
   };
 
   createProject(targetDirectory, options);
@@ -572,6 +576,18 @@ async function collectReactCompiler(args: ParsedArgs, skipPrompt: boolean): Prom
 
   assertNotCancelled(answer);
   return answer;
+}
+
+async function resolveStreamDeckReactVersion(skipPrompt: boolean): Promise<string> {
+  if (!skipPrompt) {
+    const s = p.spinner();
+    s.start("Resolving @fcannizzaro/streamdeck-react version");
+    const version = await resolveLatestVersion("@fcannizzaro/streamdeck-react");
+    s.stop(`Using @fcannizzaro/streamdeck-react@${version}`);
+    return version;
+  }
+
+  return resolveLatestVersion("@fcannizzaro/streamdeck-react");
 }
 
 function createProject(targetDirectory: string, options: ScaffoldOptions): void {

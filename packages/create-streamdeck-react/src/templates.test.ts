@@ -20,6 +20,7 @@ const baseOptions: ScaffoldOptions = {
   nativeTargets: ["darwin-arm64", "win32-x64"],
   reactCompiler: false,
   adapter: "physical",
+  streamdeckReactVersion: "^1.0.0",
 };
 
 test("project package.json includes selected native target dependencies", () => {
