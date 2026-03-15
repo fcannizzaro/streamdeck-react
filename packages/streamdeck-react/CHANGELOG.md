@@ -1,5 +1,11 @@
 # @fcannizzaro/streamdeck-react
 
+## 0.1.14
+
+### Patch Changes
+
+- add manifest.json generation in bundler plugins
+
 ## 0.1.13
 
 ### Patch Changes
