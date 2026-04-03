@@ -286,15 +286,14 @@ function copyNativeBindings(
     const requestedTargets = normalizeTargetRequests(options, isDevelopment);
     if (requestedTargets.length === 0) {
       if (isDevelopment) {
-        warn(
-          `[@fcannizzaro/streamdeck-react] No native binding available for ${process.platform}-${process.arch}`,
+        throw new Error(
+          "[@fcannizzaro/streamdeck-react] streamDeckReact() requires explicit targets. Pass a `targets` array.",
         );
-        return;
       }
-
-      throw new Error(
-        "[@fcannizzaro/streamdeck-react] streamDeckReact() requires explicit targets when building for production. Pass a `targets` array.",
+      warn(
+        `[@fcannizzaro/streamdeck-react] Native binding for ${process.platform}-${process.arch} is not available locally. Please ensure the appropriate native module is loaded or lazy-loaded.`,
       );
+      return;
     }
 
     const targets = expandTargets(requestedTargets);

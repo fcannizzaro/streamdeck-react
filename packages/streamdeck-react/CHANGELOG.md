@@ -1,5 +1,11 @@
 # @fcannizzaro/streamdeck-react
 
+## 0.2.1
+
+### Patch Changes
+
+- update vite plugin to allow lazy load for takumi native module
+
 ## 0.2.0
 
 ### Minor Changes
