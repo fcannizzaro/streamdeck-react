@@ -533,17 +533,17 @@ export function buildRollupConfig(
 
   const transformPlugin = options.reactCompiler
     ? [
-      "    babel({",
-      '      babelHelpers: "bundled",',
-      '      extensions: [".js", ".jsx", ".ts", ".tsx"],',
-      '      exclude: "**/node_modules/**",',
-      '      plugins: ["babel-plugin-react-compiler"],',
-      "      presets: [",
-      '        "@babel/preset-typescript",',
-      '        ["@babel/preset-react", { runtime: "automatic" }],',
-      "      ],",
-      "    }),",
-    ]
+        "    babel({",
+        '      babelHelpers: "bundled",',
+        '      extensions: [".js", ".jsx", ".ts", ".tsx"],',
+        '      exclude: "**/node_modules/**",',
+        '      plugins: ["babel-plugin-react-compiler"],',
+        "      presets: [",
+        '        "@babel/preset-typescript",',
+        '        ["@babel/preset-react", { runtime: "automatic" }],',
+        "      ],",
+        "    }),",
+      ]
     : ['    esbuild({ target: "node20", jsx: "automatic" }),'];
 
   return [
@@ -612,19 +612,19 @@ export function buildViteConfig(
 
   const compilerImport = options.reactCompiler
     ? [
-      'import react, { reactCompilerPreset } from "@vitejs/plugin-react";',
-      'import babel from "@rolldown/plugin-babel";',
-    ]
+        'import react, { reactCompilerPreset } from "@vitejs/plugin-react";',
+        'import babel from "@rolldown/plugin-babel";',
+      ]
     : ['import react from "@vitejs/plugin-react";'];
 
   const compilerPlugin = options.reactCompiler
     ? [
-      "    react(),",
-      "    // @ts-expect-error — @rolldown/plugin-babel types incorrectly mark inherited babel fields as required",
-      "    await babel({",
-      "      presets: [reactCompilerPreset()],",
-      "    }),",
-    ]
+        "    react(),",
+        "    // @ts-expect-error — @rolldown/plugin-babel types incorrectly mark inherited babel fields as required",
+        "    await babel({",
+        "      presets: [reactCompilerPreset()],",
+        "    }),",
+      ]
     : ["    react(),"];
 
   return [
@@ -718,15 +718,15 @@ function buildPackageJson(
 
   const scripts = isRolldown
     ? {
-      build: "vite build",
-      dev: "vite build --watch",
-      "check-types": "tsc --noEmit",
-    }
+        build: "vite build",
+        dev: "vite build --watch",
+        "check-types": "tsc --noEmit",
+      }
     : {
-      build: "rollup -c",
-      dev: "rollup -c -w",
-      "check-types": "tsc --noEmit",
-    };
+        build: "rollup -c",
+        dev: "rollup -c -w",
+        "check-types": "tsc --noEmit",
+      };
 
   const packageJson = {
     name: options.packageName,
