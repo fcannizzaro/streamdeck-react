@@ -123,6 +123,13 @@ export function createPlugin(config: PluginConfig): Plugin {
         adapter,
         async (settings: JsonObject) => {
           await adapter.setGlobalSettings(settings);
+          // The Elgato SDK does not fire onDidReceiveGlobalSettings back
+          // to the plugin that called setGlobalSettings — only external
+          // changes (Property Inspector, etc.) trigger that event.
+          // Propagate through the registry so ALL roots receive the update.
+          // Safe: shallowEqual guards in both registry and each root
+          // prevent double-renders on the originating root.
+          registry.setGlobalSettings(settings);
         },
         config.wrapper,
       );

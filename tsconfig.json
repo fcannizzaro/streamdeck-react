@@ -6,7 +6,6 @@
     "moduleDetection": "force",
     "jsx": "react-jsx",
     "allowJs": true,
-    "baseUrl": ".",
     "moduleResolution": "bundler",
     "verbatimModuleSyntax": true,
     "noEmit": true,

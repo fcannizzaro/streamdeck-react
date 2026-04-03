@@ -19,7 +19,8 @@
   "devDependencies": {
     "@babel/core": "^7.29.0",
     "@elgato/cli": "^1.7.3",
-    "@rolldown/plugin-babel": "^0.2.0",
+    "@rolldown/plugin-babel": "^0.2.2",
+    "@types/node": "^25.5.2",
     "@types/react": "^19.2.14",
     "@vitejs/plugin-react": "6.0.1",
     "babel-plugin-react-compiler": "^1.0.0",

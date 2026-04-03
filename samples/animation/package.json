@@ -3,8 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "bunx --bun rollup -c -w --watch.onEnd=\"streamdeck restart com.example.react-animation\"",
-    "build": "rollup -c",
+    "dev": "vite build --watch",
+    "build": "vite build",
     "check-types": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
     "link": "streamdeck link com.example.react-animation.sdPlugin"
@@ -20,12 +20,11 @@
     "@babel/preset-react": "^7.28.0",
     "@babel/preset-typescript": "^7.28.0",
     "@elgato/cli": "^1.7.1",
-    "@rollup/plugin-babel": "^7.0.0",
-    "@rollup/plugin-commonjs": "^29.0.0",
-    "@rollup/plugin-json": "^6.1.0",
-    "@rollup/plugin-node-resolve": "^16.0.3",
+    "@rolldown/plugin-babel": "^0.2.2",
+    "@types/node": "^25.5.2",
     "@types/react": "^19.2.14",
+    "@vitejs/plugin-react": "^6.0.1",
     "babel-plugin-react-compiler": "latest",
-    "rollup": "^4.59.0"
+    "vite": "^8.0.3"
   }
 }
