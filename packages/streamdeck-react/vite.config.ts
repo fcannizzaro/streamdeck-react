@@ -25,9 +25,7 @@ function isExternal(id: string): boolean {
 
 export default defineConfig({
   resolve: {
-    alias: {
-      "@": srcDir,
-    },
+    tsconfigPaths: true,
   },
   define: {
     "process.env.NODE_ENV": "process.env.NODE_ENV",
