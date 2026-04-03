@@ -1,5 +1,11 @@
 # @fcannizzaro/streamdeck-react
 
+## 0.1.16
+
+### Patch Changes
+
+- 00e3071: fix missing .d.ts
+
 ## 0.1.15
 
 ### Patch Changes
