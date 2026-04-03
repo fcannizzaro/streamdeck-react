@@ -108,7 +108,7 @@ export async function renderWithHighlight(
 
   // 4. Render the modified tree.  Layout is identical to the normal
   //    render except the target node has an overlay child.
-  const buffer = await config.renderer.render(rootNode, {
+  const buffer = await config.getRenderer().render(rootNode, {
     width,
     height,
     format: config.imageFormat,
@@ -213,7 +213,7 @@ export async function renderTouchStripWithHighlight(
       ],
     } as TakumiNode;
 
-    const segBuffer = await config.renderer.render(clipNode, {
+    const segBuffer = await config.getRenderer().render(clipNode, {
       width: segmentWidth,
       height: segmentHeight,
       format: TOUCHSTRIP_HIGHLIGHT_FORMAT,

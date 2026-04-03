@@ -1,6 +1,6 @@
 {
   "name": "create-streamdeck-react",
-  "version": "0.1.13",
+  "version": "0.1.14",
   "description": "Scaffold a Stream Deck plugin powered by @fcannizzaro/streamdeck-react",
   "keywords": [
     "cli",
@@ -45,10 +45,10 @@
     "test": "bun test src"
   },
   "dependencies": {
-    "@clack/prompts": "^1.1.0"
+    "@clack/prompts": "^1.2.0"
   },
   "devDependencies": {
-    "@types/node": "^25.5.0",
-    "typescript": "^5.9.3"
+    "@types/node": "^25.5.2",
+    "typescript": "^6.0.2"
   }
 }

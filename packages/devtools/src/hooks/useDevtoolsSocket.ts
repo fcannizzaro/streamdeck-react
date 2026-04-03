@@ -299,13 +299,19 @@ export function useDevtoolsSocket(): {
   }, []);
 
   const requestSnapshot = useCallback((port: number) => {
-    const d = encodeURIComponent(JSON.stringify({ type: "request:snapshot", ts: Date.now() }));
-    fetch(`http://127.0.0.1:${port}/message?d=${d}`, { mode: "no-cors" }).catch(() => {});
+    fetch(`http://127.0.0.1:${port}/message`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "request:snapshot", ts: Date.now() }),
+    }).catch(() => {});
   }, []);
 
   const send = useCallback((port: number, msg: ClientMessage) => {
-    const d = encodeURIComponent(JSON.stringify(msg));
-    fetch(`http://127.0.0.1:${port}/message?d=${d}`, { mode: "no-cors" }).catch(() => {});
+    fetch(`http://127.0.0.1:${port}/message`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(msg),
+    }).catch(() => {});
   }, []);
 
   // Sync hover state → highlight:action messages to plugin

@@ -1,6 +1,6 @@
 {
   "name": "@fcannizzaro/streamdeck-react-devtools",
-  "version": "0.1.14",
+  "version": "0.1.15",
   "description": "DevTools UI for @fcannizzaro/streamdeck-react — inspect actions, events, renders, console and network",
   "keywords": [
     "devtools",
@@ -48,18 +48,18 @@
     "@radix-ui/react-context-menu": "^2.2.16",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "react-grid-layout": "^2.2.2",
-    "zustand": "^5.0.5"
+    "react-grid-layout": "^2.2.3",
+    "zustand": "^5.0.12"
   },
   "devDependencies": {
-    "@rolldown/plugin-babel": "^0.2.1",
-    "@tailwindcss/vite": "^4.1.7",
+    "@rolldown/plugin-babel": "^0.2.2",
+    "@tailwindcss/vite": "^4.2.2",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^6.0.1",
     "babel-plugin-react-compiler": "^1.0.0",
-    "tailwindcss": "^4.1.7",
-    "typescript": "beta",
-    "vite": "8.0.0"
+    "tailwindcss": "^4.2.2",
+    "typescript": "6.0.2",
+    "vite": "8.0.3"
   }
 }

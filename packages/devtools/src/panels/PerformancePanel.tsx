@@ -11,8 +11,7 @@ import type { MetricsData, ProfileData, ProfileEntry } from "../types";
 // ── Stage Colors ────────────────────────────────────────────────────
 
 const STAGES = [
-  { key: "vnodeToElementMs" as const, color: "bg-blue-400", label: "vnode" },
-  { key: "fromJsxMs" as const, color: "bg-green-400", label: "jsx" },
+  { key: "vnodeConversionMs" as const, color: "bg-blue-400", label: "vnode" },
   { key: "takumiRenderMs" as const, color: "bg-orange-400", label: "render" },
   { key: "hashMs" as const, color: "bg-purple-400", label: "hash" },
   { key: "base64Ms" as const, color: "bg-cyan-400", label: "base64" },
@@ -219,7 +218,7 @@ function StageBar({ profile }: { profile: ProfileData }) {
   return (
     <div className="flex h-3 rounded overflow-hidden flex-1" title={`${total.toFixed(1)}ms total`}>
       {STAGES.map(({ key, color, label }) => {
-        const ms = profile[key];
+        const ms = profile[key] ?? 0;
         const pct = (ms / total) * 100;
         if (pct < 0.5) return null;
         return (

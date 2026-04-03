@@ -26,6 +26,12 @@ export class BufferPool {
 
   /** Acquire a zeroed buffer of the given size. Reuses a pooled buffer if available. */
   acquire(size: number): Buffer {
+    // Validate size to prevent Buffer.alloc throwing on negative, NaN,
+    // or non-integer values from pipeline bugs.  (SDR-008)
+    if (!Number.isInteger(size) || size <= 0) {
+      throw new RangeError(`BufferPool.acquire: invalid size ${size} (must be a positive integer)`);
+    }
+
     const pool = this.pools.get(size);
     if (pool != null && pool.length > 0) {
       const buf = pool.pop()!;

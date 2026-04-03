@@ -68,7 +68,13 @@ export interface RenderProfile {
 }
 
 export interface RenderConfig {
-  renderer: Renderer;
+  /**
+   * Lazy renderer factory.  The Takumi `Renderer` is only instantiated on
+   * the first call, deferring the cost of loading the native Rust addon and
+   * building the font database (~12-18 MB) until an action actually needs
+   * to render.  Subsequent calls return the cached instance.
+   */
+  getRenderer: () => Renderer;
   imageFormat: OutputFormat;
   caching: boolean;
   devicePixelRatio: number;
@@ -332,7 +338,7 @@ export async function renderToDataUri(
     t1 = profiling ? performance.now() : 0;
 
     // Render to raster image
-    buffer = await config.renderer.render(rootNode, {
+    buffer = await config.getRenderer().render(rootNode, {
       width,
       height,
       format: config.imageFormat,
@@ -540,7 +546,7 @@ export async function renderToRaw(
 
     t1 = profiling ? performance.now() : 0;
 
-    buffer = await config.renderer.render(rootNode, {
+    buffer = await config.getRenderer().render(rootNode, {
       width,
       height,
       format: "raw" as OutputFormat,
@@ -622,6 +628,23 @@ export function cropSlice(
   segmentWidth: number,
   segmentHeight: number,
 ): Buffer {
+  // Validate that the requested slice region fits within the source
+  // buffer.  Buffer.copy silently truncates out-of-bounds reads
+  // (memory-safe), but the resulting pixel data would be wrong —
+  // better to fail loudly.  (SDR-006)
+  const rightEdge = column * segmentWidth + segmentWidth;
+  if (rightEdge > fullWidth) {
+    throw new RangeError(
+      `cropSlice: slice region exceeds source width (column=${column}, segmentWidth=${segmentWidth}, fullWidth=${fullWidth})`,
+    );
+  }
+  const expectedBytes = fullWidth * segmentHeight * 4;
+  if (raw.length < expectedBytes) {
+    throw new RangeError(
+      `cropSlice: source buffer too small (${raw.length} bytes, need ${expectedBytes} for ${fullWidth}×${segmentHeight})`,
+    );
+  }
+
   const pool = getBufferPool();
   const sliceSize = segmentWidth * segmentHeight * 4;
   const slice = pool.acquire(sliceSize);

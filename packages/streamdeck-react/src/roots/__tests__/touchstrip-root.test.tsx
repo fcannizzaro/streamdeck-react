@@ -56,9 +56,10 @@ function createRegistry(
 
 function createRenderConfig(): RenderConfig {
   return {
-    renderer: {
-      render: async () => Buffer.from("rendered"),
-    } as never,
+    getRenderer: () =>
+      ({
+        render: async () => Buffer.from("rendered"),
+      }) as never,
     imageFormat: "png",
     caching: true,
     devicePixelRatio: 1,

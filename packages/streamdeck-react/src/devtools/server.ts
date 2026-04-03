@@ -14,8 +14,6 @@ import { origConsole } from "./intercepts/console";
 //                    port range 39400-39499)
 //   GET  /events   → SSE stream (server → browser, real-time)
 //   POST /message  → client → server messages (JSON body)
-//   GET  /message?d=<json> → fire-and-forget via Image().src trick
-//                    (bypasses CORS/PNA preflight entirely)
 //
 // Port assignment:
 //   hashToPort() maps the plugin UUID to a deterministic port in
@@ -28,7 +26,7 @@ import { origConsole } from "./intercepts/console";
 //   - SSE works over standard HTTP (simpler CORS handling)
 //   - Server→client is the primary data direction (renders, events)
 //   - Client→server is low-frequency (snapshot requests, highlights)
-//     and works fine via POST or GET with query params
+//     and works fine via POST
 
 const PORT_MIN = 39400;
 const PORT_MAX = 39499;
@@ -197,10 +195,6 @@ export class DevtoolsServer {
     }
 
     if (pathname === "/message") {
-      if (req.method === "GET") {
-        this.handleGetMessage(req, res);
-        return;
-      }
       if (req.method === "POST") {
         this.handlePostMessage(req, res);
         return;
@@ -240,45 +234,26 @@ export class DevtoolsServer {
     });
   }
 
-  /**
-   * GET /message?d=<json> — fire-and-forget client→server messages.
-   * Used via `new Image().src` to bypass CORS/PNA preflight entirely.
-   * Returns a 1x1 transparent GIF (smallest valid image response).
-   *
-   * Why: browsers enforce Private Network Access (PNA) restrictions
-   * on fetch/XHR to localhost from public origins.  Image loading
-   * is exempt from PNA preflight, so `new Image().src = url` works
-   * without triggering CORS errors.
-   */
-  private handleGetMessage(req: IncomingMessage, res: ServerResponse): void {
-    const qs = (req.url ?? "").split("?")[1] ?? "";
-    const params = new URLSearchParams(qs);
-    const data = params.get("d");
-    if (data) {
-      try {
-        const msg = JSON.parse(data) as ClientMessage;
-        this.onMessageCb?.(msg);
-      } catch {
-        // ignore malformed
-      }
-    }
-    // 1x1 transparent GIF — smallest valid image response
-    const pixel = Buffer.from("R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7", "base64");
-    res.writeHead(200, {
-      "Content-Type": "image/gif",
-      "Content-Length": String(pixel.length),
-      "Cache-Control": "no-store",
-    });
-    res.end(pixel);
-  }
-
-  /** POST /message — client→server messages (JSON body). Fallback for programmatic use. */
+  /** POST /message — client→server messages (JSON body). */
   private handlePostMessage(req: IncomingMessage, res: ServerResponse): void {
+    // 64KB limit prevents accidental or malicious memory exhaustion
+    // from runaway scripts or misconfigured tools.  (SDR-003)
+    const MAX_BODY_BYTES = 64 * 1024;
     let body = "";
+    let exceeded = false;
+
     req.on("data", (chunk: Buffer) => {
+      if (exceeded) return;
       body += chunk.toString();
+      if (body.length > MAX_BODY_BYTES) {
+        exceeded = true;
+        res.writeHead(413, { "Content-Type": "text/plain" });
+        res.end("Payload Too Large");
+        req.destroy();
+      }
     });
     req.on("end", () => {
+      if (exceeded) return;
       try {
         const msg = JSON.parse(body) as ClientMessage;
         this.onMessageCb?.(msg);

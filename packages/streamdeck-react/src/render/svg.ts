@@ -111,8 +111,17 @@ function escapeAttr(value: string): string {
   return value
     .replace(/&/g, "&amp;")
     .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
+}
+
+// Escape text node content to prevent SVG injection via user-controlled
+// strings (e.g. settings values rendered inside <text> elements).
+// Without this, a string like `</text><rect .../>` could break out of
+// its parent element and inject arbitrary SVG nodes.  (SDR-001)
+function escapeText(text: string): string {
+  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
 function serializeStyle(style: Record<string, unknown>): string {
@@ -158,9 +167,9 @@ function serializeAttr(key: string, value: unknown): string | null {
 // ── VNode → SVG Markup ──────────────────────────────────────────────
 
 function serializeVNode(node: VNode): string {
-  // Text nodes → plain text content
+  // Text nodes → escaped plain text content (SDR-001: prevent SVG injection)
   if (node.type === "#text") {
-    return node.text ?? "";
+    return escapeText(node.text ?? "");
   }
 
   // Serialize attributes

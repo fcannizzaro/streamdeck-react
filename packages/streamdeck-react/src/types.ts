@@ -166,7 +166,7 @@ export interface PluginConfig {
   imageCacheMaxBytes?: number;
   /** Maximum TouchStrip raw buffer cache size in bytes. Set to 0 to disable. @default 8388608 (8 MB) */
   touchStripCacheMaxBytes?: number;
-  /** Offload Takumi rendering to a worker thread. Set to false to disable. Automatically disabled when `takumi` is `"wasm"`. @default true */
+  /** Offload Takumi rendering to a worker thread. When not set, auto-detected: enabled only if any action defines a `touchStrip` component. Set explicitly to `true` or `false` to override. Automatically disabled when `takumi` is `"wasm"`. @default auto-detect (true if any action has touchStrip) */
   useWorker?: boolean;
 }
 

@@ -85,6 +85,10 @@ export class ImageCache<V = string> {
 
   /** Insert or update a cache entry. Evicts LRU entries if over budget. */
   set(key: number, value: V, byteSize: number): void {
+    // Guard against negative or non-finite byteSize which would corrupt
+    // the currentBytes accounting and allow unbounded growth.  (SDR-007)
+    if (byteSize < 0 || !Number.isFinite(byteSize)) return;
+
     const existing = this.map.get(key);
     if (existing != null) {
       // Update existing entry

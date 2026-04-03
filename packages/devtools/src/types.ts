@@ -169,13 +169,14 @@ export interface HighlightRenderMessage extends BaseMessage {
 
 /** Per-render pipeline timing data, embedded in RenderMessage. */
 export interface ProfileData {
-  vnodeToElementMs: number;
-  fromJsxMs: number;
+  /** Time to convert VNode tree to Takumi node tree (ms). */
+  vnodeConversionMs: number;
   takumiRenderMs: number;
   hashMs: number;
   base64Ms: number;
   totalMs: number;
   skipped: boolean;
+  /** Whether this render was served from the image cache. */
   cacheHit: boolean;
   treeDepth: number;
   nodeCount: number;

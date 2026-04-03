@@ -81,10 +81,29 @@ export class RenderPool {
   private nextId = 0;
   private pending = new Map<number, PendingRequest>();
   private initPromise: Promise<void> | null = null;
-  private fonts: FontConfig[];
+
+  // Font data stored as SharedArrayBuffer so the worker thread can
+  // reference the same memory instead of receiving a structured-clone
+  // copy.  This saves ~1-4 MB (the full size of all font files) that
+  // would otherwise be duplicated in the worker's V8 heap.
+  private sharedFonts: Array<{
+    name: string;
+    data: SharedArrayBuffer;
+    weight: FontConfig["weight"];
+    style: FontConfig["style"];
+  }>;
 
   constructor(fonts: FontConfig[]) {
-    this.fonts = fonts;
+    // Convert font data to SharedArrayBuffer upfront.  The conversion
+    // copies each font once (unavoidable — ArrayBuffer → SAB requires
+    // a copy), but from this point forward both the main thread and
+    // the worker reference the same underlying memory.
+    this.sharedFonts = fonts.map((f) => {
+      const source = f.data instanceof ArrayBuffer ? new Uint8Array(f.data) : new Uint8Array(f.data);
+      const sab = new SharedArrayBuffer(source.byteLength);
+      new Uint8Array(sab).set(source);
+      return { name: f.name, data: sab, weight: f.weight, style: f.style };
+    });
   }
 
   /** Start the worker. Call once during plugin initialization. */
@@ -107,12 +126,9 @@ export class RenderPool {
 
       this.worker = new Worker(workerUrl, {
         workerData: {
-          fonts: this.fonts.map((f) => ({
-            name: f.name,
-            data: f.data,
-            weight: f.weight,
-            style: f.style,
-          })),
+          // SharedArrayBuffer font data — the worker receives references
+          // to the same memory, avoiding a structured-clone copy.
+          fonts: this.sharedFonts,
         },
       });
 
@@ -180,6 +196,11 @@ export class RenderPool {
   /**
    * Render VNode children in the worker thread.
    * Returns the raw raster buffer.
+   *
+   * Lazy initialization: if the worker hasn't been initialized yet,
+   * the first render() call triggers initialization automatically.
+   * This defers the cost of loading the native Rust addon in a
+   * second thread (~12-18 MB) until rendering actually begins.
    */
   async render(
     vnodes: VNode[],
@@ -188,6 +209,11 @@ export class RenderPool {
     format: string,
     dpr: number,
   ): Promise<Buffer> {
+    // Lazy init: first render call triggers worker initialization
+    if (!this.ready && !this.failed) {
+      await this.initialize();
+    }
+
     if (!this.isAvailable) {
       throw new Error("Worker not available");
     }

@@ -123,6 +123,28 @@ function assemblePng(ihdr: Buffer, compressed: Buffer): Buffer {
  * @param rgba   Raw RGBA pixel data (width × height × 4 bytes, row-major).
  */
 export function encodePng(width: number, height: number, rgba: Buffer | Uint8Array): Buffer {
+  // Guard against invalid dimensions that could cause Buffer.alloc failures
+  // or incorrect buffer sizing from pipeline bugs.  (SDR-005)
+  // 4096 is a generous upper bound — Stream Deck hardware caps at 800px.
+  if (
+    !Number.isInteger(width) ||
+    !Number.isInteger(height) ||
+    width <= 0 ||
+    height <= 0 ||
+    width > 4096 ||
+    height > 4096
+  ) {
+    throw new RangeError(
+      `encodePng: invalid dimensions ${width}×${height} (must be 1–4096)`,
+    );
+  }
+  const expectedBytes = width * height * 4;
+  if (rgba.length < expectedBytes) {
+    throw new RangeError(
+      `encodePng: rgba buffer too small (${rgba.length} bytes, need ${expectedBytes} for ${width}×${height})`,
+    );
+  }
+
   const ihdr = buildIhdr(width, height);
   const filtered = buildFilteredScanlines(width, height, rgba);
   const compressed = deflateSync(filtered);
