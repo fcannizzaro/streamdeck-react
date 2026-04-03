@@ -112,8 +112,7 @@ function evaluateStatic(node: ASTNode): unknown {
         if (prop.type !== "Property") continue;
         if (prop.computed) return UNEVALUABLE;
 
-        const key: unknown =
-          prop.key.type === "Identifier" ? prop.key.name : prop.key.value;
+        const key: unknown = prop.key.type === "Identifier" ? prop.key.name : prop.key.value;
         if (typeof key !== "string") return UNEVALUABLE;
 
         const value = evaluateStatic(prop.value as ASTNode);
@@ -204,8 +203,7 @@ function extractFromDefineAction(node: ASTNode): ExtractedAction | null {
   const propMap = new Map<string, ASTNode>();
   for (const prop of (arg.properties ?? []) as ASTNode[]) {
     if (prop.type !== "Property" || prop.computed) continue;
-    const key: unknown =
-      prop.key?.type === "Identifier" ? prop.key.name : prop.key?.value;
+    const key: unknown = prop.key?.type === "Identifier" ? prop.key.name : prop.key?.value;
     if (typeof key === "string") {
       propMap.set(key, prop.value as ASTNode);
     }

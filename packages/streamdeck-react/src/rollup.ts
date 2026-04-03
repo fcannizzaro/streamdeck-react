@@ -147,9 +147,7 @@ export function streamDeckReact(options: StreamDeckRollupOptions = {}): Plugin {
       if (options.manifest) {
         const uuidError = validatePluginUUID(options.manifest.uuid);
         if (uuidError) {
-          this.warn(
-            `[@fcannizzaro/streamdeck-react] ${uuidError.message}`,
-          );
+          this.warn(`[@fcannizzaro/streamdeck-react] ${uuidError.message}`);
         }
       }
 
@@ -254,9 +252,7 @@ export function streamDeckReact(options: StreamDeckRollupOptions = {}): Plugin {
         const written = writeManifestIfChanged(manifestPath, content);
 
         if (written) {
-          console.log(
-            `[@fcannizzaro/streamdeck-react] Generated ${manifestPath}`,
-          );
+          console.log(`[@fcannizzaro/streamdeck-react] Generated ${manifestPath}`);
         }
       }
     },

@@ -188,7 +188,14 @@ describe("fuzz: hashValue", () => {
 describe("fuzz: computeHash", () => {
   test("never throws on VNodes with random props (1000 iterations)", () => {
     fuzz(1000, () => {
-      const nodeType = gen.pick(["div", "span", "text", "img", "svg", "custom-" + gen.string(1, 10)]);
+      const nodeType = gen.pick([
+        "div",
+        "span",
+        "text",
+        "img",
+        "svg",
+        "custom-" + gen.string(1, 10),
+      ]);
       const props = gen.props();
       const node = createVNode(nodeType, props);
       expect(() => computeHash(node)).not.toThrow();

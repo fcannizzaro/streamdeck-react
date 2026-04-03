@@ -411,4 +411,3 @@ export interface PluginManifestInfo {
    */
   software?: { minimumVersion: string };
 }
-

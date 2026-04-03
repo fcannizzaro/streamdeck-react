@@ -101,9 +101,7 @@ export function validateManifestConfig(
         message: `Action UUID "${action.uuid}" must be prefixed with plugin UUID "${config.uuid}."`,
       };
       errors.push(error);
-      warn?.(
-        `[@fcannizzaro/streamdeck-react] ${error.message}`,
-      );
+      warn?.(`[@fcannizzaro/streamdeck-react] ${error.message}`);
     }
 
     if (seenUuids.has(action.uuid)) {
@@ -228,9 +226,7 @@ function buildAction(action: ManifestActionSource): JsonRecord {
   const controllers = deriveControllers(action);
 
   // States: use explicit states or default to [{ Image: icon }]
-  const states = info.states
-    ? info.states.map(buildState)
-    : [{ Image: info.icon }];
+  const states = info.states ? info.states.map(buildState) : [{ Image: info.icon }];
 
   const out: JsonRecord = {
     UUID: action.uuid,

@@ -99,7 +99,8 @@ export class RenderPool {
     // a copy), but from this point forward both the main thread and
     // the worker reference the same underlying memory.
     this.sharedFonts = fonts.map((f) => {
-      const source = f.data instanceof ArrayBuffer ? new Uint8Array(f.data) : new Uint8Array(f.data);
+      const source =
+        f.data instanceof ArrayBuffer ? new Uint8Array(f.data) : new Uint8Array(f.data);
       const sab = new SharedArrayBuffer(source.byteLength);
       new Uint8Array(sab).set(source);
       return { name: f.name, data: sab, weight: f.weight, style: f.style };

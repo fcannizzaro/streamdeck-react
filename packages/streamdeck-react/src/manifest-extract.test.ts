@@ -350,14 +350,17 @@ describe("edge cases", () => {
   });
 
   test("extracts info with template literal (no expressions)", () => {
-    const code = String.raw`
+    const code =
+      String.raw`
       function Comp() {}
       const action = defineAction({
         uuid: "com.example.template",
         key: Comp,
         info: {
           name: "Template",
-          icon: ` + "`imgs/template`" + `,
+          icon: ` +
+      "`imgs/template`" +
+      `,
         },
       });
     `;

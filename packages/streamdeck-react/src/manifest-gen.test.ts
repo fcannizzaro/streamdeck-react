@@ -120,7 +120,11 @@ describe("validateManifestConfig", () => {
     const config: ManifestConfig = {
       ...MINIMAL_CONFIG,
       actions: [
-        { uuid: "com.other.plugin.action", key: KeyComponent, info: { name: "Bad", icon: "imgs/bad" } },
+        {
+          uuid: "com.other.plugin.action",
+          key: KeyComponent,
+          info: { name: "Bad", icon: "imgs/bad" },
+        },
       ],
     };
     const errors = validateManifestConfig(config);
@@ -133,7 +137,11 @@ describe("validateManifestConfig", () => {
       ...MINIMAL_CONFIG,
       actions: [
         { uuid: "com.example.my-plugin.a", key: KeyComponent, info: { name: "A", icon: "imgs/a" } },
-        { uuid: "com.example.my-plugin.a", key: KeyComponent, info: { name: "A Dup", icon: "imgs/a" } },
+        {
+          uuid: "com.example.my-plugin.a",
+          key: KeyComponent,
+          info: { name: "A Dup", icon: "imgs/a" },
+        },
       ],
     };
     const errors = validateManifestConfig(config);
@@ -155,7 +163,11 @@ describe("validateManifestConfig", () => {
     const config: ManifestConfig = {
       ...MINIMAL_CONFIG,
       actions: [
-        { uuid: "com.wrong.prefix.action", key: KeyComponent, info: { name: "Bad", icon: "imgs/bad" } },
+        {
+          uuid: "com.wrong.prefix.action",
+          key: KeyComponent,
+          info: { name: "Bad", icon: "imgs/bad" },
+        },
       ],
     };
     validateManifestConfig(config, (msg) => warnings.push(msg));

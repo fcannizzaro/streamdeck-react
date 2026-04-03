@@ -37,8 +37,7 @@ export default {
         uuid: "com.example.react-zustand",
         name: "React Zustand Sample",
         author: "Francesco Saverio Cannizzaro",
-        description:
-          "Sample plugin demonstrating shared cross-action state with Zustand.",
+        description: "Sample plugin demonstrating shared cross-action state with Zustand.",
         icon: "imgs/plugin-icon",
         version: "0.0.0.1",
         nodejs: { version: "24", debug: "--inspect=127.0.0.1:8091" },

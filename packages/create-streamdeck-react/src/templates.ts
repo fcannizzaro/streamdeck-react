@@ -147,7 +147,8 @@ export const EXAMPLE_OPTIONS: ExampleOption[] = [
   {
     id: "counter",
     label: "Counter Pack",
-    description: "Keys, timer, persisted settings, encoder dial, and animated TouchStrip equalizer.",
+    description:
+      "Keys, timer, persisted settings, encoder dial, and animated TouchStrip equalizer.",
   },
   {
     id: "zustand",
@@ -508,7 +509,16 @@ export function buildProjectFiles(options: ScaffoldOptions): Record<string, stri
 }
 
 export function buildRollupConfig(
-  options: Pick<ScaffoldOptions, "pluginUuid" | "displayName" | "author" | "description" | "category" | "nativeTargets" | "reactCompiler">,
+  options: Pick<
+    ScaffoldOptions,
+    | "pluginUuid"
+    | "displayName"
+    | "author"
+    | "description"
+    | "category"
+    | "nativeTargets"
+    | "reactCompiler"
+  >,
 ): string {
   const renderedTargets = options.nativeTargets
     .map((target) => {
@@ -582,7 +592,16 @@ export function buildRollupConfig(
 }
 
 export function buildViteConfig(
-  options: Pick<ScaffoldOptions, "pluginUuid" | "displayName" | "author" | "description" | "category" | "nativeTargets" | "reactCompiler">,
+  options: Pick<
+    ScaffoldOptions,
+    | "pluginUuid"
+    | "displayName"
+    | "author"
+    | "description"
+    | "category"
+    | "nativeTargets"
+    | "reactCompiler"
+  >,
 ): string {
   const renderedTargets = options.nativeTargets
     .map((target) => {
@@ -666,7 +685,13 @@ export function buildViteConfig(
 function buildPackageJson(
   options: Pick<
     ScaffoldOptions,
-    "packageName" | "description" | "nativeTargets" | "reactCompiler" | "bundler" | "adapter" | "streamdeckReactVersion"
+    | "packageName"
+    | "description"
+    | "nativeTargets"
+    | "reactCompiler"
+    | "bundler"
+    | "adapter"
+    | "streamdeckReactVersion"
   >,
   exampleDependencies: Record<string, string>,
 ): string {

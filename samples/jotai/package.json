@@ -11,8 +11,8 @@
   },
   "dependencies": {
     "@fcannizzaro/streamdeck-react": "workspace:*",
-    "@takumi-rs/core-darwin-arm64": "^0.71.7",
-    "jotai": "^2.18.1",
+    "@takumi-rs/core-darwin-arm64": "^0.73.1",
+    "jotai": "^2.19.0",
     "react": "^19.2.4",
     "ws": "^8.19.0"
   },

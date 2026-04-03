@@ -73,7 +73,10 @@ const CACHE_DIR = ".google-fonts";
 // Strip everything except letters, numbers, and hyphens to prevent
 // path traversal via characters like `../` in the family name.  (SDR-002)
 function sanitizeName(family: string): string {
-  return family.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+  return family
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9-]/g, "");
 }
 
 function cacheFilePath(family: string, weight: FontWeight, style: FontStyle): string {

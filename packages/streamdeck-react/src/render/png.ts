@@ -134,9 +134,7 @@ export function encodePng(width: number, height: number, rgba: Buffer | Uint8Arr
     width > 4096 ||
     height > 4096
   ) {
-    throw new RangeError(
-      `encodePng: invalid dimensions ${width}×${height} (must be 1–4096)`,
-    );
+    throw new RangeError(`encodePng: invalid dimensions ${width}×${height} (must be 1–4096)`);
   }
   const expectedBytes = width * height * 4;
   if (rgba.length < expectedBytes) {
