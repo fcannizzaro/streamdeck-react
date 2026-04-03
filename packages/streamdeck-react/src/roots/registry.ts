@@ -4,6 +4,8 @@ import type { AdapterWillAppearEvent, StreamDeckAdapter } from "@/adapter/types"
 import { ReactRoot } from "./root";
 import { TouchStripRoot } from "./touchstrip-root";
 import { shallowEqualSettings } from "./settings-equality";
+import { FlushCoordinator } from "./flush-coordinator";
+import { RootRecyclingPool, makePoolKey } from "./recycling-pool";
 import type {
   ActionDefinition,
   ActionInfo,
@@ -97,6 +99,12 @@ export class RootRegistry {
   private onGlobalSettingsChange: (settings: JsonObject) => Promise<void>;
   private wrapper?: WrapperComponent;
 
+  /** Coordinated flush scheduler. Batches and priority-orders flushes across all roots. */
+  readonly flushCoordinator: FlushCoordinator;
+
+  /** Recycling pool for suspended ReactRoot instances. Avoids fiber root destruction/creation on profile switches. */
+  private readonly recyclingPool = new RootRecyclingPool<ReactRoot>();
+
   /** DevTools observer. Set externally by startDevtoolsServer(). null when devtools is off. */
   observer: RegistryObserver | null = null;
 
@@ -110,6 +118,7 @@ export class RootRegistry {
     this.adapter = adapter;
     this.onGlobalSettingsChange = onGlobalSettingsChange;
     this.wrapper = wrapper;
+    this.flushCoordinator = new FlushCoordinator(renderConfig);
   }
 
   setGlobalSettings(settings: JsonObject): void {
@@ -170,6 +179,59 @@ export class RootRegistry {
 
     const canvas = getCanvasInfo(device.type, surfaceType);
 
+    // ── Try recycling a dormant root ──────────────────────────────
+    // Pool key is actionUUID:canvasType — a root can only be reused
+    // for the same action type on the same surface type (same component,
+    // same pixel dimensions).
+    const poolKey = makePoolKey(definition.uuid, canvas.type);
+    const recycled = this.recyclingPool.take(poolKey);
+
+    if (recycled) {
+      // Resume the dormant root with new context data.
+      // This reuses the existing fiber tree — much cheaper than
+      // creating a new one (avoids reconciler.createContainer +
+      // initial mount).
+      recycled.resume(
+        actionInfo,
+        deviceInfo,
+        canvas,
+        ev.payload.settings,
+        this.globalSettings,
+        ev.action,
+        this.adapter,
+        // onSettingsChange
+        async (settings: JsonObject) => {
+          await ev.action.setSettings(settings);
+        },
+        // onGlobalSettingsChange
+        this.onGlobalSettingsChange,
+        this.flushCoordinator,
+      );
+
+      // Emit willAppear to the recycled root (sticky for late subscribers)
+      recycled.eventBus.emitSticky("willAppear", {
+        settings: ev.payload.settings,
+        controller,
+        isInMultiAction: ev.payload.isInMultiAction,
+      });
+
+      this.roots.set(contextId, recycled);
+
+      this.observer?.onRootCreated(contextId, recycled, {
+        actionUuid: definition.uuid,
+        surface: surfaceType,
+        canvas,
+        device: deviceInfo,
+        coordinates: actionInfo.coordinates
+          ? { column: actionInfo.coordinates.column, row: actionInfo.coordinates.row }
+          : undefined,
+      });
+
+      return;
+    }
+
+    // ── Create a fresh root ───────────────────────────────────────
+
     const root = new ReactRoot(
       component,
       actionInfo,
@@ -189,6 +251,7 @@ export class RootRegistry {
       this.wrapper,
       definition.wrapper,
       definition.dialLayout,
+      this.flushCoordinator,
     );
 
     // Emit willAppear to the newly created root
@@ -245,6 +308,7 @@ export class RootRegistry {
         this.renderConfig,
         this.onGlobalSettingsChange,
         this.wrapper,
+        this.flushCoordinator,
       );
 
       this.touchStripRoots.set(deviceId, tbRoot);
@@ -293,7 +357,15 @@ export class RootRegistry {
     const root = this.roots.get(contextId);
     if (root) {
       this.observer?.onRootDestroyed(contextId);
-      root.unmount();
+
+      // Suspend and pool instead of destroying.  The fiber root stays
+      // alive so it can be reused if the same action type appears again
+      // (e.g. profile switch, page navigation).  The pool key is
+      // actionUUID:canvasType — ensures component and surface match.
+      root.suspend();
+      const poolKey = makePoolKey(root.uuid, root.canvasType);
+      this.recyclingPool.store(poolKey, root);
+
       this.roots.delete(contextId);
     }
   }
@@ -388,5 +460,9 @@ export class RootRegistry {
     }
     this.touchStripRoots.clear();
     this.touchStripActions.clear();
+    this.flushCoordinator.dispose();
+
+    // Clear the recycling pool — unmounts all dormant roots
+    this.recyclingPool.clear();
   }
 }

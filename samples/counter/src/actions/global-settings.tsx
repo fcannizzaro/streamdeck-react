@@ -1,9 +1,4 @@
-import {
-  defineAction,
-  tw,
-  useGlobalSettings,
-  useKeyDown
-} from "@fcannizzaro/streamdeck-react";
+import { defineAction, tw, useGlobalSettings, useKeyDown } from "@fcannizzaro/streamdeck-react";
 
 type CounterSettings = { globalCount: number };
 
@@ -17,8 +12,8 @@ function GlobalSettingsKey() {
 
   useKeyDown(() => {
     setSettings({
-      globalCount: globalCount + 1
-    })
+      globalCount: globalCount + 1,
+    });
   });
 
   return (
@@ -40,6 +35,6 @@ export const globalSettingsKey = defineAction({
   info: {
     name: "Global Settings",
     icon: "imgs/actions/counter",
-    tooltip: "A simple counter that allow testing global settings"
+    tooltip: "A simple counter that allow testing global settings",
   },
 });

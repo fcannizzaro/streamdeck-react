@@ -1,5 +1,11 @@
 # @fcannizzaro/streamdeck-react
 
+## 0.2.0
+
+### Minor Changes
+
+- update to rendering architecture, remove rollup support, refactor
+
 ## 0.1.17
 
 ### Patch Changes

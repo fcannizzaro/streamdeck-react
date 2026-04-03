@@ -32,7 +32,7 @@ export function isFontFile(id: string): boolean {
 }
 
 /**
- * Rollup/Vite `resolveId` helper — resolves font imports to absolute
+ * Vite `resolveId` helper — resolves font imports to absolute
  * file-system paths so the bundler knows where to find them.
  *
  * Supports both relative paths (`../fonts/Inter-Regular.ttf`) and
@@ -57,7 +57,7 @@ export function resolveFontId(source: string, importer: string | undefined): str
 }
 
 /**
- * Rollup/Vite `load` helper — reads a font file from disk and returns
+ * Vite `load` helper — reads a font file from disk and returns
  * a synthetic ES module whose default export is a Node.js `Buffer`
  * containing the font bytes (base-64 encoded at build time).
  *
@@ -65,8 +65,7 @@ export function resolveFontId(source: string, importer: string | undefined): str
  * `node_modules/.bun/` layout resolves to the real file.
  *
  * Async: uses `fs.promises.readFile()` to avoid blocking the bundler
- * event loop for large fonts (1-2 MB).  Both Vite and Rollup `load`
- * hooks support async return values.
+ * event loop for large fonts (1-2 MB).
  */
 export async function loadFont(id: string): Promise<string | null> {
   if (!isFontFile(id)) return null;

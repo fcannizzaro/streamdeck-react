@@ -6,11 +6,9 @@ import { EventBus } from "@/context/event-bus";
 import {
   SettingsContext,
   GlobalSettingsContext,
-  ActionContext,
-  DeviceContext,
-  CanvasContext,
+  RootContext,
   EventBusContext,
-  StreamDeckContext,
+  type RootContextValue,
   type SettingsContextValue,
   type GlobalSettingsContextValue,
 } from "@/context/providers";
@@ -25,6 +23,7 @@ import type {
 import { partialHasChanges, shallowEqualSettings } from "./settings-equality";
 import type { JsonObject } from "@elgato/utils";
 import type { AdapterActionHandle, StreamDeckAdapter } from "@/adapter/types";
+import { FlushPriority, type FlushableRoot, type FlushCoordinator } from "./flush-coordinator";
 
 // ── Per-Action React Root ───────────────────────────────────────────
 //
@@ -75,24 +74,29 @@ const DEFAULT_DIAL_LAYOUT: Exclude<EncoderLayout, string> = {
 
 // ── Root Instance ───────────────────────────────────────────────────
 
-export class ReactRoot {
-  readonly eventBus = new EventBus();
+export class ReactRoot implements FlushableRoot {
+  eventBus = new EventBus();
   private container: VContainer;
   private fiberRoot: ReturnType<typeof reconciler.createContainer>;
   private settings: JsonObject;
   private globalSettings: JsonObject;
   private setSettingsFn: (partial: JsonObject) => void;
   private setGlobalSettingsFn: (partial: JsonObject) => void;
-  // Stream Deck hardware refreshes at max 30Hz.  Half-period debounce
-  // (17ms) fires at the midpoint between ticks, coalescing high-frequency
-  // state updates without adding perceptible latency.
-  private readonly renderDebounceMs = 17;
   private renderConfig: RenderConfig;
   private canvas: CanvasInfo;
   private resolvedDialLayout: EncoderLayout;
   private action: AdapterActionHandle;
   private adapter: StreamDeckAdapter;
   private disposed = false;
+  private flushCoordinator: FlushCoordinator | null;
+
+  // Stored callbacks — referenced by closures so they can be swapped
+  // on resume() without recreating the closure functions.
+  private _onSettingsChange: (settings: JsonObject) => Promise<void>;
+  private _onGlobalSettingsChange: (settings: JsonObject) => Promise<void>;
+
+  // ── FlushableRoot interface ───────────────────────────────────
+  flushId: string;
 
   // ── Performance diagnostics ───────────────────────────────────
   private _renderCount = 0;
@@ -137,7 +141,7 @@ export class ReactRoot {
   }
 
   // Cached context values — avoid new object references on every render
-  private streamDeckValue: StreamDeckAccess;
+  private rootContextValue: RootContextValue;
   private settingsValue: SettingsContextValue;
   private globalSettingsValue: GlobalSettingsContextValue;
 
@@ -156,6 +160,7 @@ export class ReactRoot {
     private pluginWrapper?: WrapperComponent,
     private actionWrapper?: WrapperComponent,
     dialLayout?: EncoderLayout,
+    flushCoordinator?: FlushCoordinator,
   ) {
     this.canvas = canvas;
     this.settings = { ...initialSettings };
@@ -164,6 +169,13 @@ export class ReactRoot {
     this.adapter = adapter;
     this.renderConfig = renderConfig;
     this.resolvedDialLayout = resolveDialLayout(dialLayout);
+    this.flushCoordinator = flushCoordinator ?? null;
+    this.flushId = actionInfo.id;
+
+    // Store callbacks as instance fields so resume() can swap them
+    // without recreating the closure functions.
+    this._onSettingsChange = onSettingsChange;
+    this._onGlobalSettingsChange = onGlobalSettingsChange;
 
     // Create settings mutators.
     // Each performs a shallow-compare guard: if no key in `partial`
@@ -171,10 +183,15 @@ export class ReactRoot {
     // requested settings write but skip the merge, context value
     // allocation, and re-render.  This avoids unnecessary VNode tree
     // walks when the SDK pushes the same settings object back.
+    //
+    // Closures read from this._onSettingsChange / this._onGlobalSettingsChange
+    // (instance fields) instead of capturing the constructor parameter
+    // directly.  This allows resume() to swap the callback reference
+    // without recreating the closure — essential for root recycling.
     this.setSettingsFn = (partial: JsonObject) => {
       const hasChanges = partialHasChanges(this.settings, partial);
       const nextSettings = hasChanges ? { ...this.settings, ...partial } : this.settings;
-      onSettingsChange(nextSettings);
+      this._onSettingsChange(nextSettings);
       if (!hasChanges) return;
       this.settings = nextSettings;
       this.settingsValue = { settings: this.settings, setSettings: this.setSettingsFn };
@@ -186,7 +203,7 @@ export class ReactRoot {
       const nextSettings = hasChanges
         ? { ...this.globalSettings, ...partial }
         : this.globalSettings;
-      onGlobalSettingsChange(nextSettings);
+      this._onGlobalSettingsChange(nextSettings);
       if (!hasChanges) return;
       this.globalSettings = nextSettings;
       this.globalSettingsValue = {
@@ -197,7 +214,14 @@ export class ReactRoot {
     };
 
     // Initialize cached context values (stable references until data changes)
-    this.streamDeckValue = { action: this.action, adapter: this.adapter };
+    // RootContext merges 4 stable values into one object — constructed once,
+    // never changes for this root's lifetime.
+    this.rootContextValue = {
+      action: this.actionInfo,
+      device: this.deviceInfo,
+      canvas: this.canvas,
+      streamDeck: { action: this.action, adapter: this.adapter },
+    };
     this.settingsValue = { settings: this.settings, setSettings: this.setSettingsFn };
     this.globalSettingsValue = {
       settings: this.globalSettings,
@@ -268,30 +292,23 @@ export class ReactRoot {
     }
 
     // Provider order: stable contexts outermost, volatile innermost.
-    // Stable: Action, Device, Canvas, EventBus, StreamDeck (never change for this root).
+    // Stable: RootContext (merged action/device/canvas/streamDeck), EventBus.
     // Volatile: GlobalSettings (changes less often), Settings (changes most often).
+    //
+    // Previously 7 nested providers; now 4.  The 3 eliminated providers
+    // (ActionContext, DeviceContext, CanvasContext, StreamDeckContext)
+    // are merged into a single RootContext.  EventBusContext stays
+    // standalone because it's also used by TouchStripRoot.
     return createElement(
-      ActionContext.Provider,
-      { value: this.actionInfo },
+      RootContext.Provider,
+      { value: this.rootContextValue },
       createElement(
-        DeviceContext.Provider,
-        { value: this.deviceInfo },
+        EventBusContext.Provider,
+        { value: this.eventBus },
         createElement(
-          CanvasContext.Provider,
-          { value: this.canvas },
-          createElement(
-            EventBusContext.Provider,
-            { value: this.eventBus },
-            createElement(
-              StreamDeckContext.Provider,
-              { value: this.streamDeckValue },
-              createElement(
-                GlobalSettingsContext.Provider,
-                { value: this.globalSettingsValue },
-                createElement(SettingsContext.Provider, { value: this.settingsValue }, child),
-              ),
-            ),
-          ),
+          GlobalSettingsContext.Provider,
+          { value: this.globalSettingsValue },
+          createElement(SettingsContext.Provider, { value: this.settingsValue }, child),
         ),
       ),
     );
@@ -306,22 +323,32 @@ export class ReactRoot {
 
   // ── Flush: VNode → Takumi → raster → setImage ─────────────────
 
-  private async flush(): Promise<void> {
+  private flush(): void {
     if (this.disposed) return;
 
-    // Apply debounce for high-frequency updates
-    if (this.renderDebounceMs > 0 && this.container.renderTimer !== null) {
-      clearTimeout(this.container.renderTimer);
+    // Delegate to the FlushCoordinator for batched, priority-ordered
+    // processing.  The coordinator handles debouncing, so individual
+    // roots no longer manage their own timers.
+    if (this.flushCoordinator) {
+      this.flushCoordinator.requestFlush(this, FlushPriority.INTERACTIVE);
+      return;
     }
 
-    if (this.renderDebounceMs > 0) {
-      this.container.renderTimer = setTimeout(async () => {
-        this.container.renderTimer = null;
-        await this.doFlush();
-      }, this.renderDebounceMs);
-    } else {
-      await this.doFlush();
+    // Fallback: no coordinator (e.g. in tests).  Use direct debounce.
+    // Clear pending timer and reset — same behavior as the old per-root
+    // debounce, ensuring the most recent commit wins.
+    if (this.container.renderTimer !== null) {
+      clearTimeout(this.container.renderTimer);
     }
+    this.container.renderTimer = setTimeout(async () => {
+      this.container.renderTimer = null;
+      await this.doFlush();
+    }, 17);
+  }
+
+  /** FlushableRoot implementation: called by the FlushCoordinator. */
+  async executeFlush(): Promise<void> {
+    await this.doFlush();
   }
 
   private async doFlush(): Promise<void> {
@@ -400,9 +427,154 @@ export class ReactRoot {
     if (this.container.renderTimer !== null) {
       clearTimeout(this.container.renderTimer);
     }
+    this.flushCoordinator?.cancelFlush(this.flushId);
     this.eventBus.emit("willDisappear", undefined as never);
     reconciler.updateContainer(null, this.fiberRoot, null, () => {});
     this.eventBus.removeAllListeners();
+  }
+
+  // ── Root Recycling ────────────────────────────────────────────
+  //
+  // suspend() + resume() enable root reuse across willDisappear →
+  // willAppear cycles.  Instead of destroying and recreating the
+  // fiber root (the most expensive React operation), the root is
+  // suspended (timers cleared, events flushed) and later resumed
+  // with new context data.
+  //
+  // The fiber tree stays alive during suspension — React does not
+  // run unmount effects.  On resume, a new EventBus is created so
+  // that useEvent hooks re-subscribe (the EventBusContext value
+  // change triggers React's effect re-run).
+  //
+  // Invariant: resume() MUST be called with the SAME action UUID
+  // and canvas type — different components or surface types require
+  // a fresh root.  The RootRecyclingPool enforces this via its key.
+
+  /** Action UUID for pool key computation. */
+  get uuid(): string {
+    return this.actionInfo.uuid;
+  }
+
+  /** Canvas type for pool key computation. */
+  get canvasType(): string {
+    return this.canvas.type;
+  }
+
+  /**
+   * Suspend the root: stop rendering, clear timers, emit
+   * willDisappear, and remove all event listeners.  The fiber root
+   * and component tree stay alive for potential reuse via resume().
+   */
+  suspend(): void {
+    this.disposed = true;
+
+    // Cancel any pending flush/debounce
+    if (this.container.renderTimer !== null) {
+      clearTimeout(this.container.renderTimer);
+      this.container.renderTimer = null;
+    }
+    this.flushCoordinator?.cancelFlush(this.flushId);
+
+    // Notify listeners (useWillDisappear hooks fire here)
+    this.eventBus.emit("willDisappear", undefined as never);
+
+    // Clear all event subscriptions.  The EventBus instance itself
+    // is discarded on resume() — a new one is created so that React
+    // hooks re-subscribe via the changed EventBusContext value.
+    this.eventBus.removeAllListeners();
+
+    // Reset performance diagnostics
+    this._renderCount = 0;
+    this._lastRenderReport = 0;
+    this.lastDataUri = null;
+    this.suppressHardwarePush = false;
+  }
+
+  /**
+   * Resume a previously suspended root with new context data.
+   * Reuses the existing fiber root and component tree, avoiding
+   * the cost of reconciler.createContainer() and initial mount.
+   *
+   * A new EventBus is created to force useEvent hooks to
+   * re-subscribe (the EventBusContext value change triggers React's
+   * effect dependency check).
+   */
+  resume(
+    actionInfo: ActionInfo,
+    deviceInfo: DeviceInfo,
+    canvas: CanvasInfo,
+    settings: JsonObject,
+    globalSettings: JsonObject,
+    action: AdapterActionHandle,
+    adapter: StreamDeckAdapter,
+    onSettingsChange: (settings: JsonObject) => Promise<void>,
+    onGlobalSettingsChange: (settings: JsonObject) => Promise<void>,
+    flushCoordinator?: FlushCoordinator,
+  ): void {
+    // ── Restore lifecycle ───────────────────────────────────────
+    this.disposed = false;
+
+    // ── Update identity ─────────────────────────────────────────
+    this.actionInfo = actionInfo;
+    this.deviceInfo = deviceInfo;
+    this.canvas = canvas;
+    this.action = action;
+    this.adapter = adapter;
+    this.flushId = actionInfo.id;
+    this.flushCoordinator = flushCoordinator ?? null;
+
+    // ── Swap callbacks ──────────────────────────────────────────
+    // The setSettingsFn / setGlobalSettingsFn closures read from
+    // these instance fields, so swapping them here is sufficient —
+    // no need to recreate the closures.
+    this._onSettingsChange = onSettingsChange;
+    this._onGlobalSettingsChange = onGlobalSettingsChange;
+
+    // ── Update settings ─────────────────────────────────────────
+    this.settings = { ...settings };
+    this.globalSettings = { ...globalSettings };
+
+    // ── Rebuild context values ──────────────────────────────────
+    // New object references so React detects context changes and
+    // re-renders consumers.
+    this.rootContextValue = {
+      action: actionInfo,
+      device: deviceInfo,
+      canvas,
+      streamDeck: { action, adapter },
+    };
+    this.settingsValue = { settings: this.settings, setSettings: this.setSettingsFn };
+    this.globalSettingsValue = {
+      settings: this.globalSettings,
+      setSettings: this.setGlobalSettingsFn,
+    };
+
+    // ── New EventBus ────────────────────────────────────────────
+    // Creating a new EventBus instance changes the EventBusContext
+    // value, which forces React to re-run useEffect hooks that
+    // subscribe to events (their `bus` dependency changes).
+    // Without this, event handlers registered before suspend()
+    // would not be re-created after resume().
+    this.eventBus = new EventBus();
+    this.eventBus.ownerId = actionInfo.id;
+    this.eventBus.ownerUuid = actionInfo.uuid;
+
+    // ── Re-apply encoder feedback layout ────────────────────────
+    // The new SDK action handle needs its feedback layout configured
+    // (same as initial mount in the constructor).
+    if (canvas.type === "dial" || canvas.type === "touch") {
+      const layout = this.resolvedDialLayout;
+      this.action.setFeedbackLayout(
+        typeof layout === "string" ? layout : (layout as unknown as Record<string, unknown>),
+      );
+    }
+
+    // ── Re-render ───────────────────────────────────────────────
+    // Reconcile the component tree with updated context values.
+    // React diffs the new tree against the existing fiber tree —
+    // same component, updated providers.  Much cheaper than a full
+    // mount (fiber root creation + initial render).
+    this.render();
   }
 }
 

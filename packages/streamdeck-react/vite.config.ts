@@ -12,7 +12,6 @@ const externalPackages = [
   "@takumi-rs/wasm",
   "react",
   "react-reconciler",
-  "rollup",
   "typescript",
   "vite",
 ];
@@ -36,7 +35,6 @@ export default defineConfig({
     lib: {
       entry: {
         index: resolve(srcDir, "index.ts"),
-        rollup: resolve(srcDir, "rollup.ts"),
         vite: resolve(srcDir, "vite.ts"),
       },
       formats: ["es"],

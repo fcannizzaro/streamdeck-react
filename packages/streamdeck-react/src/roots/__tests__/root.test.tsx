@@ -839,3 +839,511 @@ describe("ReactRoot integration", () => {
     });
   });
 });
+
+// ── Root Recycling Tests ────────────────────────────────────────────
+
+describe("Root recycling", () => {
+  test("destroyed root is recycled on next create with same UUID", async () => {
+    const fakeAdapter = createFakeAdapter();
+    let settingsFromHook: JsonObject = {};
+    let renderCount = 0;
+
+    function TestAction() {
+      const [settings] = useSettings();
+      settingsFromHook = settings;
+      renderCount++;
+      return null;
+    }
+
+    const definition: ActionDefinition = {
+      uuid: "com.example.recycle",
+      key: TestAction,
+      defaultSettings: {},
+    };
+
+    const registry = createRegistry(fakeAdapter);
+
+    // First create
+    await act(async () => {
+      registry.create(
+        createWillAppearEvent({ actionId: "action-1", settings: { count: 1 } }),
+        TestAction,
+        definition,
+      );
+      await sleep(20);
+    });
+
+    expect(settingsFromHook).toEqual({ count: 1 });
+    const initialRenders = renderCount;
+
+    // Destroy — should suspend and pool, not unmount
+    await act(async () => {
+      registry.destroy("action-1");
+      await sleep(20);
+    });
+
+    // Create again with same UUID but different action ID and settings
+    await act(async () => {
+      registry.create(
+        createWillAppearEvent({ actionId: "action-2", settings: { count: 42 } }),
+        TestAction,
+        definition,
+      );
+      await sleep(20);
+    });
+
+    // Recycled root should have the new settings
+    expect(settingsFromHook).toEqual({ count: 42 });
+
+    // Should have rendered additional times (resume triggers re-render)
+    expect(renderCount).toBeGreaterThan(initialRenders);
+
+    act(() => {
+      registry.destroyAll();
+    });
+  });
+
+  test("recycled root receives willAppear event with new settings", async () => {
+    const fakeAdapter = createFakeAdapter();
+    const willAppearPayloads: WillAppearPayload[] = [];
+
+    function TestAction() {
+      useWillAppear((payload) => {
+        willAppearPayloads.push(payload);
+      });
+      return null;
+    }
+
+    const definition: ActionDefinition = {
+      uuid: "com.example.recycle-events",
+      key: TestAction,
+      defaultSettings: {},
+    };
+
+    const registry = createRegistry(fakeAdapter);
+
+    // First create
+    await act(async () => {
+      registry.create(
+        createWillAppearEvent({ actionId: "action-1", settings: { v: 1 } }),
+        TestAction,
+        definition,
+      );
+      await sleep(20);
+    });
+
+    expect(willAppearPayloads).toHaveLength(1);
+    expect(willAppearPayloads[0]).toEqual({
+      settings: { v: 1 },
+      controller: "Keypad",
+      isInMultiAction: false,
+    });
+
+    // Destroy and recreate
+    await act(async () => {
+      registry.destroy("action-1");
+      await sleep(10);
+    });
+
+    await act(async () => {
+      registry.create(
+        createWillAppearEvent({ actionId: "action-3", settings: { v: 2 } }),
+        TestAction,
+        definition,
+      );
+      await sleep(20);
+    });
+
+    // Should have received a second willAppear with new settings
+    expect(willAppearPayloads).toHaveLength(2);
+    expect(willAppearPayloads[1]).toEqual({
+      settings: { v: 2 },
+      controller: "Keypad",
+      isInMultiAction: false,
+    });
+
+    act(() => {
+      registry.destroyAll();
+    });
+  });
+
+  test("recycled root updates StreamDeckAccess context", async () => {
+    const sdkRefs: StreamDeckAccess[] = [];
+    const fakeAdapter = createFakeAdapter();
+
+    function TestAction() {
+      sdkRefs.push(useStreamDeck());
+      return null;
+    }
+
+    const definition: ActionDefinition = {
+      uuid: "com.example.recycle-sdk",
+      key: TestAction,
+      defaultSettings: {},
+    };
+
+    const registry = createRegistry(fakeAdapter);
+
+    // First create
+    await act(async () => {
+      registry.create(createWillAppearEvent({ actionId: "action-1" }), TestAction, definition);
+      await sleep(20);
+    });
+
+    const initialRef = sdkRefs[0]!;
+    expect(initialRef.adapter).toBe(fakeAdapter);
+
+    // Destroy
+    await act(async () => {
+      registry.destroy("action-1");
+      await sleep(10);
+    });
+
+    // Recreate with new action ID
+    await act(async () => {
+      registry.create(createWillAppearEvent({ actionId: "action-4" }), TestAction, definition);
+      await sleep(20);
+    });
+
+    // New renders should have a different StreamDeckAccess (new action handle)
+    const lastRef = sdkRefs[sdkRefs.length - 1]!;
+    expect(lastRef.adapter).toBe(fakeAdapter);
+    // The StreamDeckAccess should be a new object (different action handle)
+    expect(lastRef).not.toBe(initialRef);
+
+    act(() => {
+      registry.destroyAll();
+    });
+  });
+
+  test("recycled root updates setSettings callback to use new action handle", async () => {
+    const fakeAdapter = createFakeAdapter();
+    const persistedSettings: JsonObject[] = [];
+    let setSettingsHook: ((partial: JsonObject) => void) | undefined;
+
+    function TestAction() {
+      const [, setSettings] = useSettings();
+      setSettingsHook = setSettings as (partial: JsonObject) => void;
+      return null;
+    }
+
+    const definition: ActionDefinition = {
+      uuid: "com.example.recycle-persist",
+      key: TestAction,
+      defaultSettings: {},
+    };
+
+    const registry = createRegistry(fakeAdapter);
+
+    // First create with action handle that tracks persisted settings
+    const event1 = {
+      action: {
+        id: "action-1",
+        device: {
+          id: "device-1",
+          type: 0,
+          size: { columns: 5, rows: 3 },
+          name: "Stream Deck",
+        },
+        controllerType: "Keypad",
+        coordinates: { column: 0, row: 0 },
+        setSettings: async (settings: JsonObject) => {
+          persistedSettings.push({ ...settings, _from: "action-1" });
+        },
+      },
+      payload: {
+        settings: { v: 1 },
+        isInMultiAction: false,
+      },
+    } as never;
+
+    await act(async () => {
+      registry.create(event1, TestAction, definition);
+      await sleep(20);
+    });
+
+    // Destroy
+    await act(async () => {
+      registry.destroy("action-1");
+      await sleep(10);
+    });
+
+    // Recreate with a DIFFERENT action handle
+    const event2 = {
+      action: {
+        id: "action-5",
+        device: {
+          id: "device-1",
+          type: 0,
+          size: { columns: 5, rows: 3 },
+          name: "Stream Deck",
+        },
+        controllerType: "Keypad",
+        coordinates: { column: 1, row: 0 },
+        setSettings: async (settings: JsonObject) => {
+          persistedSettings.push({ ...settings, _from: "action-5" });
+        },
+      },
+      payload: {
+        settings: { v: 2 },
+        isInMultiAction: false,
+      },
+    } as never;
+
+    await act(async () => {
+      registry.create(event2, TestAction, definition);
+      await sleep(20);
+    });
+
+    // Now call setSettings from the hook — should use the NEW action handle
+    await act(async () => {
+      setSettingsHook?.({ v: 99 });
+      await sleep(20);
+    });
+
+    // The persisted settings should be routed to action-5 (not action-1)
+    const lastPersisted = persistedSettings[persistedSettings.length - 1];
+    expect(lastPersisted?._from).toBe("action-5");
+
+    act(() => {
+      registry.destroyAll();
+    });
+  });
+
+  test("different UUID roots are not recycled from the same pool key", async () => {
+    const fakeAdapter = createFakeAdapter();
+    let settingsFromHook: JsonObject = {};
+
+    function CounterAction() {
+      const [settings] = useSettings();
+      settingsFromHook = settings;
+      return null;
+    }
+
+    function TimerAction() {
+      const [settings] = useSettings();
+      settingsFromHook = settings;
+      return null;
+    }
+
+    const counterDef: ActionDefinition = {
+      uuid: "com.example.counter",
+      key: CounterAction,
+      defaultSettings: {},
+    };
+
+    const timerDef: ActionDefinition = {
+      uuid: "com.example.timer",
+      key: TimerAction,
+      defaultSettings: {},
+    };
+
+    const registry = createRegistry(fakeAdapter);
+
+    // Create and destroy a counter
+    await act(async () => {
+      registry.create(
+        createWillAppearEvent({ actionId: "counter-1", settings: { count: 5 } }),
+        CounterAction,
+        counterDef,
+      );
+      await sleep(20);
+    });
+
+    await act(async () => {
+      registry.destroy("counter-1");
+      await sleep(10);
+    });
+
+    // Create a timer (different UUID) — should NOT get the counter's recycled root
+    await act(async () => {
+      registry.create(
+        createWillAppearEvent({ actionId: "timer-1", settings: { duration: 30 } }),
+        TimerAction,
+        timerDef,
+      );
+      await sleep(20);
+    });
+
+    // Timer should have its own settings, not counter's
+    expect(settingsFromHook).toEqual({ duration: 30 });
+
+    act(() => {
+      registry.destroyAll();
+    });
+  });
+
+  test("destroyAll clears the recycling pool", async () => {
+    const fakeAdapter = createFakeAdapter();
+
+    function TestAction() {
+      return null;
+    }
+
+    const definition: ActionDefinition = {
+      uuid: "com.example.pool-clear",
+      key: TestAction,
+      defaultSettings: {},
+    };
+
+    const registry = createRegistry(fakeAdapter);
+
+    // Create and destroy an action (puts it in the pool)
+    await act(async () => {
+      registry.create(createWillAppearEvent({ actionId: "action-1" }), TestAction, definition);
+      await sleep(20);
+    });
+
+    await act(async () => {
+      registry.destroy("action-1");
+      await sleep(10);
+    });
+
+    // destroyAll should clear the pool
+    act(() => {
+      registry.destroyAll();
+    });
+
+    // A new create after destroyAll should get a fresh root (no recycling)
+    // If the pool wasn't cleared, we'd get a broken recycled root
+    // (since destroyAll unmounts active roots but the pool root was already suspended)
+    const registry2 = createRegistry(fakeAdapter);
+    let settingsFromHook: JsonObject = {};
+
+    function TestAction2() {
+      const [settings] = useSettings();
+      settingsFromHook = settings;
+      return null;
+    }
+
+    const definition2: ActionDefinition = {
+      uuid: "com.example.pool-clear",
+      key: TestAction2,
+      defaultSettings: {},
+    };
+
+    await act(async () => {
+      registry2.create(
+        createWillAppearEvent({ actionId: "action-fresh", settings: { fresh: true } }),
+        TestAction2,
+        definition2,
+      );
+      await sleep(20);
+    });
+
+    expect(settingsFromHook).toEqual({ fresh: true });
+
+    act(() => {
+      registry2.destroyAll();
+    });
+  });
+
+  test("recycled root receives external settings updates correctly", async () => {
+    const fakeAdapter = createFakeAdapter();
+    let settingsFromHook: JsonObject = {};
+
+    function TestAction() {
+      const [settings] = useSettings();
+      settingsFromHook = settings;
+      return null;
+    }
+
+    const definition: ActionDefinition = {
+      uuid: "com.example.recycle-update",
+      key: TestAction,
+      defaultSettings: {},
+    };
+
+    const registry = createRegistry(fakeAdapter);
+
+    // Create → destroy → recreate cycle
+    await act(async () => {
+      registry.create(
+        createWillAppearEvent({ actionId: "action-1", settings: { v: 1 } }),
+        TestAction,
+        definition,
+      );
+      await sleep(20);
+    });
+
+    await act(async () => {
+      registry.destroy("action-1");
+      await sleep(10);
+    });
+
+    await act(async () => {
+      registry.create(
+        createWillAppearEvent({ actionId: "action-6", settings: { v: 10 } }),
+        TestAction,
+        definition,
+      );
+      await sleep(20);
+    });
+
+    expect(settingsFromHook).toEqual({ v: 10 });
+
+    // External settings update on the recycled root
+    await act(async () => {
+      registry.updateSettings("action-6", { v: 20 });
+      await sleep(20);
+    });
+
+    expect(settingsFromHook).toEqual({ v: 20 });
+
+    act(() => {
+      registry.destroyAll();
+    });
+  });
+
+  test("recycled root receives global settings that changed during suspension", async () => {
+    const fakeAdapter = createFakeAdapter();
+    let globalSettingsFromHook: JsonObject = {};
+
+    function TestAction() {
+      const [globalSettings] = useGlobalSettings();
+      globalSettingsFromHook = globalSettings;
+      return null;
+    }
+
+    const definition: ActionDefinition = {
+      uuid: "com.example.recycle-global",
+      key: TestAction,
+      defaultSettings: {},
+    };
+
+    const registry = createRegistry(fakeAdapter);
+
+    // Create with initial global settings
+    await act(async () => {
+      registry.create(createWillAppearEvent({ actionId: "action-1" }), TestAction, definition);
+      await sleep(20);
+    });
+
+    // Global settings should be empty initially (default from registry)
+    expect(globalSettingsFromHook).toEqual({});
+
+    // Destroy the root
+    await act(async () => {
+      registry.destroy("action-1");
+      await sleep(10);
+    });
+
+    // Update global settings while root is dormant
+    await act(async () => {
+      registry.setGlobalSettings({ theme: "dark" });
+      await sleep(10);
+    });
+
+    // Recreate — recycled root should get the updated global settings
+    await act(async () => {
+      registry.create(createWillAppearEvent({ actionId: "action-7" }), TestAction, definition);
+      await sleep(20);
+    });
+
+    expect(globalSettingsFromHook).toEqual({ theme: "dark" });
+
+    act(() => {
+      registry.destroyAll();
+    });
+  });
+});

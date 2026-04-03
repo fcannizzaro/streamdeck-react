@@ -87,13 +87,11 @@ The samples show all three approaches:
 
 ## 6. Bundle for the Stream Deck Runtime
 
-The sample projects use Rollup plus the helpers exported from `@fcannizzaro/streamdeck-react/rollup`:
+The bundler plugin exported from `@fcannizzaro/streamdeck-react/vite` handles everything:
 
 - `streamDeckReact({ targets: [...], manifest: { ... } })` copies the Takumi native binaries and **auto-generates** `manifest.json`.
 - Action metadata is extracted from `defineAction({ info })` calls at build time — no hand-written manifest needed.
 - In watch mode, `streamDeckReact()` can infer the current supported host target. For production builds, prefer explicit `targets`.
-
-This is the easiest way to match the working sample setup.
 
 ## 7. Learn the API by Section
 

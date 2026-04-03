@@ -4,6 +4,42 @@ Rules, patterns, and examples for contributing TypeScript code to this monorepo.
 
 ---
 
+## 0. Repository Overview
+
+This is a **Turborepo monorepo** managed with **Bun** (`bun@1.3.10`).
+
+### Packages
+
+| Package                                   | Path                                | Description                                                                                  |
+| ----------------------------------------- | ----------------------------------- | -------------------------------------------------------------------------------------------- |
+| `@fcannizzaro/streamdeck-react`           | `packages/streamdeck-react/`        | Core library — React reconciler, render pipeline, hooks, components, adapter, bundler plugin  |
+| `@fcannizzaro/streamdeck-react-devtools`  | `packages/devtools/`                | Standalone DevTools UI (React + Tailwind + Zustand) for inspecting actions, events, renders   |
+| `create-streamdeck-react`                 | `packages/create-streamdeck-react/` | CLI scaffolding tool (`npx create-streamdeck-react`)                                         |
+
+### Samples
+
+Example plugins in `samples/`: `animation`, `counter`, `jotai`, `pokemon`, `snake`, `weather`, `zustand`.
+
+### Infrastructure
+
+| Directory      | Purpose                                           |
+| -------------- | ------------------------------------------------- |
+| `docs/`        | Fumadocs documentation site (Next.js)             |
+| `skills/`      | AI skill definitions for code assistants           |
+| `.changeset/`  | Changesets for versioning                          |
+
+### Key Commands
+
+```bash
+bun run build          # Build all packages (turbo)
+bun run test           # Run tests for all packages
+bun run dev            # Dev mode for samples
+bun run typecheck      # TypeScript type checking
+bun run format         # Format with oxfmt
+```
+
+---
+
 ## 1. TypeScript Patterns
 
 ### Strict Configuration
@@ -218,7 +254,7 @@ export interface FlushableRoot {
 
 ### Shared Cross-Entry-Point Logic
 
-When multiple entry points need common behavior, extract it to a shared module. Both `vite.ts` and `rollup.ts` delegate to `bundler-shared.ts` for native binding copying, devtools stripping, and manifest codegen.
+When multiple entry points need common behavior, extract it to a shared module. `vite.ts` contains the Vite plugin and all build infrastructure (native binding copying, devtools stripping, target resolution, manifest path resolution). Additional shared modules include `font-inline.ts` (build-time font inlining), `manifest-gen.ts` (manifest JSON generation), and `manifest-extract.ts` (AST-based action metadata extraction).
 
 ### Wrapper Pattern
 
@@ -238,13 +274,15 @@ Each subdirectory is a cohesive subsystem with a single responsibility:
 
 ```
 src/
+├── adapter/      ← SDK abstraction layer (physical-device, types — decouples from @elgato/streamdeck)
 ├── reconciler/   ← React reconciler contract (vnode, host-config, renderer)
 ├── render/       ← Rasterization pipeline (pipeline, cache, image-cache, buffer-pool, png, svg, ...)
-├── roots/        ← Root management (root, touchstrip-root, registry, flush-coordinator)
-├── hooks/        ← All React hooks, grouped by domain (events, gestures, settings, ...)
+├── roots/        ← Root management (root, touchstrip-root, registry, flush-coordinator, recycling-pool)
+├── hooks/        ← All React hooks, grouped by domain (events, gestures, settings, animation, ...)
 ├── context/      ← React contexts and event bus
-├── components/   ← Presentational components (Box, Text, Image, ...)
-├── devtools/     ← DevTools subsystem (bridge, server, serialization, intercepts, ...)
+├── components/   ← Presentational components (Box, Text, Image, Icon, ProgressBar, CircularGauge, ErrorBoundary)
+├── devtools/     ← DevTools subsystem (bridge, server, serialization, intercepts, observers, highlight)
+├── tw/           ← Tailwind class concatenation utility (tw)
 └── test-utils/   ← Test helpers (not shipped)
 ```
 
@@ -255,7 +293,6 @@ Use the `exports` field in `package.json` to expose distinct entry points. Bundl
 ```json
 "exports": {
   ".":        { "types": "./dist/index.d.ts", "import": "./dist/index.js" },
-  "./rollup": { "types": "./dist/rollup.d.ts", "import": "./dist/rollup.js" },
   "./vite":   { "types": "./dist/vite.d.ts",   "import": "./dist/vite.js"   },
   "./font":   { "types": "./font.d.ts" }
 }

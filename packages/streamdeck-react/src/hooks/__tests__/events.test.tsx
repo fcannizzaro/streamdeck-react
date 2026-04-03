@@ -3,7 +3,8 @@
 import { describe, expect, test } from "bun:test";
 import React, { act } from "react";
 import { EventBus } from "@/context/event-bus";
-import { EventBusContext, StreamDeckContext } from "@/context/providers";
+import { EventBusContext, RootContext } from "@/context/providers";
+import type { RootContextValue } from "@/context/providers";
 import {
   useKeyDown,
   useKeyUp,
@@ -20,7 +21,6 @@ import type {
   DialRotatePayload,
   DialPressPayload,
   TouchTapPayload,
-  StreamDeckAccess,
 } from "@/types";
 
 // ── Helpers ─────────────────────────────────────────────────────────
@@ -245,14 +245,17 @@ describe("useTouchTap", () => {
 describe("useDialHint", () => {
   test("calls setTriggerDescription when hints change", async () => {
     const calls: Array<Record<string, string | undefined>> = [];
-    const streamDeckValue = {
-      action: {
-        setTriggerDescription: async (payload: Record<string, string | undefined>) => {
-          calls.push(payload);
-        },
+    const fakeAction = {
+      setTriggerDescription: async (payload: Record<string, string | undefined>) => {
+        calls.push(payload);
       },
-      sdk: {} as StreamDeckAccess["sdk"],
-    } as unknown as StreamDeckAccess;
+    };
+    const rootContextValue = {
+      action: { id: "test", uuid: "com.test", controller: "Keypad", isInMultiAction: false },
+      device: { id: "dev-1", type: 0, size: { columns: 5, rows: 3 }, name: "Test" },
+      canvas: { width: 144, height: 144, type: "key" },
+      streamDeck: { action: fakeAction, adapter: {} },
+    } as unknown as RootContextValue;
 
     function TestComponent({ rotate }: { rotate?: string }) {
       useDialHint({ rotate, press: "Press", touch: "Touch", longTouch: "Hold" });
@@ -261,9 +264,9 @@ describe("useDialHint", () => {
 
     const root = createDomRoot();
     await root.render(
-      <StreamDeckContext.Provider value={streamDeckValue}>
+      <RootContext.Provider value={rootContextValue}>
         <TestComponent rotate="Left/Right" />
-      </StreamDeckContext.Provider>,
+      </RootContext.Provider>,
     );
 
     await sleep(0);
@@ -278,9 +281,9 @@ describe("useDialHint", () => {
     ]);
 
     await root.render(
-      <StreamDeckContext.Provider value={streamDeckValue}>
+      <RootContext.Provider value={rootContextValue}>
         <TestComponent rotate="Volume" />
-      </StreamDeckContext.Provider>,
+      </RootContext.Provider>,
     );
 
     await sleep(0);
@@ -305,14 +308,17 @@ describe("useDialHint", () => {
 
   test("does not call setTriggerDescription on rerender with same hint values", async () => {
     const calls: Array<Record<string, string | undefined>> = [];
-    const streamDeckValue = {
-      action: {
-        setTriggerDescription: async (payload: Record<string, string | undefined>) => {
-          calls.push(payload);
-        },
+    const fakeAction = {
+      setTriggerDescription: async (payload: Record<string, string | undefined>) => {
+        calls.push(payload);
       },
-      sdk: {} as StreamDeckAccess["sdk"],
-    } as unknown as StreamDeckAccess;
+    };
+    const rootContextValue = {
+      action: { id: "test", uuid: "com.test", controller: "Keypad", isInMultiAction: false },
+      device: { id: "dev-1", type: 0, size: { columns: 5, rows: 3 }, name: "Test" },
+      canvas: { width: 144, height: 144, type: "key" },
+      streamDeck: { action: fakeAction, adapter: {} },
+    } as unknown as RootContextValue;
 
     function TestComponent() {
       useDialHint({ rotate: "Seek", press: "Open", touch: "Peek", longTouch: "Reset" });
@@ -321,17 +327,17 @@ describe("useDialHint", () => {
 
     const root = createDomRoot();
     await root.render(
-      <StreamDeckContext.Provider value={streamDeckValue}>
+      <RootContext.Provider value={rootContextValue}>
         <TestComponent />
-      </StreamDeckContext.Provider>,
+      </RootContext.Provider>,
     );
 
     await sleep(0);
 
     await root.render(
-      <StreamDeckContext.Provider value={streamDeckValue}>
+      <RootContext.Provider value={rootContextValue}>
         <TestComponent />
-      </StreamDeckContext.Provider>,
+      </RootContext.Provider>,
     );
 
     await sleep(0);

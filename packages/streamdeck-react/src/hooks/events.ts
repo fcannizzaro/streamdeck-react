@@ -1,5 +1,5 @@
 import { useContext, useEffect } from "react";
-import { EventBusContext } from "@/context/providers";
+import { EventBusContext, RootContext } from "@/context/providers";
 import type {
   KeyDownPayload,
   KeyUpPayload,
@@ -8,7 +8,6 @@ import type {
   TouchTapPayload,
   DialHints,
 } from "@/types";
-import { StreamDeckContext } from "@/context/providers";
 import { useCallbackRef } from "./internal/useCallbackRef";
 
 // ── Hardware Event Hooks ────────────────────────────────────────────
@@ -75,7 +74,7 @@ export function useTouchTap(callback: (payload: TouchTapPayload) => void): void 
 // ── Dial Hints ──────────────────────────────────────────────────────
 
 export function useDialHint(hints: DialHints): void {
-  const { action } = useContext(StreamDeckContext);
+  const { action } = useContext(RootContext).streamDeck;
 
   // The adapter action handle always has setTriggerDescription() — it
   // no-ops internally for non-encoder surfaces.

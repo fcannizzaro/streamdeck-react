@@ -1,6 +1,6 @@
 {
   "name": "@fcannizzaro/streamdeck-react",
-  "version": "0.1.17",
+  "version": "0.2.0",
   "description": "Build Stream Deck plugins with React — render components directly to keys, dials, and touch screens",
   "keywords": [
     "elgato",
@@ -42,10 +42,6 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
-    "./rollup": {
-      "types": "./dist/rollup.d.ts",
-      "import": "./dist/rollup.js"
-    },
     "./vite": {
       "types": "./dist/vite.d.ts",
       "import": "./dist/vite.js"
@@ -75,7 +71,6 @@
     "@types/react-reconciler": "^0.33.0",
     "acorn": "^8.14.1",
     "react-dom": "^19.2.4",
-    "rollup": "^4.60.1",
     "vite": "8.0.3",
     "vite-plugin-dts": "^4.5.4"
   },

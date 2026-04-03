@@ -1,12 +1,12 @@
 import { useContext, useCallback, useEffect } from "react";
-import { EventBusContext, StreamDeckContext } from "@/context/providers";
+import { EventBusContext, RootContext } from "@/context/providers";
 import type { JsonValue } from "@elgato/utils";
 import { useCallbackRef } from "./internal/useCallbackRef";
 
 // ── useOpenUrl ──────────────────────────────────────────────────────
 
 export function useOpenUrl(): (url: string) => Promise<void> {
-  const { adapter } = useContext(StreamDeckContext);
+  const { adapter } = useContext(RootContext).streamDeck;
 
   return useCallback(
     async (url: string) => {
@@ -19,7 +19,7 @@ export function useOpenUrl(): (url: string) => Promise<void> {
 // ── useSwitchProfile ────────────────────────────────────────────────
 
 export function useSwitchProfile(): (profile: string, deviceId?: string) => Promise<void> {
-  const { adapter, action } = useContext(StreamDeckContext);
+  const { adapter, action } = useContext(RootContext).streamDeck;
 
   return useCallback(
     async (profile: string, deviceId?: string) => {
@@ -34,7 +34,7 @@ export function useSwitchProfile(): (profile: string, deviceId?: string) => Prom
 // Send a message to the Property Inspector.
 
 export function useSendToPI(): (payload: JsonValue) => Promise<void> {
-  const { adapter } = useContext(StreamDeckContext);
+  const { adapter } = useContext(RootContext).streamDeck;
 
   return useCallback(
     async (payload: JsonValue) => {
@@ -65,7 +65,7 @@ export function usePropertyInspector<T extends JsonValue = JsonValue>(
 // ── useShowAlert ────────────────────────────────────────────────────
 
 export function useShowAlert(): () => Promise<void> {
-  const { action } = useContext(StreamDeckContext);
+  const { action } = useContext(RootContext).streamDeck;
 
   return useCallback(async () => {
     await action.showAlert();
@@ -75,7 +75,7 @@ export function useShowAlert(): () => Promise<void> {
 // ── useShowOk ───────────────────────────────────────────────────────
 
 export function useShowOk(): () => Promise<void> {
-  const { action } = useContext(StreamDeckContext);
+  const { action } = useContext(RootContext).streamDeck;
 
   // The adapter action handle always has showOk() — it no-ops
   // internally for non-key surfaces.
@@ -87,7 +87,7 @@ export function useShowOk(): () => Promise<void> {
 // ── useTitle ────────────────────────────────────────────────────────
 
 export function useTitle(): (title: string) => Promise<void> {
-  const { action } = useContext(StreamDeckContext);
+  const { action } = useContext(RootContext).streamDeck;
 
   // The adapter action handle always has setTitle() — it no-ops
   // internally for non-key surfaces.

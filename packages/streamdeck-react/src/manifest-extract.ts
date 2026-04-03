@@ -252,7 +252,7 @@ function extractFromDefineAction(node: ASTNode): ExtractedAction | null {
  * Actions with `info.disabled: true` are included in the results but
  * can be filtered by the caller.
  *
- * @param ast - ESTree-compatible AST (from Rollup's `this.parse()` or `moduleParsed`)
+ * @param ast - ESTree-compatible AST
  * @returns Array of extracted action metadata
  */
 export function extractActionsFromAST(ast: ASTNode): ExtractedAction[] {

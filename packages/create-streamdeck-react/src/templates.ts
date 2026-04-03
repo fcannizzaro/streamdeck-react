@@ -1,5 +1,4 @@
 export type PackageManager = "npm" | "pnpm" | "bun";
-export type Bundler = "rollup" | "rolldown";
 export type StarterExample = "minimal" | "counter" | "zustand" | "jotai" | "pokemon";
 export type StreamDeckPlatform = "mac" | "windows";
 export type NativeTargetId = "darwin-arm64" | "darwin-x64" | "win32-arm64" | "win32-x64";
@@ -13,7 +12,6 @@ export interface ScaffoldOptions {
   description: string;
   category: string;
   packageManager: PackageManager;
-  bundler: Bundler;
   example: StarterExample;
   platforms: StreamDeckPlatform[];
   nativeTargets: NativeTargetId[];
@@ -91,40 +89,17 @@ export async function resolveLatestVersion(packageName: string): Promise<string>
 
 const BASE_DEV_DEPENDENCIES = {
   "@elgato/cli": "^1.7.1",
-  "@rollup/plugin-commonjs": "^29.0.0",
-  "@rollup/plugin-json": "^6.1.0",
-  "@rollup/plugin-node-resolve": "^16.0.3",
-  "@types/node": "^25.3.3",
-  "@types/react": "^19.2.14",
-  rollup: "^4.59.0",
-  typescript: "^6.0.0",
-} satisfies Record<string, string>;
-
-const ESBUILD_DEV_DEPENDENCIES = {
-  "rollup-plugin-esbuild": "^6.2.1",
-} satisfies Record<string, string>;
-
-const COMPILER_DEV_DEPENDENCIES = {
-  "@babel/core": "^7.28.0",
-  "@babel/preset-react": "^7.28.0",
-  "@babel/preset-typescript": "^7.28.0",
-  "@rollup/plugin-babel": "^6.0.4",
-  "babel-plugin-react-compiler": "latest",
-} satisfies Record<string, string>;
-
-const ROLLDOWN_BASE_DEV_DEPENDENCIES = {
-  "@elgato/cli": "^1.7.1",
   "@types/node": "^25.3.3",
   "@types/react": "^19.2.14",
   typescript: "^6.0.0",
   vite: "^8.0.0",
 } satisfies Record<string, string>;
 
-const ROLLDOWN_ESBUILD_DEV_DEPENDENCIES = {
+const ESBUILD_DEV_DEPENDENCIES = {
   "@vitejs/plugin-react": "^6.0.0",
 } satisfies Record<string, string>;
 
-const ROLLDOWN_COMPILER_DEV_DEPENDENCIES = {
+const COMPILER_DEV_DEPENDENCIES = {
   "@babel/core": "^7.29.0",
   "@rolldown/plugin-babel": "^0.2.0",
   "@vitejs/plugin-react": "^6.0.0",
@@ -171,19 +146,6 @@ export const PACKAGE_MANAGER_OPTIONS: Array<ChoiceOption<PackageManager>> = [
   { value: "npm", label: "npm", description: "Use npm commands in the generated next steps." },
   { value: "pnpm", label: "pnpm", description: "Use pnpm commands in the generated next steps." },
   { value: "bun", label: "bun", description: "Use Bun commands in the generated next steps." },
-];
-
-export const BUNDLER_OPTIONS: Array<ChoiceOption<Bundler>> = [
-  {
-    value: "rolldown",
-    label: "Rolldown (Vite 8+)",
-    description: "Vite 8+ with Rolldown and Oxc transforms.",
-  },
-  {
-    value: "rollup",
-    label: "Rollup",
-    description: "Stable Rollup-based build with esbuild or Babel.",
-  },
 ];
 
 export const PLATFORM_OPTIONS: Array<ChoiceOption<StreamDeckPlatform>> = [
@@ -488,16 +450,11 @@ export function buildProjectFiles(options: ScaffoldOptions): Record<string, stri
   const preset = EXAMPLE_PRESETS[options.example];
   const pluginDir = `${options.pluginUuid}.sdPlugin`;
 
-  const configFile: Record<string, string> =
-    options.bundler === "rolldown"
-      ? { "vite.config.ts": buildViteConfig(options) }
-      : { "rollup.config.mjs": buildRollupConfig(options) };
-
   return {
     ".gitignore": createGitignore(),
     "package.json": buildPackageJson(options, preset.dependencies),
     "tsconfig.json": createProjectTsconfig(),
-    ...configFile,
+    "vite.config.ts": buildViteConfig(options),
     "README.md": createProjectReadme(options),
     [`${pluginDir}/manifest.json`]: buildManifest(options, preset.actions),
     [`${pluginDir}/imgs/plugin-icon.svg`]: createPluginIconSvg(options.displayName),
@@ -506,89 +463,6 @@ export function buildProjectFiles(options: ScaffoldOptions): Record<string, stri
     ...buildActionIconFiles(pluginDir, preset.actions),
     ...preset.files(options),
   };
-}
-
-export function buildRollupConfig(
-  options: Pick<
-    ScaffoldOptions,
-    | "pluginUuid"
-    | "displayName"
-    | "author"
-    | "description"
-    | "category"
-    | "nativeTargets"
-    | "reactCompiler"
-  >,
-): string {
-  const renderedTargets = options.nativeTargets
-    .map((target) => {
-      const [platform, arch] = target.split("-");
-      return `      { platform: "${platform}", arch: "${arch}" },`;
-    })
-    .join("\n");
-
-  const transformImport = options.reactCompiler
-    ? 'import { babel } from "@rollup/plugin-babel";'
-    : 'import esbuild from "rollup-plugin-esbuild";';
-
-  const transformPlugin = options.reactCompiler
-    ? [
-        "    babel({",
-        '      babelHelpers: "bundled",',
-        '      extensions: [".js", ".jsx", ".ts", ".tsx"],',
-        '      exclude: "**/node_modules/**",',
-        '      plugins: ["babel-plugin-react-compiler"],',
-        "      presets: [",
-        '        "@babel/preset-typescript",',
-        '        ["@babel/preset-react", { runtime: "automatic" }],',
-        "      ],",
-        "    }),",
-      ]
-    : ['    esbuild({ target: "node20", jsx: "automatic" }),'];
-
-  return [
-    'import { builtinModules } from "node:module";',
-    transformImport,
-    'import resolve from "@rollup/plugin-node-resolve";',
-    'import commonjs from "@rollup/plugin-commonjs";',
-    'import json from "@rollup/plugin-json";',
-    'import { streamDeckReact } from "@fcannizzaro/streamdeck-react/rollup";',
-    "",
-    `const PLUGIN_DIR = "${options.pluginUuid}.sdPlugin";`,
-    "const builtins = new Set(builtinModules.flatMap((id) => [id, `node:${id}`]));",
-    "",
-    "export default {",
-    '  input: "src/plugin.ts",',
-    "  output: {",
-    "    file: `${PLUGIN_DIR}/bin/plugin.mjs`,",
-    '    format: "es",',
-    "    sourcemap: true,",
-    "    inlineDynamicImports: true,",
-    "  },",
-    "  external: (id) => builtins.has(id),",
-    "  plugins: [",
-    "    resolve({ preferBuiltins: true }),",
-    "    commonjs(),",
-    "    json(),",
-    ...transformPlugin,
-    "    streamDeckReact({",
-    "      targets: [",
-    renderedTargets,
-    "      ],",
-    "      manifest: {",
-    `        uuid: "${options.pluginUuid}",`,
-    `        name: "${options.displayName}",`,
-    `        author: "${options.author}",`,
-    `        description: "${options.description}",`,
-    '        icon: "imgs/plugin-icon",',
-    '        version: "0.0.0.1",',
-    `        category: "${options.category}",`,
-    "      },",
-    "    }),",
-    "  ],",
-    "};",
-    "",
-  ].join("\n");
 }
 
 export function buildViteConfig(
@@ -689,7 +563,6 @@ function buildPackageJson(
     | "description"
     | "nativeTargets"
     | "reactCompiler"
-    | "bundler"
     | "adapter"
     | "streamdeckReactVersion"
   >,
@@ -704,29 +577,13 @@ function buildPackageJson(
   const adapterDependencies: Record<string, string> =
     options.adapter === "physical" ? { "@elgato/streamdeck": ELGATO_SDK_VERSION } : {};
 
-  const isRolldown = options.bundler === "rolldown";
+  const extraDevDeps = options.reactCompiler ? COMPILER_DEV_DEPENDENCIES : ESBUILD_DEV_DEPENDENCIES;
 
-  const baseDevDeps = isRolldown ? ROLLDOWN_BASE_DEV_DEPENDENCIES : BASE_DEV_DEPENDENCIES;
-
-  const extraDevDeps = isRolldown
-    ? options.reactCompiler
-      ? ROLLDOWN_COMPILER_DEV_DEPENDENCIES
-      : ROLLDOWN_ESBUILD_DEV_DEPENDENCIES
-    : options.reactCompiler
-      ? COMPILER_DEV_DEPENDENCIES
-      : ESBUILD_DEV_DEPENDENCIES;
-
-  const scripts = isRolldown
-    ? {
-        build: "vite build",
-        dev: "vite build --watch",
-        "check-types": "tsc --noEmit",
-      }
-    : {
-        build: "rollup -c",
-        dev: "rollup -c -w",
-        "check-types": "tsc --noEmit",
-      };
+  const scripts = {
+    build: "vite build",
+    dev: "vite build --watch",
+    "check-types": "tsc --noEmit",
+  };
 
   const packageJson = {
     name: options.packageName,
@@ -743,7 +600,7 @@ function buildPackageJson(
       ...nativeDependencies,
     }),
     devDependencies: sortObject({
-      ...baseDevDeps,
+      ...BASE_DEV_DEPENDENCIES,
       ...extraDevDeps,
     }),
     description: options.description,
@@ -755,7 +612,7 @@ function buildPackageJson(
 function buildManifest(
   options: Pick<
     ScaffoldOptions,
-    "displayName" | "pluginUuid" | "author" | "description" | "category" | "platforms" | "bundler"
+    "displayName" | "pluginUuid" | "author" | "description" | "category" | "platforms"
   >,
   actions: ManifestActionTemplate[],
 ): string {

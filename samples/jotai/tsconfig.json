@@ -1,11 +1,7 @@
 {
   "compilerOptions": {
-    "types": [
-      "node"
-    ],
-    "lib": [
-      "ESNext"
-    ],
+    "types": ["node"],
+    "lib": ["ESNext"],
     "target": "ESNext",
     "module": "Preserve",
     "moduleDetection": "force",
@@ -23,7 +19,5 @@
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false
   },
-  "include": [
-    "src"
-  ]
+  "include": ["src"]
 }

@@ -21,6 +21,7 @@ import type { DeviceInfo, TouchStripInfo, WrapperComponent } from "@/types";
 import { partialHasChanges, shallowEqualSettings } from "./settings-equality";
 import type { AdapterActionHandle } from "@/adapter/types";
 import type { JsonObject } from "@elgato/utils";
+import { FlushPriority, type FlushableRoot, type FlushCoordinator } from "./flush-coordinator";
 
 // ── Constants ───────────────────────────────────────────────────────
 // Stream Deck Plus encoders: each segment is 200×100 pixels.
@@ -90,7 +91,7 @@ interface ColumnEntry {
 // actions onto the Stream Deck.  The geometry is recomputed via
 // updateTouchStripInfo() whenever a column is added or removed.
 
-export class TouchStripRoot {
+export class TouchStripRoot implements FlushableRoot {
   readonly eventBus = new EventBus();
   private container: VContainer;
   private fiberRoot: ReturnType<typeof reconciler.createContainer>;
@@ -101,6 +102,10 @@ export class TouchStripRoot {
   private deviceInfo: DeviceInfo;
   private disposed = false;
   private pluginWrapper?: WrapperComponent;
+  private flushCoordinator: FlushCoordinator | null;
+
+  // ── FlushableRoot interface ───────────────────────────────────
+  readonly flushId: string;
 
   // Stream Deck hardware refreshes at max 30Hz.  Half-period debounce
   // (17ms) fires at the midpoint between ticks, coalescing high-frequency
@@ -187,11 +192,14 @@ export class TouchStripRoot {
     renderConfig: RenderConfig,
     onGlobalSettingsChange: (settings: JsonObject) => Promise<void>,
     pluginWrapper?: WrapperComponent,
+    flushCoordinator?: FlushCoordinator,
   ) {
     this.deviceInfo = deviceInfo;
     this.globalSettings = { ...initialGlobalSettings };
     this.renderConfig = renderConfig;
     this.pluginWrapper = pluginWrapper;
+    this.flushCoordinator = flushCoordinator ?? null;
+    this.flushId = `touchStrip:${deviceInfo.id}`;
 
     // Global settings mutator
     this.setGlobalSettingsFn = (partial: JsonObject) => {
@@ -342,6 +350,14 @@ export class TouchStripRoot {
   private async flush(): Promise<void> {
     if (this.disposed) return;
 
+    // Delegate to the FlushCoordinator for batched, priority-ordered
+    // processing when available.
+    if (this.flushCoordinator) {
+      this.flushCoordinator.requestFlush(this, FlushPriority.INTERACTIVE);
+      return;
+    }
+
+    // Fallback: no coordinator (e.g. in tests).
     // No clearTimeout — let every scheduled render fire independently.
     // If a previous timer already rendered this tree state, doFlush's
     // Phase 1 dirty check (isContainerDirty) returns false and skips
@@ -355,6 +371,11 @@ export class TouchStripRoot {
     } else {
       await this.doFlush();
     }
+  }
+
+  /** FlushableRoot implementation: called by the FlushCoordinator. */
+  async executeFlush(): Promise<void> {
+    await this.doFlush();
   }
 
   private async doFlush(): Promise<void> {
@@ -565,6 +586,7 @@ export class TouchStripRoot {
     if (this.container.renderTimer !== null) {
       clearTimeout(this.container.renderTimer);
     }
+    this.flushCoordinator?.cancelFlush(this.flushId);
     this.eventBus.emit("willDisappear", undefined as never);
     reconciler.updateContainer(null, this.fiberRoot, null, () => {});
     this.eventBus.removeAllListeners();

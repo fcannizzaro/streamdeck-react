@@ -9,7 +9,7 @@ description: How manifest.json is auto-generated from defineAction() calls and b
 
 The bundler plugin (`streamDeckReact()`) combines two sources of information:
 
-1. **Plugin metadata** from the `manifest` option in your Rollup or Vite config.
+1. **Plugin metadata** from the `manifest` option in your Vite config.
 2. **Action metadata** auto-extracted from `defineAction({ info })` calls in your source code via AST analysis.
 
 ```
@@ -37,34 +37,34 @@ streamDeckReact({
     icon: "imgs/plugin-icon",
     version: "0.0.0.1",
   },
-})
+});
 ```
 
 ### PluginManifestInfo
 
-| Field                    | Required | Description                                         |
-| ------------------------ | -------- | --------------------------------------------------- |
-| `uuid`                   | Yes      | Plugin UUID in reverse-DNS format.                  |
-| `name`                   | Yes      | Plugin display name.                                |
-| `author`                 | Yes      | Author name shown on Marketplace.                   |
-| `description`            | Yes      | Plugin description.                                 |
-| `icon`                   | Yes      | Path to plugin icon (extension omitted).            |
-| `version`                | Yes      | Plugin version (e.g. `"1.0.0.0"`).                 |
-| `category`               | No       | Actions list group name. Default: same as `name`.   |
-| `categoryIcon`           | No       | Category icon path. Default: same as `icon`.        |
-| `url`                    | No       | Plugin website URL.                                 |
-| `supportUrl`             | No       | Support website URL.                                |
-| `propertyInspectorPath`  | No       | Global property inspector HTML path.                |
-| `profiles`               | No       | Pre-defined profiles distributed with the plugin.   |
-| `applicationsToMonitor`  | No       | Applications to monitor on Mac/Windows.             |
-| `defaultWindowSize`      | No       | Default window size for PI `window.open()`.         |
-| `codePath`               | No       | Plugin entry point. Default: derived from output.   |
-| `codePathMac`            | No       | macOS-specific entry point override.                |
-| `codePathWin`            | No       | Windows-specific entry point override.              |
-| `os`                     | No       | OS requirements. Default: mac 13+ and windows 10+.  |
-| `nodejs`                 | No       | Node.js config. Default: `{ version: "24" }`.       |
-| `sdkVersion`             | No       | SDK version. Default: `2`.                          |
-| `software`               | No       | Software requirements. Default: `"7.1"`.            |
+| Field                   | Required | Description                                        |
+| ----------------------- | -------- | -------------------------------------------------- |
+| `uuid`                  | Yes      | Plugin UUID in reverse-DNS format.                 |
+| `name`                  | Yes      | Plugin display name.                               |
+| `author`                | Yes      | Author name shown on Marketplace.                  |
+| `description`           | Yes      | Plugin description.                                |
+| `icon`                  | Yes      | Path to plugin icon (extension omitted).           |
+| `version`               | Yes      | Plugin version (e.g. `"1.0.0.0"`).                 |
+| `category`              | No       | Actions list group name. Default: same as `name`.  |
+| `categoryIcon`          | No       | Category icon path. Default: same as `icon`.       |
+| `url`                   | No       | Plugin website URL.                                |
+| `supportUrl`            | No       | Support website URL.                               |
+| `propertyInspectorPath` | No       | Global property inspector HTML path.               |
+| `profiles`              | No       | Pre-defined profiles distributed with the plugin.  |
+| `applicationsToMonitor` | No       | Applications to monitor on Mac/Windows.            |
+| `defaultWindowSize`     | No       | Default window size for PI `window.open()`.        |
+| `codePath`              | No       | Plugin entry point. Default: derived from output.  |
+| `codePathMac`           | No       | macOS-specific entry point override.               |
+| `codePathWin`           | No       | Windows-specific entry point override.             |
+| `os`                    | No       | OS requirements. Default: mac 13+ and windows 10+. |
+| `nodejs`                | No       | Node.js config. Default: `{ version: "24" }`.      |
+| `sdkVersion`            | No       | SDK version. Default: `2`.                         |
+| `software`              | No       | Software requirements. Default: `"7.1"`.           |
 
 ## Action Metadata
 
@@ -83,24 +83,24 @@ export const counterAction = defineAction({
 
 ### ActionManifestInfo
 
-| Field                         | Required | Description                                                    |
-| ----------------------------- | -------- | -------------------------------------------------------------- |
-| `name`                        | Yes      | Action display name in Stream Deck's action list.              |
-| `icon`                        | Yes      | Path to action icon (extension omitted).                       |
-| `disabled`                    | No       | Skip this action from manifest generation. Default: `false`.   |
-| `tooltip`                     | No       | Hover tooltip in the actions list.                             |
-| `states`                      | No       | Custom states. Default: `[{ image: icon }]`.                   |
-| `encoder`                     | No       | Encoder config (layout, triggerDescription, background).       |
-| `disableAutomaticStates`      | No       | Disable automatic state toggling.                              |
-| `disableCaching`              | No       | Disable Stream Deck image caching.                             |
-| `supportedInMultiActions`     | No       | Available in multi-actions. Default: `true`.                   |
-| `supportedInKeyLogicActions`  | No       | Available in key logic actions (SD 7.0+). Default: `true`.     |
-| `visibleInActionsList`        | No       | Visible in the actions list. Default: `true`.                  |
-| `userTitleEnabled`            | No       | Allow user to edit title. Default: `true`.                     |
-| `propertyInspectorPath`       | No       | Action-specific property inspector HTML path.                  |
-| `supportUrl`                  | No       | Action support URL.                                            |
-| `os`                          | No       | OS restriction for this action.                                |
-| `controllers`                 | No       | Controller types. Auto-derived (see below).                    |
+| Field                        | Required | Description                                                  |
+| ---------------------------- | -------- | ------------------------------------------------------------ |
+| `name`                       | Yes      | Action display name in Stream Deck's action list.            |
+| `icon`                       | Yes      | Path to action icon (extension omitted).                     |
+| `disabled`                   | No       | Skip this action from manifest generation. Default: `false`. |
+| `tooltip`                    | No       | Hover tooltip in the actions list.                           |
+| `states`                     | No       | Custom states. Default: `[{ image: icon }]`.                 |
+| `encoder`                    | No       | Encoder config (layout, triggerDescription, background).     |
+| `disableAutomaticStates`     | No       | Disable automatic state toggling.                            |
+| `disableCaching`             | No       | Disable Stream Deck image caching.                           |
+| `supportedInMultiActions`    | No       | Available in multi-actions. Default: `true`.                 |
+| `supportedInKeyLogicActions` | No       | Available in key logic actions (SD 7.0+). Default: `true`.   |
+| `visibleInActionsList`       | No       | Visible in the actions list. Default: `true`.                |
+| `userTitleEnabled`           | No       | Allow user to edit title. Default: `true`.                   |
+| `propertyInspectorPath`      | No       | Action-specific property inspector HTML path.                |
+| `supportUrl`                 | No       | Action support URL.                                          |
+| `os`                         | No       | OS restriction for this action.                              |
+| `controllers`                | No       | Controller types. Auto-derived (see below).                  |
 
 ## Controllers Auto-Derivation
 
@@ -138,13 +138,13 @@ export const volumeAction = defineAction({
 
 The `encoder` block maps to the Elgato manifest's `Encoder` field. Available options:
 
-| Field                | Description                                            |
-| -------------------- | ------------------------------------------------------ |
+| Field                | Description                                                            |
+| -------------------- | ---------------------------------------------------------------------- |
 | `layout`             | Pre-defined (`$X1`, `$A0`, `$A1`, `$B1`, etc.) or custom `.json` path. |
-| `icon`               | Encoder icon path (extension omitted).                 |
-| `stackColor`         | Background color for dial stack (hex).                 |
-| `background`         | Touchscreen background image (extension omitted).      |
-| `triggerDescription`  | Descriptions for `rotate`, `push`, `touch`, `longTouch`. |
+| `icon`               | Encoder icon path (extension omitted).                                 |
+| `stackColor`         | Background color for dial stack (hex).                                 |
+| `background`         | Touchscreen background image (extension omitted).                      |
+| `triggerDescription` | Descriptions for `rotate`, `push`, `touch`, `longTouch`.               |
 
 ## Disabled Actions
 
@@ -197,7 +197,7 @@ Validation errors are reported as build warnings.
 
 ## Skip Behavior
 
-The manifest file is only written when its content has changed. This avoids unnecessary rebuilds when using `rollup -c -w` or `vite build --watch`.
+The manifest file is only written when its content has changed. This avoids unnecessary rebuilds when using `vite build --watch`.
 
 <Cards>
   <Card title="defineAction" href="/plugin-setup/define-action" />

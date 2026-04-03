@@ -14,7 +14,14 @@ const [inter, splineSansMono] = await Promise.all([
 const plugin = createPlugin({
   fonts: [inter, splineSansMono],
   devtools: true,
-  actions: [counterAction, globalSettingsKey, timerAction, volumeAction, toggleAction, equalizerAction],
+  actions: [
+    counterAction,
+    globalSettingsKey,
+    timerAction,
+    volumeAction,
+    toggleAction,
+    equalizerAction,
+  ],
 });
 
 await plugin.connect();

@@ -3,7 +3,7 @@ title: Quick Start
 description: Build your first Stream Deck plugin with @fcannizzaro/streamdeck-react.
 ---
 
-This guide creates a minimal counter action, bundles it, and connects it to the Stream Deck runtime. You can use either **Rolldown (Vite 8+)** or **Rollup** as the bundler.
+This guide creates a minimal counter action, bundles it with **Vite 8+ (Rolldown)**, and connects it to the Stream Deck runtime.
 
 If you want the scaffold generated for you, start with [`create-streamdeck-react`](/guides/create-cli). The steps below show the manual setup.
 
@@ -12,25 +12,6 @@ If you want the scaffold generated for you, start with [`create-streamdeck-react
 Start with a normal Stream Deck plugin folder structure. You don't need to write a `manifest.json` by hand — it's auto-generated at build time from your `defineAction({ info })` calls and the bundler plugin's `manifest` option.
 
 ## 2. Install Dependencies
-
-### Rollup
-
-```bash tab="bun"
-bun add @fcannizzaro/streamdeck-react react @takumi-rs/core-darwin-arm64
-bun add -d rollup @rollup/plugin-node-resolve @rollup/plugin-commonjs @rollup/plugin-json rollup-plugin-esbuild
-```
-
-```bash tab="pnpm"
-pnpm add @fcannizzaro/streamdeck-react react @takumi-rs/core-darwin-arm64
-pnpm add -D rollup @rollup/plugin-node-resolve @rollup/plugin-commonjs @rollup/plugin-json rollup-plugin-esbuild
-```
-
-```bash tab="npm"
-npm install @fcannizzaro/streamdeck-react react @takumi-rs/core-darwin-arm64
-npm install -D rollup @rollup/plugin-node-resolve @rollup/plugin-commonjs @rollup/plugin-json rollup-plugin-esbuild
-```
-
-### Rolldown (Vite 8+)
 
 ```bash tab="bun"
 bun add @fcannizzaro/streamdeck-react react @takumi-rs/core-darwin-arm64
@@ -115,48 +96,7 @@ await plugin.connect();
 
 ## 5. Add a Bundler Config
 
-```js tab="Rollup"
-// rollup.config.mjs
-import { builtinModules } from "node:module";
-import resolve from "@rollup/plugin-node-resolve";
-import commonjs from "@rollup/plugin-commonjs";
-import json from "@rollup/plugin-json";
-import esbuild from "rollup-plugin-esbuild";
-import { streamDeckReact } from "@fcannizzaro/streamdeck-react/rollup";
-
-const PLUGIN_DIR = "com.example.react-counter.sdPlugin";
-const builtins = new Set(builtinModules.flatMap((id) => [id, `node:${id}`]));
-
-export default {
-  input: "src/plugin.ts",
-  output: {
-    file: `${PLUGIN_DIR}/bin/plugin.mjs`,
-    format: "es",
-    sourcemap: true,
-    inlineDynamicImports: true,
-  },
-  external: (id) => builtins.has(id),
-  plugins: [
-    resolve({ preferBuiltins: true }),
-    commonjs(),
-    json(),
-    esbuild({ target: "node20", jsx: "automatic" }),
-    streamDeckReact({
-      targets: [{ platform: "darwin", arch: "arm64" }],
-      manifest: {
-        uuid: "com.example.react-counter",
-        name: "React Counter",
-        author: "Your Name",
-        description: "A simple counter plugin.",
-        icon: "imgs/plugin-icon",
-        version: "0.0.0.1",
-      },
-    }),
-  ],
-};
-```
-
-```ts tab="Rolldown (Vite 8+)"
+```ts
 // vite.config.ts
 import { builtinModules } from "node:module";
 import { resolve } from "node:path";
@@ -211,11 +151,7 @@ For production builds, pass explicit `targets`. In watch mode, `streamDeckReact(
 
 ## 6. Dev
 
-```bash tab="Rollup"
-npx rollup -c -w
-```
-
-```bash tab="Rolldown (Vite 8+)"
+```bash
 npx vite build --watch
 ```
 
@@ -230,7 +166,7 @@ If your `package.json` has a `dev` script configured, you can also just run `bun
 3. `createPlugin()` prepares fonts, registers actions, and creates the shared runtime.
 4. `plugin.connect()` attaches to the Stream Deck SDK.
 5. During the build, the bundler plugin extracts `info` from each `defineAction()` call and generates `manifest.json` automatically.
-6. When the action appears, `@fcannizzaro/streamdeck-react` mounts a React root for that hardware instance.
+6. When the action appears, `@fcannizzaro/streamdeck-react` mounts a React root for that hardware instance (or resumes a recycled one).
 7. State changes trigger re-renders, and the renderer pushes a new image to the device.
 
 ## Next Steps

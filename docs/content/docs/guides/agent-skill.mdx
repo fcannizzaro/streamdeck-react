@@ -16,7 +16,7 @@ The `streamdeck-react` skill teaches agents:
 - **Project setup** -- folder structure, dependencies, `package.json`, `tsconfig.json`
 - **Core workflow** -- `defineAction()` → `createPlugin()` → `plugin.connect()`
 - **Full API surface** -- every exported hook, component, type, and utility
-- **Rollup bundling** -- config template, `streamDeckReact({ targets })`, production target selection
+- **Vite bundling** -- config template, `streamDeckReact({ targets })`, production target selection
 - **Runtime prerequisites** -- fonts and platform-specific Takumi bindings
 - **manifest.json alignment** -- UUID matching, encoder blocks, CodePath
 - **State management** -- when to use `useState`, `useSettings`, `useGlobalSettings`, Zustand, or Jotai
@@ -67,7 +67,7 @@ skills/
       plugin-setup.md             # createPlugin / defineAction details
       hooks.md                    # All hooks with signatures
       components.md               # Component props tables
-      rollup-bundling.md          # Rollup config and native bindings
+      bundling.md                 # Vite config and native bindings
       device-sizes.md             # Hardware dimensions
       limitations.md              # Constraints and trade-offs
 ```
@@ -84,7 +84,7 @@ Detailed documents loaded on-demand when the agent needs deeper information abou
 
 1. The agent sees the skill's `name` and `description` and decides whether it's relevant to the current task.
 2. If relevant, the agent loads `SKILL.md` for the full instructions.
-3. When working on a specific topic (e.g., hooks or Rollup config), the agent follows links to `references/` for detailed signatures and examples.
+3. When working on a specific topic (e.g., hooks or Vite config), the agent follows links to `references/` for detailed signatures and examples.
 
 ## For Contributors
 

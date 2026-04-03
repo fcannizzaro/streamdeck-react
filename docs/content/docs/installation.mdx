@@ -43,39 +43,9 @@ npm create streamdeck-react@latest
 
 The CLI asks for your plugin UUID, author, supported platforms, native targets, and starter example, then generates a complete `.sdPlugin` project.
 
-## Add a Bundler
+## Add the Bundler
 
-You can use either **Vite 8+ with Rolldown** (recommended) or **Rollup** (stable).
-
-### Rollup (stable)
-
-```bash tab="bun"
-bun add -d rollup @rollup/plugin-node-resolve @rollup/plugin-commonjs @rollup/plugin-json rollup-plugin-esbuild
-```
-
-```bash tab="pnpm"
-pnpm add -D rollup @rollup/plugin-node-resolve @rollup/plugin-commonjs @rollup/plugin-json rollup-plugin-esbuild
-```
-
-```bash tab="npm"
-npm install -D rollup @rollup/plugin-node-resolve @rollup/plugin-commonjs @rollup/plugin-json rollup-plugin-esbuild
-```
-
-If you want to use [React Compiler](/guides/react-compiler), replace `rollup-plugin-esbuild` with Babel:
-
-```bash tab="bun"
-bun add -d rollup @rollup/plugin-node-resolve @rollup/plugin-commonjs @rollup/plugin-json @rollup/plugin-babel @babel/core @babel/preset-typescript @babel/preset-react babel-plugin-react-compiler
-```
-
-```bash tab="pnpm"
-pnpm add -D rollup @rollup/plugin-node-resolve @rollup/plugin-commonjs @rollup/plugin-json @rollup/plugin-babel @babel/core @babel/preset-typescript @babel/preset-react babel-plugin-react-compiler
-```
-
-```bash tab="npm"
-npm install -D rollup @rollup/plugin-node-resolve @rollup/plugin-commonjs @rollup/plugin-json @rollup/plugin-babel @babel/core @babel/preset-typescript @babel/preset-react babel-plugin-react-compiler
-```
-
-### Vite 8+ with Rolldown
+Use **Vite 8+ with Rolldown**:
 
 ```bash tab="bun"
 bun add -d vite@8.0.0 @vitejs/plugin-react@6.0.1
@@ -89,7 +59,7 @@ pnpm add -D vite@8.0.0 @vitejs/plugin-react@6.0.1
 npm install -D vite@8.0.0 @vitejs/plugin-react@6.0.1
 ```
 
-If you want to use [React Compiler](/guides/react-compiler) with Vite, also add:
+If you want to use [React Compiler](/guides/react-compiler), also add:
 
 ```bash tab="bun"
 bun add -d @rolldown/plugin-babel @babel/core babel-plugin-react-compiler
