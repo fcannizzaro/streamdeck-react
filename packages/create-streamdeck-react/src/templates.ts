@@ -116,18 +116,18 @@ const ROLLDOWN_BASE_DEV_DEPENDENCIES = {
   "@elgato/cli": "^1.7.1",
   "@types/node": "^25.3.3",
   "@types/react": "^19.2.14",
-  typescript: "^5.9.3",
-  vite: "8.0.0",
+  typescript: "^6.0.0",
+  vite: "^8.0.0",
 } satisfies Record<string, string>;
 
 const ROLLDOWN_ESBUILD_DEV_DEPENDENCIES = {
-  "@vitejs/plugin-react": "6.0.1",
+  "@vitejs/plugin-react": "^6.0.0",
 } satisfies Record<string, string>;
 
 const ROLLDOWN_COMPILER_DEV_DEPENDENCIES = {
   "@babel/core": "^7.29.0",
   "@rolldown/plugin-babel": "^0.2.0",
-  "@vitejs/plugin-react": "6.0.1",
+  "@vitejs/plugin-react": "^6.0.0",
   "babel-plugin-react-compiler": "^1.0.0",
 } satisfies Record<string, string>;
 
