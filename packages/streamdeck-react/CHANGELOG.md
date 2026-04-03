@@ -1,5 +1,11 @@
 # @fcannizzaro/streamdeck-react
 
+## 0.1.17
+
+### Patch Changes
+
+- bump typescript/react versions
+
 ## 0.1.16
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # create-streamdeck-react
 
+## 0.1.16
+
+### Patch Changes
+
+- bump typescript/react versions
+
 ## 0.1.15
 
 ### Patch Changes
