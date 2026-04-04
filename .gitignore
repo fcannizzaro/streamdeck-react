@@ -47,3 +47,4 @@ samples/**/*.sdPlugin/manifest.json
 
 # AI Agent
 .opencode
+.analysis

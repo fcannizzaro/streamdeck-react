@@ -10,11 +10,11 @@ This is a **Turborepo monorepo** managed with **Bun** (`bun@1.3.10`).
 
 ### Packages
 
-| Package                                   | Path                                | Description                                                                                  |
-| ----------------------------------------- | ----------------------------------- | -------------------------------------------------------------------------------------------- |
-| `@fcannizzaro/streamdeck-react`           | `packages/streamdeck-react/`        | Core library — React reconciler, render pipeline, hooks, components, adapter, bundler plugin  |
-| `@fcannizzaro/streamdeck-react-devtools`  | `packages/devtools/`                | Standalone DevTools UI (React + Tailwind + Zustand) for inspecting actions, events, renders   |
-| `create-streamdeck-react`                 | `packages/create-streamdeck-react/` | CLI scaffolding tool (`npx create-streamdeck-react`)                                         |
+| Package                                  | Path                                | Description                                                                                  |
+| ---------------------------------------- | ----------------------------------- | -------------------------------------------------------------------------------------------- |
+| `@fcannizzaro/streamdeck-react`          | `packages/streamdeck-react/`        | Core library — React reconciler, render pipeline, hooks, components, adapter, bundler plugin |
+| `@fcannizzaro/streamdeck-react-devtools` | `packages/devtools/`                | Standalone DevTools UI (React + Tailwind + Zustand) for inspecting actions, events, renders  |
+| `create-streamdeck-react`                | `packages/create-streamdeck-react/` | CLI scaffolding tool (`npx create-streamdeck-react`)                                         |
 
 ### Samples
 
@@ -22,11 +22,11 @@ Example plugins in `samples/`: `animation`, `counter`, `jotai`, `pokemon`, `snak
 
 ### Infrastructure
 
-| Directory      | Purpose                                           |
-| -------------- | ------------------------------------------------- |
-| `docs/`        | Fumadocs documentation site (Next.js)             |
-| `skills/`      | AI skill definitions for code assistants           |
-| `.changeset/`  | Changesets for versioning                          |
+| Directory     | Purpose                                  |
+| ------------- | ---------------------------------------- |
+| `docs/`       | Fumadocs documentation site (Next.js)    |
+| `skills/`     | AI skill definitions for code assistants |
+| `.changeset/` | Changesets for versioning                |
 
 ### Key Commands
 

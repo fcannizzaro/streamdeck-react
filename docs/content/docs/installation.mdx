@@ -73,9 +73,11 @@ pnpm add -D @rolldown/plugin-babel @babel/core babel-plugin-react-compiler
 npm install -D @rolldown/plugin-babel @babel/core babel-plugin-react-compiler
 ```
 
-## Install Native Target Packages
+## Native Bindings
 
-For manual setup, install the `@takumi-rs/core-*` packages that match the targets you pass to `streamDeckReact({ targets })`.
+Native Takumi `.node` binaries are **lazy-loaded by default**. On first plugin startup, the binary matching the current platform is downloaded from npm and cached on disk. No manual installation of platform-specific packages is needed.
+
+If you prefer to bundle binaries at build time (e.g. for offline environments), set `nativeBindings: "copy"` on `streamDeckReact()` and install the matching `@takumi-rs/core-*` packages:
 
 | Target         | Package                            |
 | -------------- | ---------------------------------- |
@@ -84,7 +86,7 @@ For manual setup, install the `@takumi-rs/core-*` packages that match the target
 | `win32-arm64`  | `@takumi-rs/core-win32-arm64-msvc` |
 | `win32-x64`    | `@takumi-rs/core-win32-x64-msvc`   |
 
-Example:
+Example (copy mode only):
 
 ```bash tab="bun"
 bun add @takumi-rs/core-darwin-arm64

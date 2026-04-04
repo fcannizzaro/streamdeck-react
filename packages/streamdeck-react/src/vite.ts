@@ -5,9 +5,17 @@
 //
 // Handles:
 //
-//   1. Native binding resolution and copying
+//   1. Native binding resolution — lazy download (default) or copy
 //      @takumi-rs/core → platform-specific package (e.g. core-darwin-arm64)
-//      → locate the .node file → copy to output directory
+//
+//      Lazy mode (default):
+//        resolveId → virtual module with download-on-demand code
+//        At runtime: existsSync? → require() cached .node file
+//                    else → fetch npm tarball → extract → cache → require()
+//
+//      Copy mode (nativeBindings: "copy"):
+//        resolveId → virtual module with static require() code
+//        writeBundle → locate .node in node_modules → copy to output dir
 //
 //   2. DevTools stripping in production builds
 //      Replace the devtools module with a noop stub so the entire
@@ -16,7 +24,7 @@
 //
 //   3. Target platform configuration
 //      Dev mode: auto-detect current platform
-//      Production: requires explicit targets array (cross-compilation)
+//      Production: requires explicit targets array (copy mode only)
 //
 //   4. Code-first manifest generation
 //      Action metadata is defined in defineAction({ info: { ... } }) and
@@ -34,7 +42,7 @@
 
 import { createRequire } from "node:module";
 import { exec } from "node:child_process";
-import { copyFileSync, existsSync } from "node:fs";
+import { copyFileSync, existsSync, readFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import type { Plugin, ResolvedConfig } from "vite";
 import { resolveFontId, loadFont } from "./font-inline";
@@ -61,11 +69,19 @@ export interface StreamDeckTarget {
 /** Takumi renderer backend selection. Mirrors the runtime `TakumiBackend` type for build-time configuration. */
 export type TakumiBackend = "native-binding" | "wasm";
 
+/**
+ * Native binding loading strategy.
+ *
+ * - `"lazy"` — download from npm on first use at runtime (default).
+ * - `"copy"` — copy from node_modules during the build (requires `targets`).
+ */
+export type NativeBindingsMode = "lazy" | "copy";
+
 export interface StreamDeckTargetOptions {
   targets?: StreamDeckTarget[];
   /**
    * Takumi renderer backend. When `"wasm"`, native `.node` binding
-   * copying is skipped entirely during the build.
+   * handling is skipped entirely during the build.
    * @default "native-binding"
    */
   takumi?: TakumiBackend;
@@ -186,6 +202,199 @@ if (!binding) {
 export const { Renderer, OutputFormat, DitheringAlgorithm, AnimationOutputFormat, extractResourceUrls } = binding;
 `.trim();
 
+// ── Lazy Native Loader ──────────────────────────────────────────────
+//
+// When nativeBindings is "lazy" (the default), the @takumi-rs/core
+// import is replaced with a self-contained virtual module that
+// downloads the platform-specific .node binary from npm on first use.
+//
+// Build time: the installed @takumi-rs/core version is resolved from
+// its package.json and baked into the generated code.
+//
+// Runtime (first load):
+//   existsSync(nodePath)?
+//     yes → require() the cached .node file
+//     no  → fetch npm tarball → gunzipSync → minimal tar parse
+//           → writeFileSync the .node file → require() it
+//
+// The .node file is written next to the bundle output (import.meta.url)
+// and persists across restarts.  Subsequent loads hit the existsSync
+// fast path with zero network overhead.
+
+const TAKUMI_LAZY_LOADER_ID = "\0streamdeck-react:takumi-lazy";
+
+// ── Version Resolution ──────────────────────────────────────────────
+//
+// Resolves the installed @takumi-rs/core version at build time.
+//
+// Strategy:
+//   1. Resolve the package entry point via createRequire
+//   2. Walk up the directory tree to find its package.json
+//   3. Read the version field
+//
+// This approach handles strict `exports` maps that block direct
+// require("@takumi-rs/core/package.json") access.
+
+function resolveTakumiVersion(): string | null {
+  try {
+    const req = createRequire(import.meta.url);
+    const coreEntry = req.resolve("@takumi-rs/core");
+    let dir = dirname(coreEntry);
+
+    // Walk up from resolved entry to find the package.json with
+    // name === "@takumi-rs/core".  Max 5 levels to avoid infinite loops.
+    for (let i = 0; i < 5; i++) {
+      const pkgPath = join(dir, "package.json");
+      if (existsSync(pkgPath)) {
+        const raw = readFileSync(pkgPath, "utf8");
+        const pkg = JSON.parse(raw) as { name?: string; version?: string };
+        if (pkg.name === "@takumi-rs/core" && pkg.version) {
+          return pkg.version;
+        }
+      }
+      const parent = dirname(dir);
+      if (parent === dir) break;
+      dir = parent;
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+// ── Lazy Loader Code Generation ─────────────────────────────────────
+//
+// Produces a self-contained ESM module string with:
+//   - import.meta.url-relative path resolution
+//   - createRequire for loading the .node file (native addons can't
+//     be loaded via import)
+//   - gunzipSync for decompressing the npm .tgz tarball
+//   - A minimal inline tar parser (~15 lines) that scans 512-byte
+//     headers to find the target .node file
+//   - Top-level await for the fetch call (valid in Node 14.8+ ESM)
+//
+// The version string is baked in at build time from the installed
+// @takumi-rs/core package.
+
+function buildLazyLoaderCode(version: string): string {
+  const bindings = JSON.stringify({
+    "darwin-arm64": { pkg: "core-darwin-arm64", file: "core.darwin-arm64.node" },
+    "darwin-x64": { pkg: "core-darwin-x64", file: "core.darwin-x64.node" },
+    "win32-arm64": { pkg: "core-win32-arm64-msvc", file: "core.win32-arm64-msvc.node" },
+    "win32-x64": { pkg: "core-win32-x64-msvc", file: "core.win32-x64-msvc.node" },
+  });
+
+  const namedExports = [
+    "Renderer",
+    "OutputFormat",
+    "DitheringAlgorithm",
+    "AnimationOutputFormat",
+    "extractResourceUrls",
+  ].join(", ");
+
+  //   npm tarballs are gzipped tar archives.  The tar format uses
+  //   fixed 512-byte headers per file entry:
+  //
+  //     Offset  Length  Content
+  //     0       100     Filename (null-terminated ASCII)
+  //     124     12      File size (octal ASCII)
+  //
+  //   After each header, the file data follows, padded to the next
+  //   512-byte boundary.  The parser scans headers sequentially until
+  //   it finds one whose name ends with the target .node filename,
+  //   extracts that range, and writes it to disk.
+  return [
+    'import { createRequire } from "node:module";',
+    'import { existsSync, writeFileSync } from "node:fs";',
+    'import { gunzipSync } from "node:zlib";',
+    'import { fileURLToPath } from "node:url";',
+    'import { dirname, join } from "node:path";',
+    "",
+    "const require = createRequire(import.meta.url);",
+    "const __dir = dirname(fileURLToPath(import.meta.url));",
+    "",
+    `const VERSION = ${JSON.stringify(version)};`,
+    `const BINDINGS = ${bindings};`,
+    "",
+    'const key = process.platform + "-" + process.arch;',
+    "const entry = BINDINGS[key];",
+    "",
+    "if (!entry) {",
+    "  throw new Error(",
+    '    "[@fcannizzaro/streamdeck-react] Unsupported platform: " + key +',
+    '    ". Supported: " + Object.keys(BINDINGS).join(", ")',
+    "  );",
+    "}",
+    "",
+    "const nodePath = join(__dir, entry.file);",
+    "",
+    "if (!existsSync(nodePath)) {",
+    "  const tarballUrl =",
+    '    "https://registry.npmjs.org/@takumi-rs/" + entry.pkg +',
+    '    "/-/" + entry.pkg + "-" + VERSION + ".tgz";',
+    "",
+    "  console.log(",
+    '    "[@fcannizzaro/streamdeck-react] Downloading " + entry.pkg +',
+    '    "@" + VERSION + " for " + key + "..."',
+    "  );",
+    "",
+    "  const res = await fetch(tarballUrl);",
+    "",
+    "  if (!res.ok) {",
+    "    throw new Error(",
+    '      "[@fcannizzaro/streamdeck-react] Failed to download native binding " +',
+    '      "(HTTP " + res.status + "): " + tarballUrl',
+    "    );",
+    "  }",
+    "",
+    "  const compressed = new Uint8Array(await res.arrayBuffer());",
+    "  const tar = gunzipSync(compressed);",
+    "",
+    "  const target = entry.file;",
+    "  let offset = 0;",
+    "  let found = false;",
+    "",
+    "  while (offset + 512 <= tar.length) {",
+    "    let nameEnd = offset;",
+    "    while (nameEnd < offset + 100 && tar[nameEnd] !== 0) nameEnd++;",
+    "    const name = new TextDecoder().decode(tar.subarray(offset, nameEnd));",
+    "",
+    "    if (name.length === 0) break;",
+    "",
+    "    const sizeStr = new TextDecoder()",
+    "      .decode(tar.subarray(offset + 124, offset + 136))",
+    '      .replace(/\\0.*$/, "")',
+    "      .trim();",
+    "    const size = parseInt(sizeStr, 8) || 0;",
+    "    const dataStart = offset + 512;",
+    "",
+    "    if (name.endsWith(target)) {",
+    "      writeFileSync(nodePath, tar.subarray(dataStart, dataStart + size));",
+    "      found = true;",
+    "      break;",
+    "    }",
+    "",
+    "    offset = dataStart + Math.ceil(size / 512) * 512;",
+    "  }",
+    "",
+    "  if (!found) {",
+    "    throw new Error(",
+    '      "[@fcannizzaro/streamdeck-react] .node file \'" + target +',
+    '      "\' not found in npm tarball"',
+    "    );",
+    "  }",
+    "",
+    "  console.log(",
+    '    "[@fcannizzaro/streamdeck-react] Native binding cached at " + nodePath',
+    "  );",
+    "}",
+    "",
+    "const binding = require(nodePath);",
+    `export const { ${namedExports} } = binding;`,
+  ].join("\n");
+}
+
 // ── DevTools & Target Helpers ───────────────────────────────────────
 
 /**
@@ -254,7 +463,10 @@ function expandTargets(targets: StreamDeckTarget[]): ResolvedTarget[] {
   );
 }
 
-// ── Native Binding Copy ─────────────────────────────────────────────
+// ── Native Binding Copy (nativeBindings: "copy" only) ───────────────
+//
+// Used when nativeBindings is "copy".  The default "lazy" mode skips
+// this entirely — binaries are downloaded at runtime instead.
 //
 // Problem: Takumi (@takumi-rs/core) is a Rust/NAPI native addon
 // compiled per-platform.  The bundler produces a single JS file, but
@@ -435,6 +647,26 @@ export interface StreamDeckReactOptions extends StreamDeckTargetOptions {
   uuid?: string;
 
   /**
+   * Native binding loading strategy.
+   *
+   * - `"lazy"` (default) — the `.node` binary is downloaded from npm
+   *   on first use at runtime.  No platform-specific packages need to
+   *   be installed at build time — only the main `@takumi-rs/core`
+   *   package (for types and version resolution).  The binary is
+   *   cached on disk next to the bundle output for subsequent loads.
+   *
+   * - `"copy"` — platform-specific `.node` binaries are copied from
+   *   `node_modules` during the build.  Requires platform packages
+   *   (e.g. `@takumi-rs/core-darwin-arm64`) to be installed and
+   *   `targets` to be specified.
+   *
+   * Ignored when `takumi` is `"wasm"`.
+   *
+   * @default "lazy"
+   */
+  nativeBindings?: NativeBindingsMode;
+
+  /**
    * Code-first manifest generation.  When a `PluginManifestInfo` object
    * is provided, the plugin generates `manifest.json` in the `.sdPlugin`
    * directory during `writeBundle`.
@@ -459,18 +691,36 @@ export interface StreamDeckReactOptions extends StreamDeckTargetOptions {
 //
 // Responsibilities mapped to Vite lifecycle hooks:
 //
-//   configResolved  → detect dev/production mode, set strip flags
-//   buildStart      → validate plugin UUID format (early check)
+//   configResolved  → detect dev/production mode, set strip flags,
+//                     determine native binding strategy (lazy vs copy)
+//   buildStart      → validate plugin UUID format (early check),
+//                     resolve @takumi-rs/core version for lazy loading
 //   moduleParsed    → extract defineAction() metadata from each module
 //   resolveId       → redirect devtools imports (production) + font imports
-//   load            → return noop devtools stub + inline font as base64 Buffer
-//   writeBundle     → copy native .node bindings + generate manifest.json
+//                     + replace @takumi-rs/core with virtual loader
+//   load            → return noop devtools stub / native loader /
+//                     inline font as base64 Buffer
+//   writeBundle     → copy native .node bindings (copy mode only) +
+//                     generate manifest.json
 //   closeBundle     → restart Stream Deck plugin (optional, via CLI)
 
 export function streamDeckReact(options: StreamDeckReactOptions = {}): Plugin {
   let resolvedConfig: ResolvedConfig;
   let isDevelopment = false;
   let stripDevtools = false;
+
+  // ── Native binding strategy ────────────────────────────────────
+  //
+  // "lazy" (default): generate a runtime download-on-demand virtual
+  //   module.  The @takumi-rs/core version is resolved at build time
+  //   and baked into the generated code.  At runtime, the .node file
+  //   is downloaded from npm on first use and cached on disk.
+  //
+  // "copy": the previous behavior.  Platform-specific .node files
+  //   are copied from node_modules to the output directory during
+  //   writeBundle.  Requires `targets` to be specified.
+  let useLazyBindings = false;
+  let lazyLoaderCode: string | null = null;
 
   // ── Extracted actions accumulated during build ──────────────────
   const extractedActions: ExtractedAction[] = [];
@@ -485,6 +735,13 @@ export function streamDeckReact(options: StreamDeckReactOptions = {}): Plugin {
       const isWatch = config.build.watch !== null;
       isDevelopment = isWatch || process.env.NODE_ENV === "development";
       stripDevtools = shouldStripDevtools(isWatch);
+
+      // Determine native binding mode.
+      // WASM mode always skips native bindings entirely.
+      if (options.takumi !== "wasm") {
+        const mode = options.nativeBindings ?? "lazy";
+        useLazyBindings = mode === "lazy";
+      }
     },
 
     buildStart() {
@@ -493,6 +750,26 @@ export function streamDeckReact(options: StreamDeckReactOptions = {}): Plugin {
         const uuidError = validatePluginUUID(options.manifest.uuid);
         if (uuidError) {
           resolvedConfig.logger.warn(`[@fcannizzaro/streamdeck-react] ${uuidError.message}`);
+        }
+      }
+
+      // Resolve Takumi version for lazy loading.
+      // If resolution fails, fall back to copy mode with a warning.
+      if (useLazyBindings) {
+        const version = resolveTakumiVersion();
+
+        if (version) {
+          lazyLoaderCode = buildLazyLoaderCode(version);
+          resolvedConfig.logger.info(
+            `[@fcannizzaro/streamdeck-react] Lazy native bindings: @takumi-rs/core@${version}`,
+          );
+        } else {
+          resolvedConfig.logger.warn(
+            "[@fcannizzaro/streamdeck-react] Could not resolve @takumi-rs/core version. " +
+              'Falling back to nativeBindings: "copy".',
+          );
+          useLazyBindings = false;
+          lazyLoaderCode = null;
         }
       }
 
@@ -534,16 +811,18 @@ export function streamDeckReact(options: StreamDeckReactOptions = {}): Plugin {
       if (stripDevtools && isLibraryDevtoolsImport(source, importer)) {
         return NOOP_DEVTOOLS_ID;
       }
-      // Replace @takumi-rs/core with a lightweight native loader to avoid
-      // the inlineDynamicImports ordering issue (see TAKUMI_NATIVE_LOADER_ID).
+      // Replace @takumi-rs/core with a virtual loader.
+      // Lazy mode: download-on-demand runtime loader.
+      // Copy mode: lightweight static require() loader.
       if (options.takumi !== "wasm" && source === "@takumi-rs/core") {
-        return TAKUMI_NATIVE_LOADER_ID;
+        return useLazyBindings ? TAKUMI_LAZY_LOADER_ID : TAKUMI_NATIVE_LOADER_ID;
       }
       return resolveFontId(source, importer);
     },
 
     load(id) {
       if (id === NOOP_DEVTOOLS_ID) return NOOP_DEVTOOLS_CODE;
+      if (id === TAKUMI_LAZY_LOADER_ID) return lazyLoaderCode;
       if (id === TAKUMI_NATIVE_LOADER_ID) return TAKUMI_NATIVE_LOADER_CODE;
       return loadFont(id);
     },
@@ -552,9 +831,14 @@ export function streamDeckReact(options: StreamDeckReactOptions = {}): Plugin {
       const outDir = resolve(resolvedConfig.root, resolvedConfig.build.outDir);
 
       // ── Native bindings ─────────────────────────────────────────
-      copyNativeBindings(outDir, isDevelopment, options, (msg) => {
-        resolvedConfig.logger.warn(msg);
-      });
+      // Lazy mode: binaries are downloaded at runtime — nothing to
+      // copy at build time.
+      // Copy mode: copy platform-specific .node files from node_modules.
+      if (!useLazyBindings) {
+        copyNativeBindings(outDir, isDevelopment, options, (msg) => {
+          resolvedConfig.logger.warn(msg);
+        });
+      }
 
       // ── Manifest generation ─────────────────────────────────────
       if (options.manifest) {

@@ -89,9 +89,8 @@ The samples show all three approaches:
 
 The bundler plugin exported from `@fcannizzaro/streamdeck-react/vite` handles everything:
 
-- `streamDeckReact({ targets: [...], manifest: { ... } })` copies the Takumi native binaries and **auto-generates** `manifest.json`.
+- `streamDeckReact({ manifest: { ... } })` handles native Takumi bindings (lazy-loaded by default) and **auto-generates** `manifest.json`.
 - Action metadata is extracted from `defineAction({ info })` calls at build time — no hand-written manifest needed.
-- In watch mode, `streamDeckReact()` can infer the current supported host target. For production builds, prefer explicit `targets`.
 
 ## 7. Learn the API by Section
 

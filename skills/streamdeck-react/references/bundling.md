@@ -28,7 +28,6 @@ export default defineConfig({
     react(),
     streamDeckReact({
       uuid: "com.example.my-plugin",
-      targets: [{ platform: "darwin", arch: "arm64" }],
       manifest: {
         uuid: "com.example.my-plugin",
         name: "My Plugin",
@@ -88,7 +87,6 @@ export default defineConfig({
     }),
     streamDeckReact({
       uuid: "com.example.my-plugin",
-      targets: [{ platform: "darwin", arch: "arm64" }],
       manifest: {
         uuid: "com.example.my-plugin",
         name: "My Plugin",
@@ -139,47 +137,67 @@ npm install -D vite@8.0.0 @vitejs/plugin-react@6.0.1 @rolldown/plugin-babel @bab
 npm install @fcannizzaro/streamdeck-react react ws
 ```
 
-You also need platform-specific Takumi native binding packages so `streamDeckReact({ targets })` can copy the correct `.node` files into your plugin output.
+## Native Binding Strategy
 
-For production builds, always pass explicit `targets`. In watch mode, `streamDeckReact()` can infer the current supported host target.
+By default, native Takumi `.node` binaries are **lazy-loaded at runtime**. On first plugin startup, the binary matching the current `process.platform`/`process.arch` is downloaded from npm and cached on disk next to the bundle output. Subsequent loads use the cached file with zero network overhead.
+
+No platform-specific `@takumi-rs/core-*` packages need to be installed. The installed version of the main `@takumi-rs/core` package (included as a dependency) is resolved at build time and baked into the generated loader.
+
+### Opting into Copy Mode
+
+To revert to the previous behavior of copying `.node` files from `node_modules` at build time, set `nativeBindings: "copy"` and install the matching platform packages:
+
+```ts
+streamDeckReact({
+  nativeBindings: "copy",
+  targets: [{ platform: "darwin", arch: "arm64" }],
+  manifest: { ... },
+})
+```
+
+```bash
+npm install @takumi-rs/core-darwin-arm64
+```
 
 ## Plugin Details
 
 ### streamDeckReact()
 
-Handles two build-time concerns:
+Handles build-time concerns:
 
-1. **Native bindings**: Copies the platform-specific `@takumi-rs/core` native binding (`.node` file) into the output directory. Required when using the default `"native-binding"` backend. When `takumi: "wasm"` is set, this is skipped.
+1. **Native bindings**: By default, generates a lazy-loader virtual module that downloads the platform-specific `.node` file from npm at runtime. When `nativeBindings: "copy"`, copies binaries from `node_modules` instead (requires `targets`). When `takumi: "wasm"`, skipped entirely.
 
 2. **Manifest generation**: Auto-generates `manifest.json` from the `manifest` option (plugin info) and `defineAction({ info })` calls (action info extracted via AST analysis at build time).
 
 ```ts
-type StreamDeckTargetOptions = {
+type StreamDeckReactOptions = {
   targets?: Array<{
     platform: "darwin" | "win32";
     arch: "arm64" | "x64";
   }>;
   takumi?: "native-binding" | "wasm";
+  nativeBindings?: "lazy" | "copy"; // Default: "lazy"
   manifest?: PluginManifestInfo;
+  uuid?: string;
 };
 
 interface PluginManifestInfo {
-  uuid: string;          // Plugin UUID (reverse-DNS)
-  name: string;          // Plugin display name
-  author: string;        // Author name
-  description: string;   // Plugin description
-  icon: string;          // Plugin icon path (extension omitted)
-  version: string;       // Plugin version (e.g. "1.0.0.0")
+  uuid: string; // Plugin UUID (reverse-DNS)
+  name: string; // Plugin display name
+  author: string; // Author name
+  description: string; // Plugin description
+  icon: string; // Plugin icon path (extension omitted)
+  version: string; // Plugin version (e.g. "1.0.0.0")
   // Optional overrides (all have sensible defaults):
-  category?: string;       // Default: same as name
-  categoryIcon?: string;   // Default: same as icon
+  category?: string; // Default: same as name
+  categoryIcon?: string; // Default: same as icon
   url?: string;
   supportUrl?: string;
-  codePath?: string;       // Default: derived from bundler output
-  os?: [ManifestOSInfo, ManifestOSInfo?];  // Default: mac 13+ & windows 10+
-  nodejs?: ManifestNodejsInfo;  // Default: { version: "24" }
-  sdkVersion?: 2 | 3;     // Default: 2
-  software?: { minimumVersion: string };  // Default: "7.1"
+  codePath?: string; // Default: derived from bundler output
+  os?: [ManifestOSInfo, ManifestOSInfo?]; // Default: mac 13+ & windows 10+
+  nodejs?: ManifestNodejsInfo; // Default: { version: "24" }
+  sdkVersion?: 2 | 3; // Default: 2
+  software?: { minimumVersion: string }; // Default: "7.1"
   profiles?: ManifestProfileInfo[];
   applicationsToMonitor?: { mac?: string[]; windows?: string[] };
   defaultWindowSize?: [number, number];
@@ -189,13 +207,12 @@ interface PluginManifestInfo {
 }
 ```
 
-The plugin runs during `writeBundle` and:
+The plugin runs during the build and:
 
-1. Uses explicit `targets` when provided.
-2. In watch mode, can infer the current supported host target.
-3. Resolves the corresponding `@takumi-rs/core-*` packages.
-4. Copies the `.node` files to the output directory alongside `plugin.mjs`.
-5. Throws for missing or unsupported production targets.
+1. In lazy mode (default): resolves the installed `@takumi-rs/core` version and generates a virtual module with download-on-demand logic. At runtime, the `.node` file is fetched from npm, extracted from the tarball, and cached.
+2. In copy mode (`nativeBindings: "copy"`): uses explicit `targets` to locate and copy `.node` files from `node_modules`.
+3. Generates `manifest.json` from the `manifest` option and extracted action metadata.
+4. Throws for missing bindings in copy mode production builds.
 
 ### Supported Platforms
 
@@ -216,8 +233,16 @@ After building, the `.sdPlugin/bin/` directory should contain:
 bin/
   plugin.mjs           # Bundled plugin code
   plugin.mjs.map       # Source map
-  core.<platform>.node # Native Takumi binding
 ```
+
+When using `nativeBindings: "copy"`, the output also includes:
+
+```
+bin/
+  core.<platform>.node # Native Takumi binding (copy mode only)
+```
+
+With the default lazy mode, the `.node` file appears after the plugin's first startup (downloaded and cached automatically).
 
 ## Key Configuration Notes
 
@@ -225,7 +250,7 @@ bin/
 - **`esmExternalRequirePlugin({ external: builtins })`** -- converts CJS `require()` calls for Node.js builtins to ESM `import` statements. Without this, bundled CJS code (e.g. `ws`) will crash at runtime because `require` is unavailable in ESM.
 - **`build.rolldownOptions`** -- Rolldown-specific output configuration.
 - **`codeSplitting: false`** -- bundles everything into a single file.
-- **`streamDeckReact()`** -- combines native binding copying and optional plugin restart into a single plugin. Pass `uuid` to auto-restart after each build.
+- **`streamDeckReact()`** -- handles native binding loading (lazy by default) and optional plugin restart. Pass `uuid` to auto-restart after each build.
 - **Manifest `Nodejs.Version`** should be `"24"` for all plugins.
 
 ## Watch Mode (Development)

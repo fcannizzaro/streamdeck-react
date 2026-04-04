@@ -3,11 +3,7 @@ import { resolve } from "node:path";
 import { defineConfig, esmExternalRequirePlugin } from "vite";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import babel from "@rolldown/plugin-babel";
-import {
-  streamDeckReact,
-  type StreamDeckPlatform,
-  type StreamDeckArch,
-} from "@fcannizzaro/streamdeck-react/vite";
+import { streamDeckReact } from "@fcannizzaro/streamdeck-react/vite";
 
 const PLUGIN_DIR = "com.example.react-counter.sdPlugin";
 const builtins = builtinModules.flatMap((m) => [m, `node:${m}`]);
@@ -21,12 +17,6 @@ export default defineConfig({
     react(),
     babel({ presets: [reactCompilerPreset()] }),
     streamDeckReact({
-      targets: [
-        {
-          platform: process.platform as StreamDeckPlatform,
-          arch: process.arch as StreamDeckArch,
-        },
-      ],
       manifest: {
         uuid: "com.example.react-counter",
         name: "React Counter Sample",

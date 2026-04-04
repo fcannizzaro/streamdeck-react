@@ -14,21 +14,21 @@ Start with a normal Stream Deck plugin folder structure. You don't need to write
 ## 2. Install Dependencies
 
 ```bash tab="bun"
-bun add @fcannizzaro/streamdeck-react react @takumi-rs/core-darwin-arm64
+bun add @fcannizzaro/streamdeck-react react
 bun add -d vite@8.0.0 @vitejs/plugin-react@6.0.1
 ```
 
 ```bash tab="pnpm"
-pnpm add @fcannizzaro/streamdeck-react react @takumi-rs/core-darwin-arm64
+pnpm add @fcannizzaro/streamdeck-react react
 pnpm add -D vite@8.0.0 @vitejs/plugin-react@6.0.1
 ```
 
 ```bash tab="npm"
-npm install @fcannizzaro/streamdeck-react react @takumi-rs/core-darwin-arm64
+npm install @fcannizzaro/streamdeck-react react
 npm install -D vite@8.0.0 @vitejs/plugin-react@6.0.1
 ```
 
-This example targets macOS Apple Silicon. Swap the `@takumi-rs/core-*` package and targets to match the platforms you want to ship.
+Native Takumi bindings are lazy-loaded by default — they are downloaded from npm on first plugin startup and cached on disk. No platform-specific packages need to be installed.
 
 ## 3. Create an Action Component
 
@@ -116,7 +116,6 @@ export default defineConfig({
     react(),
     streamDeckReact({
       uuid: "com.example.react-counter",
-      targets: [{ platform: "darwin", arch: "arm64" }],
       manifest: {
         uuid: "com.example.react-counter",
         name: "React Counter",
@@ -147,7 +146,7 @@ export default defineConfig({
 });
 ```
 
-For production builds, pass explicit `targets`. In watch mode, `streamDeckReact()` can still infer the current host platform when it is supported.
+Native bindings are lazy-loaded by default — they are downloaded from npm on first plugin startup. To copy binaries from `node_modules` instead, set `nativeBindings: "copy"` and pass explicit `targets`.
 
 ## 6. Dev
 

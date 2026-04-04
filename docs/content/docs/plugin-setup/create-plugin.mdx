@@ -82,7 +82,7 @@ const plugin = createPlugin({
 
 Selects the Takumi renderer backend. Default: `'native-binding'`.
 
-- **`'native-binding'`** — Uses the native Rust NAPI addon (`@takumi-rs/core`). Requires platform-specific binary packages (e.g. `@takumi-rs/core-darwin-arm64`). This is the fastest and most capable mode, supporting all font formats including WOFF/WOFF2.
+- **`'native-binding'`** — Uses the native Rust NAPI addon (`@takumi-rs/core`). Native binaries are lazy-loaded from npm by default — no platform-specific packages need to be installed. This is the fastest and most capable mode, supporting all font formats including WOFF/WOFF2.
 - **`'wasm'`** — Uses the WebAssembly build (`@takumi-rs/wasm`). Useful for WebContainer and browser-based environments where native addons cannot load. WOFF/WOFF2 fonts are **not supported** in this mode — use TTF or OTF only. Worker threads are automatically disabled.
 
 ```ts

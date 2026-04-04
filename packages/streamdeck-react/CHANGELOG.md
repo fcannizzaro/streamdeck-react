@@ -1,5 +1,11 @@
 # @fcannizzaro/streamdeck-react
 
+## 0.2.2
+
+### Patch Changes
+
+- add lazy loading for native modules in vite plugin
+
 ## 0.2.1
 
 ### Patch Changes
