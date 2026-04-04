@@ -795,12 +795,13 @@ function deriveCodePath(outFile: string, pluginDir: string): string {
 
 export interface StreamDeckReactOptions extends StreamDeckTargetOptions {
   /**
-   * The plugin UUID used to restart the plugin after each build
+   * The plugin UUID used to restart the plugin during watch-mode builds
    * (e.g. `"com.example.react-pokemon"`).
    *
-   * When set, the plugin will run `streamdeck restart <uuid>` after
-   * each successful build.  If `manifest` is set, the UUID is
-   * auto-derived from `manifest.uuid`.
+   * When set and the build is running with `--watch`, the plugin will
+   * run `streamdeck restart <uuid>` after each successful rebuild.
+   * One-shot builds (without `--watch`) never trigger a restart.
+   * If `manifest` is set, the UUID is auto-derived from `manifest.uuid`.
    */
   uuid?: string;
 
@@ -894,6 +895,7 @@ export interface StreamDeckReactOptions extends StreamDeckTargetOptions {
 export function streamDeckReact(options: StreamDeckReactOptions = {}): Plugin {
   let resolvedConfig: ResolvedConfig;
   let isDevelopment = false;
+  let isWatchMode = false;
   let stripDevtools = false;
 
   // ── Native binding strategy ────────────────────────────────────
@@ -972,6 +974,7 @@ export function streamDeckReact(options: StreamDeckReactOptions = {}): Plugin {
     configResolved(config) {
       resolvedConfig = config;
       const isWatch = config.build.watch !== null;
+      isWatchMode = isWatch;
       isDevelopment = isWatch || process.env.NODE_ENV === "development";
       stripDevtools = shouldStripDevtools(isWatch);
 
@@ -1134,7 +1137,11 @@ export function streamDeckReact(options: StreamDeckReactOptions = {}): Plugin {
     },
 
     closeBundle() {
-      // Auto-restart: derive UUID from manifest config or explicit option
+      // Auto-restart: only in watch mode (e.g. `vite build --watch`).
+      // One-shot production builds should not restart the plugin —
+      // the CLI may not even be available in CI/CD environments.
+      if (!isWatchMode) return;
+
       const uuid = options.uuid ?? options.manifest?.uuid;
       if (!uuid) return;
 

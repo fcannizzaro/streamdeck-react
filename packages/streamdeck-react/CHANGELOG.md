@@ -1,5 +1,11 @@
 # @fcannizzaro/streamdeck-react
 
+## 0.2.4
+
+### Patch Changes
+
+- add streamdeck plugin restart only if watch mode
+
 ## 0.2.3
 
 ### Patch Changes
