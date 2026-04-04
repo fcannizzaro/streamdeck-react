@@ -165,7 +165,7 @@ npm install @takumi-rs/core-darwin-arm64
 
 Handles build-time concerns:
 
-1. **Native bindings**: By default, generates a lazy-loader virtual module that downloads the platform-specific `.node` file from npm at runtime. When `nativeBindings: "copy"`, copies binaries from `node_modules` instead (requires `targets`). When `takumi: "wasm"`, skipped entirely.
+1. **Native bindings**: By default, generates a lazy-loader virtual module that downloads the platform-specific `.node` file from npm at runtime. When `nativeBindings: "copy"`, copies binaries from `node_modules` instead (requires `targets`). When `takumi: "wasm"`, skipped entirely. Additional native modules can be registered via `nativeModules`.
 
 2. **Manifest generation**: Auto-generates `manifest.json` from the `manifest` option (plugin info) and `defineAction({ info })` calls (action info extracted via AST analysis at build time).
 
@@ -177,9 +177,18 @@ type StreamDeckReactOptions = {
   }>;
   takumi?: "native-binding" | "wasm";
   nativeBindings?: "lazy" | "copy"; // Default: "lazy"
+  nativeModules?: NativeModuleConfig[]; // Default: []
   manifest?: PluginManifestInfo;
   uuid?: string;
 };
+
+interface NativeModuleConfig {
+  importSpecifier: string; // npm package to intercept (e.g., "@mypkg/native-core")
+  scope?: string; // npm scope for platform packages (auto-inferred from scoped specifiers)
+  bindings: Record<string, { pkg: string; file: string }>; // platform-arch → { pkg, file }
+  exports: string[]; // Named exports to re-export from the binding
+  version?: string; // Explicit version (auto-resolved when omitted)
+}
 
 interface PluginManifestInfo {
   uuid: string; // Plugin UUID (reverse-DNS)
@@ -209,10 +218,46 @@ interface PluginManifestInfo {
 
 The plugin runs during the build and:
 
-1. In lazy mode (default): resolves the installed `@takumi-rs/core` version and generates a virtual module with download-on-demand logic. At runtime, the `.node` file is fetched from npm, extracted from the tarball, and cached.
-2. In copy mode (`nativeBindings: "copy"`): uses explicit `targets` to locate and copy `.node` files from `node_modules`.
+1. In lazy mode (default): resolves the installed `@takumi-rs/core` version and generates a virtual module with download-on-demand logic. At runtime, the `.node` file is fetched from npm, extracted from the tarball, and cached. The same mechanism applies to any user-provided `nativeModules`.
+2. In copy mode (`nativeBindings: "copy"`): uses explicit `targets` to locate and copy `.node` files from `node_modules` for all registered native modules.
 3. Generates `manifest.json` from the `manifest` option and extracted action metadata.
 4. Throws for missing bindings in copy mode production builds.
+
+### Custom Native Modules
+
+The `nativeModules` option lets you register additional NAPI-RS (or other native `.node`) packages that should receive the same lazy-download or build-time copy treatment as the built-in Takumi binding.
+
+```ts
+streamDeckReact({
+  manifest: { /* ... */ },
+  nativeModules: [
+    {
+      importSpecifier: "@mypkg/native-core",
+      // scope auto-inferred as "@mypkg" from importSpecifier
+      bindings: {
+        "darwin-arm64": { pkg: "native-core-darwin-arm64", file: "native.darwin-arm64.node" },
+        "darwin-x64":   { pkg: "native-core-darwin-x64",   file: "native.darwin-x64.node" },
+        "win32-x64":    { pkg: "native-core-win32-x64",    file: "native.win32-x64-msvc.node" },
+      },
+      exports: ["MyClass", "helperFn"],
+    },
+  ],
+})
+```
+
+How it works:
+
+- At build time, the plugin resolves each module's installed version (or uses the explicit `version` field) and generates a virtual module.
+- In lazy mode: the generated virtual module downloads the platform-specific `.node` binary from npm on first use and caches it on disk.
+- In copy mode: `.node` files are copied from `node_modules` to the output directory during `writeBundle`.
+- Each module's `importSpecifier` is intercepted by the bundler's `resolveId` hook and replaced with the generated virtual loader.
+- The `scope` field is optional — when omitted, it's auto-inferred from scoped package names (e.g., `"@mypkg/foo"` → `"@mypkg"`).
+
+Validation rules:
+- `exports` and `bindings` must not be empty.
+- `importSpecifier` must be unique across all entries.
+- `"@takumi-rs/core"` cannot be added to `nativeModules` (it's managed via the `takumi` option).
+- `.node` filenames must be unique across all native modules (including Takumi).
 
 ### Supported Platforms
 

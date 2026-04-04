@@ -1,5 +1,11 @@
 # @fcannizzaro/streamdeck-react
 
+## 0.2.3
+
+### Patch Changes
+
+- add support for custom lazy load native modules (other then Takumi)
+
 ## 0.2.2
 
 ### Patch Changes

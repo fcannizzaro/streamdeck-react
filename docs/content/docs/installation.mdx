@@ -100,6 +100,34 @@ pnpm add @takumi-rs/core-darwin-arm64
 npm install @takumi-rs/core-darwin-arm64
 ```
 
+### Custom Native Modules
+
+If your plugin depends on additional NAPI-RS (or other native `.node`) packages, you can register them with the same lazy-load or copy infrastructure via the `nativeModules` option:
+
+```ts
+streamDeckReact({
+  manifest: { /* ... */ },
+  nativeModules: [
+    {
+      importSpecifier: "@mypkg/native-core",
+      scope: "@mypkg", // optional — auto-inferred from scoped packages
+      bindings: {
+        "darwin-arm64": { pkg: "native-core-darwin-arm64", file: "native.darwin-arm64.node" },
+        "darwin-x64":   { pkg: "native-core-darwin-x64",   file: "native.darwin-x64.node" },
+        "win32-x64":    { pkg: "native-core-win32-x64",    file: "native.win32-x64-msvc.node" },
+      },
+      exports: ["MyClass", "helperFn"],
+    },
+  ],
+})
+```
+
+Each entry gets the same treatment as the built-in Takumi binding:
+- **Lazy mode** (default): a virtual module downloads the `.node` file from npm at runtime.
+- **Copy mode**: `.node` files are copied from `node_modules` during the build.
+
+The `nativeBindings` option controls the strategy for **all** native modules. See the [NativeModuleConfig](/reference/types#nativemoduleconfig) type for the full interface.
+
 ## What Gets Installed
 
 - `react-reconciler` powers the custom React renderer.

@@ -7,6 +7,7 @@
 //
 //   1. Native binding resolution — lazy download (default) or copy
 //      @takumi-rs/core → platform-specific package (e.g. core-darwin-arm64)
+//      + user-provided native modules via the `nativeModules` option
 //
 //      Lazy mode (default):
 //        resolveId → virtual module with download-on-demand code
@@ -87,6 +88,82 @@ export interface StreamDeckTargetOptions {
   takumi?: TakumiBackend;
 }
 
+/**
+ * Configuration for a native `.node` module that should be lazy-loaded
+ * (downloaded from npm at runtime) or copied from `node_modules` at
+ * build time.
+ *
+ * The built-in Takumi renderer binding (`@takumi-rs/core`) is always
+ * registered automatically — use this interface to add additional
+ * native modules that follow the same NAPI-RS platform-package pattern.
+ *
+ * @example
+ * ```ts
+ * {
+ *   importSpecifier: "@mypkg/native-core",
+ *   scope: "@mypkg",
+ *   bindings: {
+ *     "darwin-arm64": { pkg: "native-core-darwin-arm64", file: "native.darwin-arm64.node" },
+ *     "win32-x64":   { pkg: "native-core-win32-x64",    file: "native.win32-x64-msvc.node" },
+ *   },
+ *   exports: ["MyClass", "helperFn"],
+ * }
+ * ```
+ */
+export interface NativeModuleConfig {
+  /**
+   * The npm import specifier to intercept during bundling.
+   * When any module imports this specifier, the bundler replaces it
+   * with a virtual loader that handles the native binding.
+   *
+   * @example "@mypkg/native-core"
+   */
+  importSpecifier: string;
+
+  /**
+   * The npm scope under which platform-specific packages are published.
+   * Used to construct the npm tarball download URL in lazy mode.
+   *
+   * When omitted, auto-inferred from `importSpecifier` if it's a
+   * scoped package (e.g., `"@mypkg/foo"` → `"@mypkg"`).
+   *
+   * @example "@mypkg"
+   */
+  scope?: string;
+
+  /**
+   * Platform → binding mapping.  Keys are `"<platform>-<arch>"` strings
+   * matching `process.platform + "-" + process.arch` at runtime.
+   *
+   * Each value specifies the npm package name (unscoped) and the
+   * `.node` filename within that package.
+   *
+   * @example
+   * {
+   *   "darwin-arm64": { pkg: "native-core-darwin-arm64", file: "native.darwin-arm64.node" },
+   *   "darwin-x64":   { pkg: "native-core-darwin-x64",   file: "native.darwin-x64.node" },
+   *   "win32-arm64":  { pkg: "native-core-win32-arm64",  file: "native.win32-arm64-msvc.node" },
+   *   "win32-x64":    { pkg: "native-core-win32-x64",    file: "native.win32-x64-msvc.node" },
+   * }
+   */
+  bindings: Record<string, { pkg: string; file: string }>;
+
+  /**
+   * Named exports to destructure and re-export from the loaded binding.
+   * These become the virtual module's ES named exports.
+   *
+   * @example ["MyRenderer", "OutputFormat", "helperFn"]
+   */
+  exports: string[];
+
+  /**
+   * Explicit version string for the npm tarball URL (lazy mode only).
+   * When omitted, auto-resolved from the installed package's
+   * `package.json` at build time.
+   */
+  version?: string;
+}
+
 export type {
   ManifestActionSource,
   PluginManifestInfo,
@@ -100,39 +177,30 @@ export type {
   ManifestProfileInfo,
 } from "./manifest-types";
 
-// ── Resolved Targets ────────────────────────────────────────────────
+// ── Built-In Native Module: @takumi-rs/core ─────────────────────────
+//
+// Takumi is always registered as a native module (unless `takumi: "wasm"`).
+// This config is the single source of truth for Takumi's platform bindings,
+// replacing the previously separate TARGETS array, TAKUMI_NATIVE_LOADER_CODE,
+// and hardcoded bindings map in buildLazyLoaderCode.
 
-interface ResolvedTarget extends StreamDeckTarget {
-  pkg: string;
-  file: string;
-}
-
-const TARGETS: ResolvedTarget[] = [
-  {
-    platform: "darwin",
-    arch: "arm64",
-    pkg: "core-darwin-arm64",
-    file: "core.darwin-arm64.node",
+const TAKUMI_NATIVE_MODULE: NativeModuleConfig = {
+  importSpecifier: "@takumi-rs/core",
+  scope: "@takumi-rs",
+  bindings: {
+    "darwin-arm64": { pkg: "core-darwin-arm64", file: "core.darwin-arm64.node" },
+    "darwin-x64": { pkg: "core-darwin-x64", file: "core.darwin-x64.node" },
+    "win32-arm64": { pkg: "core-win32-arm64-msvc", file: "core.win32-arm64-msvc.node" },
+    "win32-x64": { pkg: "core-win32-x64-msvc", file: "core.win32-x64-msvc.node" },
   },
-  {
-    platform: "darwin",
-    arch: "x64",
-    pkg: "core-darwin-x64",
-    file: "core.darwin-x64.node",
-  },
-  {
-    platform: "win32",
-    arch: "arm64",
-    pkg: "core-win32-arm64-msvc",
-    file: "core.win32-arm64-msvc.node",
-  },
-  {
-    platform: "win32",
-    arch: "x64",
-    pkg: "core-win32-x64-msvc",
-    file: "core.win32-x64-msvc.node",
-  },
-];
+  exports: [
+    "Renderer",
+    "OutputFormat",
+    "DitheringAlgorithm",
+    "AnimationOutputFormat",
+    "extractResourceUrls",
+  ],
+};
 
 // ── Platform Guards ─────────────────────────────────────────────────
 
@@ -157,59 +225,118 @@ const NOOP_DEVTOOLS_ID = "\0streamdeck-react:noop-devtools";
 const NOOP_DEVTOOLS_CODE = "export function startDevtoolsServer() {}";
 const DEVTOOLS_IMPORT_SOURCE = "./devtools/index.js";
 
-// ── Takumi Native Loader Virtual Module ─────────────────────────────
+// ── Native Module Virtual IDs ───────────────────────────────────────
 //
-// When bundlers inline dynamic imports,
-// the @takumi-rs/core NAPI-RS loader (~585 lines) gets placed AFTER the
-// entry point's top-level `await plugin.connect()`.  Since top-level
-// await suspends module evaluation, the loader code never runs before
-// initializeRenderer() tries to access the Renderer class.
+// Each registered native module gets two virtual module IDs:
+//   - lazy:   download-on-demand at runtime (default strategy)
+//   - static: require() a .node file copied at build time
 //
-// To fix this, the bundler plugin replaces `@takumi-rs/core` with a
-// lightweight virtual module that loads the platform-specific .node
-// binary directly.  As a static dependency, the bundler places it at
-// the top of the bundle — before any top-level await.
+// The import specifier is embedded in the ID so the resolveId/load
+// hooks can match multiple native modules in a single pass.
 
-const TAKUMI_NATIVE_LOADER_ID = "\0streamdeck-react:takumi-native";
-
-// Simplified native binding loader that only covers Stream Deck
-// platforms (darwin/win32 × arm64/x64).  Uses createRequire(import.meta.url)
-// so the .node file is resolved relative to the bundled output, where
-// copyNativeBindings() places it.
-const TAKUMI_NATIVE_LOADER_CODE = `
-import { createRequire } from "node:module";
-const require = createRequire(import.meta.url);
-let binding = null;
-if (process.platform === "darwin") {
-  if (process.arch === "arm64") {
-    try { binding = require("./core.darwin-arm64.node"); } catch {}
-  } else if (process.arch === "x64") {
-    try { binding = require("./core.darwin-x64.node"); } catch {}
-  }
-} else if (process.platform === "win32") {
-  if (process.arch === "arm64") {
-    try { binding = require("./core.win32-arm64-msvc.node"); } catch {}
-  } else if (process.arch === "x64") {
-    try { binding = require("./core.win32-x64-msvc.node"); } catch {}
-  }
+function lazyVirtualId(specifier: string): string {
+  return `\0streamdeck-react:lazy:${specifier}`;
 }
-if (!binding) {
+
+function staticVirtualId(specifier: string): string {
+  return `\0streamdeck-react:native:${specifier}`;
+}
+
+// ── Scope Resolution ────────────────────────────────────────────────
+//
+// Resolves the npm scope for a NativeModuleConfig.  If the user
+// provided an explicit `scope`, use it.  Otherwise, infer from
+// the import specifier (e.g., "@mypkg/foo" → "@mypkg").
+
+function resolveScope(config: NativeModuleConfig): string {
+  if (config.scope) return config.scope;
+
+  if (config.importSpecifier.startsWith("@")) {
+    const slashIdx = config.importSpecifier.indexOf("/");
+    if (slashIdx !== -1) {
+      return config.importSpecifier.slice(0, slashIdx);
+    }
+  }
+
   throw new Error(
-    "[@fcannizzaro/streamdeck-react] Failed to load @takumi-rs/core native binding for " +
-    process.platform + "-" + process.arch
+    `[@fcannizzaro/streamdeck-react] Cannot infer npm scope for "${config.importSpecifier}". ` +
+      `Provide an explicit "scope" in the NativeModuleConfig.`,
   );
 }
-export const { Renderer, OutputFormat, DitheringAlgorithm, AnimationOutputFormat, extractResourceUrls } = binding;
-`.trim();
+
+// ── Static Native Loader Code Generation ────────────────────────────
+//
+// Produces a lightweight virtual module that uses createRequire to load
+// the platform-specific .node file from the bundle output directory.
+// Used when nativeBindings is "copy" — the .node files are placed
+// alongside the bundle by copyNativeBindings() during writeBundle.
+
+function buildStaticLoaderCode(config: NativeModuleConfig): string {
+  const lines: string[] = [
+    'import { createRequire } from "node:module";',
+    "const require = createRequire(import.meta.url);",
+    "let binding = null;",
+  ];
+
+  // Group bindings by platform for a clean if/else chain that mirrors
+  // the platform detection pattern of NAPI-RS loaders.
+  const byPlatform = new Map<string, { arch: string; file: string }[]>();
+
+  for (const [key, value] of Object.entries(config.bindings)) {
+    const dashIdx = key.indexOf("-");
+    if (dashIdx === -1) continue;
+    const platform = key.slice(0, dashIdx);
+    const arch = key.slice(dashIdx + 1);
+    let entries = byPlatform.get(platform);
+    if (!entries) {
+      entries = [];
+      byPlatform.set(platform, entries);
+    }
+    entries.push({ arch, file: value.file });
+  }
+
+  let firstPlatform = true;
+  for (const [platform, archEntries] of byPlatform) {
+    lines.push(
+      `${firstPlatform ? "if" : "} else if"} (process.platform === ${JSON.stringify(platform)}) {`,
+    );
+    firstPlatform = false;
+    let firstArch = true;
+    for (const { arch, file } of archEntries) {
+      lines.push(
+        `  ${firstArch ? "if" : "} else if"} (process.arch === ${JSON.stringify(arch)}) {`,
+      );
+      firstArch = false;
+      lines.push(`    try { binding = require(${JSON.stringify("./" + file)}); } catch {}`);
+    }
+    lines.push("  }");
+  }
+  if (!firstPlatform) lines.push("}");
+
+  lines.push("if (!binding) {");
+  lines.push("  throw new Error(");
+  lines.push(
+    `    ${JSON.stringify(`Failed to load ${config.importSpecifier} native binding for `)} +`,
+  );
+  lines.push('    process.platform + "-" + process.arch');
+  lines.push("  );");
+  lines.push("}");
+
+  const namedExports = config.exports.join(", ");
+  lines.push(`export const { ${namedExports} } = binding;`);
+
+  return lines.join("\n");
+}
 
 // ── Lazy Native Loader ──────────────────────────────────────────────
 //
-// When nativeBindings is "lazy" (the default), the @takumi-rs/core
-// import is replaced with a self-contained virtual module that
-// downloads the platform-specific .node binary from npm on first use.
+// When nativeBindings is "lazy" (the default), each native module's
+// import specifier is replaced with a self-contained virtual module
+// that downloads the platform-specific .node binary from npm on first
+// use.
 //
-// Build time: the installed @takumi-rs/core version is resolved from
-// its package.json and baked into the generated code.
+// Build time: the installed package version is resolved from its
+// package.json and baked into the generated code.
 //
 // Runtime (first load):
 //   existsSync(nodePath)?
@@ -221,11 +348,9 @@ export const { Renderer, OutputFormat, DitheringAlgorithm, AnimationOutputFormat
 // and persists across restarts.  Subsequent loads hit the existsSync
 // fast path with zero network overhead.
 
-const TAKUMI_LAZY_LOADER_ID = "\0streamdeck-react:takumi-lazy";
-
 // ── Version Resolution ──────────────────────────────────────────────
 //
-// Resolves the installed @takumi-rs/core version at build time.
+// Resolves an installed native module's version at build time.
 //
 // Strategy:
 //   1. Resolve the package entry point via createRequire
@@ -233,22 +358,22 @@ const TAKUMI_LAZY_LOADER_ID = "\0streamdeck-react:takumi-lazy";
 //   3. Read the version field
 //
 // This approach handles strict `exports` maps that block direct
-// require("@takumi-rs/core/package.json") access.
+// require("<pkg>/package.json") access.
 
-function resolveTakumiVersion(): string | null {
+function resolveNativeModuleVersion(importSpecifier: string): string | null {
   try {
     const req = createRequire(import.meta.url);
-    const coreEntry = req.resolve("@takumi-rs/core");
-    let dir = dirname(coreEntry);
+    const entry = req.resolve(importSpecifier);
+    let dir = dirname(entry);
 
     // Walk up from resolved entry to find the package.json with
-    // name === "@takumi-rs/core".  Max 5 levels to avoid infinite loops.
+    // the matching name.  Max 5 levels to avoid infinite loops.
     for (let i = 0; i < 5; i++) {
       const pkgPath = join(dir, "package.json");
       if (existsSync(pkgPath)) {
         const raw = readFileSync(pkgPath, "utf8");
         const pkg = JSON.parse(raw) as { name?: string; version?: string };
-        if (pkg.name === "@takumi-rs/core" && pkg.version) {
+        if (pkg.name === importSpecifier && pkg.version) {
           return pkg.version;
         }
       }
@@ -265,7 +390,8 @@ function resolveTakumiVersion(): string | null {
 
 // ── Lazy Loader Code Generation ─────────────────────────────────────
 //
-// Produces a self-contained ESM module string with:
+// Produces a self-contained ESM module string for a given
+// NativeModuleConfig.  The generated code includes:
 //   - import.meta.url-relative path resolution
 //   - createRequire for loading the .node file (native addons can't
 //     be loaded via import)
@@ -274,24 +400,14 @@ function resolveTakumiVersion(): string | null {
 //     headers to find the target .node file
 //   - Top-level await for the fetch call (valid in Node 14.8+ ESM)
 //
-// The version string is baked in at build time from the installed
-// @takumi-rs/core package.
+// The version string and npm scope are baked in at build time from
+// the NativeModuleConfig.
 
-function buildLazyLoaderCode(version: string): string {
-  const bindings = JSON.stringify({
-    "darwin-arm64": { pkg: "core-darwin-arm64", file: "core.darwin-arm64.node" },
-    "darwin-x64": { pkg: "core-darwin-x64", file: "core.darwin-x64.node" },
-    "win32-arm64": { pkg: "core-win32-arm64-msvc", file: "core.win32-arm64-msvc.node" },
-    "win32-x64": { pkg: "core-win32-x64-msvc", file: "core.win32-x64-msvc.node" },
-  });
-
-  const namedExports = [
-    "Renderer",
-    "OutputFormat",
-    "DitheringAlgorithm",
-    "AnimationOutputFormat",
-    "extractResourceUrls",
-  ].join(", ");
+function buildLazyLoaderCode(config: NativeModuleConfig, version: string): string {
+  const bindings = JSON.stringify(config.bindings);
+  const namedExports = config.exports.join(", ");
+  const scope = resolveScope(config);
+  const label = config.importSpecifier;
 
   //   npm tarballs are gzipped tar archives.  The tar format uses
   //   fixed 512-byte headers per file entry:
@@ -315,6 +431,7 @@ function buildLazyLoaderCode(version: string): string {
     "const __dir = dirname(fileURLToPath(import.meta.url));",
     "",
     `const VERSION = ${JSON.stringify(version)};`,
+    `const SCOPE = ${JSON.stringify(scope)};`,
     `const BINDINGS = ${bindings};`,
     "",
     'const key = process.platform + "-" + process.arch;',
@@ -322,7 +439,7 @@ function buildLazyLoaderCode(version: string): string {
     "",
     "if (!entry) {",
     "  throw new Error(",
-    '    "[@fcannizzaro/streamdeck-react] Unsupported platform: " + key +',
+    `    ${JSON.stringify(`[${label}] Unsupported platform: `)} + key +`,
     '    ". Supported: " + Object.keys(BINDINGS).join(", ")',
     "  );",
     "}",
@@ -331,11 +448,11 @@ function buildLazyLoaderCode(version: string): string {
     "",
     "if (!existsSync(nodePath)) {",
     "  const tarballUrl =",
-    '    "https://registry.npmjs.org/@takumi-rs/" + entry.pkg +',
+    '    "https://registry.npmjs.org/" + SCOPE + "/" + entry.pkg +',
     '    "/-/" + entry.pkg + "-" + VERSION + ".tgz";',
     "",
     "  console.log(",
-    '    "[@fcannizzaro/streamdeck-react] Downloading " + entry.pkg +',
+    `    ${JSON.stringify(`[${label}] Downloading `)} + entry.pkg +`,
     '    "@" + VERSION + " for " + key + "..."',
     "  );",
     "",
@@ -343,7 +460,7 @@ function buildLazyLoaderCode(version: string): string {
     "",
     "  if (!res.ok) {",
     "    throw new Error(",
-    '      "[@fcannizzaro/streamdeck-react] Failed to download native binding " +',
+    `      ${JSON.stringify(`[${label}] Failed to download native binding `)} +`,
     '      "(HTTP " + res.status + "): " + tarballUrl',
     "    );",
     "  }",
@@ -380,13 +497,13 @@ function buildLazyLoaderCode(version: string): string {
     "",
     "  if (!found) {",
     "    throw new Error(",
-    '      "[@fcannizzaro/streamdeck-react] .node file \'" + target +',
-    '      "\' not found in npm tarball"',
+    `      ${JSON.stringify(`[${label}] .node file '`)} + target +`,
+    "      \"' not found in npm tarball\"",
     "    );",
     "  }",
     "",
     "  console.log(",
-    '    "[@fcannizzaro/streamdeck-react] Native binding cached at " + nodePath',
+    `    ${JSON.stringify(`[${label}] Native binding cached at `)} + nodePath`,
     "  );",
     "}",
     "",
@@ -416,13 +533,63 @@ function isLibraryDevtoolsImport(source: string, importer: string | undefined): 
   );
 }
 
-function resolveTargets(request: StreamDeckTarget): ResolvedTarget[] {
-  return TARGETS.filter((target) => {
-    if (target.platform !== request.platform || target.arch !== request.arch) {
-      return false;
+// ── Native Module Validation ────────────────────────────────────────
+//
+// Validates user-provided nativeModules entries at build time.
+// Catches configuration errors early (before the build wastes time).
+
+function validateNativeModules(
+  modules: NativeModuleConfig[],
+  builtInFiles: Set<string>,
+): void {
+  const seen = new Set<string>();
+  const files = new Set(builtInFiles);
+
+  for (const mod of modules) {
+    // Duplicate import specifier
+    if (seen.has(mod.importSpecifier)) {
+      throw new Error(
+        `[@fcannizzaro/streamdeck-react] Duplicate nativeModules importSpecifier: "${mod.importSpecifier}"`,
+      );
     }
-    return true;
-  });
+    seen.add(mod.importSpecifier);
+
+    // Takumi collision — users should use the `takumi` option instead
+    if (mod.importSpecifier === "@takumi-rs/core") {
+      throw new Error(
+        `[@fcannizzaro/streamdeck-react] "@takumi-rs/core" is managed automatically. ` +
+          `Do not add it to nativeModules — use the "takumi" option instead.`,
+      );
+    }
+
+    // Empty exports
+    if (mod.exports.length === 0) {
+      throw new Error(
+        `[@fcannizzaro/streamdeck-react] nativeModules entry "${mod.importSpecifier}" has an empty "exports" array.`,
+      );
+    }
+
+    // Empty bindings
+    if (Object.keys(mod.bindings).length === 0) {
+      throw new Error(
+        `[@fcannizzaro/streamdeck-react] nativeModules entry "${mod.importSpecifier}" has an empty "bindings" map.`,
+      );
+    }
+
+    // Scope must be resolvable
+    resolveScope(mod);
+
+    // .node filename collision across all registered modules
+    for (const binding of Object.values(mod.bindings)) {
+      if (files.has(binding.file)) {
+        throw new Error(
+          `[@fcannizzaro/streamdeck-react] Duplicate .node filename "${binding.file}" across native modules. ` +
+            `Each binding file must have a unique name.`,
+        );
+      }
+      files.add(binding.file);
+    }
+  }
 }
 
 function normalizeTargetRequests(
@@ -445,40 +612,16 @@ function normalizeTargetRequests(
   ];
 }
 
-function expandTargets(targets: StreamDeckTarget[]): ResolvedTarget[] {
-  const resolved = targets.flatMap((target) => {
-    const matches = resolveTargets(target);
-
-    if (matches.length > 0) {
-      return matches;
-    }
-
-    throw new Error(
-      `[@fcannizzaro/streamdeck-react] Unsupported native target: ${target.platform}-${target.arch}`,
-    );
-  });
-
-  return resolved.filter(
-    (target, index) => resolved.findIndex((item) => item.pkg === target.pkg) === index,
-  );
-}
-
 // ── Native Binding Copy (nativeBindings: "copy" only) ───────────────
 //
 // Used when nativeBindings is "copy".  The default "lazy" mode skips
 // this entirely — binaries are downloaded at runtime instead.
 //
-// Problem: Takumi (@takumi-rs/core) is a Rust/NAPI native addon
-// compiled per-platform.  The bundler produces a single JS file, but
-// the native `.node` binary must be copied alongside it for the
-// Stream Deck's Node.js runtime to load via require().
-//
-// Resolution chain:
-//   1. Resolve @takumi-rs/core entry point via createRequire
-//   2. From core's directory, resolve each platform-specific package
-//      (e.g. @takumi-rs/core-darwin-arm64)
-//   3. Locate the .node file within the platform package
-//   4. Copy to the bundler's output directory
+// For each registered native module, this function:
+//   1. Resolves the main package entry point via createRequire
+//   2. From that directory, resolves each platform-specific package
+//   3. Locates the .node file within the platform package
+//   4. Copies to the bundler's output directory
 //
 // In development: missing bindings emit a warning (the current platform
 // might not have a binding, which is fine during cross-platform dev).
@@ -488,11 +631,10 @@ function copyNativeBindings(
   outDir: string,
   isDevelopment: boolean,
   options: StreamDeckTargetOptions,
+  modules: NativeModuleConfig[],
   warn: (message: string) => void,
 ): void {
-  // WASM mode: no native bindings to copy — the renderer runs entirely
-  // in WebAssembly via @takumi-rs/wasm.
-  if (options.takumi === "wasm") return;
+  if (modules.length === 0) return;
 
   try {
     const requestedTargets = normalizeTargetRequests(options, isDevelopment);
@@ -508,42 +650,60 @@ function copyNativeBindings(
       return;
     }
 
-    const targets = expandTargets(requestedTargets);
-
-    // Resolve from the @takumi-rs/core package location so that its
-    // optional dependencies (the platform-specific binding packages)
-    // are reachable through Node / Bun module resolution.
-    const req = createRequire(import.meta.url);
-    const coreEntry = req.resolve("@takumi-rs/core");
-    const coreDir = dirname(coreEntry);
-    const coreReq = createRequire(join(coreDir, "index.js"));
+    // Build the set of platform-arch keys the user requested
+    const requestedKeys = requestedTargets.map((t) => `${t.platform}-${t.arch}`);
 
     const copied: string[] = [];
     const missing: string[] = [];
+    const req = createRequire(import.meta.url);
 
-    for (const target of targets) {
+    for (const mod of modules) {
+      // Resolve from the main package location so that its optional
+      // dependencies (the platform-specific binding packages) are
+      // reachable through Node / Bun module resolution.
+      let modReq: NodeRequire;
       try {
-        // The platform-specific packages don't restrict exports, so we can
-        // resolve their package entry to find the directory.
-        const bindingEntry = coreReq.resolve(`@takumi-rs/${target.pkg}`);
-        const bindingDir = dirname(bindingEntry);
-        const src = join(bindingDir, target.file);
-
-        if (!existsSync(src)) {
-          missing.push(target.file);
-          continue;
-        }
-
-        const dest = join(outDir, target.file);
-        copyFileSync(src, dest);
-        copied.push(target.file);
+        const entry = req.resolve(mod.importSpecifier);
+        const modDir = dirname(entry);
+        modReq = createRequire(join(modDir, "index.js"));
       } catch {
-        missing.push(target.file);
+        // Main package not resolvable — mark all requested bindings as missing
+        for (const key of requestedKeys) {
+          const binding = mod.bindings[key];
+          if (binding) missing.push(binding.file);
+        }
+        continue;
+      }
+
+      const scope = resolveScope(mod);
+
+      for (const key of requestedKeys) {
+        const binding = mod.bindings[key];
+        if (!binding) continue; // This module doesn't support this platform-arch
+
+        try {
+          // The platform-specific packages don't restrict exports, so we can
+          // resolve their package entry to find the directory.
+          const bindingEntry = modReq.resolve(`${scope}/${binding.pkg}`);
+          const bindingDir = dirname(bindingEntry);
+          const src = join(bindingDir, binding.file);
+
+          if (!existsSync(src)) {
+            missing.push(binding.file);
+            continue;
+          }
+
+          const dest = join(outDir, binding.file);
+          copyFileSync(src, dest);
+          copied.push(binding.file);
+        } catch {
+          missing.push(binding.file);
+        }
       }
     }
 
     if (missing.length > 0) {
-      const message = `[@fcannizzaro/streamdeck-react] Missing native bindings for ${missing.join(", ")}`;
+      const message = `[@fcannizzaro/streamdeck-react] Missing native bindings: ${missing.join(", ")}`;
 
       if (!isDevelopment) {
         throw new Error(message);
@@ -552,18 +712,16 @@ function copyNativeBindings(
       warn(message);
     }
 
-    if (copied.length === 0) {
-      return;
+    if (copied.length > 0) {
+      console.log(`[@fcannizzaro/streamdeck-react] Copied ${copied.join(", ")} -> ${outDir}`);
     }
-
-    console.log(`[@fcannizzaro/streamdeck-react] Copied ${copied.join(", ")} -> ${outDir}`);
   } catch (err) {
     if (err instanceof Error) {
       throw err;
     }
 
     throw new Error(
-      `[@fcannizzaro/streamdeck-react] Failed to copy native binding: ${String(err)}`,
+      `[@fcannizzaro/streamdeck-react] Failed to copy native bindings: ${String(err)}`,
     );
   }
 }
@@ -667,6 +825,34 @@ export interface StreamDeckReactOptions extends StreamDeckTargetOptions {
   nativeBindings?: NativeBindingsMode;
 
   /**
+   * Additional native modules to lazy-load (or copy) alongside the
+   * built-in Takumi binding.
+   *
+   * Each entry receives the same treatment as `@takumi-rs/core`:
+   *   - `"lazy"` mode: virtual module with runtime npm download
+   *   - `"copy"` mode: `.node` files copied from `node_modules` at build time
+   *
+   * The `nativeBindings` option controls the strategy for ALL native
+   * modules (both Takumi and user-defined ones).
+   *
+   * @default []
+   * @example
+   * ```ts
+   * nativeModules: [{
+   *   importSpecifier: "@mypkg/native-core",
+   *   scope: "@mypkg",
+   *   bindings: {
+   *     "darwin-arm64": { pkg: "native-core-darwin-arm64", file: "native.darwin-arm64.node" },
+   *     "darwin-x64":   { pkg: "native-core-darwin-x64",   file: "native.darwin-x64.node" },
+   *     "win32-x64":    { pkg: "native-core-win32-x64",    file: "native.win32-x64-msvc.node" },
+   *   },
+   *   exports: ["MyRenderer", "Format"],
+   * }]
+   * ```
+   */
+  nativeModules?: NativeModuleConfig[];
+
+  /**
    * Code-first manifest generation.  When a `PluginManifestInfo` object
    * is provided, the plugin generates `manifest.json` in the `.sdPlugin`
    * directory during `writeBundle`.
@@ -693,11 +879,12 @@ export interface StreamDeckReactOptions extends StreamDeckTargetOptions {
 //
 //   configResolved  → detect dev/production mode, set strip flags,
 //                     determine native binding strategy (lazy vs copy)
-//   buildStart      → validate plugin UUID format (early check),
-//                     resolve @takumi-rs/core version for lazy loading
+//   buildStart      → validate plugin UUID and nativeModules config,
+//                     register native modules (Takumi + user-defined),
+//                     resolve versions for lazy loading
 //   moduleParsed    → extract defineAction() metadata from each module
 //   resolveId       → redirect devtools imports (production) + font imports
-//                     + replace @takumi-rs/core with virtual loader
+//                     + replace native module imports with virtual loaders
 //   load            → return noop devtools stub / native loader /
 //                     inline font as base64 Buffer
 //   writeBundle     → copy native .node bindings (copy mode only) +
@@ -712,15 +899,67 @@ export function streamDeckReact(options: StreamDeckReactOptions = {}): Plugin {
   // ── Native binding strategy ────────────────────────────────────
   //
   // "lazy" (default): generate a runtime download-on-demand virtual
-  //   module.  The @takumi-rs/core version is resolved at build time
+  //   module.  Each native module's version is resolved at build time
   //   and baked into the generated code.  At runtime, the .node file
   //   is downloaded from npm on first use and cached on disk.
   //
-  // "copy": the previous behavior.  Platform-specific .node files
-  //   are copied from node_modules to the output directory during
-  //   writeBundle.  Requires `targets` to be specified.
-  let useLazyBindings = false;
-  let lazyLoaderCode: string | null = null;
+  // "copy": platform-specific .node files are copied from
+  //   node_modules to the output directory during writeBundle.
+  //   Requires `targets` to be specified.
+  let useLazyMode = false;
+
+  // ── Native module registry ─────────────────────────────────────
+  //
+  // Maps importSpecifier → resolved virtual module info.
+  // Populated in buildStart from the built-in Takumi config plus
+  // any user-provided nativeModules entries.
+  //
+  // resolveId looks up source in this map.
+  // load uses the reverse map (virtualId → code) for O(1) matching.
+
+  interface RegisteredNativeModule {
+    config: NativeModuleConfig;
+    lazy: boolean;
+    virtualId: string;
+    code: string | null;
+  }
+
+  const nativeModulesBySpecifier = new Map<string, RegisteredNativeModule>();
+  const nativeCodeByVirtualId = new Map<string, string | null>();
+
+  function registerNativeModule(config: NativeModuleConfig): void {
+    const lazy = useLazyMode;
+    let virtualId: string;
+    let code: string | null;
+
+    if (lazy) {
+      const version =
+        config.version ?? resolveNativeModuleVersion(config.importSpecifier);
+
+      if (version) {
+        virtualId = lazyVirtualId(config.importSpecifier);
+        code = buildLazyLoaderCode(config, version);
+        resolvedConfig.logger.info(
+          `[@fcannizzaro/streamdeck-react] Lazy native bindings: ${config.importSpecifier}@${version}`,
+        );
+      } else {
+        // Fallback to copy mode for this specific module
+        resolvedConfig.logger.warn(
+          `[@fcannizzaro/streamdeck-react] Could not resolve ${config.importSpecifier} version. ` +
+            'Falling back to nativeBindings: "copy" for this module.',
+        );
+        virtualId = staticVirtualId(config.importSpecifier);
+        code = buildStaticLoaderCode(config);
+      }
+    } else {
+      virtualId = staticVirtualId(config.importSpecifier);
+      code = buildStaticLoaderCode(config);
+    }
+
+    const entry: RegisteredNativeModule = { config, lazy, virtualId, code };
+    nativeModulesBySpecifier.set(config.importSpecifier, entry);
+    nativeCodeByVirtualId.set(virtualId, code);
+  }
 
   // ── Extracted actions accumulated during build ──────────────────
   const extractedActions: ExtractedAction[] = [];
@@ -738,10 +977,8 @@ export function streamDeckReact(options: StreamDeckReactOptions = {}): Plugin {
 
       // Determine native binding mode.
       // WASM mode always skips native bindings entirely.
-      if (options.takumi !== "wasm") {
-        const mode = options.nativeBindings ?? "lazy";
-        useLazyBindings = mode === "lazy";
-      }
+      useLazyMode =
+        options.takumi !== "wasm" && (options.nativeBindings ?? "lazy") === "lazy";
     },
 
     buildStart() {
@@ -753,28 +990,32 @@ export function streamDeckReact(options: StreamDeckReactOptions = {}): Plugin {
         }
       }
 
-      // Resolve Takumi version for lazy loading.
-      // If resolution fails, fall back to copy mode with a warning.
-      if (useLazyBindings) {
-        const version = resolveTakumiVersion();
+      // Clear registries from previous builds (watch mode)
+      nativeModulesBySpecifier.clear();
+      nativeCodeByVirtualId.clear();
+      extractedActions.length = 0;
 
-        if (version) {
-          lazyLoaderCode = buildLazyLoaderCode(version);
-          resolvedConfig.logger.info(
-            `[@fcannizzaro/streamdeck-react] Lazy native bindings: @takumi-rs/core@${version}`,
-          );
-        } else {
-          resolvedConfig.logger.warn(
-            "[@fcannizzaro/streamdeck-react] Could not resolve @takumi-rs/core version. " +
-              'Falling back to nativeBindings: "copy".',
-          );
-          useLazyBindings = false;
-          lazyLoaderCode = null;
-        }
+      // Register the built-in Takumi native module (unless WASM mode)
+      if (options.takumi !== "wasm") {
+        registerNativeModule(TAKUMI_NATIVE_MODULE);
       }
 
-      // Clear any stale extracted actions from previous builds (watch mode)
-      extractedActions.length = 0;
+      // Validate and register user-provided native modules
+      if (options.nativeModules?.length) {
+        // Collect Takumi's .node filenames so the validator can
+        // detect cross-module filename collisions
+        const builtInFiles = new Set<string>();
+        if (options.takumi !== "wasm") {
+          for (const binding of Object.values(TAKUMI_NATIVE_MODULE.bindings)) {
+            builtInFiles.add(binding.file);
+          }
+        }
+        validateNativeModules(options.nativeModules, builtInFiles);
+
+        for (const mod of options.nativeModules) {
+          registerNativeModule(mod);
+        }
+      }
     },
 
     // ── Action Extraction ────────────────────────────────────────────
@@ -811,19 +1052,25 @@ export function streamDeckReact(options: StreamDeckReactOptions = {}): Plugin {
       if (stripDevtools && isLibraryDevtoolsImport(source, importer)) {
         return NOOP_DEVTOOLS_ID;
       }
-      // Replace @takumi-rs/core with a virtual loader.
-      // Lazy mode: download-on-demand runtime loader.
-      // Copy mode: lightweight static require() loader.
-      if (options.takumi !== "wasm" && source === "@takumi-rs/core") {
-        return useLazyBindings ? TAKUMI_LAZY_LOADER_ID : TAKUMI_NATIVE_LOADER_ID;
+
+      // Replace native module imports with virtual loaders.
+      // This covers both the built-in Takumi binding and any
+      // user-provided nativeModules entries.
+      const nativeMod = nativeModulesBySpecifier.get(source);
+      if (nativeMod) {
+        return nativeMod.virtualId;
       }
+
       return resolveFontId(source, importer);
     },
 
     load(id) {
       if (id === NOOP_DEVTOOLS_ID) return NOOP_DEVTOOLS_CODE;
-      if (id === TAKUMI_LAZY_LOADER_ID) return lazyLoaderCode;
-      if (id === TAKUMI_NATIVE_LOADER_ID) return TAKUMI_NATIVE_LOADER_CODE;
+
+      // Native module virtual loaders (lazy or static)
+      const nativeCode = nativeCodeByVirtualId.get(id);
+      if (nativeCode !== undefined) return nativeCode;
+
       return loadFont(id);
     },
 
@@ -831,11 +1078,17 @@ export function streamDeckReact(options: StreamDeckReactOptions = {}): Plugin {
       const outDir = resolve(resolvedConfig.root, resolvedConfig.build.outDir);
 
       // ── Native bindings ─────────────────────────────────────────
-      // Lazy mode: binaries are downloaded at runtime — nothing to
-      // copy at build time.
-      // Copy mode: copy platform-specific .node files from node_modules.
-      if (!useLazyBindings) {
-        copyNativeBindings(outDir, isDevelopment, options, (msg) => {
+      // Collect modules that are in copy (non-lazy) mode and need
+      // their .node files copied to the output directory.
+      const copyModules: NativeModuleConfig[] = [];
+      for (const entry of nativeModulesBySpecifier.values()) {
+        if (!entry.lazy) {
+          copyModules.push(entry.config);
+        }
+      }
+
+      if (copyModules.length > 0) {
+        copyNativeBindings(outDir, isDevelopment, options, copyModules, (msg: string) => {
           resolvedConfig.logger.warn(msg);
         });
       }

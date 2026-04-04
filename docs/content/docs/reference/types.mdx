@@ -243,6 +243,50 @@ interface PluginManifestInfo {
 type TakumiBackend = "native-binding" | "wasm";
 ```
 
+## Bundler Plugin Types
+
+These types are exported from `@fcannizzaro/streamdeck-react/vite`.
+
+### NativeModuleConfig
+
+Configuration for a native `.node` module to be lazy-loaded or copied at build time. The built-in Takumi binding (`@takumi-rs/core`) is always registered automatically — use this interface to add additional native modules.
+
+```ts
+interface NativeModuleConfig {
+  /** The npm import specifier to intercept (e.g., "@mypkg/native-core"). */
+  importSpecifier: string;
+  /**
+   * The npm scope for platform-specific packages.
+   * Auto-inferred from scoped importSpecifier when omitted
+   * (e.g., "@mypkg/foo" → "@mypkg").
+   */
+  scope?: string;
+  /**
+   * Platform → binding map. Keys are "<platform>-<arch>" strings
+   * (e.g., "darwin-arm64", "win32-x64").
+   */
+  bindings: Record<string, { pkg: string; file: string }>;
+  /** Named exports to re-export from the loaded binding. */
+  exports: string[];
+  /** Explicit version (auto-resolved from package.json when omitted). */
+  version?: string;
+}
+```
+
+### StreamDeckReactOptions
+
+```ts
+interface StreamDeckReactOptions {
+  targets?: StreamDeckTarget[];
+  takumi?: TakumiBackend;
+  nativeBindings?: "lazy" | "copy";
+  /** Additional native modules with the same lazy/copy treatment as Takumi. */
+  nativeModules?: NativeModuleConfig[];
+  uuid?: string;
+  manifest?: PluginManifestInfo;
+}
+```
+
 ## Library-Owned Primitives
 
 ```ts

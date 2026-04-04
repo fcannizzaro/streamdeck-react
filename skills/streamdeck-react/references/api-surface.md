@@ -128,19 +128,20 @@ Complete public API exported from `@fcannizzaro/streamdeck-react`.
 
 ## Vite Helpers (from `@fcannizzaro/streamdeck-react/vite`)
 
-| Export                      | Description                                                                                                                                                                                                         |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `streamDeckReact(options?)` | Vite plugin. Handles native Takumi binding loading (lazy-load from npm by default, or copy from `node_modules`), manifest generation, and optional plugin restart via `streamdeck restart <uuid>` after each build. |
+| Export                      | Description                                                                                                                                                                                                                                     |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `streamDeckReact(options?)` | Vite plugin. Handles native binding loading (lazy-load from npm by default, or copy from `node_modules`), manifest generation, and optional plugin restart via `streamdeck restart <uuid>` after each build. Supports additional `nativeModules`. |
 
 ### Vite Types
 
-| Export                   | Description                                                                                                                                          |
-| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `StreamDeckReactOptions` | Plugin options: `uuid?`, `manifest?`, `targets?`, `takumi?`, `nativeBindings?`. `nativeBindings` defaults to `"lazy"`.                               |
-| `NativeBindingsMode`     | `"lazy" \| "copy"`. Controls how native `.node` binaries are resolved. `"lazy"` downloads from npm at runtime; `"copy"` bundles from `node_modules`. |
-| `StreamDeckTarget`       | One native copy target (copy mode only): `{ platform, arch }`.                                                                                       |
-| `StreamDeckPlatform`     | `'darwin' \| 'win32'`.                                                                                                                               |
-| `StreamDeckArch`         | `'arm64' \| 'x64'`.                                                                                                                                  |
+| Export                   | Description                                                                                                                                                                     |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `StreamDeckReactOptions` | Plugin options: `uuid?`, `manifest?`, `targets?`, `takumi?`, `nativeBindings?`, `nativeModules?`. `nativeBindings` defaults to `"lazy"`.                                        |
+| `NativeModuleConfig`     | Configuration for a native `.node` module: `importSpecifier`, `scope?`, `bindings`, `exports`, `version?`. Used with `nativeModules` option to register additional native addons. |
+| `NativeBindingsMode`     | `"lazy" \| "copy"`. Controls how native `.node` binaries are resolved. `"lazy"` downloads from npm at runtime; `"copy"` bundles from `node_modules`.                            |
+| `StreamDeckTarget`       | One native copy target (copy mode only): `{ platform, arch }`.                                                                                                                   |
+| `StreamDeckPlatform`     | `'darwin' \| 'win32'`.                                                                                                                                                           |
+| `StreamDeckArch`         | `'arm64' \| 'x64'`.                                                                                                                                                             |
 
 ## Types
 
