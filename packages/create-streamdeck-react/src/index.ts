@@ -8,23 +8,18 @@ import {
   EXAMPLE_OPTIONS,
   PACKAGE_MANAGER_OPTIONS,
   PLATFORM_OPTIONS,
-  TARGET_OPTIONS,
   ADAPTER_OPTIONS,
   NATIVE_BINDINGS_OPTIONS,
   buildProjectFiles,
   detectPackageManager,
   deriveDisplayName,
-  deriveNativeTargets,
   derivePackageName,
   derivePluginUuid,
   normalizePlatforms,
-  normalizeTargets,
   resolveLatestVersion,
-  validatePlatformTargets,
   validatePluginUuid,
   type Adapter,
   type NativeBindingsMode,
-  type NativeTargetId,
   type PackageManager,
   type ScaffoldOptions,
   type StarterExample,
@@ -44,7 +39,6 @@ type ParsedArgs = {
   packageManager?: PackageManager;
   platforms?: StreamDeckPlatform[];
   nativeBindings?: NativeBindingsMode;
-  nativeTargets?: NativeTargetId[];
   reactCompiler?: boolean;
   adapter?: Adapter;
 };
@@ -83,18 +77,7 @@ async function main(): Promise<void> {
   const platforms = await collectPlatforms(args, skipPrompt);
   const nativeBindings = await collectNativeBindings(args, skipPrompt);
 
-  // Native target selection is only needed in copy mode where the user
-  // explicitly chooses which platform binaries to bundle.  In lazy mode
-  // binaries are downloaded from npm at runtime so no targets are needed.
-  const nativeTargets =
-    nativeBindings === "copy"
-      ? await collectNativeTargets(args, platforms, skipPrompt)
-      : [];
   const reactCompiler = await collectReactCompiler(args, skipPrompt);
-
-  if (nativeBindings === "copy") {
-    validatePlatformTargets(platforms, nativeTargets);
-  }
 
   const streamdeckReactVersion = await resolveStreamDeckReactVersion(skipPrompt);
 
@@ -109,7 +92,6 @@ async function main(): Promise<void> {
     example,
     platforms,
     nativeBindings,
-    nativeTargets,
     reactCompiler,
     adapter,
     streamdeckReactVersion,
@@ -235,9 +217,6 @@ function parseArgs(argv: string[]): ParsedArgs {
         break;
       case "--platforms":
         parsed.platforms = normalizePlatforms(splitCsv(nextValue));
-        break;
-      case "--targets":
-        parsed.nativeTargets = normalizeTargets(splitCsv(nextValue));
         break;
       case "--native-bindings":
         parsed.nativeBindings = parseNativeBindings(nextValue);
@@ -543,35 +522,6 @@ async function collectPlatforms(
   return answer;
 }
 
-async function collectNativeTargets(
-  args: ParsedArgs,
-  platforms: StreamDeckPlatform[],
-  skipPrompt: boolean,
-): Promise<NativeTargetId[]> {
-  if (args.nativeTargets?.length) {
-    return args.nativeTargets;
-  }
-
-  const fallback = deriveNativeTargets(platforms);
-
-  if (skipPrompt) {
-    return fallback;
-  }
-
-  const answer = await p.multiselect({
-    message: "Native targets",
-    options: TARGET_OPTIONS.map((option) => ({
-      value: option.value as NativeTargetId,
-      label: option.label,
-      hint: option.description,
-    })),
-    initialValues: fallback,
-  });
-
-  assertNotCancelled(answer);
-  return answer;
-}
-
 async function collectReactCompiler(args: ParsedArgs, skipPrompt: boolean): Promise<boolean> {
   if (args.reactCompiler !== undefined) {
     return args.reactCompiler;
@@ -737,7 +687,6 @@ Options:
   --package-manager <pm>       npm | pnpm | bun
   --platforms <list>           Comma-separated: mac,windows
   --native-bindings <mode>     lazy (default) | copy
-  --targets <list>             Comma-separated native targets (copy mode only)
   --react-compiler <bool>      Enable React Compiler (true | false)
 `);
 }

@@ -14,7 +14,6 @@ const lazyOptions: ScaffoldOptions = {
   example: "counter",
   platforms: ["mac", "windows"],
   nativeBindings: "lazy",
-  nativeTargets: [],
   reactCompiler: false,
   adapter: "physical",
   streamdeckReactVersion: "^1.0.0",
@@ -31,22 +30,18 @@ test("lazy mode: package.json omits native target dependencies", () => {
 test("lazy mode: vite config omits targets and nativeBindings", () => {
   const config = buildViteConfig(lazyOptions);
 
-  expect(config).toContain("streamDeckReact({");
+  // No top-level uuid — auto-derived from manifest.uuid by the plugin
+  expect(config).toContain("streamDeckReact({\n      manifest:");
   expect(config).not.toContain("targets:");
   expect(config).not.toContain("nativeBindings:");
   expect(config).toContain("esmExternalRequirePlugin");
   expect(config).toContain('conditions: ["node"]');
 });
 
-test("lazy mode: manifest matches example actions and supported platforms", () => {
+test("lazy mode: manifest.json is NOT generated (auto-generated at build time)", () => {
   const files = buildProjectFiles(lazyOptions);
-  const manifest = JSON.parse(files["com.example.demo-plugin.sdPlugin/manifest.json"] ?? "{}");
 
-  expect(manifest.Actions).toHaveLength(5);
-  expect(manifest.OS.map((entry: { Platform: string }) => entry.Platform)).toEqual([
-    "mac",
-    "windows",
-  ]);
+  expect(files["com.example.demo-plugin.sdPlugin/manifest.json"]).toBeUndefined();
 });
 
 test("lazy mode: generates vite.config.ts with streamDeckReact plugin", () => {
@@ -57,9 +52,6 @@ test("lazy mode: generates vite.config.ts with streamDeckReact plugin", () => {
   const packageJson = JSON.parse(files["package.json"] ?? "{}");
   expect(packageJson.scripts.build).toBe("vite build");
   expect(packageJson.devDependencies["vite"]).toBeDefined();
-
-  const manifest = JSON.parse(files["com.example.demo-plugin.sdPlugin/manifest.json"] ?? "{}");
-  expect(manifest.Nodejs.Version).toBe("24");
 });
 
 // ── Copy mode ───────────────────────────────────────────────────────
@@ -67,24 +59,22 @@ test("lazy mode: generates vite.config.ts with streamDeckReact plugin", () => {
 const copyOptions: ScaffoldOptions = {
   ...lazyOptions,
   nativeBindings: "copy",
-  nativeTargets: ["darwin-arm64", "win32-x64"],
 };
 
-test("copy mode: package.json includes selected native target dependencies", () => {
+test("copy mode: package.json omits native target dependencies", () => {
   const files = buildProjectFiles(copyOptions);
   const packageJson = JSON.parse(files["package.json"] ?? "{}");
 
-  expect(packageJson.dependencies["@takumi-rs/core-darwin-arm64"]).toBe("^0.71.7");
-  expect(packageJson.dependencies["@takumi-rs/core-win32-x64-msvc"]).toBe("^0.71.7");
+  expect(packageJson.dependencies["@takumi-rs/core-darwin-arm64"]).toBeUndefined();
+  expect(packageJson.dependencies["@takumi-rs/core-win32-x64-msvc"]).toBeUndefined();
 });
 
-test("copy mode: vite config renders nativeBindings and targets", () => {
+test("copy mode: vite config renders nativeBindings", () => {
   const config = buildViteConfig(copyOptions);
 
-  expect(config).toContain("streamDeckReact({");
-  expect(config).toContain('nativeBindings: "copy"');
-  expect(config).toContain('{ platform: "darwin", arch: "arm64" }');
-  expect(config).toContain('{ platform: "win32", arch: "x64" }');
+  // No top-level uuid — auto-derived from manifest.uuid by the plugin
+  expect(config).toContain('streamDeckReact({\n      nativeBindings: "copy",\n      manifest:');
+  expect(config).not.toContain("targets:");
   expect(config).toContain("esmExternalRequirePlugin");
   expect(config).toContain('conditions: ["node"]');
 });
@@ -101,5 +91,6 @@ test("react compiler includes babel plugin", () => {
 
   const config = files["vite.config.ts"] ?? "";
   expect(config).toContain("reactCompilerPreset");
-  expect(config).toContain("await babel(");
+  expect(config).toContain("babel(");
+  expect(config).not.toContain("await babel(");
 });

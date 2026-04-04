@@ -1,5 +1,11 @@
 # create-streamdeck-react
 
+## 0.2.2
+
+### Patch Changes
+
+- update samples, refactor scaffolder
+
 ## 0.2.1
 
 ### Patch Changes
