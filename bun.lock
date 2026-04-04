@@ -14,7 +14,7 @@
     },
     "packages/create-streamdeck-react": {
       "name": "create-streamdeck-react",
-      "version": "0.2.0",
+      "version": "0.2.2",
       "bin": {
         "create-streamdeck-react": "./dist/index.js",
       },
@@ -53,7 +53,7 @@
     },
     "packages/streamdeck-react": {
       "name": "@fcannizzaro/streamdeck-react",
-      "version": "0.2.2",
+      "version": "0.2.4",
       "dependencies": {
         "@takumi-rs/core": "^0.73.1",
         "@takumi-rs/helpers": "^0.73.1",
@@ -110,6 +110,7 @@
       "name": "sample-counter",
       "dependencies": {
         "@fcannizzaro/streamdeck-react": "workspace:*",
+        "@nativewindow/webview": "^1.0.6",
         "@takumi-rs/core-darwin-arm64": "^0.73.1",
         "react": "^19.2.4",
         "ws": "^8.19.0",
@@ -481,6 +482,20 @@
     "@microsoft/tsdoc-config": ["@microsoft/tsdoc-config@0.18.1", "", { "dependencies": { "@microsoft/tsdoc": "0.16.0", "ajv": "~8.18.0", "jju": "~1.4.0", "resolve": "~1.22.2" } }, "sha512-9brPoVdfN9k9g0dcWkFeA7IH9bbcttzDJlXvkf8b2OBzd5MueR1V2wkKBL0abn0otvmkHJC6aapBOTJDDeMCZg=="],
 
     "@napi-rs/wasm-runtime": ["@napi-rs/wasm-runtime@1.1.1", "", { "dependencies": { "@emnapi/core": "^1.7.1", "@emnapi/runtime": "^1.7.1", "@tybys/wasm-util": "^0.10.1" } }, "sha512-p64ah1M1ld8xjWv3qbvFwHiFVWrq1yFvV4f7w+mzaqiR4IlSgkqhcRdHwsGgomwzBH51sRY4NEowLxnaBjcW/A=="],
+
+    "@nativewindow/webview": ["@nativewindow/webview@1.0.6", "", { "dependencies": { "zod": "^4.3.6" }, "optionalDependencies": { "@nativewindow/webview-darwin-arm64": "1.0.6", "@nativewindow/webview-darwin-x64": "1.0.6", "@nativewindow/webview-linux-arm64-gnu": "1.0.6", "@nativewindow/webview-linux-x64-gnu": "1.0.6", "@nativewindow/webview-win32-arm64-msvc": "1.0.6", "@nativewindow/webview-win32-x64-msvc": "1.0.6" }, "peerDependencies": { "typescript": "^6.0.2" } }, "sha512-bFhi8Y8r0vx7KFD4TvDH7Ye0MZGRWVM25LSZbtw8vLiKM5PUblGhf1WIbpYKedTUpfar+qW5CsN67ddEgkZq0g=="],
+
+    "@nativewindow/webview-darwin-arm64": ["@nativewindow/webview-darwin-arm64@1.0.6", "", { "os": "darwin", "cpu": "arm64" }, "sha512-6xJy0cvyVrGHGI5jbxoWc/NbvobJhcrmm8Qs1vueGTGf91d/ubF6iAnIx74sXovfUkNGqdUciwhcXxbhoojPPA=="],
+
+    "@nativewindow/webview-darwin-x64": ["@nativewindow/webview-darwin-x64@1.0.6", "", { "os": "darwin", "cpu": "x64" }, "sha512-mJGYpAicFZAY29Zf8WK6Lo57W5sfbFgQkd5R7hgfQArRIQkXSIkg5T3BvC/Zq/44M/HuGvUeuJ3RBJkpELbnoQ=="],
+
+    "@nativewindow/webview-linux-arm64-gnu": ["@nativewindow/webview-linux-arm64-gnu@1.0.6", "", { "os": "linux", "cpu": "arm64" }, "sha512-itvJIzqBFAprmQfVu0JOzaDJTyoQbFIFie8mCi5uJRI+sE6tvktcR6rNmaYdscUQtcQkwGuJObCCha//jxpxDA=="],
+
+    "@nativewindow/webview-linux-x64-gnu": ["@nativewindow/webview-linux-x64-gnu@1.0.6", "", { "os": "linux", "cpu": "x64" }, "sha512-y2Gl4MxECWSoRcMDe4FK0tVqNappkywP8jId7wZDY7UBtqzbo/3OTzWzphOOZoJO5v+ogKZsM5/np3aYD3jUqw=="],
+
+    "@nativewindow/webview-win32-arm64-msvc": ["@nativewindow/webview-win32-arm64-msvc@1.0.6", "", { "os": "win32", "cpu": "arm64" }, "sha512-cD+4iu9Si8FlZyb8atS77fPnRUrEr4SI6mtdEl1iOmPKiXbGAPeDT5cdLe0NLde+fu9Q0KS5dLXWZxp9UyRWvw=="],
+
+    "@nativewindow/webview-win32-x64-msvc": ["@nativewindow/webview-win32-x64-msvc@1.0.6", "", { "os": "win32", "cpu": "x64" }, "sha512-OBG46Hl9e7x0ja/UWSavqaQDqKvHENsXzBXakmo1GwTMDFzoUUaca8tNIsCanQPRp5vd6Z/J8wHfDQ4qrsh4kA=="],
 
     "@nodelib/fs.scandir": ["@nodelib/fs.scandir@2.1.5", "", { "dependencies": { "@nodelib/fs.stat": "2.0.5", "run-parallel": "^1.1.9" } }, "sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g=="],
 
@@ -1279,6 +1294,8 @@
     "@microsoft/api-extractor/semver": ["semver@7.5.4", "", { "dependencies": { "lru-cache": "^6.0.0" }, "bin": { "semver": "bin/semver.js" } }, "sha512-1bCSESV6Pv+i21Hvpxp3Dx+pSD8lIPt8uVjRrxAUt/nbswYc+tK6Y2btiULjd4+fnq15PX+nqQDC7Oft7WkwcA=="],
 
     "@microsoft/api-extractor/typescript": ["typescript@5.8.2", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-aJn6wq13/afZp/jT9QZmwEjDqqvSGp1VT5GVg+f/t6/oVyrgXM6BY1h9BRh/O5p3PlUPAe+WuiEZOmb/49RqoQ=="],
+
+    "@nativewindow/webview/zod": ["zod@4.3.6", "", {}, "sha512-rftlrkhHZOcjDwkGlnUtZZkvaPHCsDATp4pGpuOOMDaTdDDXF91wuVDJoWoPsKX/3YPQ5fHuF3STjcYyKr+Qhg=="],
 
     "@rolldown/plugin-babel/picomatch": ["picomatch@4.0.3", "", {}, "sha512-5gTmgEY/sqK6gFXLIsQNH19lWb4ebPDLA4SdLP7dsWkIXHWlG66oPuVvXSGFPppYZz8ZDZq0dYYrbHfBCVUb1Q=="],
 

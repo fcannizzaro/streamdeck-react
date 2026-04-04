@@ -56,6 +56,7 @@ import {
 import type { ExtractedAction } from "./manifest-extract";
 import { extractActionsFromAST, extractedToActionSource } from "./manifest-extract";
 import type { ManifestConfig, PluginManifestInfo } from "./manifest-types";
+import { NATIVE_VERSIONS_FILENAME } from "./native-versions";
 
 // ── Platform & Target Types ─────────────────────────────────────────
 
@@ -176,6 +177,9 @@ export type {
   ManifestNodejsInfo,
   ManifestProfileInfo,
 } from "./manifest-types";
+
+export { NATIVE_VERSIONS_FILENAME } from "./native-versions";
+export type { NativeVersionsManifest } from "./native-versions";
 
 // ── Built-In Native Module: @takumi-rs/core ─────────────────────────
 //
@@ -339,53 +343,98 @@ function buildStaticLoaderCode(config: NativeModuleConfig): string {
 // package.json and baked into the generated code.
 //
 // Runtime (first load):
-//   existsSync(nodePath)?
-//     yes → require() the cached .node file
-//     no  → fetch npm tarball → gunzipSync → minimal tar parse
-//           → writeFileSync the .node file → require() it
+//   Read .native-versions.json manifest
+//   needsDownload = !existsSync(nodePath) || cachedVersion ≠ VERSION
+//     no  → require() the cached .node file (fast path)
+//     yes → fetch npm tarball → gunzipSync → minimal tar parse
+//           → writeFileSync the .node file
+//           → update .native-versions.json with new version
+//           → require() it
 //
 // The .node file is written next to the bundle output (import.meta.url)
-// and persists across restarts.  Subsequent loads hit the existsSync
-// fast path with zero network overhead.
+// and persists across restarts.  The version manifest ensures that
+// dependency upgrades trigger a re-download even when a stale .node
+// file already exists on disk (see native-versions.ts).
 
 // ── Version Resolution ──────────────────────────────────────────────
 //
 // Resolves an installed native module's version at build time.
 //
-// Strategy:
-//   1. Resolve the package entry point via createRequire
-//   2. Walk up the directory tree to find its package.json
-//   3. Read the version field
+// Strategies (tried in order until one succeeds):
 //
-// This approach handles strict `exports` maps that block direct
-// require("<pkg>/package.json") access.
+//   1. Resolve the package entry via createRequire from the Vite
+//      project root, then walk up the directory tree to find its
+//      package.json.  Uses the project root so that workspace-
+//      specific dependencies (e.g. plugin/node_modules/) are
+//      reachable.
+//
+//   2. Fallback: also try from the library's own location
+//      (import.meta.url) for cases where the package is hoisted.
+//
+//   3. Direct node_modules lookup: walk up from configRoot looking
+//      for <specifier>/package.json in node_modules directories.
+//      This handles packages whose `exports` map lacks a "require"
+//      condition (which makes createRequire().resolve() throw).
 
-function resolveNativeModuleVersion(importSpecifier: string): string | null {
-  try {
-    const req = createRequire(import.meta.url);
-    const entry = req.resolve(importSpecifier);
-    let dir = dirname(entry);
+function resolveNativeModuleVersion(importSpecifier: string, configRoot?: string): string | null {
+  // ── Strategy 1 & 2: resolve entry point, walk up to package.json ──
+  const bases: string[] = [];
+  if (configRoot) {
+    bases.push(join(configRoot, "__resolve__.js"));
+  }
+  bases.push(import.meta.url);
 
-    // Walk up from resolved entry to find the package.json with
-    // the matching name.  Max 5 levels to avoid infinite loops.
-    for (let i = 0; i < 5; i++) {
-      const pkgPath = join(dir, "package.json");
-      if (existsSync(pkgPath)) {
-        const raw = readFileSync(pkgPath, "utf8");
+  for (const base of bases) {
+    try {
+      const req = createRequire(base);
+      const entry = req.resolve(importSpecifier);
+      let dir = dirname(entry);
+
+      for (let i = 0; i < 5; i++) {
+        const pkgPath = join(dir, "package.json");
+        if (existsSync(pkgPath)) {
+          const raw = readFileSync(pkgPath, "utf8");
+          const pkg = JSON.parse(raw) as { name?: string; version?: string };
+          if (pkg.name === importSpecifier && pkg.version) {
+            return pkg.version;
+          }
+        }
+        const parent = dirname(dir);
+        if (parent === dir) break;
+        dir = parent;
+      }
+    } catch {
+      // Try next base
+    }
+  }
+
+  // ── Strategy 3: direct node_modules walk ──────────────────────────
+  //
+  // Handles packages whose `exports` map only has "import" / "types"
+  // conditions (no "require" or "default"), causing req.resolve() to
+  // throw "No exports main defined".  We bypass module resolution
+  // entirely and scan node_modules directories up the tree.
+  const startDir = configRoot ?? dirname(import.meta.url.replace("file://", ""));
+  let walkDir = startDir;
+  for (let i = 0; i < 10; i++) {
+    const candidate = join(walkDir, "node_modules", ...importSpecifier.split("/"), "package.json");
+    if (existsSync(candidate)) {
+      try {
+        const raw = readFileSync(candidate, "utf8");
         const pkg = JSON.parse(raw) as { name?: string; version?: string };
         if (pkg.name === importSpecifier && pkg.version) {
           return pkg.version;
         }
+      } catch {
+        // Malformed package.json — continue walking
       }
-      const parent = dirname(dir);
-      if (parent === dir) break;
-      dir = parent;
     }
-
-    return null;
-  } catch {
-    return null;
+    const parent = dirname(walkDir);
+    if (parent === walkDir) break;
+    walkDir = parent;
   }
+
+  return null;
 }
 
 // ── Lazy Loader Code Generation ─────────────────────────────────────
@@ -422,7 +471,7 @@ function buildLazyLoaderCode(config: NativeModuleConfig, version: string): strin
   //   extracts that range, and writes it to disk.
   return [
     'import { createRequire } from "node:module";',
-    'import { existsSync, writeFileSync } from "node:fs";',
+    'import { existsSync, readFileSync, writeFileSync } from "node:fs";',
     'import { gunzipSync } from "node:zlib";',
     'import { fileURLToPath } from "node:url";',
     'import { dirname, join } from "node:path";',
@@ -445,8 +494,24 @@ function buildLazyLoaderCode(config: NativeModuleConfig, version: string): strin
     "}",
     "",
     "const nodePath = join(__dir, entry.file);",
+    `const versionsPath = join(__dir, ${JSON.stringify(NATIVE_VERSIONS_FILENAME)});`,
     "",
-    "if (!existsSync(nodePath)) {",
+    "// Read the version manifest to detect stale cached binaries.",
+    "// When VERSION (baked at build time) differs from the cached",
+    "// version, the .node file is re-downloaded even if it exists.",
+    "let versions = {};",
+    "try {",
+    '  versions = JSON.parse(readFileSync(versionsPath, "utf8"));',
+    "} catch {}",
+    "",
+    "const cachedVersion = versions[entry.file];",
+    "const needsDownload = !existsSync(nodePath) || cachedVersion !== VERSION;",
+    "",
+    "if (needsDownload) {",
+    "  if (cachedVersion && cachedVersion !== VERSION) {",
+    `    console.log(${JSON.stringify(`[${label}] Version changed (`)} + cachedVersion + " -> " + VERSION + "), re-downloading...");`,
+    "  }",
+    "",
     "  const tarballUrl =",
     '    "https://registry.npmjs.org/" + SCOPE + "/" + entry.pkg +',
     '    "/-/" + entry.pkg + "-" + VERSION + ".tgz";',
@@ -498,13 +563,17 @@ function buildLazyLoaderCode(config: NativeModuleConfig, version: string): strin
     "  if (!found) {",
     "    throw new Error(",
     `      ${JSON.stringify(`[${label}] .node file '`)} + target +`,
-    "      \"' not found in npm tarball\"",
+    '      "\' not found in npm tarball"',
     "    );",
     "  }",
     "",
     "  console.log(",
     `    ${JSON.stringify(`[${label}] Native binding cached at `)} + nodePath`,
     "  );",
+    "",
+    "  // Update the version manifest so subsequent loads skip the download.",
+    "  versions[entry.file] = VERSION;",
+    '  writeFileSync(versionsPath, JSON.stringify(versions, null, 2));',
     "}",
     "",
     "const binding = require(nodePath);",
@@ -538,10 +607,7 @@ function isLibraryDevtoolsImport(source: string, importer: string | undefined): 
 // Validates user-provided nativeModules entries at build time.
 // Catches configuration errors early (before the build wastes time).
 
-function validateNativeModules(
-  modules: NativeModuleConfig[],
-  builtInFiles: Set<string>,
-): void {
+function validateNativeModules(modules: NativeModuleConfig[], builtInFiles: Set<string>): void {
   const seen = new Set<string>();
   const files = new Set(builtInFiles);
 
@@ -936,7 +1002,7 @@ export function streamDeckReact(options: StreamDeckReactOptions = {}): Plugin {
 
     if (lazy) {
       const version =
-        config.version ?? resolveNativeModuleVersion(config.importSpecifier);
+        config.version ?? resolveNativeModuleVersion(config.importSpecifier, resolvedConfig.root);
 
       if (version) {
         virtualId = lazyVirtualId(config.importSpecifier);
@@ -980,8 +1046,7 @@ export function streamDeckReact(options: StreamDeckReactOptions = {}): Plugin {
 
       // Determine native binding mode.
       // WASM mode always skips native bindings entirely.
-      useLazyMode =
-        options.takumi !== "wasm" && (options.nativeBindings ?? "lazy") === "lazy";
+      useLazyMode = options.takumi !== "wasm" && (options.nativeBindings ?? "lazy") === "lazy";
     },
 
     buildStart() {

@@ -1,0 +1,213 @@
+---
+title: Native Bindings
+description: How @fcannizzaro/streamdeck-react handles native .node modules — lazy loading from npm, version-aware caching, and build-time copy mode.
+---
+
+## Overview
+
+The Takumi renderer (`@takumi-rs/core`) is a native Rust addon distributed as a `.node` binary — one per platform/architecture combination. Instead of requiring users to install the correct platform-specific package upfront, the library **lazy-loads** the binary at runtime by default: downloading it from npm on first plugin startup and caching it on disk for all subsequent loads.
+
+This approach eliminates the need to install platform packages (`@takumi-rs/core-darwin-arm64`, etc.) and makes cross-platform development frictionless — the same `npm install` works everywhere.
+
+The same mechanism supports **custom native modules** via the `nativeModules` option, so any NAPI-RS package can use the same lazy-load or copy infrastructure.
+
+## Two Loading Strategies
+
+| Strategy          | When                            | How                                                                 |
+| ----------------- | ------------------------------- | ------------------------------------------------------------------- |
+| **Lazy** (default) | `nativeBindings: "lazy"` or omitted | Virtual module downloads `.node` from npm at runtime, caches on disk |
+| **Copy**          | `nativeBindings: "copy"`          | `.node` files copied from `node_modules` at build time              |
+
+Both strategies are configured on `streamDeckReact()` and apply to **all** registered native modules (Takumi + any user-defined `nativeModules` entries).
+
+## Lazy Loading Architecture
+
+### Build Time
+
+During the Vite build, the `streamDeckReact()` plugin:
+
+1. **Resolves the installed version** of `@takumi-rs/core` (and any `nativeModules` entries) from `package.json` files in `node_modules`.
+2. **Generates a virtual ESM module** for each native module. The virtual module is a self-contained script that embeds the resolved version, the npm scope, and the platform-to-binding mapping.
+3. **Replaces imports** of the native module (e.g., `import { Renderer } from "@takumi-rs/core"`) with the virtual module via Rolldown's `resolveId` hook. No code changes needed in user or library source.
+
+```
+Build:
+  @takumi-rs/core → resolveId → virtual lazy-loader module
+                                  ├── VERSION = "0.73.1" (baked in)
+                                  ├── SCOPE = "@takumi-rs"
+                                  └── BINDINGS = { "darwin-arm64": {...}, ... }
+```
+
+### Runtime (First Startup)
+
+On first plugin startup, the virtual loader executes:
+
+```
+1. Read .native-versions.json manifest (if exists)
+2. Check: does the .node file exist on disk?
+   AND does the cached version match the baked-in VERSION?
+   ├── YES → require() the cached .node file (fast path, ~1ms)
+   └── NO  → Download from npm:
+             a. Construct tarball URL from scope + package + version
+             b. fetch() the .tgz from registry.npmjs.org
+             c. gunzipSync → minimal inline tar parser
+             d. Extract the .node file → writeFileSync to disk
+             e. Update .native-versions.json with new version
+             f. require() the .node file
+```
+
+The `.node` file is written next to the bundle output (`import.meta.url`-relative), so it persists across plugin restarts. After the first download, subsequent loads are instant.
+
+### Version Manifest (`.native-versions.json`)
+
+The version manifest prevents stale binary loading after dependency upgrades:
+
+```json
+{
+  "core.darwin-arm64.node": "0.73.1",
+  "native.win32-x64-msvc.node": "1.0.0"
+}
+```
+
+**Why it exists**: without it, upgrading `@takumi-rs/core` from 0.73.1 to 0.74.0 would still load the old `.node` file (it already exists on disk). The manifest detects the version mismatch and triggers a re-download.
+
+Each native module only reads/writes its own key in the manifest. Since Node.js evaluates ESM modules sequentially, concurrent access from multiple native modules is safe.
+
+**Cache invalidation flow**:
+
+```
+Build N (v0.73.1):
+  → lazy loader bakes VERSION = "0.73.1"
+  → runtime: downloads core.darwin-arm64.node
+  → writes manifest: { "core.darwin-arm64.node": "0.73.1" }
+
+Build N+1 (v0.74.0):
+  → lazy loader bakes VERSION = "0.74.0"
+  → runtime: reads manifest → "0.73.1" ≠ "0.74.0" → re-downloads
+  → updates manifest: { "core.darwin-arm64.node": "0.74.0" }
+```
+
+### Version Resolution
+
+At build time, the installed version is resolved using three strategies (tried in order):
+
+1. **createRequire from project root** — resolves the package entry point, walks up directory tree to find `package.json`.
+2. **createRequire from library location** — same approach but from the library's own `import.meta.url` (handles hoisted packages).
+3. **Direct node_modules walk** — bypasses module resolution entirely for packages whose `exports` map lacks a `require` condition.
+
+If all strategies fail, the module falls back to copy mode for that specific entry with a build-time warning.
+
+### Tarball Extraction
+
+The loader includes a minimal inline tar parser (~15 lines) rather than depending on a tar library. npm tarballs are gzipped tar archives with fixed 512-byte headers:
+
+| Offset | Length | Content                     |
+| ------ | ------ | --------------------------- |
+| 0      | 100    | Filename (null-terminated)  |
+| 124    | 12     | File size (octal ASCII)     |
+
+The parser scans headers sequentially until it finds one ending with the target `.node` filename, extracts the data range, and writes it to disk.
+
+## Copy Mode
+
+For environments without outbound network access (air-gapped, CI/CD with restricted egress), use copy mode:
+
+```ts
+streamDeckReact({
+  nativeBindings: "copy",
+  targets: [
+    { platform: "darwin", arch: "arm64" },
+    { platform: "win32", arch: "x64" },
+  ],
+  manifest: { /* ... */ },
+})
+```
+
+This requires installing the platform-specific packages:
+
+| Target         | Package                            |
+| -------------- | ---------------------------------- |
+| `darwin-arm64` | `@takumi-rs/core-darwin-arm64`     |
+| `darwin-x64`   | `@takumi-rs/core-darwin-x64`       |
+| `win32-arm64`  | `@takumi-rs/core-win32-arm64-msvc` |
+| `win32-x64`    | `@takumi-rs/core-win32-x64-msvc`   |
+
+During `writeBundle`, the plugin locates each `.node` file in `node_modules` and copies it to the output directory. Missing bindings are warnings in development and errors in production builds.
+
+## Custom Native Modules
+
+The `nativeModules` option lets you register additional NAPI-RS packages that receive the same lazy/copy treatment:
+
+```ts
+streamDeckReact({
+  manifest: { /* ... */ },
+  nativeModules: [{
+    importSpecifier: "@mypkg/native-core",
+    // scope auto-inferred as "@mypkg" from importSpecifier
+    bindings: {
+      "darwin-arm64": { pkg: "native-core-darwin-arm64", file: "native.darwin-arm64.node" },
+      "darwin-x64":   { pkg: "native-core-darwin-x64",   file: "native.darwin-x64.node" },
+      "win32-x64":    { pkg: "native-core-win32-x64",    file: "native.win32-x64-msvc.node" },
+    },
+    exports: ["MyClass", "helperFn"],
+  }],
+})
+```
+
+Each entry gets its own virtual loader module (lazy mode) or its `.node` file copied (copy mode). The `nativeBindings` option controls the strategy for **all** native modules.
+
+### Validation Rules
+
+The plugin validates `nativeModules` at build time:
+
+- `exports` and `bindings` must not be empty.
+- `importSpecifier` must be unique across all entries.
+- `"@takumi-rs/core"` cannot be added (it's managed via the `takumi` option).
+- `.node` filenames must be globally unique across all native modules.
+- `scope` must be resolvable (either explicit or inferred from a scoped `importSpecifier`).
+
+## Output Structure
+
+### Lazy mode (default)
+
+After the first plugin startup:
+
+```
+bin/
+  plugin.mjs                  # Bundled plugin code
+  plugin.mjs.map              # Source map
+  core.darwin-arm64.node      # Downloaded and cached on first run
+  .native-versions.json       # Version manifest
+```
+
+### Copy mode
+
+After build:
+
+```
+bin/
+  plugin.mjs                  # Bundled plugin code
+  plugin.mjs.map              # Source map
+  core.darwin-arm64.node      # Copied from node_modules at build time
+  core.win32-x64-msvc.node    # One per target
+```
+
+## When to Use Each Mode
+
+| Scenario                              | Recommended Mode |
+| ------------------------------------- | ---------------- |
+| Standard development                  | Lazy (default)   |
+| Cross-platform development            | Lazy (default)   |
+| Air-gapped / offline environments     | Copy             |
+| CI/CD without outbound npm access     | Copy             |
+| WASM backend (`takumi: "wasm"`)       | N/A (skipped)    |
+
+## WASM Backend
+
+When `takumi: "wasm"` is set on both `createPlugin()` and `streamDeckReact()`, native binding handling is skipped entirely. The WASM backend uses `@takumi-rs/wasm` instead, which is a pure JavaScript module with no `.node` files. This is useful for WebContainer and browser environments.
+
+<Cards>
+  <Card title="Installation" href="/installation#native-bindings" />
+  <Card title="TypeScript Types" href="/reference/types#nativemoduleconfig" />
+  <Card title="Architecture" href="/concepts/architecture" />
+</Cards>

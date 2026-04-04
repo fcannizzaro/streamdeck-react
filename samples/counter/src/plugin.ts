@@ -5,6 +5,7 @@ import { volumeAction } from "./actions/volume";
 import { toggleAction } from "./actions/toggle";
 import { equalizerAction } from "./actions/equalizer";
 import { globalSettingsKey } from "./actions/global-settings";
+import { nativeWindowAction } from "./actions/native-window";
 
 const [inter, splineSansMono] = await Promise.all([
   googleFont("Inter"),
@@ -17,6 +18,7 @@ const plugin = createPlugin({
   actions: [
     counterAction,
     globalSettingsKey,
+    nativeWindowAction,
     timerAction,
     volumeAction,
     toggleAction,

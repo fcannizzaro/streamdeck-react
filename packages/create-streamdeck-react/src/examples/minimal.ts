@@ -49,9 +49,7 @@ function createMinimalAction(pluginUuid: string): string {
 export function minimalPreset(): ExamplePreset {
   return {
     dependencies: {},
-    actions: [
-      { id: "status", name: "Status", colors: { from: "#0f766e", to: "#164e63" } },
-    ],
+    actions: [{ id: "status", name: "Status", colors: { from: "#0f766e", to: "#164e63" } }],
     files: (options: ScaffoldOptions) => ({
       "src/actions/status.tsx": createMinimalAction(options.pluginUuid),
       ...createAdapterFiles(options.adapter),

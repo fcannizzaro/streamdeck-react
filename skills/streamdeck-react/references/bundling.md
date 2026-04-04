@@ -143,9 +143,55 @@ By default, native Takumi `.node` binaries are **lazy-loaded at runtime**. On fi
 
 No platform-specific `@takumi-rs/core-*` packages need to be installed. The installed version of the main `@takumi-rs/core` package (included as a dependency) is resolved at build time and baked into the generated loader.
 
+### Lazy Loading Flow
+
+**Build time**:
+
+1. The plugin resolves the installed version of `@takumi-rs/core` (and any `nativeModules` entries) from `package.json` in `node_modules`.
+2. A self-contained virtual ESM module is generated for each native module, embedding the version string, npm scope, and platform-to-binding mapping.
+3. All imports of the native module are redirected to the virtual loader via `resolveId`.
+
+Version resolution uses three strategies in order:
+1. `createRequire` from the Vite project root (resolves workspace-specific deps).
+2. `createRequire` from the library's own location (handles hoisted packages).
+3. Direct `node_modules` walk (for packages whose `exports` map lacks a `require` condition).
+
+If all strategies fail, the module falls back to copy mode for that specific entry with a build-time warning.
+
+**Runtime (first startup)**:
+
+```
+Read .native-versions.json manifest (if exists)
+  ↓
+existsSync(nodePath) && cachedVersion === VERSION?
+  ├── YES → require() cached .node file (~1ms, fast path)
+  └── NO  → fetch npm tarball from registry.npmjs.org
+            → gunzipSync → inline tar parse (512-byte headers)
+            → writeFileSync .node file to disk
+            → update .native-versions.json with new version
+            → require() the .node file
+```
+
+### Version Manifest (`.native-versions.json`)
+
+A JSON file written alongside cached `.node` binaries that tracks their installed versions:
+
+```json
+{
+  "core.darwin-arm64.node": "0.73.1",
+  "native.win32-x64-msvc.node": "1.0.0"
+}
+```
+
+**Purpose**: cache invalidation on dependency upgrades. When the baked-in `VERSION` (from build time) differs from the cached version in the manifest, the binary is re-downloaded even if the `.node` file exists on disk. Without this, upgrading `@takumi-rs/core` would silently load the old binary.
+
+Each native module only reads/writes its own key. Since Node.js evaluates ESM modules sequentially, concurrent access from multiple native modules is safe.
+
+The filename constant is exported as `NATIVE_VERSIONS_FILENAME` from `@fcannizzaro/streamdeck-react/vite` and the manifest shape as `NativeVersionsManifest`.
+
 ### Opting into Copy Mode
 
-To revert to the previous behavior of copying `.node` files from `node_modules` at build time, set `nativeBindings: "copy"` and install the matching platform packages:
+To revert to the previous behavior of copying `.node` files from `node_modules` at build time (for air-gapped/offline environments), set `nativeBindings: "copy"` and install the matching platform packages:
 
 ```ts
 streamDeckReact({
@@ -158,6 +204,8 @@ streamDeckReact({
 ```bash
 npm install @takumi-rs/core-darwin-arm64
 ```
+
+Missing bindings are warnings in development mode and errors in production builds.
 
 ## Plugin Details
 
@@ -229,20 +277,22 @@ The `nativeModules` option lets you register additional NAPI-RS (or other native
 
 ```ts
 streamDeckReact({
-  manifest: { /* ... */ },
+  manifest: {
+    /* ... */
+  },
   nativeModules: [
     {
       importSpecifier: "@mypkg/native-core",
       // scope auto-inferred as "@mypkg" from importSpecifier
       bindings: {
         "darwin-arm64": { pkg: "native-core-darwin-arm64", file: "native.darwin-arm64.node" },
-        "darwin-x64":   { pkg: "native-core-darwin-x64",   file: "native.darwin-x64.node" },
-        "win32-x64":    { pkg: "native-core-win32-x64",    file: "native.win32-x64-msvc.node" },
+        "darwin-x64": { pkg: "native-core-darwin-x64", file: "native.darwin-x64.node" },
+        "win32-x64": { pkg: "native-core-win32-x64", file: "native.win32-x64-msvc.node" },
       },
       exports: ["MyClass", "helperFn"],
     },
   ],
-})
+});
 ```
 
 How it works:
@@ -254,6 +304,7 @@ How it works:
 - The `scope` field is optional — when omitted, it's auto-inferred from scoped package names (e.g., `"@mypkg/foo"` → `"@mypkg"`).
 
 Validation rules:
+
 - `exports` and `bindings` must not be empty.
 - `importSpecifier` must be unique across all entries.
 - `"@takumi-rs/core"` cannot be added to `nativeModules` (it's managed via the `takumi` option).

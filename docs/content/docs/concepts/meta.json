@@ -1,4 +1,4 @@
 {
   "title": "Concepts",
-  "pages": ["architecture", "rendering-pipeline", "adapter"]
+  "pages": ["architecture", "rendering-pipeline", "native-bindings", "adapter"]
 }

@@ -1,5 +1,11 @@
 # create-streamdeck-react
 
+## 0.2.3
+
+### Patch Changes
+
+- bump versions, update samples, add versions manifest for native modules
+
 ## 0.2.2
 
 ### Patch Changes

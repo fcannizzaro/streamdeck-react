@@ -24,7 +24,7 @@ function GlobalSettingsKey() {
       )}
     >
       <span className="text-white/70 text-[12px] font-medium">GLOBAL COUNT</span>
-      <span className="text-white text-[64px] font-bold font-[SplineSansMono]">{globalCount}</span>
+      <span className="text-white text-[64px] mt-2 font-bold font-[SplineSansMono]">{globalCount}</span>
     </div>
   );
 }
@@ -34,7 +34,7 @@ export const globalSettingsKey = defineAction({
   key: GlobalSettingsKey,
   info: {
     name: "Global Settings",
-    icon: "imgs/actions/counter",
+    icon: "imgs/actions/global-settings",
     tooltip: "A simple counter that allow testing global settings",
   },
 });

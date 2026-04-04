@@ -92,6 +92,55 @@ No hand-written `manifest.json` is needed.
 
 Each visible action instance on the hardware gets its own isolated React root. No shared state between roots unless you use an external store (Zustand, Jotai) or the wrapper API.
 
+### Native Module Lazy Loading
+
+Native `.node` binaries (Takumi and any user-registered `nativeModules`) are **lazy-loaded by default** — downloaded from npm on first plugin startup and cached on disk.
+
+#### Build-Time Pipeline
+
+1. The `streamDeckReact()` Vite plugin resolves the installed version of each native module from its `package.json`.
+2. A self-contained virtual ESM module is generated for each, embedding the version, npm scope, and platform-to-binding map.
+3. The bundler's `resolveId` hook replaces all imports of the native module with the virtual loader. No user code changes needed.
+
+Version resolution uses three strategies in order: `createRequire` from project root, from library location (hoisted packages), and direct `node_modules` walk (for packages with restricted `exports` maps). If all fail, that module falls back to copy mode with a build-time warning.
+
+#### Runtime Flow
+
+```
+Read .native-versions.json manifest
+  ↓
+existsSync(nodePath) && cachedVersion === VERSION?
+  ├── YES → require() cached .node file (fast path, ~1ms)
+  └── NO  → fetch npm tarball → gunzipSync → inline tar parse
+            → writeFileSync .node to disk
+            → update .native-versions.json
+            → require()
+```
+
+The `.node` file is written next to the bundle output (`import.meta.url`-relative) and persists across restarts.
+
+#### Version Manifest (`.native-versions.json`)
+
+Tracks cached binary versions for cache invalidation on dependency upgrades:
+
+```json
+{ "core.darwin-arm64.node": "0.73.1" }
+```
+
+When the baked-in VERSION (from build time) differs from the manifest entry, the binary is re-downloaded. Each native module only reads/writes its own key — concurrent module evaluation is safe.
+
+#### Tarball Extraction
+
+The loader includes a minimal inline tar parser (no external dependency). npm tarballs use 512-byte headers (filename at offset 0, size at offset 124 in octal). The parser scans sequentially until it finds the target `.node` file.
+
+#### Copy Mode Alternative
+
+Set `nativeBindings: "copy"` for air-gapped/offline environments. Requires platform packages installed and `targets` specified. `.node` files are copied from `node_modules` during `writeBundle`. Missing bindings are warnings in dev, errors in production.
+
+#### Custom Native Modules
+
+Register additional NAPI-RS packages via `nativeModules` on `streamDeckReact()`. Each entry gets the same lazy/copy treatment. Validation at build time catches empty exports/bindings, duplicate specifiers, filename collisions, and Takumi conflicts. See [references/bundling.md](references/bundling.md) for configuration details.
+
 ## Adapter Layer
 
 The adapter layer abstracts the `@elgato/streamdeck` SDK behind a pluggable `StreamDeckAdapter` interface. This makes the SDK an optional peer dependency and enables alternative backends (web simulator, test harness).

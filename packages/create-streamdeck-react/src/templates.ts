@@ -137,7 +137,8 @@ export const NATIVE_BINDINGS_OPTIONS: Array<ChoiceOption<NativeBindingsMode>> = 
   {
     value: "lazy",
     label: "Lazy (recommended)",
-    description: "Download native binary from npm on first plugin startup. No extra packages needed.",
+    description:
+      "Download native binary from npm on first plugin startup. No extra packages needed.",
   },
   {
     value: "copy",
@@ -258,9 +259,7 @@ export function buildViteConfig(
   const useCopyMode = options.nativeBindings === "copy";
 
   // Targets block is only rendered when opting into copy mode.
-  const targetsLines: string[] = useCopyMode
-    ? ['      nativeBindings: "copy",']
-    : [];
+  const targetsLines: string[] = useCopyMode ? ['      nativeBindings: "copy",'] : [];
 
   // The os field defaults to both mac 13+ and windows 10+.  When only
   // one platform is selected the generated config must restrict it.
@@ -281,12 +280,7 @@ export function buildViteConfig(
     : ['import react from "@vitejs/plugin-react";'];
 
   const compilerPlugin = options.reactCompiler
-    ? [
-        "    react(),",
-        "    babel({",
-        "      presets: [reactCompilerPreset()],",
-        "    }),",
-      ]
+    ? ["    react(),", "    babel({", "      presets: [reactCompilerPreset()],", "    }),"]
     : ["    react(),"];
 
   return [
@@ -347,11 +341,7 @@ export function buildViteConfig(
 function buildPackageJson(
   options: Pick<
     ScaffoldOptions,
-    | "packageName"
-    | "description"
-    | "reactCompiler"
-    | "adapter"
-    | "streamdeckReactVersion"
+    "packageName" | "description" | "reactCompiler" | "adapter" | "streamdeckReactVersion"
   >,
   exampleDependencies: Record<string, string>,
 ): string {
