@@ -2,6 +2,7 @@ export type PackageManager = "npm" | "pnpm" | "bun";
 export type StarterExample = "minimal" | "counter" | "zustand" | "jotai" | "pokemon";
 export type StreamDeckPlatform = "mac" | "windows";
 export type NativeTargetId = "darwin-arm64" | "darwin-x64" | "win32-arm64" | "win32-x64";
+export type NativeBindingsMode = "lazy" | "copy";
 export type Adapter = "physical" | "custom";
 
 export interface ScaffoldOptions {
@@ -14,6 +15,7 @@ export interface ScaffoldOptions {
   packageManager: PackageManager;
   example: StarterExample;
   platforms: StreamDeckPlatform[];
+  nativeBindings: NativeBindingsMode;
   nativeTargets: NativeTargetId[];
   reactCompiler: boolean;
   adapter: Adapter;
@@ -170,6 +172,19 @@ export const ADAPTER_OPTIONS: Array<ChoiceOption<Adapter>> = [
     value: "custom",
     label: "Custom Adapter",
     description: "Scaffold a custom StreamDeckAdapter implementation.",
+  },
+];
+
+export const NATIVE_BINDINGS_OPTIONS: Array<ChoiceOption<NativeBindingsMode>> = [
+  {
+    value: "lazy",
+    label: "Lazy (recommended)",
+    description: "Download native binary from npm on first plugin startup. No extra packages needed.",
+  },
+  {
+    value: "copy",
+    label: "Copy",
+    description: "Copy native binary from node_modules at build time. Requires platform packages.",
   },
 ];
 
@@ -445,7 +460,11 @@ export function validatePlatformTargets(
 }
 
 export function buildProjectFiles(options: ScaffoldOptions): Record<string, string> {
-  validatePlatformTargets(options.platforms, options.nativeTargets);
+  // Platform/target validation is only needed in copy mode where the
+  // user explicitly selects which native binaries to bundle.
+  if (options.nativeBindings === "copy") {
+    validatePlatformTargets(options.platforms, options.nativeTargets);
+  }
 
   const preset = EXAMPLE_PRESETS[options.example];
   const pluginDir = `${options.pluginUuid}.sdPlugin`;
@@ -473,16 +492,25 @@ export function buildViteConfig(
     | "author"
     | "description"
     | "category"
+    | "nativeBindings"
     | "nativeTargets"
     | "reactCompiler"
   >,
 ): string {
-  const renderedTargets = options.nativeTargets
-    .map((target) => {
-      const [platform, arch] = target.split("-");
-      return `        { platform: "${platform}", arch: "${arch}" },`;
-    })
-    .join("\n");
+  const useCopyMode = options.nativeBindings === "copy";
+
+  // Targets block is only rendered when opting into copy mode.
+  const targetsLines: string[] = useCopyMode
+    ? [
+        '      nativeBindings: "copy",',
+        "      targets: [",
+        ...options.nativeTargets.map((target) => {
+          const [platform, arch] = target.split("-");
+          return `        { platform: "${platform}", arch: "${arch}" },`;
+        }),
+        "      ],",
+      ]
+    : [];
 
   const compilerImport = options.reactCompiler
     ? [
@@ -520,9 +548,7 @@ export function buildViteConfig(
     ...compilerPlugin,
     "    streamDeckReact({",
     `      uuid: "${options.pluginUuid}",`,
-    "      targets: [",
-    renderedTargets,
-    "      ],",
+    ...targetsLines,
     "      manifest: {",
     `        uuid: "${options.pluginUuid}",`,
     `        name: "${options.displayName}",`,
@@ -561,6 +587,7 @@ function buildPackageJson(
     ScaffoldOptions,
     | "packageName"
     | "description"
+    | "nativeBindings"
     | "nativeTargets"
     | "reactCompiler"
     | "adapter"
@@ -568,9 +595,14 @@ function buildPackageJson(
   >,
   exampleDependencies: Record<string, string>,
 ): string {
-  const nativeDependencies = Object.fromEntries(
-    options.nativeTargets.map((target) => [TARGET_PACKAGE_MAP[target], TAKUMI_VERSION]),
-  );
+  // Platform-specific native binding packages are only needed in copy mode.
+  // In lazy mode the binary is downloaded from npm at first plugin startup.
+  const nativeDependencies: Record<string, string> =
+    options.nativeBindings === "copy"
+      ? Object.fromEntries(
+          options.nativeTargets.map((target) => [TARGET_PACKAGE_MAP[target], TAKUMI_VERSION]),
+        )
+      : {};
 
   // The @elgato/streamdeck SDK is only required for the physical device adapter.
   // Custom adapters communicate with the hardware through their own mechanism.
@@ -727,6 +759,11 @@ function createProjectReadme(options: ScaffoldOptions): string {
   const installCommand = `${options.packageManager} install`;
   const runPrefix = getRunPrefix(options.packageManager);
 
+  const bindingsLine =
+    options.nativeBindings === "copy"
+      ? `- Native bindings: copy (targets: ${options.nativeTargets.join(", ")})`
+      : "- Native bindings: lazy (downloaded from npm on first startup)";
+
   return [
     `# ${options.displayName}`,
     "",
@@ -737,7 +774,7 @@ function createProjectReadme(options: ScaffoldOptions): string {
     `- Example: ${options.example}`,
     `- Plugin UUID: ${options.pluginUuid}`,
     `- Platforms: ${options.platforms.join(", ")}`,
-    `- Native targets: ${options.nativeTargets.join(", ")}`,
+    bindingsLine,
     "",
     "## Commands",
     "",

@@ -1,7 +1,9 @@
 import { test, expect } from "bun:test";
 import { buildProjectFiles, buildViteConfig, type ScaffoldOptions } from "./templates.js";
 
-const baseOptions: ScaffoldOptions = {
+// ── Lazy mode (default) ─────────────────────────────────────────────
+
+const lazyOptions: ScaffoldOptions = {
   packageName: "demo-plugin",
   displayName: "Demo Plugin",
   pluginUuid: "com.example.demo-plugin",
@@ -11,22 +13,33 @@ const baseOptions: ScaffoldOptions = {
   packageManager: "npm",
   example: "counter",
   platforms: ["mac", "windows"],
-  nativeTargets: ["darwin-arm64", "win32-x64"],
+  nativeBindings: "lazy",
+  nativeTargets: [],
   reactCompiler: false,
   adapter: "physical",
   streamdeckReactVersion: "^1.0.0",
 };
 
-test("project package.json includes selected native target dependencies", () => {
-  const files = buildProjectFiles(baseOptions);
+test("lazy mode: package.json omits native target dependencies", () => {
+  const files = buildProjectFiles(lazyOptions);
   const packageJson = JSON.parse(files["package.json"] ?? "{}");
 
-  expect(packageJson.dependencies["@takumi-rs/core-darwin-arm64"]).toBe("^0.71.7");
-  expect(packageJson.dependencies["@takumi-rs/core-win32-x64-msvc"]).toBe("^0.71.7");
+  expect(packageJson.dependencies["@takumi-rs/core-darwin-arm64"]).toBeUndefined();
+  expect(packageJson.dependencies["@takumi-rs/core-win32-x64-msvc"]).toBeUndefined();
 });
 
-test("manifest matches example actions and supported platforms", () => {
-  const files = buildProjectFiles(baseOptions);
+test("lazy mode: vite config omits targets and nativeBindings", () => {
+  const config = buildViteConfig(lazyOptions);
+
+  expect(config).toContain("streamDeckReact({");
+  expect(config).not.toContain("targets:");
+  expect(config).not.toContain("nativeBindings:");
+  expect(config).toContain("esmExternalRequirePlugin");
+  expect(config).toContain('conditions: ["node"]');
+});
+
+test("lazy mode: manifest matches example actions and supported platforms", () => {
+  const files = buildProjectFiles(lazyOptions);
   const manifest = JSON.parse(files["com.example.demo-plugin.sdPlugin/manifest.json"] ?? "{}");
 
   expect(manifest.Actions).toHaveLength(5);
@@ -36,8 +49,8 @@ test("manifest matches example actions and supported platforms", () => {
   ]);
 });
 
-test("generates vite.config.ts with streamDeckReact plugin", () => {
-  const files = buildProjectFiles(baseOptions);
+test("lazy mode: generates vite.config.ts with streamDeckReact plugin", () => {
+  const files = buildProjectFiles(lazyOptions);
 
   expect(files["vite.config.ts"]).toBeDefined();
 
@@ -49,18 +62,37 @@ test("generates vite.config.ts with streamDeckReact plugin", () => {
   expect(manifest.Nodejs.Version).toBe("24");
 });
 
-test("vite config renders streamDeckReact with targets", () => {
-  const config = buildViteConfig(baseOptions);
+// ── Copy mode ───────────────────────────────────────────────────────
+
+const copyOptions: ScaffoldOptions = {
+  ...lazyOptions,
+  nativeBindings: "copy",
+  nativeTargets: ["darwin-arm64", "win32-x64"],
+};
+
+test("copy mode: package.json includes selected native target dependencies", () => {
+  const files = buildProjectFiles(copyOptions);
+  const packageJson = JSON.parse(files["package.json"] ?? "{}");
+
+  expect(packageJson.dependencies["@takumi-rs/core-darwin-arm64"]).toBe("^0.71.7");
+  expect(packageJson.dependencies["@takumi-rs/core-win32-x64-msvc"]).toBe("^0.71.7");
+});
+
+test("copy mode: vite config renders nativeBindings and targets", () => {
+  const config = buildViteConfig(copyOptions);
 
   expect(config).toContain("streamDeckReact({");
+  expect(config).toContain('nativeBindings: "copy"');
   expect(config).toContain('{ platform: "darwin", arch: "arm64" }');
   expect(config).toContain('{ platform: "win32", arch: "x64" }');
   expect(config).toContain("esmExternalRequirePlugin");
   expect(config).toContain('conditions: ["node"]');
 });
 
+// ── React Compiler ──────────────────────────────────────────────────
+
 test("react compiler includes babel plugin", () => {
-  const options: ScaffoldOptions = { ...baseOptions, reactCompiler: true };
+  const options: ScaffoldOptions = { ...lazyOptions, reactCompiler: true };
   const files = buildProjectFiles(options);
   const packageJson = JSON.parse(files["package.json"] ?? "{}");
 

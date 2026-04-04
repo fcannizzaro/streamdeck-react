@@ -14,7 +14,7 @@
     },
     "packages/create-streamdeck-react": {
       "name": "create-streamdeck-react",
-      "version": "0.1.16",
+      "version": "0.2.0",
       "bin": {
         "create-streamdeck-react": "./dist/index.js",
       },
@@ -53,7 +53,7 @@
     },
     "packages/streamdeck-react": {
       "name": "@fcannizzaro/streamdeck-react",
-      "version": "0.1.17",
+      "version": "0.2.2",
       "dependencies": {
         "@takumi-rs/core": "^0.73.1",
         "@takumi-rs/helpers": "^0.73.1",
@@ -119,6 +119,7 @@
         "@babel/preset-react": "^7.28.0",
         "@babel/preset-typescript": "^7.28.0",
         "@elgato/cli": "^1.7.1",
+        "@rolldown/plugin-babel": "^0.2.2",
         "@types/node": "^25.5.2",
         "@types/react": "^19.2.14",
         "@vitejs/plugin-react": "^6.0.1",

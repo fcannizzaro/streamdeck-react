@@ -10,6 +10,7 @@ import {
   PLATFORM_OPTIONS,
   TARGET_OPTIONS,
   ADAPTER_OPTIONS,
+  NATIVE_BINDINGS_OPTIONS,
   buildProjectFiles,
   detectPackageManager,
   deriveDisplayName,
@@ -22,6 +23,7 @@ import {
   validatePlatformTargets,
   validatePluginUuid,
   type Adapter,
+  type NativeBindingsMode,
   type NativeTargetId,
   type PackageManager,
   type ScaffoldOptions,
@@ -41,6 +43,7 @@ type ParsedArgs = {
   category?: string;
   packageManager?: PackageManager;
   platforms?: StreamDeckPlatform[];
+  nativeBindings?: NativeBindingsMode;
   nativeTargets?: NativeTargetId[];
   reactCompiler?: boolean;
   adapter?: Adapter;
@@ -78,10 +81,20 @@ async function main(): Promise<void> {
   const example = await collectExample(args, skipPrompt);
   const adapter = await collectAdapter(args, skipPrompt);
   const platforms = await collectPlatforms(args, skipPrompt);
-  const nativeTargets = await collectNativeTargets(args, platforms, skipPrompt);
+  const nativeBindings = await collectNativeBindings(args, skipPrompt);
+
+  // Native target selection is only needed in copy mode where the user
+  // explicitly chooses which platform binaries to bundle.  In lazy mode
+  // binaries are downloaded from npm at runtime so no targets are needed.
+  const nativeTargets =
+    nativeBindings === "copy"
+      ? await collectNativeTargets(args, platforms, skipPrompt)
+      : [];
   const reactCompiler = await collectReactCompiler(args, skipPrompt);
 
-  validatePlatformTargets(platforms, nativeTargets);
+  if (nativeBindings === "copy") {
+    validatePlatformTargets(platforms, nativeTargets);
+  }
 
   const streamdeckReactVersion = await resolveStreamDeckReactVersion(skipPrompt);
 
@@ -95,6 +108,7 @@ async function main(): Promise<void> {
     packageManager,
     example,
     platforms,
+    nativeBindings,
     nativeTargets,
     reactCompiler,
     adapter,
@@ -224,6 +238,9 @@ function parseArgs(argv: string[]): ParsedArgs {
         break;
       case "--targets":
         parsed.nativeTargets = normalizeTargets(splitCsv(nextValue));
+        break;
+      case "--native-bindings":
+        parsed.nativeBindings = parseNativeBindings(nextValue);
         break;
       case "--react-compiler":
         parsed.reactCompiler = nextValue === "true" || nextValue === "yes";
@@ -470,6 +487,34 @@ async function collectAdapter(args: ParsedArgs, skipPrompt: boolean): Promise<Ad
   return answer;
 }
 
+async function collectNativeBindings(
+  args: ParsedArgs,
+  skipPrompt: boolean,
+): Promise<NativeBindingsMode> {
+  if (args.nativeBindings) {
+    return args.nativeBindings;
+  }
+
+  const fallback: NativeBindingsMode = "lazy";
+
+  if (skipPrompt) {
+    return fallback;
+  }
+
+  const answer = await p.select({
+    message: "Native bindings",
+    options: NATIVE_BINDINGS_OPTIONS.map((option) => ({
+      value: option.value as NativeBindingsMode,
+      label: option.label,
+      hint: option.description,
+    })),
+    initialValue: fallback,
+  });
+
+  assertNotCancelled(answer);
+  return answer;
+}
+
 async function collectPlatforms(
   args: ParsedArgs,
   skipPrompt: boolean,
@@ -651,6 +696,12 @@ function parseAdapter(value: string | undefined): Adapter | undefined {
   throw new Error(`Unsupported adapter: ${value}. Use "physical" or "custom".`);
 }
 
+function parseNativeBindings(value: string | undefined): NativeBindingsMode | undefined {
+  if (!value) return undefined;
+  if (value === "lazy" || value === "copy") return value;
+  throw new Error(`Unsupported native bindings mode: ${value}. Use "lazy" or "copy".`);
+}
+
 function parsePackageManager(value: string | undefined): PackageManager | undefined {
   if (!value) return undefined;
   if (value === "npm" || value === "pnpm" || value === "bun") return value;
@@ -674,19 +725,20 @@ Usage:
   bun create streamdeck-react [directory]
 
 Options:
-  -y, --yes                  Skip prompts and use defaults
-  -h, --help                 Show this help message
-  --example <name>           minimal | counter | zustand | jotai | pokemon
-  --adapter <type>           physical | custom
-  --name <display-name>      Plugin display name
-  --uuid <plugin-uuid>       Reverse-domain plugin UUID
-  --author <name>            Manifest author
-  --description <text>       Manifest description
-  --category <text>          Manifest category
-  --package-manager <pm>     npm | pnpm | bun
-  --platforms <list>         Comma-separated: mac,windows
-  --targets <list>           Comma-separated native targets
-  --react-compiler <bool>    Enable React Compiler (true | false)
+  -y, --yes                    Skip prompts and use defaults
+  -h, --help                   Show this help message
+  --example <name>             minimal | counter | zustand | jotai | pokemon
+  --adapter <type>             physical | custom
+  --name <display-name>        Plugin display name
+  --uuid <plugin-uuid>         Reverse-domain plugin UUID
+  --author <name>              Manifest author
+  --description <text>         Manifest description
+  --category <text>            Manifest category
+  --package-manager <pm>       npm | pnpm | bun
+  --platforms <list>           Comma-separated: mac,windows
+  --native-bindings <mode>     lazy (default) | copy
+  --targets <list>             Comma-separated native targets (copy mode only)
+  --react-compiler <bool>      Enable React Compiler (true | false)
 `);
 }
 

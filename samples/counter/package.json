@@ -20,6 +20,7 @@
     "@babel/preset-react": "^7.28.0",
     "@babel/preset-typescript": "^7.28.0",
     "@elgato/cli": "^1.7.1",
+    "@rolldown/plugin-babel": "^0.2.2",
     "@types/node": "^25.5.2",
     "@types/react": "^19.2.14",
     "@vitejs/plugin-react": "^6.0.1",
