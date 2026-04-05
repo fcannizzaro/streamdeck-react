@@ -1,5 +1,11 @@
 # @fcannizzaro/streamdeck-react
 
+## 0.2.7
+
+### Patch Changes
+
+- add forced image push on action resume
+
 ## 0.2.6
 
 ### Patch Changes

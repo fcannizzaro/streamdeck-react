@@ -1346,4 +1346,122 @@ describe("Root recycling", () => {
       registry.destroyAll();
     });
   });
+
+  test("recycled root pushes image to hardware on resume even when output is identical", async () => {
+    const fakeAdapter = createFakeAdapter();
+    const setImageCalls: string[] = [];
+
+    // Component that renders a static, identical tree every time.
+    // After suspend → resume with the same settings, the VNode tree
+    // won't change — but hardware should still receive the image.
+    function StaticAction() {
+      return <div>static content</div>;
+    }
+
+    // Construct ReactRoot directly (no FlushCoordinator) to avoid
+    // coordinator timing complexity.  The fallback debounce path
+    // uses a simple 17ms setTimeout → doFlush.
+    const actionHandle = {
+      setSettings: async () => {},
+      setImage: async (dataUri: string) => {
+        setImageCalls.push(dataUri);
+      },
+      setTitle: async () => {},
+      showOk: async () => {},
+      showAlert: async () => {},
+      setFeedback: async () => {},
+      setFeedbackLayout: async () => {},
+      setTriggerDescription: async () => {},
+    } as never;
+
+    let root!: ReactRoot;
+
+    // Create root inside act() to flush React's initial mount, then
+    // sleep outside act() to let the debounce timer + async pipeline
+    // complete.
+    await act(async () => {
+      root = new ReactRoot(
+        StaticAction,
+        {
+          id: "action-1",
+          uuid: "com.example.recycle-push",
+          controller: "Keypad",
+          coordinates: { column: 0, row: 0 },
+          isInMultiAction: false,
+        },
+        {
+          id: "device-1",
+          type: 0,
+          size: { columns: 5, rows: 3 },
+          name: "Stream Deck",
+        },
+        { width: 144, height: 144, type: "key" },
+        {},
+        {},
+        actionHandle,
+        fakeAdapter,
+        createRenderConfig(),
+        async () => {},
+        async () => {},
+      );
+    });
+    await sleep(50);
+
+    // First render should push to hardware
+    const callsAfterFirstCreate = setImageCalls.length;
+    expect(callsAfterFirstCreate).toBeGreaterThanOrEqual(1);
+
+    // Suspend the root (simulates willDisappear / profile switch)
+    root.suspend();
+
+    // Resume with a new action handle that also tracks setImage.
+    // Same component, same settings — visual output is identical.
+    const resumeSetImageCalls: string[] = [];
+    const resumeActionHandle = {
+      setSettings: async () => {},
+      setImage: async (dataUri: string) => {
+        resumeSetImageCalls.push(dataUri);
+      },
+      setTitle: async () => {},
+      showOk: async () => {},
+      showAlert: async () => {},
+      setFeedback: async () => {},
+      setFeedbackLayout: async () => {},
+      setTriggerDescription: async () => {},
+    } as never;
+
+    await act(async () => {
+      root.resume(
+        {
+          id: "action-2",
+          uuid: "com.example.recycle-push",
+          controller: "Keypad",
+          coordinates: { column: 0, row: 0 },
+          isInMultiAction: false,
+        },
+        {
+          id: "device-1",
+          type: 0,
+          size: { columns: 5, rows: 3 },
+          name: "Stream Deck",
+        },
+        { width: 144, height: 144, type: "key" },
+        {},
+        {},
+        resumeActionHandle,
+        fakeAdapter,
+        async () => {},
+        async () => {},
+      );
+    });
+    await sleep(50);
+
+    // The resumed root should push to hardware even though
+    // the visual output is identical to before suspend.
+    expect(resumeSetImageCalls.length).toBeGreaterThanOrEqual(1);
+
+    await act(async () => {
+      root.unmount();
+    });
+  });
 });

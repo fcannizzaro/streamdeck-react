@@ -514,6 +514,27 @@ export class ReactRoot implements FlushableRoot {
     // ── Restore lifecycle ───────────────────────────────────────
     this.disposed = false;
 
+    // ── Reset render pipeline skip state ────────────────────────
+    // After resume, the hardware state is unknown — the physical
+    // key may show a different profile's image, a blank screen,
+    // or stale content from a different action.  Reset the skip
+    // hierarchy so the first post-resume flush runs the full
+    // render pipeline and pushes to hardware unconditionally.
+    //
+    // Phase 1 (dirty check): setting _dirty=true forces past the
+    //   O(1) isContainerDirty() guard.
+    //
+    // Phase 4 (FNV-1a output dedup): zeroing lastSvgHash ensures
+    //   the rendered output won't match the stale pre-suspend hash,
+    //   so the frame is always pushed to hardware.
+    //
+    // Phase 2 (Merkle hash → image cache) is intentionally NOT
+    // reset — if the rendered tree matches a cached frame, returning
+    // the cached data URI avoids a full Takumi re-render (~10-15ms)
+    // while still pushing to hardware (which is the goal).
+    this.container._dirty = true;
+    this.container.lastSvgHash = 0;
+
     // ── Update identity ─────────────────────────────────────────
     this.actionInfo = actionInfo;
     this.deviceInfo = deviceInfo;
