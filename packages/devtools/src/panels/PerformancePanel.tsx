@@ -40,13 +40,26 @@ export function PerformancePanel() {
   const metrics = useStore((s) => s.metrics);
   const profileHistory = useStore((s) => s.profileHistory);
   const clearProfiles = useStore((s) => s.clearProfiles);
+  const selectedActionId = useStore((s) => s.selectedActionId);
+
+  // Filter profile history by the global action filter when set.
+  // Aggregate metrics are always shown unfiltered (they are global).
+  const filteredProfiles = useMemo(
+    () =>
+      selectedActionId
+        ? profileHistory.filter((p) => p.actionId === selectedActionId)
+        : profileHistory,
+    [profileHistory, selectedActionId],
+  );
 
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center gap-2 px-3 py-1.5 border-b border-neutral-800 bg-neutral-900/80 shrink-0">
         <span className="text-[10px] text-neutral-500">
-          {profileHistory.length} profile{profileHistory.length !== 1 ? "s" : ""}
+          {filteredProfiles.length}
+          {selectedActionId ? `/${profileHistory.length}` : ""} profile
+          {filteredProfiles.length !== 1 ? "s" : ""}
         </span>
         <button
           onClick={clearProfiles}
@@ -58,7 +71,7 @@ export function PerformancePanel() {
 
       <div className="flex-1 min-h-0 overflow-auto font-mono text-xs">
         <MetricsOverview metrics={metrics} />
-        <ProfileList profiles={profileHistory} />
+        <ProfileList profiles={filteredProfiles} />
       </div>
     </div>
   );

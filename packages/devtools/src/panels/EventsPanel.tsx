@@ -30,6 +30,7 @@ export function EventsPanel() {
   const eventFilter = useStore((s) => s.eventFilter);
   const setEventFilter = useStore((s) => s.setEventFilter);
   const clearEvents = useStore((s) => s.clearEvents);
+  const selectedActionId = useStore((s) => s.selectedActionId);
   const listRef = useRef<HTMLDivElement>(null);
   const shouldAutoScroll = useRef(true);
 
@@ -40,9 +41,13 @@ export function EventsPanel() {
     return [...types].sort();
   }, [events]);
 
-  // Filtered events
+  // Filtered events — combines global action filter with local
+  // type/search filters.  When `selectedActionId` is set, only
+  // events matching that actionId are shown.
   const filtered = useMemo(() => {
     return events.filter((ev) => {
+      // Global action filter from the top-bar ActionSelector
+      if (selectedActionId && ev.actionId !== selectedActionId) return false;
       if (eventFilter.types.size > 0 && !eventFilter.types.has(ev.event)) return false;
       if (eventFilter.search) {
         const searchLower = eventFilter.search.toLowerCase();
@@ -55,7 +60,7 @@ export function EventsPanel() {
       }
       return true;
     });
-  }, [events, eventFilter]);
+  }, [events, eventFilter, selectedActionId]);
 
   // Auto-scroll
   useEffect(() => {

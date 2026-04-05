@@ -2,18 +2,43 @@ import { useStore } from "../hooks/useStore";
 import { ImagePreview, TouchStripPreview } from "../components/ImagePreview";
 
 // ── Preview Panel ───────────────────────────────────────────────────
+//
+// Renders visual previews of action keys and TouchStrip surfaces.
+// When a specific action is selected in the global ActionSelector
+// (`selectedActionId !== null`), only that action's preview is shown.
+// When "All" is selected (`selectedActionId === null`), all actions
+// are displayed grouped by device.
+
+const TB_PREFIX = "touchStrip:";
 
 export function PreviewPanel() {
   const actions = useStore((s) => s.actions);
   const touchStrips = useStore((s) => s.touchStrips);
+  const selectedActionId = useStore((s) => s.selectedActionId);
 
-  const actionList = [...actions.values()];
-  const touchStripList = [...touchStrips.values()];
+  // ── Apply global action filter ──────────────────────────────────
+  // When a specific action is selected, narrow the lists to that
+  // single item.  TouchStrip selections use the "touchStrip:" prefix.
+  let actionList = [...actions.values()];
+  let touchStripList = [...touchStrips.values()];
+
+  if (selectedActionId) {
+    if (selectedActionId.startsWith(TB_PREFIX)) {
+      const deviceId = selectedActionId.slice(TB_PREFIX.length);
+      actionList = [];
+      touchStripList = touchStripList.filter((tb) => tb.deviceId === deviceId);
+    } else {
+      actionList = actionList.filter((a) => a.actionId === selectedActionId);
+      touchStripList = [];
+    }
+  }
 
   if (actionList.length === 0 && touchStripList.length === 0) {
     return (
       <div className="flex items-center justify-center h-full text-neutral-600 text-xs">
-        No active actions. Waiting for Stream Deck events...
+        {selectedActionId
+          ? "No preview for selected action"
+          : "No active actions. Waiting for Stream Deck events..."}
       </div>
     );
   }

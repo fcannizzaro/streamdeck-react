@@ -39,8 +39,8 @@ export default defineConfig({
         },
       ],
       manifest: {
-        uuid: "com.example.react-counter",
-        name: "React Counter Sample",
+        uuid: "com.example.react-basic",
+        name: "React Basic Sample",
         author: "Francesco Saverio Cannizzaro",
         description:
           "Sample plugin demonstrating @fcannizzaro/streamdeck-react with counter, timer, toggle, volume, and equalizer touchstrip actions.",

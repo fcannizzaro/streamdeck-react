@@ -89,6 +89,14 @@ export function useDevtoolsSocket(): {
             library: msg.library,
             connectedAt: Date.now(),
           });
+          // Eagerly request a snapshot so the UI (actions, console,
+          // network, events) is populated immediately — not just for
+          // manually selected plugins but also for auto-selected ones.
+          fetch(`http://127.0.0.1:${port}/message`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ type: "request:snapshot", ts: Date.now() }),
+          }).catch(() => {});
           return;
         }
         handleMessageRef.current(port, msg);

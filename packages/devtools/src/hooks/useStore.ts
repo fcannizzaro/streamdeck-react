@@ -214,19 +214,26 @@ export const useStore = create<DevtoolsState>((set, get) => ({
     }
     // Check if the selected plugin is reconnecting
     const isReconnect = state.waitingForReconnect && state.selectedPort === plugin.port;
-    // Auto-select: prefer persisted plugin, defer if it hasn't been discovered yet
+    // Auto-select: prefer persisted plugin, fall back to first found.
+    // If a preferred name is stored but doesn't match this plugin,
+    // still select it so the UI isn't stuck waiting for a plugin that
+    // may never appear.  The preference is kept in localStorage so
+    // that if the preferred plugin connects later, the user can switch.
     let selectedPort = state.selectedPort;
     if (selectedPort === null) {
       const preferredName = getPersistedPluginName();
-      if (preferredName) {
-        // Only select if THIS plugin matches, otherwise wait for the right one
-        if (plugin.devtoolsName === preferredName) {
-          selectedPort = plugin.port;
-        }
-      } else {
+      if (preferredName && plugin.devtoolsName === preferredName) {
+        // Preferred plugin found — select it
+        selectedPort = plugin.port;
+      } else if (!preferredName) {
         // No preference persisted — select first found and remember it
         selectedPort = plugin.port;
         persistPluginName(plugin.devtoolsName);
+      } else {
+        // Preferred plugin not yet found — select this one as a
+        // fallback so the UI is functional, but don't overwrite the
+        // persisted preference.
+        selectedPort = plugin.port;
       }
     }
     set({

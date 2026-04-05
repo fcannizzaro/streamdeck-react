@@ -6,6 +6,7 @@ import { useStore } from "./hooks/useStore";
 import { useLayoutStore, getActivePanelIds, type TabId } from "./hooks/useLayoutStore";
 import { ConnectionStatus } from "./components/ConnectionStatus";
 import { PluginSelector } from "./components/PluginSelector";
+import { ActionSelector } from "./components/ActionSelector";
 import { GridPanel } from "./components/GridPanel";
 import type { Layout } from "react-grid-layout";
 
@@ -130,6 +131,7 @@ export function App() {
             disconnectedPlugin={disconnectedPlugin}
             onSelect={handleSelectPlugin}
           />
+          <ActionSelector />
           <button
             onClick={scan}
             disabled={scanning}
