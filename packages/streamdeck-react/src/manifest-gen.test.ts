@@ -444,7 +444,7 @@ describe("round-trip", () => {
       nodejs: { version: "24", debug: "--inspect=127.0.0.1:8090" },
       actions: [
         {
-          uuid: "com.example.react-counter.counter",
+          uuid: "com.example.react-basic.counter",
           key: KeyComponent,
           info: {
             name: "Counter",
@@ -453,7 +453,7 @@ describe("round-trip", () => {
           },
         },
         {
-          uuid: "com.example.react-counter.volume",
+          uuid: "com.example.react-basic.volume",
           dial: DialComponent,
           info: {
             name: "Volume",
@@ -479,13 +479,13 @@ describe("round-trip", () => {
 
     // Counter action — Controllers derived from key
     const counter = json.Actions[0];
-    expect(counter.UUID).toBe("com.example.react-counter.counter");
+    expect(counter.UUID).toBe("com.example.react-basic.counter");
     expect(counter.Controllers).toEqual(["Keypad"]);
     expect(counter.States).toEqual([{ Image: "imgs/actions/counter" }]);
 
     // Volume action — Controllers derived from dial
     const volume = json.Actions[1];
-    expect(volume.UUID).toBe("com.example.react-counter.volume");
+    expect(volume.UUID).toBe("com.example.react-basic.volume");
     expect(volume.Controllers).toEqual(["Encoder"]);
     expect(volume.Encoder.layout).toBe("$A0");
     expect(volume.Encoder.TriggerDescription.Rotate).toBe("Adjust volume");

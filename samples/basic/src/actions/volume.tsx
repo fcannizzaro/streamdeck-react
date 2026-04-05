@@ -52,7 +52,7 @@ function VolumeDial() {
 }
 
 export const volumeAction = defineAction({
-  uuid: "com.example.react-counter.volume",
+  uuid: "com.example.react-basic.volume",
   dial: VolumeDial,
   info: {
     name: "Volume",

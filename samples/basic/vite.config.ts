@@ -5,7 +5,7 @@ import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import babel from "@rolldown/plugin-babel";
 import { streamDeckReact } from "@fcannizzaro/streamdeck-react/vite";
 
-const PLUGIN_DIR = "com.example.react-counter.sdPlugin";
+const PLUGIN_DIR = "com.example.react-basic.sdPlugin";
 const builtins = builtinModules.flatMap((m) => [m, `node:${m}`]);
 
 export default defineConfig({

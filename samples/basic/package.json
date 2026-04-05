@@ -1,5 +1,5 @@
 {
-  "name": "sample-counter",
+  "name": "sample-basic",
   "private": true,
   "type": "module",
   "scripts": {
@@ -7,7 +7,7 @@
     "build": "vite build",
     "check-types": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
-    "link": "streamdeck link com.example.react-counter.sdPlugin"
+    "link": "streamdeck link com.example.react-basic.sdPlugin"
   },
   "dependencies": {
     "@fcannizzaro/streamdeck-react": "workspace:*",

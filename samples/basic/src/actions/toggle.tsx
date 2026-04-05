@@ -42,7 +42,7 @@ function ToggleKey() {
 }
 
 export const toggleAction = defineAction<ToggleSettings>({
-  uuid: "com.example.react-counter.toggle",
+  uuid: "com.example.react-basic.toggle",
   key: ToggleKey,
   defaultSettings: { mode: "off" },
   info: {

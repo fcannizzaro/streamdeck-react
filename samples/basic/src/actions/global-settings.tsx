@@ -32,7 +32,7 @@ function GlobalSettingsKey() {
 }
 
 export const globalSettingsKey = defineAction({
-  uuid: "com.example.react-counter.global-settings",
+  uuid: "com.example.react-basic.global-settings",
   key: GlobalSettingsKey,
   info: {
     name: "Global Settings",

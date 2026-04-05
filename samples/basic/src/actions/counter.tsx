@@ -61,7 +61,7 @@ function CounterKey() {
 }
 
 export const counterAction = defineAction<CounterSettings>({
-  uuid: "com.example.react-counter.counter",
+  uuid: "com.example.react-basic.counter",
   key: CounterKey,
   defaultSettings: { count: 0 },
   info: {

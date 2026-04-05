@@ -443,7 +443,7 @@ describe("realistic transformed code", () => {
       }
 
       export var counterAction = defineAction({
-        uuid: "com.example.react-counter.counter",
+        uuid: "com.example.react-basic.counter",
         key: CounterKey,
         defaultSettings: { count: 0 },
         info: {
@@ -455,7 +455,7 @@ describe("realistic transformed code", () => {
     `;
     const actions = extractFromCode(code);
     expect(actions).toHaveLength(1);
-    expect(actions[0]!.uuid).toBe("com.example.react-counter.counter");
+    expect(actions[0]!.uuid).toBe("com.example.react-basic.counter");
     expect(actions[0]!.hasKey).toBe(true);
     expect(actions[0]!.info!.name).toBe("Counter");
     expect(actions[0]!.info!.icon).toBe("imgs/actions/counter");
@@ -469,7 +469,7 @@ describe("realistic transformed code", () => {
       function VolumeDial() {}
 
       export var volumeAction = defineAction({
-        uuid: "com.example.react-counter.volume",
+        uuid: "com.example.react-basic.volume",
         dial: VolumeDial,
         info: {
           name: "Volume",

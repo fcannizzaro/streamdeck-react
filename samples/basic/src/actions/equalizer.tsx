@@ -211,7 +211,7 @@ function EqualizerTouchStrip() {
 // Place on all encoder slots — they share a single touchstrip render.
 
 export const equalizerAction = defineAction({
-  uuid: "com.example.react-counter.equalizer",
+  uuid: "com.example.react-basic.equalizer",
   touchStrip: EqualizerTouchStrip,
   info: {
     name: "Equalizer",

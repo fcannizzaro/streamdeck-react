@@ -85,7 +85,7 @@ await plugin.connect();
 
 ## Samples
 
-- `samples/counter/` — local state, persisted settings, dial interaction
+- `samples/basic/` — local state, persisted settings, dial interaction
 - `samples/zustand/` — shared state across keys via a module-scope Zustand store
 - `samples/jotai/` — shared atom state with a plugin-level Jotai Provider wrapper
 - `samples/pokemon/` — data fetching with TanStack Query and remote image rendering

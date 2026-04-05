@@ -55,7 +55,7 @@ function NativeWindowKey() {
 }
 
 export const nativeWindowAction = defineAction({
-  uuid: "com.example.react-counter.native-window",
+  uuid: "com.example.react-basic.native-window",
   key: NativeWindowKey,
   info: {
     name: "NativeWindow",

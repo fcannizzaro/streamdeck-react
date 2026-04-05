@@ -43,7 +43,7 @@ function TimerKey() {
 }
 
 export const timerAction = defineAction({
-  uuid: "com.example.react-counter.timer",
+  uuid: "com.example.react-basic.timer",
   key: TimerKey,
   info: {
     name: "Timer",
