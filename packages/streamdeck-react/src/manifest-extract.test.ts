@@ -1,6 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import { parse } from "acorn";
-import { extractActionsFromAST, extractedToActionSource } from "@/manifest-extract";
+import {
+  extractActionsFromAST,
+  extractCreatePluginActionOrder,
+  extractedToActionSource,
+} from "@/manifest-extract";
 import type { ExtractedAction } from "@/manifest-extract";
 
 // ── Helpers ─────────────────────────────────────────────────────────
@@ -492,5 +496,216 @@ describe("realistic transformed code", () => {
         push: "Mute / Unmute",
       },
     });
+  });
+});
+
+// ── extractCreatePluginActionOrder ──────────────────────────────────
+
+describe("extractCreatePluginActionOrder", () => {
+  test("extracts action identifiers in order from createPlugin", () => {
+    const code = `
+      import { createPlugin } from "@fcannizzaro/streamdeck-react";
+      import { counterAction } from "./actions/counter";
+      import { timerAction } from "./actions/timer";
+      import { volumeAction } from "./actions/volume";
+
+      const plugin = createPlugin({
+        fonts: [],
+        actions: [counterAction, timerAction, volumeAction],
+      });
+    `;
+    const result = extractCreatePluginActionOrder(parseCode(code));
+    expect(result).not.toBeNull();
+    expect(result!.identifiers).toEqual(["counterAction", "timerAction", "volumeAction"]);
+  });
+
+  test("maps identifiers to import source specifiers", () => {
+    const code = `
+      import { createPlugin } from "@fcannizzaro/streamdeck-react";
+      import { counterAction } from "./actions/counter";
+      import { volumeAction } from "./actions/volume";
+
+      const plugin = createPlugin({
+        actions: [volumeAction, counterAction],
+      });
+    `;
+    const result = extractCreatePluginActionOrder(parseCode(code));
+    expect(result).not.toBeNull();
+    // Order matches the actions array, not the import order
+    expect(result!.identifiers).toEqual(["volumeAction", "counterAction"]);
+    expect(result!.importSourceByIdentifier.get("volumeAction")).toBe("./actions/volume");
+    expect(result!.importSourceByIdentifier.get("counterAction")).toBe("./actions/counter");
+  });
+
+  test("collects module sources in AST body order", () => {
+    const code = `
+      import { createPlugin } from "@fcannizzaro/streamdeck-react";
+      import { counterAction } from "./actions/counter";
+      import { timerAction } from "./actions/timer";
+
+      const plugin = createPlugin({
+        actions: [counterAction, timerAction],
+      });
+    `;
+    const result = extractCreatePluginActionOrder(parseCode(code));
+    expect(result).not.toBeNull();
+    expect(result!.orderedModuleSources).toEqual([
+      "@fcannizzaro/streamdeck-react",
+      "./actions/counter",
+      "./actions/timer",
+    ]);
+  });
+
+  test("includes export-from and export-all sources in module sources", () => {
+    const code = `
+      import { createPlugin } from "@fcannizzaro/streamdeck-react";
+      import { counterAction } from "./actions/counter";
+      export { helper } from "./utils";
+      export * from "./types";
+
+      const plugin = createPlugin({
+        actions: [counterAction],
+      });
+    `;
+    const result = extractCreatePluginActionOrder(parseCode(code));
+    expect(result).not.toBeNull();
+    expect(result!.orderedModuleSources).toEqual([
+      "@fcannizzaro/streamdeck-react",
+      "./actions/counter",
+      "./utils",
+      "./types",
+    ]);
+  });
+
+  test("handles local action variables (not imported)", () => {
+    const code = `
+      import { createPlugin, defineAction } from "@fcannizzaro/streamdeck-react";
+
+      function MyKey() {}
+      const localAction = defineAction({
+        uuid: "com.example.local",
+        key: MyKey,
+        info: { name: "Local", icon: "imgs/local" },
+      });
+
+      const plugin = createPlugin({
+        actions: [localAction],
+      });
+    `;
+    const result = extractCreatePluginActionOrder(parseCode(code));
+    expect(result).not.toBeNull();
+    expect(result!.identifiers).toEqual(["localAction"]);
+    // Local variables have undefined as their import source
+    expect(result!.importSourceByIdentifier.get("localAction")).toBeUndefined();
+  });
+
+  test("handles side-effect imports in module sources", () => {
+    const code = `
+      import { createPlugin } from "@fcannizzaro/streamdeck-react";
+      import { counterAction } from "./actions/counter";
+      import "./store";
+
+      const plugin = createPlugin({
+        actions: [counterAction],
+      });
+    `;
+    const result = extractCreatePluginActionOrder(parseCode(code));
+    expect(result).not.toBeNull();
+    // Side-effect import is included in module sources
+    expect(result!.orderedModuleSources).toEqual([
+      "@fcannizzaro/streamdeck-react",
+      "./actions/counter",
+      "./store",
+    ]);
+  });
+
+  test("returns null when no createPlugin call exists", () => {
+    const code = `
+      import { defineAction } from "@fcannizzaro/streamdeck-react";
+      function MyKey() {}
+      const action = defineAction({ uuid: "com.example.a", key: MyKey });
+    `;
+    const result = extractCreatePluginActionOrder(parseCode(code));
+    expect(result).toBeNull();
+  });
+
+  test("returns null when actions array is empty", () => {
+    const code = `
+      import { createPlugin } from "@fcannizzaro/streamdeck-react";
+
+      const plugin = createPlugin({
+        actions: [],
+      });
+    `;
+    const result = extractCreatePluginActionOrder(parseCode(code));
+    expect(result).toBeNull();
+  });
+
+  test("returns null when createPlugin has no actions property", () => {
+    const code = `
+      import { createPlugin } from "@fcannizzaro/streamdeck-react";
+
+      const plugin = createPlugin({
+        fonts: [],
+      });
+    `;
+    const result = extractCreatePluginActionOrder(parseCode(code));
+    expect(result).toBeNull();
+  });
+
+  test("returns null when actions is not an array", () => {
+    const code = `
+      import { createPlugin } from "@fcannizzaro/streamdeck-react";
+
+      const plugin = createPlugin({
+        actions: myActions,
+      });
+    `;
+    const result = extractCreatePluginActionOrder(parseCode(code));
+    expect(result).toBeNull();
+  });
+
+  test("handles realistic entry module with await and multiple config properties", () => {
+    // Simulates a real entry module after TypeScript transformation
+    const code = `
+      import { createPlugin, googleFont } from "@fcannizzaro/streamdeck-react";
+      import { counterAction } from "./actions/counter";
+      import { timerAction } from "./actions/timer";
+      import { volumeAction } from "./actions/volume";
+      import { toggleAction } from "./actions/toggle";
+      import { equalizerAction } from "./actions/equalizer";
+
+      const inter = await googleFont("Inter");
+
+      const plugin = createPlugin({
+        fonts: [inter],
+        devtools: true,
+        actions: [
+          counterAction,
+          timerAction,
+          volumeAction,
+          toggleAction,
+          equalizerAction,
+        ],
+      });
+
+      await plugin.connect();
+    `;
+    const result = extractCreatePluginActionOrder(
+      parse(code, { ecmaVersion: "latest", sourceType: "module" }) as unknown as Record<
+        string,
+        unknown
+      >,
+    );
+    expect(result).not.toBeNull();
+    expect(result!.identifiers).toEqual([
+      "counterAction",
+      "timerAction",
+      "volumeAction",
+      "toggleAction",
+      "equalizerAction",
+    ]);
+    expect(result!.importSourceByIdentifier.get("counterAction")).toBe("./actions/counter");
+    expect(result!.importSourceByIdentifier.get("equalizerAction")).toBe("./actions/equalizer");
   });
 });

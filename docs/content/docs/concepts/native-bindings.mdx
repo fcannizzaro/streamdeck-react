@@ -13,10 +13,10 @@ The same mechanism supports **custom native modules** via the `nativeModules` op
 
 ## Two Loading Strategies
 
-| Strategy          | When                            | How                                                                 |
-| ----------------- | ------------------------------- | ------------------------------------------------------------------- |
+| Strategy           | When                                | How                                                                  |
+| ------------------ | ----------------------------------- | -------------------------------------------------------------------- |
 | **Lazy** (default) | `nativeBindings: "lazy"` or omitted | Virtual module downloads `.node` from npm at runtime, caches on disk |
-| **Copy**          | `nativeBindings: "copy"`          | `.node` files copied from `node_modules` at build time              |
+| **Copy**           | `nativeBindings: "copy"`            | `.node` files copied from `node_modules` at build time               |
 
 Both strategies are configured on `streamDeckReact()` and apply to **all** registered native modules (Takumi + any user-defined `nativeModules` entries).
 
@@ -101,10 +101,10 @@ If all strategies fail, the module falls back to copy mode for that specific ent
 
 The loader includes a minimal inline tar parser (~15 lines) rather than depending on a tar library. npm tarballs are gzipped tar archives with fixed 512-byte headers:
 
-| Offset | Length | Content                     |
-| ------ | ------ | --------------------------- |
-| 0      | 100    | Filename (null-terminated)  |
-| 124    | 12     | File size (octal ASCII)     |
+| Offset | Length | Content                    |
+| ------ | ------ | -------------------------- |
+| 0      | 100    | Filename (null-terminated) |
+| 124    | 12     | File size (octal ASCII)    |
 
 The parser scans headers sequentially until it finds one ending with the target `.node` filename, extracts the data range, and writes it to disk.
 
@@ -119,8 +119,10 @@ streamDeckReact({
     { platform: "darwin", arch: "arm64" },
     { platform: "win32", arch: "x64" },
   ],
-  manifest: { /* ... */ },
-})
+  manifest: {
+    /* ... */
+  },
+});
 ```
 
 This requires installing the platform-specific packages:
@@ -140,18 +142,22 @@ The `nativeModules` option lets you register additional NAPI-RS packages that re
 
 ```ts
 streamDeckReact({
-  manifest: { /* ... */ },
-  nativeModules: [{
-    importSpecifier: "@mypkg/native-core",
-    // scope auto-inferred as "@mypkg" from importSpecifier
-    bindings: {
-      "darwin-arm64": { pkg: "native-core-darwin-arm64", file: "native.darwin-arm64.node" },
-      "darwin-x64":   { pkg: "native-core-darwin-x64",   file: "native.darwin-x64.node" },
-      "win32-x64":    { pkg: "native-core-win32-x64",    file: "native.win32-x64-msvc.node" },
+  manifest: {
+    /* ... */
+  },
+  nativeModules: [
+    {
+      importSpecifier: "@mypkg/native-core",
+      // scope auto-inferred as "@mypkg" from importSpecifier
+      bindings: {
+        "darwin-arm64": { pkg: "native-core-darwin-arm64", file: "native.darwin-arm64.node" },
+        "darwin-x64": { pkg: "native-core-darwin-x64", file: "native.darwin-x64.node" },
+        "win32-x64": { pkg: "native-core-win32-x64", file: "native.win32-x64-msvc.node" },
+      },
+      exports: ["MyClass", "helperFn"],
     },
-    exports: ["MyClass", "helperFn"],
-  }],
-})
+  ],
+});
 ```
 
 Each entry gets its own virtual loader module (lazy mode) or its `.node` file copied (copy mode). The `nativeBindings` option controls the strategy for **all** native modules.
@@ -194,13 +200,13 @@ bin/
 
 ## When to Use Each Mode
 
-| Scenario                              | Recommended Mode |
-| ------------------------------------- | ---------------- |
-| Standard development                  | Lazy (default)   |
-| Cross-platform development            | Lazy (default)   |
-| Air-gapped / offline environments     | Copy             |
-| CI/CD without outbound npm access     | Copy             |
-| WASM backend (`takumi: "wasm"`)       | N/A (skipped)    |
+| Scenario                          | Recommended Mode |
+| --------------------------------- | ---------------- |
+| Standard development              | Lazy (default)   |
+| Cross-platform development        | Lazy (default)   |
+| Air-gapped / offline environments | Copy             |
+| CI/CD without outbound npm access | Copy             |
+| WASM backend (`takumi: "wasm"`)   | N/A (skipped)    |
 
 ## WASM Backend
 

@@ -1,5 +1,11 @@
 # @fcannizzaro/streamdeck-react
 
+## 0.2.6
+
+### Patch Changes
+
+- follow user defined order for manifest.json generation
+
 ## 0.2.5
 
 ### Patch Changes

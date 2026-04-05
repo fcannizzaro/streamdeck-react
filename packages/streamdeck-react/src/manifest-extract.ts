@@ -241,6 +241,163 @@ function extractFromDefineAction(node: ASTNode): ExtractedAction | null {
   };
 }
 
+// ── createPlugin() Action Order Extraction ──────────────────────────
+//
+// When the entry module contains a `createPlugin({ actions: [...] })`
+// call, we extract the ordered list of action identifiers and their
+// corresponding import source specifiers.  This is used by the Vite
+// plugin to sort extracted actions so the manifest's actions array
+// matches the developer-defined order.
+//
+// Strategy:
+//
+//   1. Walk the top-level body to collect import/export-from source
+//      specifiers in AST order.  This list corresponds 1:1 with
+//      Rollup's `moduleInfo.importedIds` (same order), enabling the
+//      bundler plugin to resolve specifiers to absolute module IDs.
+//
+//   2. Build an identifier → import source mapping from import
+//      declarations (only `ImportDeclaration` introduces local bindings).
+//
+//   3. Find the `createPlugin()` call and extract the identifiers
+//      from the `actions` array in order.
+//
+// The bundler plugin then pairs orderedModuleSources[i] with
+// importedIds[i] to build the specifier → resolvedId mapping, and
+// uses the identifiers list to determine action order.
+
+export interface PluginActionOrder {
+  /** Ordered action identifiers from `createPlugin({ actions: [...] })` */
+  identifiers: string[];
+  /** Maps each identifier to its import source specifier (`undefined` for locals) */
+  importSourceByIdentifier: Map<string, string | undefined>;
+  /**
+   * Import/export-from source specifiers in AST body order.
+   * Corresponds 1:1 with Rollup's `moduleInfo.importedIds`.
+   */
+  orderedModuleSources: string[];
+}
+
+/**
+ * Extract the action order from a `createPlugin()` call.
+ *
+ * Scans the AST for `createPlugin({ actions: [a, b, c] })` and returns
+ * the ordered action identifiers along with their import source mappings.
+ *
+ * Returns `null` if no `createPlugin` call with an `actions` array is found.
+ *
+ * @param ast - ESTree-compatible AST (typically the entry module)
+ * @returns Action order metadata, or null if not found
+ */
+export function extractCreatePluginActionOrder(ast: ASTNode): PluginActionOrder | null {
+  const body = ast.body as ASTNode[] | undefined;
+  if (!body || !Array.isArray(body)) return null;
+
+  // 1. Collect all import/export-from sources in AST body order,
+  //    and build identifier → source mapping from import declarations.
+  //
+  //    The body iteration order matters: it must match Rollup's internal
+  //    processing order (ImportDeclaration, ExportNamedDeclaration with
+  //    source, ExportAllDeclaration) so that orderedModuleSources[i]
+  //    corresponds to importedIds[i].
+  const orderedModuleSources: string[] = [];
+  const identifierToSource = new Map<string, string>();
+
+  for (const node of body) {
+    const source = getModuleSourceSpecifier(node);
+    if (source === null) continue;
+    orderedModuleSources.push(source);
+
+    // Only ImportDeclaration introduces local bindings
+    if (node.type === "ImportDeclaration") {
+      for (const spec of (node.specifiers ?? []) as ASTNode[]) {
+        const localName: unknown = spec.local?.name;
+        if (typeof localName === "string") {
+          identifierToSource.set(localName, source);
+        }
+      }
+    }
+  }
+
+  // 2. Find createPlugin() call and extract actions array identifiers
+  const identifiers = extractActionsArrayIdentifiers(ast);
+
+  if (identifiers.length === 0) return null;
+
+  const importSourceByIdentifier = new Map<string, string | undefined>();
+  for (const name of identifiers) {
+    importSourceByIdentifier.set(name, identifierToSource.get(name));
+  }
+
+  return { identifiers, importSourceByIdentifier, orderedModuleSources };
+}
+
+// ── createPlugin() Detection ────────────────────────────────────────
+
+function isCreatePluginCall(node: ASTNode): boolean {
+  if (node.type !== "CallExpression") return false;
+  const callee = node.callee as ASTNode;
+  return callee?.type === "Identifier" && callee.name === "createPlugin";
+}
+
+// ── createPlugin() Actions Array Extraction ─────────────────────────
+//
+// Finds the first `createPlugin({ actions: [...] })` call in the AST
+// and returns the ordered Identifier names from the `actions` array.
+// Returns an empty array if no matching call is found.
+
+function extractActionsArrayIdentifiers(ast: ASTNode): string[] {
+  const identifiers: string[] = [];
+  let found = false;
+
+  walkAST(ast, (node) => {
+    if (found) return;
+    if (!isCreatePluginCall(node)) return;
+
+    const args = node.arguments as ASTNode[] | undefined;
+    if (!args?.[0] || args[0].type !== "ObjectExpression") return;
+
+    for (const prop of (args[0].properties ?? []) as ASTNode[]) {
+      if (prop.type !== "Property" || prop.computed) continue;
+      const key: unknown = prop.key?.type === "Identifier" ? prop.key.name : prop.key?.value;
+      if (key !== "actions") continue;
+
+      const arr = prop.value as ASTNode;
+      if (arr.type !== "ArrayExpression") continue;
+
+      for (const el of (arr.elements ?? []) as ASTNode[]) {
+        if (el?.type === "Identifier" && typeof el.name === "string") {
+          identifiers.push(el.name as string);
+        }
+      }
+      found = true;
+      break;
+    }
+  });
+
+  return identifiers;
+}
+
+// ── Module Source Specifier ─────────────────────────────────────────
+//
+// Extracts the string source specifier from import/export-from
+// declarations.  Returns null for nodes that don't import a module.
+//
+//   ImportDeclaration         → import { x } from "source"
+//   ExportNamedDeclaration    → export { x } from "source"
+//   ExportAllDeclaration      → export * from "source"
+
+function getModuleSourceSpecifier(node: ASTNode): string | null {
+  switch (node.type as string) {
+    case "ImportDeclaration":
+    case "ExportNamedDeclaration":
+    case "ExportAllDeclaration":
+      return typeof node.source?.value === "string" ? (node.source.value as string) : null;
+    default:
+      return null;
+  }
+}
+
 // ── Public API ──────────────────────────────────────────────────────
 
 /**

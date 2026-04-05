@@ -20,8 +20,8 @@ const plugin = createPlugin({
     globalSettingsKey,
     nativeWindowAction,
     timerAction,
-    volumeAction,
     toggleAction,
+    volumeAction,
     equalizerAction,
   ],
 });

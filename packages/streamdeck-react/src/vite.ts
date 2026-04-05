@@ -54,7 +54,11 @@ import {
   writeManifestIfChanged,
 } from "./manifest-gen";
 import type { ExtractedAction } from "./manifest-extract";
-import { extractActionsFromAST, extractedToActionSource } from "./manifest-extract";
+import {
+  extractActionsFromAST,
+  extractCreatePluginActionOrder,
+  extractedToActionSource,
+} from "./manifest-extract";
 import type { ManifestConfig, PluginManifestInfo } from "./manifest-types";
 import { NATIVE_VERSIONS_FILENAME } from "./native-versions";
 
@@ -573,7 +577,7 @@ function buildLazyLoaderCode(config: NativeModuleConfig, version: string): strin
     "",
     "  // Update the version manifest so subsequent loads skip the download.",
     "  versions[entry.file] = VERSION;",
-    '  writeFileSync(versionsPath, JSON.stringify(versions, null, 2));',
+    "  writeFileSync(versionsPath, JSON.stringify(versions, null, 2));",
     "}",
     "",
     "const binding = require(nodePath);",
@@ -1030,7 +1034,19 @@ export function streamDeckReact(options: StreamDeckReactOptions = {}): Plugin {
   }
 
   // ── Extracted actions accumulated during build ──────────────────
-  const extractedActions: ExtractedAction[] = [];
+  //
+  // Each entry tracks the extracted action metadata and the resolved
+  // module ID it was extracted from.  The module ID is used to sort
+  // actions according to the createPlugin({ actions }) order.
+  const extractedActions: { action: ExtractedAction; moduleId: string }[] = [];
+
+  // ── Action ordering from createPlugin() ───────────────────────────
+  //
+  // When the entry module contains `createPlugin({ actions: [...] })`,
+  // we extract the action order and store a moduleId → position map.
+  // At writeBundle time, extractedActions is sorted by this map so the
+  // manifest's actions array matches the developer-defined order.
+  let actionModuleOrder: Map<string, number> | null = null;
 
   return {
     name: "fcannizzaro-streamdeck-react",
@@ -1062,6 +1078,7 @@ export function streamDeckReact(options: StreamDeckReactOptions = {}): Plugin {
       nativeModulesBySpecifier.clear();
       nativeCodeByVirtualId.clear();
       extractedActions.length = 0;
+      actionModuleOrder = null;
 
       // Register the built-in Takumi native module (unless WASM mode)
       if (options.takumi !== "wasm") {
@@ -1086,7 +1103,7 @@ export function streamDeckReact(options: StreamDeckReactOptions = {}): Plugin {
       }
     },
 
-    // ── Action Extraction ────────────────────────────────────────────
+    // ── Action Extraction & Ordering ───────────────────────────────────
     //
     // Called for every module after all transform hooks have run.
     // The `moduleParsed` hook always receives the final transformed code
@@ -1095,20 +1112,85 @@ export function streamDeckReact(options: StreamDeckReactOptions = {}): Plugin {
     //
     // We use `this.parse()` to get the AST since `moduleInfo.ast` may
     // be null when no transform plugin returned an AST explicitly.
+    //
+    // Two extraction tasks happen here:
+    //
+    //   1. defineAction() extraction — collect action metadata from each
+    //      module that calls defineAction(), tagged with the module's
+    //      resolved ID for later sorting.
+    //
+    //   2. createPlugin() ordering — when a module calls createPlugin(),
+    //      extract the actions array order and build a moduleId → position
+    //      map.  Rollup's importedIds (same order as AST import/export-from
+    //      declarations) is used to resolve import specifiers to module IDs.
 
     moduleParsed(moduleInfo) {
       if (!options.manifest) return;
-      if (!moduleInfo.code?.includes("defineAction")) return;
+
+      const code = moduleInfo.code;
+      if (!code) return;
+
+      const hasDefineAction = code.includes("defineAction");
+      const hasCreatePlugin = code.includes("createPlugin");
+      if (!hasDefineAction && !hasCreatePlugin) return;
 
       try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const ast = (this as any).parse(moduleInfo.code) as unknown as Record<string, unknown>;
-        const actions = extractActionsFromAST(ast);
+        const ast = (this as any).parse(code) as unknown as Record<string, unknown>;
 
-        for (const action of actions) {
-          // Skip actions with info.disabled
-          if (action.info?.disabled) continue;
-          extractedActions.push(action);
+        // ── defineAction() extraction ───────────────────────────────
+        if (hasDefineAction) {
+          const actions = extractActionsFromAST(ast);
+
+          for (const action of actions) {
+            // Skip actions with info.disabled
+            if (action.info?.disabled) continue;
+            extractedActions.push({ action, moduleId: moduleInfo.id });
+          }
+        }
+
+        // ── createPlugin() action order extraction ──────────────────
+        //
+        // When we find createPlugin({ actions: [a, b, c] }), we:
+        //   1. Extract identifier names in array order
+        //   2. Map identifiers to import source specifiers
+        //   3. Correlate import specifiers with Rollup's resolved IDs
+        //      using position matching (orderedModuleSources[i] ↔ importedIds[i])
+        //   4. Build a moduleId → position map for sorting
+        if (hasCreatePlugin) {
+          const order = extractCreatePluginActionOrder(ast);
+          if (order) {
+            // Build import specifier → resolved module ID mapping.
+            // orderedModuleSources is extracted in AST body order (matching
+            // the order Rollup uses to populate importedIds).
+            const importedIds = moduleInfo.importedIds;
+            const specifierToResolvedId = new Map<string, string>();
+
+            for (let i = 0; i < order.orderedModuleSources.length && i < importedIds.length; i++) {
+              const source = order.orderedModuleSources[i];
+              const resolvedId = importedIds[i];
+              if (source != null && resolvedId != null) {
+                specifierToResolvedId.set(source, resolvedId);
+              }
+            }
+
+            // Build moduleId → position from the createPlugin actions order.
+            // Local variables (not imported) map to the current module's ID.
+            const moduleOrder = new Map<string, number>();
+
+            for (let i = 0; i < order.identifiers.length; i++) {
+              const name = order.identifiers[i]!;
+              const source = order.importSourceByIdentifier.get(name);
+              const moduleId =
+                source !== undefined ? specifierToResolvedId.get(source) : moduleInfo.id; // local variable
+
+              if (moduleId != null && !moduleOrder.has(moduleId)) {
+                moduleOrder.set(moduleId, i);
+              }
+            }
+
+            actionModuleOrder = moduleOrder;
+          }
         }
       } catch {
         // Parse failure — skip this module silently.
@@ -1176,10 +1258,27 @@ export function streamDeckReact(options: StreamDeckReactOptions = {}): Plugin {
         const outFile = join(outDir, "plugin.mjs");
         const codePath = deriveCodePath(outFile, pluginDir);
 
+        // ── Sort actions by createPlugin() order ──────────────────────
+        //
+        // If the entry module contained createPlugin({ actions: [...] }),
+        // actionModuleOrder maps each action module's resolved ID to its
+        // position in the array.  Sort extractedActions so the manifest
+        // matches the developer's intended order.
+        //
+        // Actions from modules not in the order map (edge case) are
+        // appended at the end in their original extraction order.
+        if (actionModuleOrder != null && actionModuleOrder.size > 0) {
+          extractedActions.sort((a, b) => {
+            const ai = actionModuleOrder!.get(a.moduleId) ?? Number.MAX_SAFE_INTEGER;
+            const bi = actionModuleOrder!.get(b.moduleId) ?? Number.MAX_SAFE_INTEGER;
+            return ai - bi;
+          });
+        }
+
         // Build full ManifestConfig from plugin info + extracted actions
         const fullConfig: ManifestConfig = {
           ...options.manifest,
-          actions: extractedActions.map(extractedToActionSource),
+          actions: extractedActions.map(({ action }) => extractedToActionSource(action)),
         };
 
         // Validate the complete config (action UUID prefixes, duplicates)
