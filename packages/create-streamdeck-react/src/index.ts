@@ -421,7 +421,7 @@ async function collectExample(args: ParsedArgs, skipPrompt: boolean): Promise<St
     return args.example;
   }
 
-  const fallback: StarterExample = "counter";
+  const fallback: StarterExample = "basic";
 
   if (skipPrompt) {
     return fallback;
@@ -677,7 +677,7 @@ Usage:
 Options:
   -y, --yes                    Skip prompts and use defaults
   -h, --help                   Show this help message
-  --example <name>             minimal | counter | zustand | jotai | pokemon
+  --example <name>             minimal | basic | zustand | jotai | pokemon
   --adapter <type>             physical | custom
   --name <display-name>        Plugin display name
   --uuid <plugin-uuid>         Reverse-domain plugin UUID

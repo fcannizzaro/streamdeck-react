@@ -1,5 +1,5 @@
 import { minimalPreset } from "./examples/minimal.js";
-import { counterPreset } from "./examples/counter.js";
+import { basicPreset } from "./examples/basic.js";
 import { zustandPreset } from "./examples/zustand.js";
 import { jotaiPreset } from "./examples/jotai.js";
 import { pokemonPreset } from "./examples/pokemon.js";
@@ -7,7 +7,7 @@ import { pokemonPreset } from "./examples/pokemon.js";
 // ── Types ───────────────────────────────────────────────────────────
 
 export type PackageManager = "npm" | "pnpm" | "bun";
-export type StarterExample = "minimal" | "counter" | "zustand" | "jotai" | "pokemon";
+export type StarterExample = "minimal" | "basic" | "zustand" | "jotai" | "pokemon";
 export type StreamDeckPlatform = "mac" | "windows";
 export type NativeBindingsMode = "lazy" | "copy";
 export type Adapter = "physical" | "custom";
@@ -87,8 +87,8 @@ export const EXAMPLE_OPTIONS: ExampleOption[] = [
     description: "One key action with local state — best starting point to learn the basics.",
   },
   {
-    id: "counter",
-    label: "Counter Pack",
+    id: "basic",
+    label: "Basic Pack",
     description:
       "Keys, timer, persisted settings, encoder dial, and animated TouchStrip equalizer.",
   },
@@ -155,7 +155,7 @@ export const NATIVE_BINDINGS_OPTIONS: Array<ChoiceOption<NativeBindingsMode>> = 
 
 const EXAMPLE_PRESETS: Record<StarterExample, () => ExamplePreset> = {
   minimal: minimalPreset,
-  counter: counterPreset,
+  basic: basicPreset,
   zustand: zustandPreset,
   jotai: jotaiPreset,
   pokemon: pokemonPreset,

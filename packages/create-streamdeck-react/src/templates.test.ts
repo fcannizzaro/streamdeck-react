@@ -11,7 +11,7 @@ const lazyOptions: ScaffoldOptions = {
   description: "A demo plugin.",
   category: "Demo Plugin",
   packageManager: "npm",
-  example: "counter",
+  example: "basic",
   platforms: ["mac", "windows"],
   nativeBindings: "lazy",
   reactCompiler: false,

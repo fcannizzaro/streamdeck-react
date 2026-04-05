@@ -1,7 +1,7 @@
 import type { ExamplePreset, ScaffoldOptions } from "../templates.js";
 import { createAdapterFiles, createPluginEntrypoint } from "./shared.js";
 
-// ── Counter Pack Example ────────────────────────────────────────────
+// ── Basic Pack Example ──────────────────────────────────────────────
 //
 // Five actions demonstrating a range of Stream Deck features:
 //   - Counter key (useState + key events)
@@ -418,7 +418,7 @@ function createTouchStripLayout(): string {
   )}\n`;
 }
 
-export function counterPreset(): ExamplePreset {
+export function basicPreset(): ExamplePreset {
   return {
     dependencies: {},
     actions: [
