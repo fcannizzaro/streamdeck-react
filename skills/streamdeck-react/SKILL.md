@@ -206,6 +206,9 @@ npm install -D vite@8.0.0 @vitejs/plugin-react@6.0.1
 # Build tooling (with React Compiler -- add on top of base)
 # npm install -D @rolldown/plugin-babel @babel/core babel-plugin-react-compiler
 
+# Build tooling (with Tailwind v4 CSS -- add on top of base)
+# npm install -D @tailwindcss/vite
+
 # Types (if using TypeScript)
 npm install -D @types/react
 ```
@@ -626,6 +629,33 @@ useKeyDown(() => setTheme(darkTheme)); // All roots re-render with new variables
 const merged = mergeThemes(baseTheme, darkOverride);
 // Later themes override earlier ones for the same variable name
 ```
+
+### Tailwind v4 CSS Support
+
+For full Tailwind v4 support including `@theme` blocks, custom utilities, and standard CSS, use the `stylesheets` option in `createPlugin()`:
+
+```ts
+// Install: npm install -D @tailwindcss/vite
+// vite.config.ts: add tailwindcss() to plugins
+
+// theme.css — @import "tailwindcss"; @theme { --color-primary: #4CAF50; }
+import stylesheet from "./theme.css?inline";
+
+const plugin = createPlugin({
+  stylesheets: [stylesheet],
+  fonts: [await googleFont("Inter")],
+  actions: [...],
+});
+```
+
+With `stylesheets`, Tailwind v4 `@theme` tokens become first-class utility classes:
+
+```tsx
+// With stylesheets: bg-primary instead of bg-[var(--color-primary)]
+<div className="bg-primary text-white">Themed</div>
+```
+
+`defineTheme()` and `stylesheets` can be used together. `defineTheme()` supports runtime switching via `useTheme()`, while `stylesheets` provides first-class Tailwind v4 integration for build-time themes.
 
 ## Size Calculation Utility
 

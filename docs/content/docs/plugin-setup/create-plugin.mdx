@@ -29,6 +29,7 @@ interface PluginConfig {
   fonts: FontConfig[];
   actions: ActionDefinition[];
   wrapper?: WrapperComponent;
+  info?: PluginManifestInfo;
   takumi?: TakumiBackend;
   imageFormat?: "png" | "webp";
   caching?: boolean;
@@ -41,6 +42,7 @@ interface PluginConfig {
   useWorker?: boolean;
   coordinator?: boolean;
   theme?: ThemeDefinition;
+  stylesheets?: string[];
 }
 ```
 
@@ -79,6 +81,10 @@ const plugin = createPlugin({
   wrapper: ({ children }) => <MyGlobalProvider>{children}</MyGlobalProvider>,
 });
 ```
+
+### `info`
+
+Optional plugin manifest metadata. This is used for runtime documentation. For manifest generation, provide plugin-level info via the bundler plugin's `manifest` option in `streamDeckReact()`.
 
 ### `takumi`
 
@@ -146,7 +152,7 @@ Maximum byte budget for the TouchStrip raw buffer cache. This cache stores RGBA 
 
 ### `useWorker`
 
-Offload Takumi rendering to a worker thread. This prevents the native rasterization (5-30ms per frame) from blocking the main thread during animations. Set to `false` to disable. Default: `true`.
+Offload Takumi rendering to a worker thread. This prevents the native rasterization (5-30ms per frame) from blocking the main thread during animations. When not set, auto-detected: enabled only if any action defines a `touchStrip` component. Set explicitly to `true` or `false` to override. Automatically disabled when `takumi` is `"wasm"`. Default: auto-detect.
 
 ### `coordinator`
 
@@ -182,6 +188,31 @@ const plugin = createPlugin({
 ```
 
 See [CSS Theme System](/guides/themes) for a full guide.
+
+### `stylesheets`
+
+CSS stylesheets to pass to the Takumi renderer. Enables full Tailwind v4 support including `@theme` blocks, custom utilities, and any standard CSS.
+
+Use `@tailwindcss/vite` in your Vite config and import your CSS file with the `?inline` query to get the compiled stylesheet as a string at build time:
+
+```ts
+// theme.css — @import "tailwindcss"; @theme { --color-primary: #4CAF50; }
+import stylesheet from "./theme.css?inline";
+
+const plugin = createPlugin({
+  stylesheets: [stylesheet],
+  fonts: [await googleFont("Inter")],
+  actions: [...],
+});
+```
+
+In components, you can use Tailwind v4 theme tokens directly:
+
+```tsx
+<div className="bg-primary text-white">Themed</div>
+```
+
+See [Tailwind CSS](/guides/tailwind#tailwind-v4-css-support) for a full guide.
 
 ## connect()
 

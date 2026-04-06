@@ -1,6 +1,6 @@
 ---
-title: cn() / tw() Utility
-description: Class name concatenation helper for conditional Tailwind styling.
+title: Tailwind CSS
+description: Class name utility and Tailwind v4 CSS support for styling Stream Deck components.
 ---
 
 The `cn` utility is a lightweight class string concatenation function, similar to `clsx` or `classnames`. It filters out falsy values and joins the rest with spaces.
@@ -90,3 +90,109 @@ When using the [CSS Theme System](/guides/themes), you can reference theme varia
   <span className="text-[var(--color-primary)]">Themed</span>
 </div>
 ```
+
+## Tailwind v4 CSS Support
+
+For full Tailwind v4 support — including `@theme` blocks, custom utilities, and standard CSS — use the `stylesheets` option in `createPlugin()`. This passes compiled CSS stylesheets directly to the Takumi renderer.
+
+### Setup
+
+1. Install `@tailwindcss/vite`:
+
+```bash tab="bun"
+bun add -d @tailwindcss/vite
+```
+
+```bash tab="pnpm"
+pnpm add -D @tailwindcss/vite
+```
+
+```bash tab="npm"
+npm install -D @tailwindcss/vite
+```
+
+2. Add `tailwindcss()` to your Vite plugins:
+
+```ts
+// vite.config.ts
+import tailwindcss from "@tailwindcss/vite";
+
+export default defineConfig({
+  plugins: [
+    // ...other plugins
+    tailwindcss(),
+    streamDeckReact({
+      /* ... */
+    }),
+  ],
+  // ...
+});
+```
+
+3. Create a CSS file with your Tailwind v4 theme:
+
+```css
+/* theme.css */
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #4caf50;
+  --color-surface: #1a1a2e;
+  --color-text: #ffffff;
+  --color-text-muted: #888888;
+}
+```
+
+4. Import it with `?inline` and pass it to `createPlugin()`:
+
+```ts
+// src/plugin.ts
+import { createPlugin, googleFont } from "@fcannizzaro/streamdeck-react";
+import stylesheet from "./theme.css?inline";
+
+const plugin = createPlugin({
+  stylesheets: [stylesheet],
+  fonts: [await googleFont("Inter")],
+  actions: [
+    /* ... */
+  ],
+});
+
+await plugin.connect();
+```
+
+### Using in Components
+
+With `stylesheets` configured, Tailwind v4 `@theme` tokens are available as first-class utility classes:
+
+```tsx
+function ThemedKey() {
+  return (
+    <div className="flex items-center justify-center w-full h-full bg-primary">
+      <span className="text-text text-[18px] font-bold">Hello</span>
+    </div>
+  );
+}
+```
+
+This is more ergonomic than the `var()` syntax needed without stylesheets:
+
+```tsx
+// Without stylesheets (using defineTheme + var()):
+<div className="bg-[var(--color-primary)]">
+
+// With stylesheets (using @theme):
+<div className="bg-primary">
+```
+
+### stylesheets vs defineTheme
+
+| Feature             | `defineTheme()` + `theme`   | `stylesheets`                |
+| ------------------- | --------------------------- | ---------------------------- |
+| Setup               | No build tooling needed     | Requires `@tailwindcss/vite` |
+| Usage in components | `bg-[var(--color-primary)]` | `bg-primary`                 |
+| Custom utilities    | Not supported               | Full `@utility` support      |
+| Standard CSS        | Not supported               | Full CSS support             |
+| Runtime switching   | Via `useTheme()`            | Static (build-time)          |
+
+Both approaches can be used together. `defineTheme()` tokens are available via `var()` references and support runtime switching with `useTheme()`, while `stylesheets` provides first-class Tailwind v4 integration for build-time themes.

@@ -1,5 +1,11 @@
 # @fcannizzaro/streamdeck-react
 
+## 0.3.0
+
+### Minor Changes
+
+- add css/theme support, add coordinator for multi key/dial interaction, make library more tree-shakeable
+
 ## 0.2.7
 
 ### Patch Changes

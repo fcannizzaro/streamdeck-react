@@ -10,14 +10,14 @@ https://github.com/user-attachments/assets/coordinator.webm
 
 ## Features
 
-| Feature                    | Description                                                              |
-| -------------------------- | ------------------------------------------------------------------------ |
-| **3D SVG Rendering**       | True 3D pipeline — rotation matrices, backface culling, Lambertian lighting, painter's algorithm |
-| **5 Shape Types**          | Box, Sphere, Cone, Cylinder, Torus — each with full mesh geometry        |
-| **Dual Dial Mode**         | Press dials 1-3 to toggle between **dimension** (W/H/D) and **rotation** (X/Y/Z) control |
-| **Per-Key Independence**   | Each key stores its own shape, dimensions, and rotation — scoped by action ID |
-| **Settings Persistence**   | All parameters saved via `useSettings` — survives plugin restarts        |
-| **Coordinator Channels**   | Keys and dials communicate in real-time through `useChannel`             |
+| Feature                  | Description                                                                                      |
+| ------------------------ | ------------------------------------------------------------------------------------------------ |
+| **3D SVG Rendering**     | True 3D pipeline — rotation matrices, backface culling, Lambertian lighting, painter's algorithm |
+| **5 Shape Types**        | Box, Sphere, Cone, Cylinder, Torus — each with full mesh geometry                                |
+| **Dual Dial Mode**       | Press dials 1-3 to toggle between **dimension** (W/H/D) and **rotation** (X/Y/Z) control         |
+| **Per-Key Independence** | Each key stores its own shape, dimensions, and rotation — scoped by action ID                    |
+| **Settings Persistence** | All parameters saved via `useSettings` — survives plugin restarts                                |
+| **Coordinator Channels** | Keys and dials communicate in real-time through `useChannel`                                     |
 
 ## Actions
 
@@ -35,12 +35,12 @@ Each key instance is fully independent — place multiple keys on the deck and e
 
 Four encoder dials that control the active key's 3D shape:
 
-| Column | Function                     | Interaction                              |
-| ------ | ---------------------------- | ---------------------------------------- |
-| **0**  | Shape selector               | Rotate to cycle: Box → Sphere → Cone → Cylinder → Torus |
-| **1**  | Width / Rotate X             | Rotate to adjust, **press to toggle mode** |
-| **2**  | Height / Rotate Y            | Rotate to adjust, **press to toggle mode** |
-| **3**  | Depth / Rotate Z             | Rotate to adjust, **press to toggle mode** |
+| Column | Function          | Interaction                                             |
+| ------ | ----------------- | ------------------------------------------------------- |
+| **0**  | Shape selector    | Rotate to cycle: Box → Sphere → Cone → Cylinder → Torus |
+| **1**  | Width / Rotate X  | Rotate to adjust, **press to toggle mode**              |
+| **2**  | Height / Rotate Y | Rotate to adjust, **press to toggle mode**              |
+| **3**  | Depth / Rotate Z  | Rotate to adjust, **press to toggle mode**              |
 
 When no key is active, all dials show a blank state.
 
@@ -70,13 +70,13 @@ SVG <polygon> elements → Takumi ImageNode
 
 Each shape type has its own mesh generator:
 
-| Shape      | Geometry                                                          |
-| ---------- | ----------------------------------------------------------------- |
-| **Box**    | 8 vertices, 6 quad faces                                         |
-| **Sphere** | UV mesh — 10 longitude × 7 latitude segments (70 faces)          |
-| **Cone**   | 14 side triangles + 1 base cap polygon                           |
-| **Cylinder** | 14 side quads + 2 elliptical cap polygons                      |
-| **Torus**  | 14 ring segments × 8 tube segments (112 quad faces)              |
+| Shape        | Geometry                                                |
+| ------------ | ------------------------------------------------------- |
+| **Box**      | 8 vertices, 6 quad faces                                |
+| **Sphere**   | UV mesh — 10 longitude × 7 latitude segments (70 faces) |
+| **Cone**     | 14 side triangles + 1 base cap polygon                  |
+| **Cylinder** | 14 side quads + 2 elliptical cap polygons               |
+| **Torus**    | 14 ring segments × 8 tube segments (112 quad faces)     |
 
 ## Architecture
 

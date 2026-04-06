@@ -1,6 +1,6 @@
 {
   "name": "@fcannizzaro/streamdeck-react",
-  "version": "0.2.7",
+  "version": "0.3.0",
   "description": "Build Stream Deck plugins with React — render components directly to keys, dials, and touch screens",
   "keywords": [
     "elgato",
@@ -27,7 +27,6 @@
     "type": "patreon",
     "url": "https://patreon.com/fcannizzaro"
   },
-  "sideEffects": false,
   "files": [
     "dist",
     "font.d.ts",
@@ -35,6 +34,7 @@
     "README.md"
   ],
   "type": "module",
+  "sideEffects": false,
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",

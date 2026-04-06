@@ -15,6 +15,11 @@ interface PluginConfig {
   actions: ActionDefinition[];
   wrapper?: WrapperComponent;
   /**
+   * Plugin manifest metadata. Optional — used for runtime documentation.
+   * For manifest generation, provide plugin-level info via the bundler plugin's `manifest` option.
+   */
+  info?: PluginManifestInfo;
+  /**
    * Takumi renderer backend.
    * - `"native-binding"` — uses `@takumi-rs/core` (native Rust NAPI addon).
    * - `"wasm"` — uses `@takumi-rs/wasm` (WebAssembly build). WOFF fonts are
@@ -33,7 +38,7 @@ interface PluginConfig {
   imageCacheMaxBytes?: number;
   /** Maximum TouchStrip raw buffer cache size in bytes. Set to 0 to disable. @default 8388608 (8 MB) */
   touchStripCacheMaxBytes?: number;
-  /** Offload Takumi rendering to a worker thread. Automatically disabled when `takumi` is `"wasm"`. @default true */
+  /** Offload Takumi rendering to a worker thread. Auto-detected: enabled only if any action defines a `touchStrip` component. Automatically disabled when `takumi` is `"wasm"`. @default auto-detect */
   useWorker?: boolean;
   /**
    * Enable the Action Coordinator for cross-action communication.
@@ -49,6 +54,13 @@ interface PluginConfig {
    * Create a theme with `defineTheme()`.
    */
   theme?: ThemeDefinition;
+  /**
+   * CSS stylesheets to pass to the Takumi renderer. Enables full
+   * Tailwind v4 support including `@theme` blocks, custom utilities,
+   * and any standard CSS. Import your CSS file with `?inline` to get
+   * the compiled stylesheet as a string at build time.
+   */
+  stylesheets?: string[];
 }
 
 interface FontConfig {
