@@ -22,10 +22,12 @@
     "@babel/preset-typescript": "^7.28.0",
     "@elgato/cli": "^1.7.1",
     "@rolldown/plugin-babel": "^0.2.2",
+    "@tailwindcss/vite": "^4.1.11",
     "@types/node": "^25.5.2",
     "@types/react": "^19.2.14",
     "@vitejs/plugin-react": "^6.0.1",
     "babel-plugin-react-compiler": "latest",
+    "tailwindcss": "^4.1.11",
     "vite": "^8.0.3"
   }
 }

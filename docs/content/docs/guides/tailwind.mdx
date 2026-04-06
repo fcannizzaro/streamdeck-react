@@ -1,20 +1,30 @@
 ---
-title: tw() Utility
-description: Tailwind class concatenation helper for conditional styling.
+title: cn() / tw() Utility
+description: Class name concatenation helper for conditional Tailwind styling.
 ---
 
-The `tw` utility is a lightweight class string concatenation function, similar to `clsx` or `cn`. It filters out falsy values and joins the rest with spaces.
+The `cn` utility is a lightweight class string concatenation function, similar to `clsx` or `classnames`. It filters out falsy values and joins the rest with spaces.
 
 ## Import
+
+```tsx
+import { cn } from "@fcannizzaro/streamdeck-react";
+```
+
+`tw` is available as a backward-compatible alias:
 
 ```tsx
 import { tw } from "@fcannizzaro/streamdeck-react";
 ```
 
+<Callout type="info">
+  `tw` is deprecated and will be removed in a future major version. Prefer `cn` for new code.
+</Callout>
+
 ## Signature
 
 ```ts
-function tw(...args: Array<string | false | null | undefined | 0>): string;
+function cn(...args: Array<string | false | null | undefined | 0>): string;
 ```
 
 ## Usage
@@ -28,7 +38,7 @@ function MyKey() {
 
   return (
     <div
-      className={tw(
+      className={cn(
         "flex items-center justify-center w-full h-full",
         pressed && "bg-green-500",
         !pressed && "bg-gray-800",
@@ -44,8 +54,39 @@ function MyKey() {
 
 The `className` prop is remapped to Takumi's `tw` prop during rendering. That means standard Tailwind utility classes work in your components without a CSS build step.
 
-The `tw()` function itself only concatenates strings -- it does not resolve classes to styles. That resolution happens inside the renderer.
+The `cn()` function itself only concatenates strings -- it does not resolve classes to styles. That resolution happens inside the renderer.
 
-## Compared to Inline Styles
+## Tailwind vs Inline Styles
 
-Both approaches work. Tailwind classes via `className` can be more concise for common patterns, while inline `style` gives you exact control. Mix and match as needed.
+**Prefer Tailwind classes** for all static styling — layout, colors, spacing, typography, borders. This keeps your components concise and consistent.
+
+Use inline `style` **only** for truly dynamic values that are computed at runtime (e.g., animation outputs, `size.scale()` values, or data-driven colors):
+
+```tsx
+// ✅ Good: static layout and colors via Tailwind, dynamic value via style
+<div className="flex items-center justify-center w-full h-full bg-[#1a1a2e]">
+  <span className="text-white font-bold" style={{ fontSize: size.scale(24) }}>
+    {value}
+  </span>
+</div>
+
+// ❌ Avoid: inline styles for static layout
+<div style={{ display: "flex", alignItems: "center", justifyContent: "center",
+  width: "100%", height: "100%", backgroundColor: "#1a1a2e" }}>
+  <span style={{ color: "white", fontWeight: 700, fontSize: 24 }}>
+    {value}
+  </span>
+</div>
+```
+
+Prefer flexbox layout over absolute positioning. Tailwind's flex utilities (`flex`, `flex-col`, `items-center`, `justify-center`, `gap-*`) map directly to Takumi's layout engine.
+
+## Using with Themes
+
+When using the [CSS Theme System](/guides/themes), you can reference theme variables in Tailwind arbitrary values:
+
+```tsx
+<div className={cn("w-full h-full", "bg-[var(--color-surface)]")}>
+  <span className="text-[var(--color-primary)]">Themed</span>
+</div>
+```

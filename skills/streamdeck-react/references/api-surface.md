@@ -122,9 +122,33 @@ Complete public API exported from `@fcannizzaro/streamdeck-react`.
 
 ## Tailwind Utility
 
-| Export | Signature                                                               | Description                               |
-| ------ | ----------------------------------------------------------------------- | ----------------------------------------- |
-| `tw`   | `(...args: Array<string \| false \| null \| undefined \| 0>) => string` | Class string concatenation (like `clsx`). |
+| Export | Signature                                                               | Description                                                           |
+| ------ | ----------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `cn`   | `(...args: Array<string \| false \| null \| undefined \| 0>) => string` | Class string concatenation (like `clsx`). Preferred name.             |
+| `tw`   | `(...args: Array<string \| false \| null \| undefined \| 0>) => string` | Deprecated alias for `cn`. Will be removed in a future major version. |
+
+## Size Utility
+
+| Export     | Signature                                       | Description                                                         |
+| ---------- | ----------------------------------------------- | ------------------------------------------------------------------- |
+| `calcSize` | `(width: number, height: number) => SizeHelper` | Create a size helper for given dimensions. No React context needed. |
+| `useSize`  | `() => SizeHelper`                              | Hook: size helper bound to current canvas dimensions.               |
+
+## Coordinator Hooks
+
+| Export              | Signature                                                       | Description                                   |
+| ------------------- | --------------------------------------------------------------- | --------------------------------------------- |
+| `useChannel`        | `<T>(name: string, defaultValue: T) => [T, (value: T) => void]` | Named channel for cross-action state sharing. |
+| `useActionPresence` | `() => ActionPresenceSnapshot`                                  | Live snapshot of visible action instances.    |
+| `useCoordinator`    | `() => ActionCoordinator`                                       | Raw coordinator instance (escape hatch).      |
+
+## Theme
+
+| Export        | Signature                                                  | Description                                         |
+| ------------- | ---------------------------------------------------------- | --------------------------------------------------- |
+| `defineTheme` | `(input: ThemeInput) => ThemeDefinition`                   | Create a theme from categorized tokens.             |
+| `mergeThemes` | `(...themes: ThemeDefinition[]) => ThemeDefinition`        | Merge multiple themes (later overrides earlier).    |
+| `useTheme`    | `() => [ThemeVariables, (theme: ThemeDefinition) => void]` | Read theme variables and dynamically switch themes. |
 
 ## Vite Helpers (from `@fcannizzaro/streamdeck-react/vite`)
 

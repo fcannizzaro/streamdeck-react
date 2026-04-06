@@ -1,0 +1,30 @@
+{
+  "name": "sample-coordinator",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite build --watch",
+    "build": "vite build",
+    "check-types": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "link": "streamdeck link com.example.react-coordinator.sdPlugin"
+  },
+  "dependencies": {
+    "@fcannizzaro/streamdeck-react": "workspace:*",
+    "@takumi-rs/core-darwin-arm64": "^0.73.1",
+    "react": "^19.2.4",
+    "ws": "^8.19.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.28.0",
+    "@babel/preset-react": "^7.28.0",
+    "@babel/preset-typescript": "^7.28.0",
+    "@elgato/cli": "^1.7.1",
+    "@rolldown/plugin-babel": "^0.2.2",
+    "@types/node": "^25.5.2",
+    "@types/react": "^19.2.14",
+    "@vitejs/plugin-react": "^6.0.1",
+    "babel-plugin-react-compiler": "latest",
+    "vite": "^8.0.3"
+  }
+}

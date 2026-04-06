@@ -11,7 +11,7 @@ Each action surface is just a React component.
 
 - Use normal React state and effects.
 - Render raw JSX, or use built-ins like `Box`, `Text`, `Image`, and `ProgressBar`.
-- Style with inline `style`, `className`, or `tw()`.
+- Style with **Tailwind classes** via `className` and `cn()` for static styling. Use inline `style` only for dynamic values computed at runtime.
 
 ```tsx
 function StatusKey() {
@@ -67,16 +67,20 @@ Use the exported hooks instead of wiring SDK listeners manually.
 - **Settings**: `useSettings`, `useGlobalSettings`
 - **Lifecycle**: `useWillAppear`, `useWillDisappear`
 - **Context**: `useDevice`, `useAction`, `useCanvas`, `useStreamDeck`
+- **Size**: `useSize`
+- **Coordinator**: `useChannel`, `useActionPresence`, `useCoordinator`
+- **Theme**: `useTheme`
 - **Utility**: `useInterval`, `useTimeout`, `usePrevious`, `useTick`
 - **Animation**: `useSpring`, `useTween`
 - **SDK helpers**: `useOpenUrl`, `useSwitchProfile`, `useSendToPI`, `usePropertyInspector`, `useShowAlert`, `useShowOk`, `useTitle`
 
 ## 5. Pick a State Strategy
 
-You have three common options:
+You have several options:
 
 - **Local component state** for simple one-off action UIs.
 - **Built-in settings hooks** when state should persist across reloads.
+- **Action Coordinator** for simple cross-action state sharing without external dependencies.
 - **External shared state** with wrappers when multiple action roots should see the same store.
 
 The samples show all three approaches:

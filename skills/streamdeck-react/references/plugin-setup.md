@@ -35,6 +35,8 @@ interface PluginConfig {
   imageCacheMaxBytes?: number; // Default: 16777216 (16 MB)
   touchStripCacheMaxBytes?: number; // Default: 8388608 (8 MB)
   useWorker?: boolean; // Default: true (force-disabled when takumi is "wasm")
+  coordinator?: boolean; // Default: false
+  theme?: ThemeDefinition;
 }
 ```
 
@@ -54,6 +56,8 @@ interface PluginConfig {
 | `imageCacheMaxBytes`      | No       | Max bytes for the key/dial image cache (LRU). Set to 0 to disable. Default: 16 MB.                                           |
 | `touchStripCacheMaxBytes` | No       | Max bytes for the TouchStrip raw buffer cache (LRU). Set to 0 to disable. Default: 8 MB.                                     |
 | `useWorker`               | No       | Offload Takumi rendering to a worker thread. Transparent fallback if worker fails. Force-disabled when `takumi` is `"wasm"`. |
+| `coordinator`             | No       | Enable the Action Coordinator for cross-action communication via channels and presence tracking. Default: `false`.           |
+| `theme`                   | No       | CSS theme definition from `defineTheme()`. Tokens injected as CSS custom properties on all roots.                            |
 
 ### Plugin-Level Wrapper
 
@@ -264,17 +268,21 @@ Critical rules:
 
 ## Context Provider Tree
 
-Every action root is wrapped with 4 context providers (stable outermost, volatile innermost):
+Every action root is wrapped with 6 context providers (stable outermost, volatile innermost):
 
 ```
-RootContext.Provider          ← merged: action + device + canvas + streamDeck (immutable)
-  EventBusContext.Provider    ← per-root EventBus (new instance on resume)
-    GlobalSettingsContext.Provider  ← plugin-wide settings
-      SettingsContext.Provider      ← per-action settings
-        PluginWrapper (if set)
-          ActionWrapper (if set)
-            <YourComponent />
+CoordinatorContext.Provider        ← plugin-level coordinator (null if not enabled)
+  ThemeContext.Provider              ← plugin-level theme variables + setter
+    RootContext.Provider              ← merged: action + device + canvas + streamDeck (immutable)
+      EventBusContext.Provider        ← per-root EventBus (new instance on resume)
+        GlobalSettingsContext.Provider  ← plugin-wide settings
+          SettingsContext.Provider      ← per-action settings
+            PluginWrapper (if set)
+              ActionWrapper (if set)
+                <YourComponent />
 ```
+
+`CoordinatorContext` and `ThemeContext` are the outermost providers because they are plugin-level singletons that rarely or never change. Theme CSS variables are injected on a `display: contents` wrapper div that cascades to all children without affecting layout.
 
 `RootContext` merges `ActionInfo`, `DeviceInfo`, `CanvasInfo`, and `StreamDeckAccess` into a single provider, eliminating 3 fiber nodes per root. For 32 active roots, this saves 96 provider fiber nodes.
 

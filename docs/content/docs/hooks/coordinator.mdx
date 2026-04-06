@@ -1,0 +1,136 @@
+---
+title: Coordinator Hooks
+description: Hooks for cross-action communication via the Action Coordinator.
+---
+
+These hooks require `coordinator: true` in [`createPlugin()`](/plugin-setup/create-plugin). All hooks throw a helpful error if called without a coordinator context.
+
+See the [Action Coordinator guide](/guides/coordinator) for a full usage guide.
+
+## useChannel
+
+Subscribe to a named channel for cross-action state sharing. Works like `useState` but the value is shared across all action roots.
+
+```ts
+function useChannel<T>(name: string, defaultValue: T): [T, (value: T) => void];
+```
+
+| Parameter      | Description                                               |
+| -------------- | --------------------------------------------------------- |
+| `name`         | Channel name (any string, e.g., `"playback"`, `"volume"`) |
+| `defaultValue` | Initial value if the channel hasn't been set yet          |
+
+Returns a `[value, setValue]` tuple.
+
+### Example
+
+```tsx
+import { useChannel, useKeyDown } from "@fcannizzaro/streamdeck-react";
+
+function VolumeKnob() {
+  const [volume, setVolume] = useChannel<number>("volume", 50);
+
+  useDialRotate(({ ticks }) => {
+    setVolume(Math.max(0, Math.min(100, volume + ticks * 5)));
+  });
+
+  return (
+    <div className="flex items-center justify-center w-full h-full bg-[#1a1a2e]">
+      <span className="text-white text-[24px] font-bold">{volume}%</span>
+    </div>
+  );
+}
+```
+
+### Behavior
+
+- **Scoped re-renders** — only components subscribed to the changed channel re-render.
+- **Sticky values** — new subscribers to an existing channel receive the current value immediately.
+- **Referential skip** — updates are skipped when the new value is `===` the current value.
+- **Concurrent-mode safe** — uses `useSyncExternalStore` internally.
+
+## useActionPresence
+
+Returns a live snapshot of all currently visible action instances on the Stream Deck.
+
+```ts
+function useActionPresence(): ActionPresenceSnapshot;
+```
+
+```ts
+interface ActionPresenceSnapshot {
+  readonly all: readonly ActionPresenceInfo[];
+  byUuid(uuid: string): readonly ActionPresenceInfo[];
+  readonly count: number;
+}
+
+interface ActionPresenceInfo {
+  id: string;
+  uuid: string;
+  surface: "key" | "dial" | "touch";
+  coordinates?: { column: number; row: number };
+  deviceId: string;
+}
+```
+
+### Example
+
+```tsx
+import { useActionPresence } from "@fcannizzaro/streamdeck-react";
+
+function DashboardKey() {
+  const presence = useActionPresence();
+  const dialCount = presence.all.filter((a) => a.surface === "dial").length;
+
+  return (
+    <div className="flex flex-col items-center justify-center w-full h-full bg-[#0f172a]">
+      <span className="text-white text-[14px] font-bold">{presence.count} visible</span>
+      <span className="text-[#888] text-[10px]">{dialCount} dials</span>
+    </div>
+  );
+}
+```
+
+### Behavior
+
+- Re-renders only when the presence set changes (action appears or disappears).
+- The snapshot is memoized per version — repeated reads return the same object.
+
+## useCoordinator
+
+Escape hatch that returns the raw `ActionCoordinator` instance. Use for imperative operations (e.g., setting a channel value from an event handler without subscribing to it).
+
+```ts
+function useCoordinator(): ActionCoordinator;
+```
+
+### Example
+
+```tsx
+import { useCoordinator, useKeyDown } from "@fcannizzaro/streamdeck-react";
+
+function ResetButton() {
+  const coordinator = useCoordinator();
+
+  useKeyDown(() => {
+    coordinator.setChannelValue("volume", 50);
+    coordinator.setChannelValue("playback", "paused");
+  });
+
+  return (
+    <div className="flex items-center justify-center w-full h-full bg-red-600">
+      <span className="text-white text-[16px] font-bold">RESET</span>
+    </div>
+  );
+}
+```
+
+### ActionCoordinator Methods
+
+| Method                             | Description                                            |
+| ---------------------------------- | ------------------------------------------------------ |
+| `setChannelValue<T>(name, value)`  | Set a channel value and notify subscribers             |
+| `getChannelValue<T>(name)`         | Get the current value of a channel                     |
+| `subscribeChannel(name, listener)` | Subscribe to channel changes (returns unsubscribe fn)  |
+| `subscribePresence(listener)`      | Subscribe to presence changes (returns unsubscribe fn) |
+| `getPresenceSnapshot()`            | Get the current presence snapshot                      |

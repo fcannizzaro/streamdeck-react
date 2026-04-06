@@ -38,6 +38,14 @@ interface TextProps {
 
 ## Example
 
+For most text, **prefer Tailwind classes** via `className` directly on `<span>` elements:
+
+```tsx
+<span className="text-[24px] font-bold text-white text-center font-[Inter]">Hello</span>
+```
+
+`Text` provides shorthand props as a convenience wrapper:
+
 ```tsx
 <Text size={24} color="white" weight={700} align="center" font="Inter">
   Hello

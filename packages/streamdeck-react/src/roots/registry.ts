@@ -18,6 +18,8 @@ import type {
 } from "@/types";
 import type { RenderConfig } from "@/render/pipeline";
 import type { RegistryObserver } from "@/devtools/observers/lifecycle";
+import type { ActionCoordinator } from "@/coordinator/index";
+import type { ThemeDefinition } from "@/theme/index";
 
 // ── Constants ───────────────────────────────────────────────────────
 // Each encoder segment on the touch strip is 200px wide.
@@ -98,6 +100,8 @@ export class RootRegistry {
   private globalSettings: JsonObject = {};
   private onGlobalSettingsChange: (settings: JsonObject) => Promise<void>;
   private wrapper?: WrapperComponent;
+  private coordinator: ActionCoordinator | null;
+  private themeDefinition: ThemeDefinition | null;
 
   /** Coordinated flush scheduler. Batches and priority-orders flushes across all roots. */
   readonly flushCoordinator: FlushCoordinator;
@@ -113,11 +117,15 @@ export class RootRegistry {
     adapter: StreamDeckAdapter,
     onGlobalSettingsChange: (settings: JsonObject) => Promise<void>,
     wrapper?: WrapperComponent,
+    coordinator?: ActionCoordinator | null,
+    themeDefinition?: ThemeDefinition | null,
   ) {
     this.renderConfig = renderConfig;
     this.adapter = adapter;
     this.onGlobalSettingsChange = onGlobalSettingsChange;
     this.wrapper = wrapper;
+    this.coordinator = coordinator ?? null;
+    this.themeDefinition = themeDefinition ?? null;
     this.flushCoordinator = new FlushCoordinator(renderConfig);
   }
 
@@ -217,6 +225,17 @@ export class RootRegistry {
 
       this.roots.set(contextId, recycled);
 
+      // Register with coordinator for presence tracking
+      this.coordinator?.registerAction({
+        id: contextId,
+        uuid: definition.uuid,
+        surface: surfaceType,
+        coordinates: actionInfo.coordinates
+          ? { column: actionInfo.coordinates.column, row: actionInfo.coordinates.row }
+          : undefined,
+        deviceId: device.id,
+      });
+
       this.observer?.onRootCreated(contextId, recycled, {
         actionUuid: definition.uuid,
         surface: surfaceType,
@@ -252,6 +271,8 @@ export class RootRegistry {
       definition.wrapper,
       definition.dialLayout,
       this.flushCoordinator,
+      this.coordinator,
+      this.themeDefinition,
     );
 
     // Emit willAppear to the newly created root
@@ -262,6 +283,17 @@ export class RootRegistry {
     });
 
     this.roots.set(contextId, root);
+
+    // Register with coordinator for presence tracking
+    this.coordinator?.registerAction({
+      id: contextId,
+      uuid: definition.uuid,
+      surface: surfaceType,
+      coordinates: actionInfo.coordinates
+        ? { column: actionInfo.coordinates.column, row: actionInfo.coordinates.row }
+        : undefined,
+      deviceId: device.id,
+    });
 
     this.observer?.onRootCreated(contextId, root, {
       actionUuid: definition.uuid,
@@ -309,6 +341,8 @@ export class RootRegistry {
         this.onGlobalSettingsChange,
         this.wrapper,
         this.flushCoordinator,
+        this.coordinator,
+        this.themeDefinition,
       );
 
       this.touchStripRoots.set(deviceId, tbRoot);
@@ -328,6 +362,17 @@ export class RootRegistry {
 
     // Track reverse mapping for event routing
     this.touchStripActions.set(actionId, deviceId);
+
+    // Register with coordinator for presence tracking
+    this.coordinator?.registerAction({
+      id: actionId,
+      uuid: definition.uuid,
+      surface: "touch",
+      coordinates: ev.action.coordinates
+        ? { column: ev.action.coordinates.column, row: ev.action.coordinates.row }
+        : undefined,
+      deviceId,
+    });
   }
 
   // ── Destroy a React root ──────────────────────────────────────
@@ -350,6 +395,10 @@ export class RootRegistry {
         }
       }
       this.touchStripActions.delete(contextId);
+
+      // Unregister from coordinator
+      this.coordinator?.unregisterAction(contextId);
+
       return;
     }
 
@@ -357,6 +406,9 @@ export class RootRegistry {
     const root = this.roots.get(contextId);
     if (root) {
       this.observer?.onRootDestroyed(contextId);
+
+      // Unregister from coordinator
+      this.coordinator?.unregisterAction(contextId);
 
       // Suspend and pool instead of destroying.  The fiber root stays
       // alive so it can be reused if the same action type appears again

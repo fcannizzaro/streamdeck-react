@@ -39,6 +39,8 @@ interface PluginConfig {
   imageCacheMaxBytes?: number;
   touchStripCacheMaxBytes?: number;
   useWorker?: boolean;
+  coordinator?: boolean;
+  theme?: ThemeDefinition;
 }
 ```
 
@@ -145,6 +147,41 @@ Maximum byte budget for the TouchStrip raw buffer cache. This cache stores RGBA 
 ### `useWorker`
 
 Offload Takumi rendering to a worker thread. This prevents the native rasterization (5-30ms per frame) from blocking the main thread during animations. Set to `false` to disable. Default: `true`.
+
+### `coordinator`
+
+Enable the [Action Coordinator](/guides/coordinator) for cross-action communication. When enabled, actions can use [`useChannel()`](/hooks/coordinator) for shared state and [`useActionPresence()`](/hooks/coordinator) to observe which actions are visible on the device. Default: `false`.
+
+```ts
+const plugin = createPlugin({
+  coordinator: true,
+  fonts: [...],
+  actions: [...],
+});
+```
+
+See [Action Coordinator](/guides/coordinator) for a full guide.
+
+### `theme`
+
+A [CSS theme definition](/guides/themes) created with `defineTheme()`. Tokens are injected as CSS custom properties on every root's container element, making them available via Tailwind arbitrary values like `bg-[var(--color-primary)]`.
+
+```ts
+import { createPlugin, defineTheme, googleFont } from "@fcannizzaro/streamdeck-react";
+
+const theme = defineTheme({
+  colors: { primary: "#4CAF50", surface: "#1a1a2e" },
+  spacing: { sm: "4px", md: "8px", lg: "16px" },
+});
+
+const plugin = createPlugin({
+  theme,
+  fonts: [await googleFont("Inter")],
+  actions: [...],
+});
+```
+
+See [CSS Theme System](/guides/themes) for a full guide.
 
 ## connect()
 

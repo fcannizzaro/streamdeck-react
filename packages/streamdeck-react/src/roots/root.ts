@@ -8,10 +8,15 @@ import {
   GlobalSettingsContext,
   RootContext,
   EventBusContext,
+  CoordinatorContext,
+  ThemeContext,
   type RootContextValue,
   type SettingsContextValue,
   type GlobalSettingsContextValue,
+  type ThemeContextValue,
 } from "@/context/providers";
+import type { ActionCoordinator } from "@/coordinator/index";
+import type { ThemeDefinition } from "@/theme/index";
 import type {
   ActionInfo,
   CanvasInfo,
@@ -144,6 +149,7 @@ export class ReactRoot implements FlushableRoot {
   private rootContextValue: RootContextValue;
   private settingsValue: SettingsContextValue;
   private globalSettingsValue: GlobalSettingsContextValue;
+  private themeValue: ThemeContextValue;
 
   constructor(
     private component: ComponentType,
@@ -161,6 +167,8 @@ export class ReactRoot implements FlushableRoot {
     private actionWrapper?: WrapperComponent,
     dialLayout?: EncoderLayout,
     flushCoordinator?: FlushCoordinator,
+    private coordinator?: ActionCoordinator | null,
+    private themeDefinition?: ThemeDefinition | null,
   ) {
     this.canvas = canvas;
     this.settings = { ...initialSettings };
@@ -227,6 +235,14 @@ export class ReactRoot implements FlushableRoot {
       settings: this.globalSettings,
       setSettings: this.setGlobalSettingsFn,
     };
+    this.themeValue = {
+      theme: this.themeDefinition ?? null,
+      setTheme: (theme: ThemeDefinition) => {
+        this.themeDefinition = theme;
+        this.themeValue = { ...this.themeValue, theme };
+        this.scheduleRerender();
+      },
+    };
 
     // Create virtual container with render callback
     this.container = createVContainer(() => {
@@ -291,24 +307,42 @@ export class ReactRoot implements FlushableRoot {
       child = createElement(this.pluginWrapper, null, child);
     }
 
+    // Wrap with a theme div that injects CSS custom properties.
+    // The variables cascade to all children via CSS inheritance.
+    // Only added when a theme is configured — zero cost when not.
+    if (this.themeDefinition?.variables) {
+      child = createElement(
+        "div",
+        { style: { display: "contents", ...this.themeDefinition.variables } },
+        child,
+      );
+    }
+
     // Provider order: stable contexts outermost, volatile innermost.
-    // Stable: RootContext (merged action/device/canvas/streamDeck), EventBus.
+    // Stable: CoordinatorContext (plugin-level, never changes), ThemeContext,
+    //   RootContext (merged action/device/canvas/streamDeck), EventBus.
     // Volatile: GlobalSettings (changes less often), Settings (changes most often).
     //
-    // Previously 7 nested providers; now 4.  The 3 eliminated providers
-    // (ActionContext, DeviceContext, CanvasContext, StreamDeckContext)
-    // are merged into a single RootContext.  EventBusContext stays
-    // standalone because it's also used by TouchStripRoot.
+    // CoordinatorContext and ThemeContext are outermost because they
+    // are plugin-level and change rarely (theme) or never (coordinator).
     return createElement(
-      RootContext.Provider,
-      { value: this.rootContextValue },
+      CoordinatorContext.Provider,
+      { value: this.coordinator ?? null },
       createElement(
-        EventBusContext.Provider,
-        { value: this.eventBus },
+        ThemeContext.Provider,
+        { value: this.themeValue },
         createElement(
-          GlobalSettingsContext.Provider,
-          { value: this.globalSettingsValue },
-          createElement(SettingsContext.Provider, { value: this.settingsValue }, child),
+          RootContext.Provider,
+          { value: this.rootContextValue },
+          createElement(
+            EventBusContext.Provider,
+            { value: this.eventBus },
+            createElement(
+              GlobalSettingsContext.Provider,
+              { value: this.globalSettingsValue },
+              createElement(SettingsContext.Provider, { value: this.settingsValue }, child),
+            ),
+          ),
         ),
       ),
     );

@@ -7,7 +7,9 @@ description: Known limitations of the current renderer and @fcannizzaro/streamde
 
 Rendered UI is not a browser DOM. Keep layouts simple and explicit.
 
-- Use inline styles or `className`/`tw()` utility strings.
+- **Prefer Tailwind classes** via `className` and the `cn()` utility for all static styling (layout, colors, spacing, typography).
+- Use inline `style` **only** for dynamic values computed at runtime (animation outputs, `size.scale()`, data-driven colors).
+- Prefer flexbox layout (`flex`, `flex-col`, `items-center`, `gap-*`) over absolute positioning.
 - Prefer fixed sizes, percentages, and straightforward flex layouts.
 - Load every font you plan to render explicitly via `googleFont()` or manual `readFile`.
 - Use `.ttf` or `.otf` fonts for maximum compatibility across backends.
@@ -28,7 +30,7 @@ This is a deliberate trade-off for isolation:
 - **Cost**: memory scales linearly with visible action count; no shared React state between roots.
 - **Benefit**: complete isolation, no cross-instance bugs, clean lifecycle.
 
-Use external state managers (Zustand, Jotai) or the wrapper API to share state. See [Sharing State](/guides/shared-state).
+Use the built-in [Action Coordinator](/guides/coordinator) (`coordinator: true`), external state managers (Zustand, Jotai), or the wrapper API to share state. See [Sharing State](/guides/shared-state).
 
 ## Font Bundle Size
 

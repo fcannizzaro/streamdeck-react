@@ -35,24 +35,13 @@ function VolumeDial() {
 
   return (
     <div
-      style={{
-        width: "100%",
-        height: "100%",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        background: muted ? "#4a0000" : "#1a1a1a",
-        gap: 4,
-      }}
+      className={cn(
+        "flex flex-col items-center justify-center w-full h-full gap-1",
+        muted ? "bg-[#4a0000]" : "bg-[#1a1a1a]",
+      )}
     >
-      <span style={{ color: "#888", fontSize: 12 }}>Volume</span>
-      <span
-        style={{
-          color: muted ? "#ff4444" : "white",
-          fontSize: 24,
-          fontWeight: 700,
-        }}
-      >
+      <span className="text-[#888] text-[12px]">Volume</span>
+      <span className={cn("text-[24px] font-bold", muted ? "text-[#ff4444]" : "text-white")}>
         {muted ? "MUTE" : `${volume}%`}
       </span>
       {!muted && (
@@ -105,7 +94,7 @@ function VolumeDial() {
     console.log("touch", tapPos, hold);
   });
 
-  return <div style={{ width: "100%", height: "100%" }} />;
+  return <div className="w-full h-full" />;
 }
 ```
 

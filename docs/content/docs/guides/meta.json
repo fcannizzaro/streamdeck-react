@@ -9,7 +9,10 @@
     "touch-display",
     "settings-sync",
     "shared-state",
+    "coordinator",
+    "themes",
     "tailwind",
+    "size-utility",
     "error-handling",
     "agent-skill"
   ]

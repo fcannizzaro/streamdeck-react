@@ -35,7 +35,7 @@ Native Takumi bindings are lazy-loaded by default — they are downloaded from n
 ```tsx
 // src/actions/counter.tsx
 import { useState } from "react";
-import { defineAction, useKeyDown, useKeyUp, tw } from "@fcannizzaro/streamdeck-react";
+import { defineAction, useKeyDown, useKeyUp, cn } from "@fcannizzaro/streamdeck-react";
 
 function CounterKey() {
   const [count, setCount] = useState(0);
@@ -52,7 +52,7 @@ function CounterKey() {
 
   return (
     <div
-      className={tw(
+      className={cn(
         "flex h-full w-full flex-col items-center justify-center gap-1",
         pressed
           ? "bg-linear-to-br from-[#2563eb] to-[#1d4ed8]"

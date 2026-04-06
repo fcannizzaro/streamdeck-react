@@ -35,6 +35,20 @@ interface PluginConfig {
   touchStripCacheMaxBytes?: number;
   /** Offload Takumi rendering to a worker thread. Automatically disabled when `takumi` is `"wasm"`. @default true */
   useWorker?: boolean;
+  /**
+   * Enable the Action Coordinator for cross-action communication.
+   * When enabled, actions can use `useChannel()` for shared state
+   * and `useActionPresence()` to observe which actions are visible.
+   * @default false
+   */
+  coordinator?: boolean;
+  /**
+   * CSS theme definition. Tokens are injected as CSS custom properties
+   * on every root's container, making them available via Tailwind v4
+   * arbitrary values: `bg-[var(--color-primary)]`.
+   * Create a theme with `defineTheme()`.
+   */
+  theme?: ThemeDefinition;
 }
 
 interface FontConfig {
@@ -203,6 +217,94 @@ interface RenderMetrics {
   imageCacheBytes: number;
   /** TouchStrip cache memory usage in bytes. */
   touchStripCacheBytes: number;
+}
+```
+
+## Size Utility Types
+
+```ts
+/** Size helper with percentage-based and proportional calculations. */
+interface SizeHelper {
+  /** Raw canvas width in pixels. */
+  readonly width: number;
+  /** Raw canvas height in pixels. */
+  readonly height: number;
+  /** Minimum of width and height. Useful for circular elements. */
+  readonly min: number;
+  /** Maximum of width and height. */
+  readonly max: number;
+  /** True if width equals height (e.g., key surfaces: 144×144). */
+  readonly square: boolean;
+  /** True if width > height (e.g., dials: 200×100). */
+  readonly landscape: boolean;
+  /** True if height > width. */
+  readonly portrait: boolean;
+  /** Aspect ratio (width / height). */
+  readonly aspectRatio: number;
+  /** Calculate a percentage of the canvas width, rounded. */
+  w(percent: number): number;
+  /** Calculate a percentage of the canvas height, rounded. */
+  h(percent: number): number;
+  /** Calculate a percentage of the minimum dimension, rounded. */
+  minP(percent: number): number;
+  /** Calculate a percentage of the maximum dimension, rounded. */
+  maxP(percent: number): number;
+  /**
+   * Scale a base pixel value proportionally to canvas size.
+   * Uses the minimum dimension as reference (default 144).
+   */
+  scale(basePx: number, referenceSize?: number): number;
+}
+```
+
+## Coordinator Types
+
+```ts
+/** Information about a currently visible action instance. */
+interface ActionPresenceInfo {
+  /** Unique action instance ID (contextId). */
+  id: string;
+  /** Action definition UUID (e.g., "com.example.plugin.volume"). */
+  uuid: string;
+  /** Surface type this instance is rendered on. */
+  surface: "key" | "dial" | "touch";
+  /** Grid coordinates on the device (undefined for touch strip). */
+  coordinates?: { column: number; row: number };
+  /** Device ID this instance belongs to. */
+  deviceId: string;
+}
+
+/** Snapshot of all presence data. */
+interface ActionPresenceSnapshot {
+  /** All currently visible action instances. */
+  readonly all: readonly ActionPresenceInfo[];
+  /** Filter instances by action UUID. */
+  byUuid(uuid: string): readonly ActionPresenceInfo[];
+  /** Total count of visible action instances. */
+  readonly count: number;
+}
+```
+
+## Theme Types
+
+```ts
+/** Flat map of CSS variable names to their values. */
+type ThemeVariables = Record<string, string>;
+
+/** Input shape for defineTheme — organized by category. */
+interface ThemeInput {
+  colors?: Record<string, string>;
+  spacing?: Record<string, string>;
+  fontSize?: Record<string, string>;
+  borderRadius?: Record<string, string>;
+  /** Arbitrary category. Keys become `--{category}-{key}`. */
+  [category: string]: Record<string, string> | undefined;
+}
+
+/** Resolved theme definition with flattened CSS variables. */
+interface ThemeDefinition {
+  /** Flat map of CSS variable names (e.g. `"--color-primary"`) to values. */
+  readonly variables: ThemeVariables;
 }
 ```
 

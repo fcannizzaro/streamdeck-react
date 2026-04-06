@@ -9,6 +9,8 @@ import { metrics } from "@/render/metrics";
 import { startDevtoolsServer } from "./devtools/index.js";
 import { physicalDevice } from "@/adapter/physical-device";
 import type { StreamDeckAdapter } from "@/adapter/types";
+import { ActionCoordinator } from "@/coordinator/index";
+import type { ThemeDefinition } from "@/theme/index";
 
 // ── createPlugin ────────────────────────────────────────────────────
 //
@@ -115,7 +117,20 @@ export function createPlugin(config: PluginConfig): Plugin {
         imageCacheMaxBytes: config.imageCacheMaxBytes ?? 16 * 1024 * 1024,
         touchStripCacheMaxBytes: config.touchStripCacheMaxBytes ?? 8 * 1024 * 1024,
         renderPool,
+        stylesheets: config.stylesheets,
       };
+
+      // ── Action Coordinator (opt-in) ────────────────────────────────
+      // When enabled, creates a plugin-level coordinator that tracks
+      // action presence and provides named channels for cross-action
+      // state sharing.  Passed to the RootRegistry which injects it
+      // into every React root's provider tree.
+      const coordinator = config.coordinator ? new ActionCoordinator() : null;
+
+      // ── Theme resolution ──────────────────────────────────────────
+      // The theme is passed through to every root's provider tree,
+      // where it's injected as CSS custom properties on a wrapper div.
+      const theme: ThemeDefinition | null = config.theme ?? null;
 
       // Create the root registry
       const registry = new RootRegistry(
@@ -132,6 +147,8 @@ export function createPlugin(config: PluginConfig): Plugin {
           registry.setGlobalSettings(settings);
         },
         config.wrapper,
+        coordinator,
+        theme,
       );
 
       // Load initial global settings

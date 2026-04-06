@@ -209,6 +209,7 @@ export class RenderPool {
     height: number,
     format: string,
     dpr: number,
+    stylesheets?: string[],
   ): Promise<Buffer> {
     // Lazy init: first render call triggers worker initialization
     if (!this.ready && !this.failed) {
@@ -233,6 +234,7 @@ export class RenderPool {
         height,
         format,
         dpr,
+        stylesheets,
       });
     });
   }

@@ -79,11 +79,11 @@ function SpringBounce() {
 
   return (
     <div
-      className={tw("flex items-center justify-center w-full h-full")}
+      className={cn("flex items-center justify-center w-full h-full")}
       style={{ backgroundColor: `hsl(${Math.round(hue)}, 60%, 25%)` }}
     >
       <div
-        className={tw("flex flex-col items-center justify-center")}
+        className={cn("flex flex-col items-center justify-center")}
         style={{ width: `${size}%`, height: `${size}%` }}
       >
         <span className="text-white/50 text-[10px] font-medium">SPRING</span>
@@ -205,7 +205,7 @@ function FadeSlide() {
 
   return (
     <div
-      className={tw("flex flex-col items-center justify-center w-full h-full")}
+      className={cn("flex flex-col items-center justify-center w-full h-full")}
       style={{ backgroundColor: `hsl(${Math.round(bg) % 360}, 50%, 25%)` }}
     >
       <span className="text-white text-[28px] font-bold">{LABELS[index]}</span>

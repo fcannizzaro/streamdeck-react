@@ -118,6 +118,40 @@ const plugin = createPlugin({
 
 See `samples/jotai/` for a full working example.
 
+## Action Coordinator (built-in)
+
+For simple cross-action state sharing without external dependencies, use the built-in [Action Coordinator](/guides/coordinator). Enable it in `createPlugin()` and use `useChannel()` for shared state:
+
+```ts
+const plugin = createPlugin({
+  coordinator: true,
+  fonts: [...],
+  actions: [...],
+});
+```
+
+```tsx
+// In any action component:
+const [volume, setVolume] = useChannel<number>("volume", 50);
+```
+
+The coordinator is ideal for sharing simple values (booleans, strings, numbers) between actions. For complex state management patterns (derived state, middleware, computed atoms), external stores like Zustand or Jotai remain the better choice.
+
+See [Action Coordinator](/guides/coordinator) for a full guide.
+
 ## Built-in Settings Hooks
 
 For simpler cases, use `useSettings()` for per-action persistence and `useGlobalSettings()` for plugin-wide persistence backed by the SDK. See [Settings Hooks](/hooks/settings).
+
+## Decision Guide
+
+| Need                                             | Solution                                                            |
+| ------------------------------------------------ | ------------------------------------------------------------------- |
+| Simple per-action state                          | `useState` / `useReducer`                                           |
+| Persist per-action settings across reloads       | `useSettings<T>()`                                                  |
+| Plugin-wide shared config                        | `useGlobalSettings<T>()`                                            |
+| Simple cross-action state (built-in)             | `useChannel()` via [Action Coordinator](/guides/coordinator)        |
+| Know which actions are visible                   | `useActionPresence()` via [Action Coordinator](/guides/coordinator) |
+| Shared state across actions (no provider needed) | Zustand store in module scope                                       |
+| Shared state with provider pattern               | Jotai/React Context via `wrapper`                                   |
+| Complex derived state / middleware               | Zustand or Jotai                                                    |

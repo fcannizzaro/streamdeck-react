@@ -1,0 +1,203 @@
+---
+title: CSS Theme System
+description: Centralized design tokens as CSS custom properties for consistent styling.
+---
+
+The CSS Theme System provides centralized design tokens that are injected as CSS custom properties on every action root. This enables consistent styling across all actions and supports runtime theme switching (e.g., light/dark mode).
+
+## Defining a Theme
+
+Use `defineTheme()` to create a theme from categorized design tokens:
+
+```ts
+import { defineTheme } from "@fcannizzaro/streamdeck-react";
+
+const theme = defineTheme({
+  colors: {
+    primary: "#4CAF50",
+    secondary: "#2196F3",
+    surface: "#1a1a2e",
+    text: "#ffffff",
+    textMuted: "#888888",
+  },
+  spacing: {
+    sm: "4px",
+    md: "8px",
+    lg: "16px",
+  },
+  fontSize: {
+    body: "14px",
+    heading: "24px",
+    caption: "10px",
+  },
+  borderRadius: {
+    sm: "4px",
+    md: "8px",
+    lg: "16px",
+  },
+});
+```
+
+### How Tokens Map to CSS Variables
+
+Each category's keys are flattened into CSS custom properties with the pattern `--{category}-{key}`:
+
+| Input              | CSS Variable         |
+| ------------------ | -------------------- |
+| `colors.primary`   | `--color-primary`    |
+| `colors.textMuted` | `--color-text-muted` |
+| `spacing.sm`       | `--spacing-sm`       |
+| `fontSize.body`    | `--font-size-body`   |
+| `borderRadius.lg`  | `--border-radius-lg` |
+
+Category names are singularized where conventional (`colors` → `color`), and camelCase is converted to kebab-case (`fontSize` → `font-size`, `borderRadius` → `border-radius`).
+
+## Using the Theme
+
+Pass the theme to `createPlugin()`:
+
+```ts
+import { createPlugin, defineTheme, googleFont } from "@fcannizzaro/streamdeck-react";
+
+const theme = defineTheme({
+  colors: { primary: "#4CAF50", surface: "#1a1a2e" },
+});
+
+const plugin = createPlugin({
+  theme,
+  fonts: [await googleFont("Inter")],
+  actions: [myAction],
+});
+
+await plugin.connect();
+```
+
+### In Components
+
+Reference theme variables using Tailwind arbitrary values:
+
+```tsx
+function ThemedKey() {
+  return (
+    <div className="flex items-center justify-center w-full h-full bg-[var(--color-surface)]">
+      <span className="text-[var(--color-primary)] text-[var(--font-size-heading)] font-bold">
+        Hello
+      </span>
+    </div>
+  );
+}
+```
+
+<Callout type="info">
+  Prefer Tailwind classes for all static styling. Use inline `style` only for truly dynamic values
+  computed at runtime (e.g., animation outputs, `size.scale()` results).
+</Callout>
+
+## Reading Theme Variables
+
+Use the `useTheme()` hook to access the current theme's variable map:
+
+```tsx
+import { useTheme } from "@fcannizzaro/streamdeck-react";
+
+function DebugKey() {
+  const [variables] = useTheme();
+
+  // variables = { "--color-primary": "#4CAF50", "--color-surface": "#1a1a2e", ... }
+
+  return (
+    <div className="flex flex-col items-center justify-center w-full h-full bg-[var(--color-surface)]">
+      <span className="text-white text-[10px]">Primary: {variables["--color-primary"]}</span>
+    </div>
+  );
+}
+```
+
+## Dynamic Theme Switching
+
+The `useTheme()` hook also returns a `setTheme` function for runtime theme switching:
+
+```tsx
+import { useTheme, useKeyDown, defineTheme } from "@fcannizzaro/streamdeck-react";
+
+const lightTheme = defineTheme({
+  colors: { primary: "#4CAF50", surface: "#f5f5f5", text: "#1a1a1a" },
+});
+
+const darkTheme = defineTheme({
+  colors: { primary: "#81C784", surface: "#121212", text: "#ffffff" },
+});
+
+function ThemeToggleKey() {
+  const [variables, setTheme] = useTheme();
+  const isDark = variables["--color-surface"] === "#121212";
+
+  useKeyDown(() => {
+    setTheme(isDark ? lightTheme : darkTheme);
+  });
+
+  return (
+    <div className="flex items-center justify-center w-full h-full bg-[var(--color-surface)]">
+      <span className="text-[var(--color-text)] text-[18px] font-bold">
+        {isDark ? "DARK" : "LIGHT"}
+      </span>
+    </div>
+  );
+}
+```
+
+## Merging Themes
+
+Use `mergeThemes()` to compose themes. Later themes override earlier ones for the same variable name:
+
+```ts
+import { defineTheme, mergeThemes } from "@fcannizzaro/streamdeck-react";
+
+const base = defineTheme({
+  colors: { primary: "#4CAF50", surface: "#1a1a2e" },
+  spacing: { sm: "4px", md: "8px" },
+});
+
+const darkOverride = defineTheme({
+  colors: { surface: "#121212" }, // overrides base surface color
+});
+
+const darkTheme = mergeThemes(base, darkOverride);
+// darkTheme.variables = {
+//   "--color-primary": "#4CAF50",   (from base)
+//   "--color-surface": "#121212",   (from darkOverride)
+//   "--spacing-sm": "4px",          (from base)
+//   "--spacing-md": "8px",          (from base)
+// }
+```
+
+## Custom Categories
+
+You can use any category name. Keys become `--{category}-{key}`:
+
+```ts
+const theme = defineTheme({
+  colors: { primary: "#4CAF50" },
+  opacity: { dim: "0.5", bright: "1" },
+  animation: { fast: "150ms", slow: "500ms" },
+});
+
+// Generates:
+// --color-primary: #4CAF50
+// --opacity-dim: 0.5
+// --opacity-bright: 1
+// --animation-fast: 150ms
+// --animation-slow: 500ms
+```
+
+## How It Works
+
+Theme variables are injected as inline `style` on a `display: contents` wrapper `div` at the root of every action's React tree. This wrapper doesn't affect layout — it only exists to cascade CSS custom properties to all children.
+
+```
+ThemeContext.Provider
+  └─ <div style={{ display: "contents", "--color-primary": "#4CAF50", ... }}>
+       └─ <YourComponent />
+```
+
+The Tailwind renderer (Takumi) resolves `var()` references in arbitrary values like `bg-[var(--color-primary)]`, making theme variables available everywhere without a CSS build step.

@@ -1,0 +1,177 @@
+---
+title: Size Utility
+description: Percentage-based and proportional size calculations for Stream Deck surfaces.
+---
+
+Stream Deck surfaces have fixed pixel dimensions that vary by device and surface type. The size utility provides convenient helpers for calculating proportional sizes, making it easy to build layouts that adapt across keys, dials, and touch strips.
+
+## calcSize (standalone)
+
+A pure function that creates a size helper for any given dimensions. No React context required — use this in utility files, tests, or outside React components.
+
+```ts
+import { calcSize } from "@fcannizzaro/streamdeck-react";
+
+const s = calcSize(144, 144); // Standard key
+s.w(50); // 72 (50% of width)
+s.h(25); // 36 (25% of height)
+s.square; // true
+s.scale(16); // 16 (same size on reference surface)
+
+const d = calcSize(200, 100); // Dial/encoder
+d.w(50); // 100 (50% of 200)
+d.h(50); // 50  (50% of 100)
+d.landscape; // true
+d.scale(16); // 11  (scaled down: 16 * 100/144)
+```
+
+## useSize (hook)
+
+Reads canvas dimensions from the current root context and returns a memoized `SizeHelper`. The helper is created once per root mount and never recomputed (canvas dimensions are stable).
+
+```tsx
+import { useSize } from "@fcannizzaro/streamdeck-react";
+
+function AdaptiveKey() {
+  const size = useSize();
+
+  return (
+    <div className="flex flex-col items-center justify-center w-full h-full bg-[#1a1a1a]">
+      <span className="text-white" style={{ fontSize: size.scale(24) }}>
+        {size.square ? "KEY" : "DIAL"}
+      </span>
+      <span className="text-[#888]" style={{ fontSize: size.scale(12) }}>
+        {size.width}×{size.height}
+      </span>
+    </div>
+  );
+}
+```
+
+## SizeHelper Interface
+
+```ts
+interface SizeHelper {
+  readonly width: number; // Raw canvas width in pixels
+  readonly height: number; // Raw canvas height in pixels
+  readonly min: number; // min(width, height)
+  readonly max: number; // max(width, height)
+  readonly square: boolean; // width === height
+  readonly landscape: boolean; // width > height
+  readonly portrait: boolean; // height > width
+  readonly aspectRatio: number; // width / height
+
+  w(percent: number): number; // % of width, rounded
+  h(percent: number): number; // % of height, rounded
+  minP(percent: number): number; // % of min dimension, rounded
+  maxP(percent: number): number; // % of max dimension, rounded
+  scale(basePx: number, referenceSize?: number): number;
+}
+```
+
+## Methods
+
+### `w(percent)` / `h(percent)`
+
+Calculate a percentage of the canvas width or height, rounded to the nearest integer.
+
+```ts
+const s = calcSize(200, 100);
+s.w(50); // 100
+s.h(50); // 50
+```
+
+### `minP(percent)` / `maxP(percent)`
+
+Calculate a percentage of the minimum or maximum dimension. Useful for sizing elements that should be proportional to the smaller axis (e.g., circles that must fit within both width and height).
+
+```ts
+const s = calcSize(200, 100);
+s.minP(50); // 50  (50% of 100)
+s.maxP(50); // 100 (50% of 200)
+```
+
+### `scale(basePx, referenceSize?)`
+
+Scale a pixel value proportionally to the canvas size. The reference base defaults to 144 (standard key size).
+
+A value designed for a 144×144 key is scaled down on smaller surfaces and up on larger ones. The minimum dimension is used as the reference axis, so elements always fit within both width and height.
+
+```ts
+// Font size of 24px designed for a key:
+calcSize(144, 144).scale(24); // 24 (no change on reference surface)
+calcSize(200, 100).scale(24); // 17 (scaled down for dial: 24 * 100/144)
+calcSize(72, 72).scale(24); // 12 (scaled down for small key: 24 * 72/144)
+```
+
+## Common Patterns
+
+### Responsive Font Sizes
+
+```tsx
+function StatusKey() {
+  const size = useSize();
+
+  return (
+    <div className="flex flex-col items-center justify-center w-full h-full">
+      <span className="text-white font-bold" style={{ fontSize: size.scale(32) }}>
+        OK
+      </span>
+      <span className="text-[#888]" style={{ fontSize: size.scale(10) }}>
+        Status
+      </span>
+    </div>
+  );
+}
+```
+
+### Surface-Adaptive Layouts
+
+```tsx
+function SmartDisplay() {
+  const size = useSize();
+
+  if (size.landscape) {
+    // Horizontal layout for dials (200×100)
+    return (
+      <div className="flex flex-row items-center justify-between w-full h-full p-2">
+        <Icon path={iconPath} size={size.h(60)} />
+        <span className="text-white" style={{ fontSize: size.scale(18) }}>
+          75%
+        </span>
+      </div>
+    );
+  }
+
+  // Vertical layout for keys (144×144)
+  return (
+    <div className="flex flex-col items-center justify-center w-full h-full gap-1">
+      <Icon path={iconPath} size={size.w(40)} />
+      <span className="text-white" style={{ fontSize: size.scale(18) }}>
+        75%
+      </span>
+    </div>
+  );
+}
+```
+
+### Circular Elements
+
+Use `minP` to size circular elements that fit within any aspect ratio:
+
+```tsx
+const gaugeSize = size.minP(80); // 80% of the smaller dimension
+<CircularGauge value={75} size={gaugeSize} />;
+```
+
+## Surface Dimensions Reference
+
+| Surface          | Dimensions | square | landscape | portrait |
+| ---------------- | ---------- | ------ | --------- | -------- |
+| Key (SD+)        | 144×144    | true   | false     | false    |
+| Key (XL)         | 96×96      | true   | false     | false    |
+| Key (MK.2)       | 72×72      | true   | false     | false    |
+| Key (Mini)       | 80×80      | true   | false     | false    |
+| Dial/Encoder     | 200×100    | false  | true      | false    |
+| Touch segment    | 200×100    | false  | true      | false    |
+| Full touch strip | 800×100    | false  | true      | false    |

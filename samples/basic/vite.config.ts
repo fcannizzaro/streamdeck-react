@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { defineConfig, esmExternalRequirePlugin } from "vite";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import babel from "@rolldown/plugin-babel";
+import tailwindcss from "@tailwindcss/vite";
 import { streamDeckReact } from "@fcannizzaro/streamdeck-react/vite";
 
 const PLUGIN_DIR = "com.example.react-basic.sdPlugin";
@@ -14,6 +15,7 @@ export default defineConfig({
   },
   plugins: [
     esmExternalRequirePlugin({ external: builtins }),
+    tailwindcss(),
     react(),
     babel({ presets: [reactCompilerPreset()] }),
     streamDeckReact({
@@ -43,7 +45,7 @@ export default defineConfig({
         name: "React Basic Sample",
         author: "Francesco Saverio Cannizzaro",
         description:
-          "Sample plugin demonstrating @fcannizzaro/streamdeck-react with counter, timer, toggle, volume, and equalizer touchstrip actions.",
+          "Sample plugin demonstrating @fcannizzaro/streamdeck-react with counter, timer, toggle, volume, equalizer touchstrip, and CSS theme actions.",
         icon: "imgs/plugin-icon",
         version: "0.0.0.1",
         nodejs: { version: "24", debug: "--inspect=127.0.0.1:8090" },

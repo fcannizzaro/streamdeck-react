@@ -90,6 +90,15 @@ export interface RenderConfig {
   onRender?: (container: VContainer, dataUri: string) => void;
   /** Profiling callback. Called after every renderToDataUri / renderToRaw attempt. */
   onProfile?: (profile: RenderProfile) => void;
+  /**
+   * CSS stylesheets to pass to the Takumi renderer.  Enables full
+   * Tailwind v4 support including `@theme` blocks, custom utilities,
+   * and any standard CSS.
+   *
+   * Compiled at build time via `@tailwindcss/vite` and imported with
+   * `?inline`.  Passed to every `Renderer.render()` call.
+   */
+  stylesheets?: string[];
 }
 
 // ── Hoisted Constants ───────────────────────────────────────────────
@@ -115,8 +124,21 @@ let depthWarned = false;
 //   svg    → Takumi ImageNode { type: "image", src: "<svg>...</svg>" }
 //   *      → Takumi ContainerNode { type: "container", children }
 //
-// className → tw mapping: Takumi uses a `tw` prop for its built-in
-// Tailwind CSS parser.
+// Class name handling — two complementary systems:
+//
+//   tw        → Takumi's built-in Tailwind parser (medium priority)
+//              Resolves standard utilities: flex, bg-blue-500, p-4, etc.
+//              Does NOT support custom @theme tokens.
+//
+//   className → CSS stylesheet selector matching
+//              Matches rules from compiled CSS stylesheets (e.g.
+//              @tailwindcss/vite output with @theme blocks).
+//              Enables custom tokens: bg-primary, text-surface, etc.
+//
+// Both are set from the same combined class string so that:
+//   - Standard utilities work via the built-in parser (tw)
+//   - Custom theme classes work via CSS selector matching (className)
+//   - When both resolve the same class, tw takes priority (by design)
 
 // ── Props keys to skip when copying VNode props to Takumi nodes ─────
 // These are handled specially by vnodeToTakumiNode (className → tw,
@@ -161,7 +183,10 @@ function vnodeToTakumiNode(node: VNode, depth = 0): TakumiNode {
   // Image nodes → Takumi ImageNode
   if (node.type === "img" && typeof props.src === "string") {
     const result: Record<string, unknown> = { type: "image", src: props.src };
-    if (tw) result.tw = tw;
+    if (tw) {
+      result.tw = tw;
+      result.className = tw;
+    }
     copyPropsToNode(result, props);
     return result as TakumiNode;
   }
@@ -174,14 +199,20 @@ function vnodeToTakumiNode(node: VNode, depth = 0): TakumiNode {
     const height = typeof props.height === "number" ? props.height : undefined;
     if (width != null) result.width = width;
     if (height != null) result.height = height;
-    if (tw) result.tw = tw;
+    if (tw) {
+      result.tw = tw;
+      result.className = tw;
+    }
     if (props.style) result.style = props.style;
     return result as TakumiNode;
   }
 
   // All other nodes → Takumi ContainerNode
   const result: Record<string, unknown> = { type: "container" };
-  if (tw) result.tw = tw;
+  if (tw) {
+    result.tw = tw;
+    result.className = tw;
+  }
   copyPropsToNode(result, props);
 
   if (node.children.length > 0) {
@@ -328,6 +359,7 @@ export async function renderToDataUri(
       height,
       config.imageFormat,
       config.devicePixelRatio,
+      config.stylesheets,
     );
     t2 = profiling ? performance.now() : 0;
     t1 = t0; // no sub-stage data
@@ -343,6 +375,7 @@ export async function renderToDataUri(
       height,
       format: config.imageFormat,
       devicePixelRatio: config.devicePixelRatio,
+      stylesheets: config.stylesheets,
     });
 
     t2 = profiling ? performance.now() : 0;
@@ -537,6 +570,7 @@ export async function renderToRaw(
       height,
       "raw",
       config.devicePixelRatio,
+      config.stylesheets,
     );
     t2 = profiling ? performance.now() : 0;
     t1 = t0; // no sub-stage data in worker mode
@@ -551,6 +585,7 @@ export async function renderToRaw(
       height,
       format: "raw" as OutputFormat,
       devicePixelRatio: config.devicePixelRatio,
+      stylesheets: config.stylesheets,
     });
 
     t2 = profiling ? performance.now() : 0;

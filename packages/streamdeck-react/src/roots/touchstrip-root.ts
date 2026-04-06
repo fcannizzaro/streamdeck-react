@@ -14,12 +14,17 @@ import {
   DeviceContext,
   EventBusContext,
   GlobalSettingsContext,
+  CoordinatorContext,
+  ThemeContext,
   type GlobalSettingsContextValue,
+  type ThemeContextValue,
 } from "@/context/providers";
 import { TouchStripContext } from "@/context/touchstrip-context";
 import type { DeviceInfo, TouchStripInfo, WrapperComponent } from "@/types";
 import { partialHasChanges, shallowEqualSettings } from "./settings-equality";
 import type { AdapterActionHandle } from "@/adapter/types";
+import type { ActionCoordinator } from "@/coordinator/index";
+import type { ThemeDefinition } from "@/theme/index";
 import type { JsonObject } from "@elgato/utils";
 import { FlushPriority, type FlushableRoot, type FlushCoordinator } from "./flush-coordinator";
 
@@ -184,6 +189,7 @@ export class TouchStripRoot implements FlushableRoot {
   // Cached context values
   private globalSettingsValue: GlobalSettingsContextValue;
   private touchStripValue: TouchStripInfo;
+  private themeValue: ThemeContextValue;
 
   constructor(
     private component: ComponentType,
@@ -193,6 +199,8 @@ export class TouchStripRoot implements FlushableRoot {
     onGlobalSettingsChange: (settings: JsonObject) => Promise<void>,
     pluginWrapper?: WrapperComponent,
     flushCoordinator?: FlushCoordinator,
+    private coordinator?: ActionCoordinator | null,
+    private themeDefinition?: ThemeDefinition | null,
   ) {
     this.deviceInfo = deviceInfo;
     this.globalSettings = { ...initialGlobalSettings };
@@ -228,6 +236,15 @@ export class TouchStripRoot implements FlushableRoot {
       height: SEGMENT_HEIGHT,
       columns: [],
       segmentWidth: SEGMENT_WIDTH,
+    };
+
+    this.themeValue = {
+      theme: this.themeDefinition ?? null,
+      setTheme: (theme: ThemeDefinition) => {
+        this.themeDefinition = theme;
+        this.themeValue = { ...this.themeValue, theme };
+        this.scheduleRerender();
+      },
     };
 
     // Create virtual container with render callback
@@ -324,17 +341,39 @@ export class TouchStripRoot implements FlushableRoot {
       child = createElement(this.pluginWrapper, null, child);
     }
 
+    // Inject theme CSS variables via a wrapper div (same as ReactRoot)
+    if (this.themeDefinition?.variables) {
+      child = createElement(
+        "div",
+        { style: { display: "contents", ...this.themeDefinition.variables } },
+        child,
+      );
+    }
+
     // Provider order: stable outermost, volatile innermost.
+    // CoordinatorContext and ThemeContext are outermost — plugin-level.
     return createElement(
-      TouchStripContext.Provider,
-      { value: this.touchStripValue },
+      CoordinatorContext.Provider,
+      { value: this.coordinator ?? null },
       createElement(
-        DeviceContext.Provider,
-        { value: this.deviceInfo },
+        ThemeContext.Provider,
+        { value: this.themeValue },
         createElement(
-          EventBusContext.Provider,
-          { value: this.eventBus },
-          createElement(GlobalSettingsContext.Provider, { value: this.globalSettingsValue }, child),
+          TouchStripContext.Provider,
+          { value: this.touchStripValue },
+          createElement(
+            DeviceContext.Provider,
+            { value: this.deviceInfo },
+            createElement(
+              EventBusContext.Provider,
+              { value: this.eventBus },
+              createElement(
+                GlobalSettingsContext.Provider,
+                { value: this.globalSettingsValue },
+                child,
+              ),
+            ),
+          ),
         ),
       ),
     );

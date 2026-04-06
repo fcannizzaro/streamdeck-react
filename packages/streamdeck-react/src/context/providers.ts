@@ -1,6 +1,8 @@
 import { createContext } from "react";
 import type { EventBus } from "./event-bus";
 import type { ActionInfo, CanvasInfo, DeviceInfo, StreamDeckAccess } from "@/types";
+import type { ActionCoordinator } from "@/coordinator/index";
+import type { ThemeDefinition } from "@/theme/index";
 import type { JsonObject } from "@elgato/utils";
 
 // ── React Context Definitions ───────────────────────────────────────
@@ -92,3 +94,29 @@ export const EventBusContext = createContext<EventBus>(null!);
 // For ReactRoot, DeviceInfo is provided via RootContext.
 
 export const DeviceContext = createContext<DeviceInfo>(null!);
+
+// ── Coordinator Context ─────────────────────────────────────────────
+//
+// Plugin-level ActionCoordinator instance for cross-action communication.
+// null when the coordinator is not enabled (opt-in via createPlugin).
+// Hooks that consume this context (useChannel, useActionPresence, etc.)
+// throw a helpful error when called without a coordinator.
+
+export const CoordinatorContext = createContext<ActionCoordinator | null>(null);
+
+// ── Theme Context ───────────────────────────────────────────────────
+//
+// Plugin-level theme definition.  Contains CSS custom properties
+// (e.g., "--color-primary": "#4CAF50") that are injected as inline
+// style on every root's container element.  null when no theme is set.
+//
+// The theme variables are applied as style properties on a wrapper
+// div in each root's buildTree(), making them cascade to all children
+// via CSS custom property inheritance.
+
+export interface ThemeContextValue {
+  theme: ThemeDefinition | null;
+  setTheme: (theme: ThemeDefinition) => void;
+}
+
+export const ThemeContext = createContext<ThemeContextValue>(null!);

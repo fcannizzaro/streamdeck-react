@@ -1,0 +1,182 @@
+---
+title: Action Coordinator
+description: Built-in cross-action communication with presence tracking and named channels.
+---
+
+The Action Coordinator enables cross-action communication without requiring external state managers like Zustand or Jotai. It provides two capabilities:
+
+1. **Presence Tracking** — know which action instances are currently visible on the device
+2. **Channel State Bus** — named publish/subscribe channels with latest-value semantics
+
+## Enabling
+
+The coordinator is opt-in. Enable it in `createPlugin()`:
+
+```ts
+import { createPlugin, googleFont } from "@fcannizzaro/streamdeck-react";
+
+const plugin = createPlugin({
+  coordinator: true,
+  fonts: [await googleFont("Inter")],
+  actions: [playAction, volumeAction, displayAction],
+});
+
+await plugin.connect();
+```
+
+## Channels: Shared State Across Actions
+
+Use `useChannel()` to share state between any action instances. It works like `useState` but the value is shared across all action roots.
+
+```tsx
+import { useChannel, useKeyDown, cn } from "@fcannizzaro/streamdeck-react";
+
+// Play/Pause button
+function PlayPauseKey() {
+  const [state, setState] = useChannel<"playing" | "paused">("playback", "paused");
+
+  useKeyDown(() => {
+    setState(state === "playing" ? "paused" : "playing");
+  });
+
+  return (
+    <div
+      className={cn(
+        "flex items-center justify-center w-full h-full",
+        state === "playing" ? "bg-green-600" : "bg-gray-800",
+      )}
+    >
+      <span className="text-white text-[28px] font-bold">{state === "playing" ? "▶" : "⏸"}</span>
+    </div>
+  );
+}
+```
+
+```tsx
+// Now Playing display (different action, reads the same channel)
+function NowPlayingKey() {
+  const [state] = useChannel<"playing" | "paused">("playback", "paused");
+
+  return (
+    <div className="flex items-center justify-center w-full h-full bg-[#1a1a2e]">
+      <span className="text-white text-[14px]">
+        {state === "playing" ? "Now Playing" : "Paused"}
+      </span>
+    </div>
+  );
+}
+```
+
+### Channel Semantics
+
+- **Latest-value** — each channel holds a single current value. New subscribers receive the current value immediately.
+- **Referential equality** — updates are skipped when the new value is `===` the current value.
+- **Scoped re-renders** — only components subscribed to the changed channel re-render. Other actions are unaffected.
+- **Type-safe** — use a type parameter to constrain channel values: `useChannel<number>("volume", 50)`.
+
+### Multiple Channels
+
+You can use as many named channels as needed:
+
+```tsx
+function MediaController() {
+  const [playback, setPlayback] = useChannel<"playing" | "paused">("playback", "paused");
+  const [volume, setVolume] = useChannel<number>("volume", 50);
+  const [track, setTrack] = useChannel<string>("track", "Unknown");
+
+  // Each channel is independent — changing volume doesn't re-render
+  // components that only subscribe to playback.
+}
+```
+
+## Presence Tracking
+
+Use `useActionPresence()` to observe which action instances are currently visible on the Stream Deck. Presence is updated automatically when actions appear or disappear.
+
+```tsx
+import { useActionPresence } from "@fcannizzaro/streamdeck-react";
+
+function StatusKey() {
+  const presence = useActionPresence();
+
+  const volumeActions = presence.byUuid("com.example.plugin.volume");
+
+  return (
+    <div className="flex flex-col items-center justify-center w-full h-full bg-[#1a1a2e]">
+      <span className="text-white text-[12px]">{presence.count} actions visible</span>
+      <span className="text-[#888] text-[10px]">{volumeActions.length} volume knobs</span>
+    </div>
+  );
+}
+```
+
+### ActionPresenceSnapshot
+
+```ts
+interface ActionPresenceSnapshot {
+  readonly all: readonly ActionPresenceInfo[];
+  byUuid(uuid: string): readonly ActionPresenceInfo[];
+  readonly count: number;
+}
+
+interface ActionPresenceInfo {
+  id: string; // Unique instance ID
+  uuid: string; // Action definition UUID
+  surface: "key" | "dial" | "touch";
+  coordinates?: { column: number; row: number };
+  deviceId: string;
+}
+```
+
+## Imperative Access
+
+Use `useCoordinator()` for direct access to the coordinator instance. Useful for setting channel values from event handlers without subscribing to them:
+
+```tsx
+import { useCoordinator, useKeyDown } from "@fcannizzaro/streamdeck-react";
+
+function TriggerKey() {
+  const coordinator = useCoordinator();
+
+  useKeyDown(() => {
+    // Set a channel value without subscribing to it
+    coordinator.setChannelValue("lastTrigger", Date.now());
+  });
+
+  return (
+    <div className="flex items-center justify-center w-full h-full bg-red-600">
+      <span className="text-white text-[18px] font-bold">TRIGGER</span>
+    </div>
+  );
+}
+```
+
+## When to Use Coordinator vs External State
+
+| Need                                  | Solution                                                     |
+| ------------------------------------- | ------------------------------------------------------------ |
+| Simple cross-action state             | **Coordinator channels** — zero setup, built-in              |
+| Know which actions are visible        | **Coordinator presence** — automatic tracking                |
+| Complex derived state / middleware    | **Zustand** — more powerful selectors and middleware         |
+| Atom-based state with computed values | **Jotai** — fine-grained reactivity                          |
+| Already using Zustand/Jotai           | Keep using them — coordinator is additive, not a replacement |
+
+The coordinator is designed for the common case of sharing simple values (booleans, strings, numbers) between actions. For complex state management patterns, external stores remain the better choice.
+
+## Architecture
+
+```
+createPlugin({ coordinator: true })
+  │
+  └─ ActionCoordinator (singleton)
+       │
+       ├─ Presence Map
+       │    Map<actionId, ActionPresenceInfo>
+       │    Updated automatically on willAppear/willDisappear.
+       │
+       └─ Channel Map
+            Map<channelName, { value, listeners }>
+            Updates trigger only subscribers of that channel.
+```
+
+All hooks use `useSyncExternalStore` for concurrent-mode-safe subscriptions. Channel and presence subscriptions are independent — changing a channel value only notifies subscribers of that specific channel.

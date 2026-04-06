@@ -57,6 +57,7 @@ interface RenderMessage {
   height: number;
   format: string;
   dpr: number;
+  stylesheets?: string[];
 }
 
 interface ShutdownMessage {
@@ -212,6 +213,10 @@ function serializeSvgTree(svgNode: SerializedVNode): string {
 // ── Direct VNode → Takumi Node Conversion ───────────────────────────
 // Mirrors the main-thread vnodeToTakumiNode() from pipeline.ts.
 // Inlined to avoid cross-module import issues in worker context.
+//
+// Sets BOTH tw and className on Takumi nodes:
+//   tw        → built-in Tailwind parser (standard utilities)
+//   className → CSS stylesheet selector matching (custom @theme classes)
 
 function vnodeToTakumiNode(node: SerializedVNode): TakumiNode {
   // Text nodes → Takumi TextNode
@@ -221,7 +226,7 @@ function vnodeToTakumiNode(node: SerializedVNode): TakumiNode {
 
   const { children: _children, className, src, ...restProps } = node.props;
 
-  // Map className → tw (same logic as main thread)
+  // Map className → tw + className (same logic as main thread)
   let tw: string | undefined = typeof restProps.tw === "string" ? restProps.tw : undefined;
   if (typeof className === "string" && className.length > 0) {
     tw = tw ? tw + " " + className : className;
@@ -232,7 +237,7 @@ function vnodeToTakumiNode(node: SerializedVNode): TakumiNode {
     return {
       type: "image",
       src: src as string,
-      ...(tw ? { tw } : {}),
+      ...(tw ? { tw, className: tw } : {}),
       ...restProps,
     };
   }
@@ -247,7 +252,7 @@ function vnodeToTakumiNode(node: SerializedVNode): TakumiNode {
       src: svgMarkup,
       ...(width != null ? { width } : {}),
       ...(height != null ? { height } : {}),
-      ...(tw ? { tw } : {}),
+      ...(tw ? { tw, className: tw } : {}),
       ...(node.props.style ? { style: node.props.style } : {}),
       tagName: "svg",
     };
@@ -259,7 +264,7 @@ function vnodeToTakumiNode(node: SerializedVNode): TakumiNode {
 
   return {
     type: "container",
-    ...(tw ? { tw } : {}),
+    ...(tw ? { tw, className: tw } : {}),
     ...restProps,
     ...(takumiChildren ? { children: takumiChildren } : {}),
   };
@@ -333,6 +338,7 @@ async function handleMessage(msg: WorkerMessage): Promise<void> {
             height: msg.height,
             format: msg.format as import("@takumi-rs/core").OutputFormat,
             devicePixelRatio: msg.dpr,
+            stylesheets: msg.stylesheets,
           },
         );
 

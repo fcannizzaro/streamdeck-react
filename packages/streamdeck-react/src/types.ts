@@ -2,6 +2,7 @@ import type { ComponentType, ReactNode } from "react";
 import type { JsonObject, JsonValue } from "@elgato/utils";
 import type { AdapterActionHandle, StreamDeckAdapter } from "@/adapter/types";
 import type { ActionManifestInfo, PluginManifestInfo } from "@/manifest-types";
+import type { ThemeDefinition } from "@/theme/index";
 
 // ── Local Type Aliases ──────────────────────────────────────────────
 //
@@ -168,6 +169,53 @@ export interface PluginConfig {
   touchStripCacheMaxBytes?: number;
   /** Offload Takumi rendering to a worker thread. When not set, auto-detected: enabled only if any action defines a `touchStrip` component. Set explicitly to `true` or `false` to override. Automatically disabled when `takumi` is `"wasm"`. @default auto-detect (true if any action has touchStrip) */
   useWorker?: boolean;
+  /**
+   * Enable the Action Coordinator for cross-action communication.
+   * When enabled, actions can use `useChannel()` for shared state
+   * and `useActionPresence()` to observe which actions are visible.
+   * @default false
+   */
+  coordinator?: boolean;
+  /**
+   * CSS theme definition.  Tokens are injected as CSS custom properties
+   * on every root's container, making them available via Tailwind v4
+   * arbitrary values: `bg-[var(--color-primary)]`.
+   *
+   * Create a theme with `defineTheme()`.
+   *
+   * @example
+   * ```ts
+   * const theme = defineTheme({
+   *   colors: { primary: "#4CAF50", surface: "#1a1a2e" },
+   * });
+   * createPlugin({ theme, ... });
+   * ```
+   */
+  theme?: ThemeDefinition;
+  /**
+   * CSS stylesheets to pass to the Takumi renderer.  Enables full
+   * Tailwind v4 support including `@theme` blocks, custom utilities,
+   * and any standard CSS.
+   *
+   * Use `@tailwindcss/vite` in your Vite config and import your CSS
+   * file with the `?inline` query to get the compiled stylesheet as
+   * a string at build time.
+   *
+   * @example
+   * ```ts
+   * // vite.config.ts — add tailwindcss() to plugins
+   * // theme.css — @import "tailwindcss"; @theme { --color-primary: #4CAF50; }
+   * import stylesheet from "./theme.css?inline";
+   *
+   * createPlugin({
+   *   stylesheets: [stylesheet],
+   *   // ...
+   * });
+   *
+   * // In components: className="bg-primary text-white"
+   * ```
+   */
+  stylesheets?: string[];
 }
 
 export interface Plugin {

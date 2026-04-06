@@ -115,3 +115,47 @@ function AdvancedKey() {
 The `action` is an `AdapterActionHandle` -- a flat interface that unifies Key/Dial/Action. Methods not applicable for the current surface (e.g., `setImage` on a dial) resolve as no-ops. See [Adapter](/concepts/adapter) for details.
 
 Prefer the dedicated hooks (`useOpenUrl`, `useShowAlert`, etc.) when available.
+
+## useSize
+
+Returns a size helper bound to the current canvas dimensions. Provides percentage-based and proportional size calculations for building responsive layouts across different Stream Deck surfaces.
+
+```ts
+function useSize(): SizeHelper;
+```
+
+```ts
+interface SizeHelper {
+  readonly width: number;
+  readonly height: number;
+  readonly min: number;
+  readonly max: number;
+  readonly square: boolean;
+  readonly landscape: boolean;
+  readonly portrait: boolean;
+  readonly aspectRatio: number;
+  w(percent: number): number;
+  h(percent: number): number;
+  minP(percent: number): number;
+  maxP(percent: number): number;
+  scale(basePx: number, referenceSize?: number): number;
+}
+```
+
+The helper is memoized on canvas dimensions — since `CanvasInfo` is stable for the lifetime of a root, the helper is created once per mount.
+
+```tsx
+function AdaptiveKey() {
+  const size = useSize();
+
+  return (
+    <div className="flex flex-col items-center justify-center w-full h-full bg-[#1a1a1a]">
+      <span style={{ fontSize: size.scale(24), color: "white" }}>
+        {size.square ? "KEY" : "DIAL"}
+      </span>
+    </div>
+  );
+}
+```
+
+See [Size Utility](/guides/size-utility) for the full guide with all methods and common patterns.

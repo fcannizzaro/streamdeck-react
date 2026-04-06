@@ -45,6 +45,9 @@ export { useWillAppear, useWillDisappear } from "@/hooks/lifecycle";
 // ── Hooks — Utility ─────────────────────────────────────────────────
 export { useInterval, useTimeout, usePrevious, useTick } from "@/hooks/utility";
 
+// ── Hooks — Size ────────────────────────────────────────────────────
+export { useSize } from "@/hooks/size";
+
 // ── Hooks — Animation ───────────────────────────────────────────────
 export { useSpring, useTween, SpringPresets, Easings } from "@/hooks/animation";
 export type {
@@ -78,6 +81,12 @@ export {
   useTouchStripDialUp,
 } from "@/hooks/touchstrip";
 
+// ── Hooks — Coordinator ─────────────────────────────────────────────
+export { useCoordinator, useChannel, useActionPresence } from "@/hooks/coordinator";
+
+// ── Hooks — Theme ───────────────────────────────────────────────────
+export { useTheme } from "@/hooks/theme";
+
 // ── Components ──────────────────────────────────────────────────────
 export { Box } from "@/components/Box";
 export { Text } from "@/components/Text";
@@ -87,8 +96,19 @@ export { ProgressBar } from "@/components/ProgressBar";
 export { CircularGauge } from "@/components/CircularGauge";
 export { ErrorBoundary } from "@/components/ErrorBoundary";
 
-// ── Tailwind Utility ────────────────────────────────────────────────
-export { tw } from "@/tw/index";
+// ── Class Name Utility ──────────────────────────────────────────────
+export { cn, tw } from "@/cn/index";
+
+// ── Size Utility ────────────────────────────────────────────────────
+export { calcSize } from "@/size/index";
+export type { SizeHelper } from "@/size/index";
+
+// ── Coordinator Types ───────────────────────────────────────────────
+export type { ActionPresenceInfo, ActionPresenceSnapshot } from "@/coordinator/index";
+
+// ── Theme ───────────────────────────────────────────────────────────
+export { defineTheme, mergeThemes } from "@/theme/index";
+export type { ThemeDefinition, ThemeInput, ThemeVariables } from "@/theme/index";
 
 // ── Google Font Helper ─────────────────────────────────────────────
 export { googleFont } from "@/google-font";
