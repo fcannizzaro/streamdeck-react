@@ -33,7 +33,7 @@ export default defineConfig({
     target: "node20",
     outDir: resolve(PLUGIN_DIR, "bin"),
     emptyOutDir: false,
-    sourcemap: true,
+    sourcemap: false,
     minify: true,
     lib: {
       entry: resolve("src/plugin.ts"),

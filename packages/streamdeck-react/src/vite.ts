@@ -233,6 +233,30 @@ const NOOP_DEVTOOLS_ID = "\0streamdeck-react:noop-devtools";
 const NOOP_DEVTOOLS_CODE = "export function startDevtoolsServer() {}";
 const DEVTOOLS_IMPORT_SOURCE = "./devtools/index.js";
 
+// ── WASM Backend Stripping ──────────────────────────────────────────
+//
+// When the user selects `takumi: "native-binding"` (the default), the
+// WASM backend (`@takumi-rs/wasm`) is never used at runtime.  However,
+// plugin.ts contains a dynamic `import("@takumi-rs/wasm")` inside the
+// `initializeWasmRenderer()` function.  Bundlers follow dynamic import
+// string literals and include the entire module in the output — the
+// @takumi-rs/wasm package contains an inline WASM binary (~6 MB base64)
+// which bloats every plugin bundle even when WASM mode is not used.
+//
+// Fix: redirect `@takumi-rs/wasm` to a no-op virtual module that throws
+// at runtime.  This is safe because the import path is dead code when
+// takumi is "native-binding" — the calling function is never invoked.
+
+const NOOP_WASM_ID = "\0streamdeck-react:noop-wasm";
+const NOOP_WASM_CODE = [
+  "export default function init() {",
+  '  throw new Error("[@fcannizzaro/streamdeck-react] @takumi-rs/wasm was stripped from the bundle. Set takumi: \\"wasm\\" to use the WASM backend.");',
+  "}",
+  "export class Renderer {",
+  '  constructor() { throw new Error("WASM backend stripped"); }',
+  "}",
+].join("\n");
+
 // ── Native Module Virtual IDs ───────────────────────────────────────
 //
 // Each registered native module gets two virtual module IDs:
@@ -967,6 +991,7 @@ export function streamDeckReact(options: StreamDeckReactOptions = {}): Plugin {
   let isDevelopment = false;
   let isWatchMode = false;
   let stripDevtools = false;
+  let stripWasm = false;
 
   // ── Native binding strategy ────────────────────────────────────
   //
@@ -1063,6 +1088,13 @@ export function streamDeckReact(options: StreamDeckReactOptions = {}): Plugin {
       // Determine native binding mode.
       // WASM mode always skips native bindings entirely.
       useLazyMode = options.takumi !== "wasm" && (options.nativeBindings ?? "lazy") === "lazy";
+
+      // Strip the WASM backend when using native bindings (the default).
+      // The @takumi-rs/wasm package contains an inline WASM binary (~6 MB)
+      // that would bloat every plugin bundle via a dynamic import() in
+      // plugin.ts's initializeWasmRenderer() — even though that code path
+      // is dead when takumi is "native-binding".
+      stripWasm = options.takumi !== "wasm";
     },
 
     buildStart() {
@@ -1203,6 +1235,13 @@ export function streamDeckReact(options: StreamDeckReactOptions = {}): Plugin {
         return NOOP_DEVTOOLS_ID;
       }
 
+      // Strip @takumi-rs/wasm when using native-binding mode (the default).
+      // Without this, the bundler follows the dynamic import("@takumi-rs/wasm")
+      // in plugin.ts and inlines ~6 MB of WASM binary into every plugin bundle.
+      if (stripWasm && source === "@takumi-rs/wasm") {
+        return NOOP_WASM_ID;
+      }
+
       // Replace native module imports with virtual loaders.
       // This covers both the built-in Takumi binding and any
       // user-provided nativeModules entries.
@@ -1216,6 +1255,7 @@ export function streamDeckReact(options: StreamDeckReactOptions = {}): Plugin {
 
     load(id) {
       if (id === NOOP_DEVTOOLS_ID) return NOOP_DEVTOOLS_CODE;
+      if (id === NOOP_WASM_ID) return NOOP_WASM_CODE;
 
       // Native module virtual loaders (lazy or static)
       const nativeCode = nativeCodeByVirtualId.get(id);
