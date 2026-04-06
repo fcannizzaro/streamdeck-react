@@ -4,9 +4,7 @@ A Stream Deck plugin built with `@fcannizzaro/streamdeck-react` that demonstrate
 
 Press a key to activate its 3D editor, then use the dials to manipulate the shape's geometry and orientation. Each key is an independent editor with its own persisted state.
 
-https://github.com/user-attachments/assets/coordinator.webm
-
-<video src="coordinator.webm" autoplay loop muted></video>
+![coordinator](coordinator.gif)
 
 ## Features
 
