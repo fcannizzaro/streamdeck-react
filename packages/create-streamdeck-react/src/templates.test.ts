@@ -36,6 +36,8 @@ test("lazy mode: vite config omits targets and nativeBindings", () => {
   expect(config).not.toContain("nativeBindings:");
   expect(config).toContain("esmExternalRequirePlugin");
   expect(config).toContain('conditions: ["node"]');
+  expect(config).toContain("sdkVersion: 3,");
+  expect(config).toContain('nodejs: { version: "24" },');
 });
 
 test("lazy mode: manifest.json is NOT generated (auto-generated at build time)", () => {
@@ -77,6 +79,8 @@ test("copy mode: vite config renders nativeBindings", () => {
   expect(config).not.toContain("targets:");
   expect(config).toContain("esmExternalRequirePlugin");
   expect(config).toContain('conditions: ["node"]');
+  expect(config).toContain("sdkVersion: 3,");
+  expect(config).toContain('nodejs: { version: "24" },');
 });
 
 // ── React Compiler ──────────────────────────────────────────────────

@@ -57,7 +57,7 @@ interface ChoiceOption<T extends string> {
 
 // ── Constants ───────────────────────────────────────────────────────
 
-const ELGATO_SDK_VERSION = "^2.0.0";
+const ELGATO_SDK_VERSION = "^2.0.2";
 
 const BASE_DEV_DEPENDENCIES = {
   "@elgato/cli": "^1.7.1",
@@ -310,6 +310,8 @@ export function buildViteConfig(
     '        icon: "imgs/plugin-icon",',
     '        version: "0.0.0.1",',
     `        category: "${options.category}",`,
+    "        sdkVersion: 3,",
+    '        nodejs: { version: "24" },',
     ...osLines,
     "      },",
     "    }),",
