@@ -197,7 +197,7 @@ export class RootRegistry {
     if (recycled) {
       // Resume the dormant root with new context data.
       // This reuses the existing fiber tree — much cheaper than
-      // creating a new one (avoids reconciler.createContainer +
+      // creating a new one (avoids getReconciler().createContainer() +
       // initial mount).
       recycled.resume(
         actionInfo,

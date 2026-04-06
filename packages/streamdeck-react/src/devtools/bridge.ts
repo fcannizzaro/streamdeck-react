@@ -3,7 +3,7 @@ import type { TouchStripRoot } from "@/roots/touchstrip-root";
 import type { CanvasInfo, DeviceInfo } from "@/types";
 import type { VContainer } from "@/reconciler/vnode";
 import type { RenderConfig, RenderProfile } from "@/render/pipeline";
-import { metrics } from "@/render/metrics";
+import { getMetrics } from "@/render/metrics";
 import type { RegistryObserver } from "./observers/lifecycle";
 import type { DevtoolsServer } from "./server";
 import type {
@@ -394,7 +394,7 @@ export class DevtoolsBridge implements RegistryObserver {
     if (this._metricsTimer) return;
     this._metricsTimer = setInterval(() => {
       if (!this.server.hasClients()) return;
-      const snapshot = metrics.snapshot();
+      const snapshot = getMetrics().snapshot();
       const msg: MetricsMessage = {
         type: "metrics",
         ts: Date.now(),
@@ -988,7 +988,7 @@ export class DevtoolsBridge implements RegistryObserver {
       recentConsole: this.consoleRing.toArray(),
       recentNetwork: this.networkRing.toArray(),
       recentEvents: this.eventRing.toArray(),
-      metrics: metrics.snapshot(),
+      metrics: getMetrics().snapshot(),
     };
   }
 }

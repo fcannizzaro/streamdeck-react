@@ -5,8 +5,7 @@ import { RootRegistry } from "@/roots/registry";
 import type { PluginConfig, Plugin, ActionDefinition, FontConfig, TakumiBackend } from "./types";
 import type { RenderConfig } from "@/render/pipeline";
 import { RenderPool } from "@/render/render-pool";
-import { metrics } from "@/render/metrics";
-import { startDevtoolsServer } from "./devtools/index.js";
+import { getMetrics } from "@/render/metrics";
 import { physicalDevice } from "@/adapter/physical-device";
 import type { StreamDeckAdapter } from "@/adapter/types";
 import { ActionCoordinator } from "@/coordinator/index";
@@ -173,11 +172,16 @@ export function createPlugin(config: PluginConfig): Plugin {
 
       // ── Metrics (debug mode) ───────────────────────────────────────────
       if (renderConfig.debug) {
-        metrics.enable();
+        getMetrics().enable();
       }
 
-      // ── DevTools server (conditional) ──────────────────────────────────────
+      // ── DevTools server (conditional, lazy-loaded) ─────────────────────────
+      // The devtools subsystem (~1000+ lines: bridge, server, serialization,
+      // intercepts, observers) is loaded via dynamic import() so that it's
+      // excluded from the bundle when devtools is not enabled.  This saves
+      // significant code size for production plugins.
       if (config.devtools) {
+        const { startDevtoolsServer } = await import("./devtools/index.js");
         startDevtoolsServer({
           devtoolsName: adapter.pluginUUID,
           registry,

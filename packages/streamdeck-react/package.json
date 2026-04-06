@@ -27,6 +27,7 @@
     "type": "patreon",
     "url": "https://patreon.com/fcannizzaro"
   },
+  "sideEffects": false,
   "files": [
     "dist",
     "font.d.ts",

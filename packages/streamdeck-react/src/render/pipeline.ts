@@ -45,7 +45,7 @@ import { encodePng } from "./png";
 import { getImageCache, getTouchStripCache, type CacheStats } from "./image-cache";
 import { getBufferPool } from "./buffer-pool";
 import type { RenderPool } from "./render-pool";
-import { metrics } from "./metrics";
+import { getMetrics } from "./metrics";
 import { serializeSvgTree } from "./svg";
 
 // ── Render Configuration ────────────────────────────────────────────
@@ -294,11 +294,11 @@ export async function renderToDataUri(
     return null;
   }
 
-  metrics.recordFlush();
+  getMetrics().recordFlush();
 
   // Pre-render skip: if no VNode was mutated since last flush, skip entirely
   if (config.caching && !isContainerDirty(container)) {
-    metrics.recordDirtySkip();
+    getMetrics().recordDirtySkip();
     return null;
   }
 
@@ -330,7 +330,7 @@ export async function renderToDataUri(
 
     if (cached !== undefined) {
       // Cache hit — skip everything
-      metrics.recordCacheHit();
+      getMetrics().recordCacheHit();
       if (profiling) {
         const tNow = performance.now();
         emitProfile(
@@ -385,7 +385,7 @@ export async function renderToDataUri(
   if (config.caching) {
     const hash = fnv1a(buffer);
     if (hash === container.lastSvgHash) {
-      metrics.recordHashDedup();
+      getMetrics().recordHashDedup();
       // Duplicate detection in debug mode
       if (config.debug) {
         container._dupCount++;
@@ -435,7 +435,7 @@ export async function renderToDataUri(
   }
 
   // Record render for metrics
-  metrics.recordRender(t2 - t0);
+  getMetrics().recordRender(t2 - t0);
 
   if (profiling) {
     const tEnd = performance.now();
@@ -509,13 +509,13 @@ export async function renderToRaw(
     return null;
   }
 
-  metrics.recordFlush();
+  getMetrics().recordFlush();
 
   // ── Phase 1: Dirty-flag check ─────────────────────────────────
   // If no VNode was mutated since last flush, skip entirely.
   // Cost: O(1) — just a boolean check on the container.
   if (config.caching && !isContainerDirty(container)) {
-    metrics.recordDirtySkip();
+    getMetrics().recordDirtySkip();
     return null;
   }
 
@@ -545,7 +545,7 @@ export async function renderToRaw(
     const cached = cache.get(cacheKey);
 
     if (cached !== undefined) {
-      metrics.recordCacheHit();
+      getMetrics().recordCacheHit();
       if (profiling) {
         const tNow = performance.now();
         emitProfile(
@@ -597,7 +597,7 @@ export async function renderToRaw(
   if (config.caching) {
     const hash = fnv1a(buffer);
     if (hash === container.lastSvgHash) {
-      metrics.recordHashDedup();
+      getMetrics().recordHashDedup();
       if (profiling) {
         const tEnd = performance.now();
         emitProfile(
@@ -628,7 +628,7 @@ export async function renderToRaw(
   }
 
   // Record render for metrics
-  metrics.recordRender(t2 - t0);
+  getMetrics().recordRender(t2 - t0);
 
   if (profiling) {
     const tEnd = performance.now();

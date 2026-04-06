@@ -43,7 +43,7 @@ export interface SettingsContextValue {
   setSettings: (partial: JsonObject) => void;
 }
 
-export const SettingsContext = createContext<SettingsContextValue>(null!);
+export const SettingsContext = /*#__PURE__*/ createContext<SettingsContextValue>(null!);
 
 // ── Global Settings Context ─────────────────────────────────────────
 
@@ -52,7 +52,7 @@ export interface GlobalSettingsContextValue {
   setSettings: (partial: JsonObject) => void;
 }
 
-export const GlobalSettingsContext = createContext<GlobalSettingsContextValue>(null!);
+export const GlobalSettingsContext = /*#__PURE__*/ createContext<GlobalSettingsContextValue>(null!);
 
 // ── Root Context (merged stable contexts) ───────────────────────────
 //
@@ -77,7 +77,7 @@ export interface RootContextValue {
   streamDeck: StreamDeckAccess;
 }
 
-export const RootContext = createContext<RootContextValue>(null!);
+export const RootContext = /*#__PURE__*/ createContext<RootContextValue>(null!);
 
 // ── Event Bus Context ───────────────────────────────────────────────
 //
@@ -85,7 +85,7 @@ export const RootContext = createContext<RootContextValue>(null!);
 // ReactRoot (key/dial actions) and TouchStripRoot (shared per-device).
 // Both root types provide this context.
 
-export const EventBusContext = createContext<EventBus>(null!);
+export const EventBusContext = /*#__PURE__*/ createContext<EventBus>(null!);
 
 // ── Device Context ──────────────────────────────────────────────────
 //
@@ -93,7 +93,7 @@ export const EventBusContext = createContext<EventBus>(null!);
 // have per-action ActionInfo, CanvasInfo, or StreamDeckAccess.
 // For ReactRoot, DeviceInfo is provided via RootContext.
 
-export const DeviceContext = createContext<DeviceInfo>(null!);
+export const DeviceContext = /*#__PURE__*/ createContext<DeviceInfo>(null!);
 
 // ── Coordinator Context ─────────────────────────────────────────────
 //
@@ -102,7 +102,7 @@ export const DeviceContext = createContext<DeviceInfo>(null!);
 // Hooks that consume this context (useChannel, useActionPresence, etc.)
 // throw a helpful error when called without a coordinator.
 
-export const CoordinatorContext = createContext<ActionCoordinator | null>(null);
+export const CoordinatorContext = /*#__PURE__*/ createContext<ActionCoordinator | null>(null);
 
 // ── Theme Context ───────────────────────────────────────────────────
 //
@@ -119,4 +119,4 @@ export interface ThemeContextValue {
   setTheme: (theme: ThemeDefinition) => void;
 }
 
-export const ThemeContext = createContext<ThemeContextValue>(null!);
+export const ThemeContext = /*#__PURE__*/ createContext<ThemeContextValue>(null!);

@@ -1,5 +1,5 @@
 import { createElement, type ComponentType, type ReactElement } from "react";
-import { reconciler } from "@/reconciler/renderer";
+import { getReconciler } from "@/reconciler/renderer";
 import { createVContainer, clearDirtyFlags, type VContainer } from "@/reconciler/vnode";
 import { renderToDataUri, type RenderConfig } from "@/render/pipeline";
 import { EventBus } from "@/context/event-bus";
@@ -82,7 +82,7 @@ const DEFAULT_DIAL_LAYOUT: Exclude<EncoderLayout, string> = {
 export class ReactRoot implements FlushableRoot {
   eventBus = new EventBus();
   private container: VContainer;
-  private fiberRoot: ReturnType<typeof reconciler.createContainer>;
+  private fiberRoot: ReturnType<ReturnType<typeof getReconciler>["createContainer"]>;
   private settings: JsonObject;
   private globalSettings: JsonObject;
   private setSettingsFn: (partial: JsonObject) => void;
@@ -250,7 +250,7 @@ export class ReactRoot implements FlushableRoot {
     });
 
     // Create the fiber root
-    this.fiberRoot = reconciler.createContainer(
+    this.fiberRoot = getReconciler().createContainer(
       this.container,
       0, // LegacyRoot tag
       null, // hydrationCallbacks
@@ -293,7 +293,7 @@ export class ReactRoot implements FlushableRoot {
 
   private render(): void {
     const element = this.buildTree();
-    reconciler.updateContainer(element, this.fiberRoot, null, () => {});
+    getReconciler().updateContainer(element, this.fiberRoot, null, () => {});
   }
 
   private buildTree(): ReactElement {
@@ -463,7 +463,7 @@ export class ReactRoot implements FlushableRoot {
     }
     this.flushCoordinator?.cancelFlush(this.flushId);
     this.eventBus.emit("willDisappear", undefined as never);
-    reconciler.updateContainer(null, this.fiberRoot, null, () => {});
+    getReconciler().updateContainer(null, this.fiberRoot, null, () => {});
     this.eventBus.removeAllListeners();
   }
 
@@ -527,7 +527,7 @@ export class ReactRoot implements FlushableRoot {
   /**
    * Resume a previously suspended root with new context data.
    * Reuses the existing fiber root and component tree, avoiding
-   * the cost of reconciler.createContainer() and initial mount.
+   * the cost of getReconciler().createContainer() and initial mount.
    *
    * A new EventBus is created to force useEvent hooks to
    * re-subscribe (the EventBusContext value change triggers React's

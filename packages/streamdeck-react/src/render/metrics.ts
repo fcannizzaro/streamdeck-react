@@ -179,5 +179,24 @@ class MetricsCollector {
 }
 
 // ── Shared Singleton ────────────────────────────────────────────────
+//
+// Lazy singleton — not instantiated until first use.  This ensures the
+// module has no side effects at import time, enabling tree-shakers to
+// drop it entirely when unused.  Follows the same get*()/reset*()
+// pattern used by getBufferPool(), getImageCache(), etc.
 
-export const metrics = new MetricsCollector();
+let _metrics: MetricsCollector | null = null;
+
+/** Get the shared metrics collector (creates lazily on first access). */
+export function getMetrics(): MetricsCollector {
+  if (_metrics == null) {
+    _metrics = new MetricsCollector();
+  }
+  return _metrics;
+}
+
+/** Reset the shared metrics collector (for testing or cleanup). */
+export function resetMetrics(): void {
+  _metrics?.disable();
+  _metrics = null;
+}

@@ -57,7 +57,7 @@ export default defineConfig({
     outDir: resolve(PLUGIN_DIR, "bin"),
     emptyOutDir: false,
     sourcemap: true,
-    minify: false,
+    minify: true,
     lib: {
       entry: resolve("src/plugin.ts"),
       formats: ["es"],

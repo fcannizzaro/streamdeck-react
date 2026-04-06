@@ -1,5 +1,5 @@
 import { createElement, type ComponentType, type ReactElement } from "react";
-import { reconciler } from "@/reconciler/renderer";
+import { getReconciler } from "@/reconciler/renderer";
 import {
   createVContainer,
   isContainerDirty,
@@ -99,7 +99,7 @@ interface ColumnEntry {
 export class TouchStripRoot implements FlushableRoot {
   readonly eventBus = new EventBus();
   private container: VContainer;
-  private fiberRoot: ReturnType<typeof reconciler.createContainer>;
+  private fiberRoot: ReturnType<ReturnType<typeof getReconciler>["createContainer"]>;
   private columns = new Map<number, ColumnEntry>();
   private globalSettings: JsonObject;
   private setGlobalSettingsFn: (partial: JsonObject) => void;
@@ -253,7 +253,7 @@ export class TouchStripRoot implements FlushableRoot {
     });
 
     // Create the fiber root
-    this.fiberRoot = reconciler.createContainer(
+    this.fiberRoot = getReconciler().createContainer(
       this.container,
       0, // LegacyRoot tag
       null, // hydrationCallbacks
@@ -331,7 +331,7 @@ export class TouchStripRoot implements FlushableRoot {
   private render(): void {
     if (this.disposed) return;
     const element = this.buildTree();
-    reconciler.updateContainer(element, this.fiberRoot, null, () => {});
+    getReconciler().updateContainer(element, this.fiberRoot, null, () => {});
   }
 
   private buildTree(): ReactElement {
@@ -627,7 +627,7 @@ export class TouchStripRoot implements FlushableRoot {
     }
     this.flushCoordinator?.cancelFlush(this.flushId);
     this.eventBus.emit("willDisappear", undefined as never);
-    reconciler.updateContainer(null, this.fiberRoot, null, () => {});
+    getReconciler().updateContainer(null, this.fiberRoot, null, () => {});
     this.eventBus.removeAllListeners();
     this.columns.clear();
   }
